@@ -1,0 +1,14 @@
+inputs:
+  mk-shell-bin:
+    url: github:rrbutani/nix-mk-shell-bin
+  nix-ros-overlay:
+    url: github:lopsided98/nix-ros-overlay/master
+  nixgl:
+    url: github:nix-community/nixGL/main
+  nixpkgs:
+    follows: nix-ros-overlay/nixpkgs
+  treefmt-nix:
+    url: github:numtide/treefmt-nix
+allow_unfree: true
+imports:
+- ./software/web-ui/devenv.nix
