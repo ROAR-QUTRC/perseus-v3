@@ -1,11 +1,11 @@
 # https://index.0x77.dev/blog/ros-devenv
 {
-  pkgs,        # The Nix package set (derived from inputs.nixpkgs)
-  lib,         # Nixpkgs utility functions
-  config,      # devenv configuration values
-  nixpkgs,     # Direct access to the nixpkgs input
+  pkgs, # The Nix package set (derived from inputs.nixpkgs)
+  lib, # Nixpkgs utility functions
+  config, # devenv configuration values
+  nixpkgs, # Direct access to the nixpkgs input
   nix-ros-overlay, # Direct access to the overlay input
-  nixgl,       # Direct access to the nixgl input
+  nixgl, # Direct access to the nixgl input
   ...
 }:
 
@@ -43,7 +43,7 @@ in
       git
       colcon # The ROS 2 build tool
       graphviz # Often needed for ROS visualization tools
-      cairo    # Dependency for some GUI libraries
+      cairo # Dependency for some GUI libraries
 
       # --- Select ONE nixGL variant based on your GPU ---
       # Provides OpenGL support for GUI apps outside NixOS
@@ -54,7 +54,8 @@ in
       # ... other variants
     ]
     # Add ROS 2 Humble packages
-    ++ (with pkgs.rosPackages.jazzy; [ # Or change 'humble' to 'jazzy', 'noetic', etc.
+    ++ (with pkgs.rosPackages.jazzy; [
+      # Or change 'humble' to 'jazzy', 'noetic', etc.
       # --- ROS 2 Packages ---
       # Use buildEnv to group ROS packages and ensure their setup.sh is sourced
       (buildEnv {
@@ -67,11 +68,11 @@ in
           # Specific ROS packages for your project
           rosbridge-suite
           rplidar-ros # From our custom vendor overlay
-          rviz2       # For visualization
-          nav2-amcl   # Navigation stack component
+          rviz2 # For visualization
+          nav2-amcl # Navigation stack component
           slam-toolbox # SLAM algorithms
-          tf2-ros     # Transform library
-          tf2-tools   # TF debugging tools
+          tf2-ros # Transform library
+          tf2-tools # TF debugging tools
           rqt-common-plugins # Useful RQT GUI tools
           rqt-tf-tree # RQT TF visualization
         ];
@@ -101,7 +102,7 @@ in
     };
 
     # command
-    # perseus 
+    # perseus
     # p is an alias
 
     "perseus-run" = {
@@ -137,7 +138,6 @@ in
     echo -e "Remote Off-world Autonomous Robotics\e[0m";
   '';
 }
-
 
 # { pkgs, lib, config, inputs, ... }:
 

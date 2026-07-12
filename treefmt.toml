@@ -1,0 +1,152 @@
+excludes = [
+    "build/**",
+    "result/**",
+    "generated/**",
+    "treefmt.toml",
+    "docs/figures-source/**",
+    "docs/pyproject/**",
+    "docs/source/_static/fonts/**",
+    "docs/source/robots.txt",
+    "docs/source/intersphinx/**",
+    "*.rviz",
+    "setup.cfg",
+    "software/ros_ws/src/**/resource/**",
+    "*.drawio",
+    "*.svg",
+    "*.ttf",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.bmp",
+    "*.ico",
+    "*.pdf",
+    "*sdkconfig*",
+    "software/ros_ws/src/**/meshes/**",
+    "*.dae",
+    "*.stl",
+    "*.step",
+    "*.3mf",
+    "*.onnx",
+    "hardware/**",
+    "*.lock",
+    "*.patch",
+    "package-lock.json",
+    "go.mod",
+    "go.sum",
+    ".gitattributes",
+    ".gitignore",
+    ".gitmodules",
+    ".hgignore",
+    ".svnignore",
+    "LICENSE",
+]
+
+[formatter.actionlint]
+command = "actionlint"
+excludes = []
+includes = [".github/workflows/*.yml", ".github/workflows/*.yaml"]
+options = []
+
+[formatter.clang-format]
+command = "clang-format"
+excludes = []
+includes = [
+    "*.c",
+    "*.cc",
+    "*.cpp",
+    "*.h",
+    "*.hh",
+    "*.hpp",
+    "*.glsl",
+    "*.vert",
+    ".tesc",
+    ".tese",
+    ".geom",
+    ".frag",
+    ".comp",
+]
+options = ["-i"]
+
+[formatter.cmake-format]
+command = "cmake-format"
+excludes = []
+includes = ["*.cmake", "CMakeLists.txt", "CMakeLists.txt", "**/CMakeLists.txt", "**/*.cmake"]
+options = ["--in-place"]
+
+[formatter.dos2unix]
+command = "dos2unix"
+excludes = []
+includes = ["*"]
+options = ["--keepdate"]
+
+[formatter.keep-sorted]
+command = "keep-sorted"
+excludes = []
+includes = ["*"]
+options = []
+
+[formatter.nixfmt]
+command = "nixfmt"
+excludes = []
+includes = ["*.nix"]
+options = []
+
+[formatter.prettier]
+command = "prettier"
+excludes = []
+includes = [
+    "*.cjs",
+    "*.css",
+    "*.html",
+    "*.js",
+    "*.json",
+    "*.json5",
+    "*.jsx",
+    "*.md",
+    "*.mdx",
+    "*.mjs",
+    "*.scss",
+    "*.ts",
+    "*.tsx",
+    "*.vue",
+    "*.yaml",
+    "*.yml",
+]
+options = ["--write", "--config", "/nix/store/08dd0r4gskvj94nzfkppinw9z0393jnd-prettierrc.json"]
+
+[formatter.ruff-format]
+command = "ruff"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = ["format"]
+
+[formatter.shellcheck]
+command = "shellcheck"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = []
+
+[formatter.shfmt]
+command = "shfmt"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = ["-w", "-i", "2", "-s"]
+
+[formatter.taplo]
+command = "taplo"
+excludes = []
+includes = ["*.toml"]
+options = ["format"]
+
+[formatter.typos]
+command = "typos"
+excludes = ["typos.toml"]
+includes = ["*"]
+options = ["--write-changes", "--force-exclude"]
+
+[formatter.yamlfmt]
+command = "yamlfmt"
+excludes = []
+includes = ["*.yaml", "*.yml"]
+options = []

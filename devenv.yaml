@@ -11,4 +11,6 @@ inputs:
     url: github:numtide/treefmt-nix
 allow_unfree: true
 imports:
-- ./software/web-ui/devenv.nix
+  - ./nix/scripts.nix
+  - ./nix/treefmt.nix
+  # - ./software/web-ui/devenv.nix
