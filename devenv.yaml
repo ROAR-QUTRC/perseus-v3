@@ -1,16 +1,26 @@
 inputs:
-  mk-shell-bin:
-    url: github:rrbutani/nix-mk-shell-bin
-  nix-ros-overlay:
+  # ROS2 related inputs
+  nix-ros-overlay: # ros overlay
     url: github:lopsided98/nix-ros-overlay/master
-  nixgl:
-    url: github:nix-community/nixGL/main
-  nixpkgs:
+  nixpkgs: # use the nixpkgs from the ros overlay to ensure compatibility
     follows: nix-ros-overlay/nixpkgs
+  nix-ros-workspace: # ros workspace overlay replaces buildEnv from the nix ros overlay
+    url: github:RandomSpaceship/nix-ros-workspace
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+      nix-ros-overlay:
+        follows: nix-ros-overlay
+  # formatting
   treefmt-nix:
     url: github:numtide/treefmt-nix
+  # Other utilities
+  nixgl:
+    url: github:nix-community/nixGL/main
+  mk-shell-bin:
+    url: github:rrbutani/nix-mk-shell-bin
 allow_unfree: true
 imports:
+  - ./software/web-ui/devenv.nix
   - ./nix/scripts.nix
   - ./nix/treefmt.nix
-  # - ./software/web-ui/devenv.nix

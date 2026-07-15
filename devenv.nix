@@ -22,7 +22,7 @@ let
 in
 {
   # A name for your environment
-  name = "ros-devenv-example"; # Replace with your project name
+  name = "Perseus-v3"; # Replace with your project name
 
   # Configure Cachix binary caches for faster builds
   cachix.pull = [ "ros" ]; # Pull pre-built ROS packages
@@ -52,80 +52,32 @@ in
       # nixGL.nixGLIntel
       # nixGL.auto.nixGLNvidia
       # ... other variants
-    ]
-    # Add ROS 2 Humble packages
-    ++ (with pkgs.rosPackages.jazzy; [
-      # Or change 'humble' to 'jazzy', 'noetic', etc.
-      # --- ROS 2 Packages ---
-      # Use buildEnv to group ROS packages and ensure their setup.sh is sourced
-      (buildEnv {
-        name = "ros-env"; # Name for this specific ROS package group
-        paths = [
-          # Core ROS libraries
-          ros-core
-          ament-cmake-core
+    ];
+  # Add ROS 2 Humble packages
+  # ++ (with pkgs.rosPackages.jazzy; [
+  #   # Or change 'humble' to 'jazzy', 'noetic', etc.
+  #   # --- ROS 2 Packages ---
+  #   # Use buildEnv to group ROS packages and ensure their setup.sh is sourced
+  #   (buildEnv {
+  #     name = "ros-env"; # Name for this specific ROS package group
+  #     paths = [
+  #       # Core ROS libraries
+  #       ros-core
+  #       ament-cmake-core
 
-          # Specific ROS packages for your project
-          rosbridge-suite
-          rplidar-ros # From our custom vendor overlay
-          rviz2 # For visualization
-          nav2-amcl # Navigation stack component
-          slam-toolbox # SLAM algorithms
-          tf2-ros # Transform library
-          tf2-tools # TF debugging tools
-          rqt-common-plugins # Useful RQT GUI tools
-          rqt-tf-tree # RQT TF visualization
-        ];
-      })
-    ]);
-
-  # --- Scripts ---
-  # Define reusable shell commands available inside the environment
-  scripts = {
-    rplidar = {
-      # Example: Launch RPLidar node with arguments
-      # Usage: devenv run rplidar /dev/ttyUSB0 lidar_frame scan
-      # Args: $1=serial_port, $2=frame_id, $3=scan_topic
-      exec = ''
-        echo "Launching RPLidar on $1 (Frame: $2, Topic: $3)..."
-        # Note: ros2 run commands work directly because buildEnv sourced setup.sh
-        ros2 run rplidar_ros rplidar_node --ros-args \
-          -p serial_port:=$1 \
-          -p serial_baudrate:=460800 \
-          -p frame_id:=$2 \
-          -p inverted:=false \
-          -p angle_compensate:=true \
-          -p scan_frequency:=10.0 \
-          -p scan_mode:=Standard \
-          --remap scan:=$3
-      '';
-    };
-
-    # command
-    # perseus
-    # p is an alias
-
-    "perseus-run" = {
-      exec = ''
-        echo "running perseus"
-      '';
-    };
-  };
-
-  containers.rplidar = {
-    name = "rplidar";
-    startupCommand = config.scripts.rplidar.exec;
-  };
-
-  # --- Git Hooks ---
-  # Automatically run checks/formatters on commit
-  # git-hooks.hooks = {
-  #   shellcheck.enable = true; # Check shell scripts
-  #   # mdsh.enable = true; # Example: Check markdown
-  #   flake-checker.enable = true; # Check Nix code health
-  #   nixfmt-rfc-style.enable = true; # Format Nix code
-  #   actionlint.enable = true; # Lint GitHub Actions workflows
-  # };
+  #       # Specific ROS packages for your project
+  #       rosbridge-suite
+  #       rplidar-ros # From our custom vendor overlay
+  #       rviz2 # For visualization
+  #       nav2-amcl # Navigation stack component
+  #       slam-toolbox # SLAM algorithms
+  #       tf2-ros # Transform library
+  #       tf2-tools # TF debugging tools
+  #       rqt-common-plugins # Useful RQT GUI tools
+  #       rqt-tf-tree # RQT TF visualization
+  #     ];
+  #   })
+  # ]);
 
   enterShell = ''
     echo -e "\e[38;5;208m______                                    _____ ";
@@ -138,50 +90,3 @@ in
     echo -e "Remote Off-world Autonomous Robotics\e[0m";
   '';
 }
-
-# { pkgs, lib, config, inputs, ... }:
-
-# {
-#   # https://devenv.sh/basics/
-#   env.GREET = "devenv";
-
-#   # https://devenv.sh/packages/
-#   packages = [ pkgs.git ];
-
-#   # https://devenv.sh/languages/
-#   # languages.rust.enable = true;
-
-#   # https://devenv.sh/processes/
-#   # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
-
-#   # https://devenv.sh/services/
-#   # services.postgres.enable = true;
-
-#   # https://devenv.sh/scripts/
-#   scripts.hello.exec = ''
-#     echo hello from $GREET
-#   '';
-
-#   # https://devenv.sh/basics/
-#   enterShell = ''
-#     hello         # Run scripts directly
-#     git --version # Use packages
-#   '';
-
-#   # https://devenv.sh/tasks/
-#   # tasks = {
-#   #   "myproj:setup".exec = "mytool build";
-#   #   "devenv:enterShell".after = [ "myproj:setup" ];
-#   # };
-
-#   # https://devenv.sh/tests/
-#   enterTest = ''
-#     echo "Running tests"
-#     git --version | grep --color=auto "${pkgs.git.version}"
-#   '';
-
-#   # https://devenv.sh/git-hooks/
-#   # git-hooks.hooks.shellcheck.enable = true;
-
-#   # See full reference at https://devenv.sh/reference/options/
-# }

@@ -89,6 +89,29 @@
         "type": "github"
       }
     },
+    "nix-ros-workspace": {
+      "inputs": {
+        "nix-ros-overlay": [
+          "nix-ros-overlay"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1769686097,
+        "narHash": "sha256-6Q/lCAD8dEM4quIcTJ2bNaPTTQL4lqxBMvj31S84Wdg=",
+        "owner": "RandomSpaceship",
+        "repo": "nix-ros-workspace",
+        "rev": "4b37c03524e4ce0cae836a30af71473c92a820a8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RandomSpaceship",
+        "repo": "nix-ros-workspace",
+        "type": "github"
+      }
+    },
     "nixgl": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -161,6 +184,7 @@
         "devenv": "devenv",
         "mk-shell-bin": "mk-shell-bin",
         "nix-ros-overlay": "nix-ros-overlay",
+        "nix-ros-workspace": "nix-ros-workspace",
         "nixgl": "nixgl",
         "nixpkgs": [
           "nix-ros-overlay",
