@@ -47,6 +47,11 @@ in
     ]
     ++ flattenDerivationSet examples;
 
+  treefmt = {
+    enable = true;
+    config = import ./treefmt.nix;
+  };
+
   enterShell = ''
     echo -e "\e[38;5;208m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
