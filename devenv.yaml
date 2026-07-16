@@ -24,3 +24,4 @@ imports:
   - ./software/web-ui/devenv.nix
   - ./nix/scripts.nix
   - ./nix/treefmt.nix
+  - ./nix/machines/default.nix
