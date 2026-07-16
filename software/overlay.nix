@@ -1,0 +1,34 @@
+rosDistro: final: prev:
+let
+  # utility function to provide a clean src with the cmake build directory (and typical build outputs) removed
+  cleanCmakeSource =
+    {
+      src,
+      name ? "src",
+      ...
+    }:
+    prev.lib.cleanSourceWith {
+      inherit name;
+      src = prev.lib.cleanSource src;
+      filter =
+        path: type:
+        let
+          # strip out the absolute path prefix
+          relativePath = prev.lib.removePrefix (toString src) path;
+        in
+        !(prev.lib.hasPrefix "build/" relativePath);
+    };
+  # import individual overlays
+  shared = (import ./shared/overlay.nix);
+  native = (import ./native/overlay.nix);
+  # combine above overlays into a single overlay
+  composed = prev.lib.composeManyExtensions [
+    (final: prev: { inherit cleanCmakeSource; })
+    shared
+    native
+  ] final prev;
+in
+composed
+// {
+
+}
