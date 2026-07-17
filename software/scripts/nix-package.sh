@@ -9,7 +9,7 @@ if ! cd "$TOP_LEVEL/nix"; then
 fi
 
 ROS_WS="$TOP_LEVEL/software/ros_ws"
-OUTPUT_DIR="$TOP_LEVEL/nix/ros-packages/perseus"
+OUTPUT_DIR="$TOP_LEVEL/nix/extra-packages/ros-packages/perseus"
 
 echo "Cleaning old packaging files"
 rm -r "$OUTPUT_DIR"
