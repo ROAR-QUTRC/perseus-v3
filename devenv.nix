@@ -42,6 +42,7 @@ in
     [
       colcon # The ROS 2 build tool
       graphviz # Often needed for ROS visualization tools
+      livox-sdk2
     ]
     ++ flattenDerivationSet examples;
 

@@ -12,6 +12,7 @@
   nix-ros-workspace.overlays.default
   # import ros workspace packages + fixes
   (import ../software/overlay.nix rosDistro)
+  (import ./extra-packages/overlay.nix)
 
   (final: prev: {
     # alias the output to pkgs.ros to make it easier to use
