@@ -32,10 +32,10 @@ if ! cd "$OUTPUT_DIR"; then
   echo "Error when entering generated packages output directory"
   exit
 fi
-git add .
 treefmt "$OUTPUT_DIR"
 
-if [ "$*" = "*--no-commit*" ]; then
+echo "$*"
+if [ "--no-commit" = "$1" ]; then
   echo "Will not commit changes"
   exit 0
 fi
@@ -50,8 +50,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Pathspec: https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec
-# TODO: Test this
-if ! git diff --cached --quiet -- "$TOP_LEVEL" ":!$OUTPUT_DIR" >/dev/null; then
+if ! git diff --cached --quiet -- "$TOP_LEVEL" ":!${OUTPUT_DIR}" >/dev/null; then
   HAS_GIT_STAGING=1
   echo "Stashing staged changes"
   git stash push -S -- "$TOP_LEVEL" ":!$OUTPUT_DIR" >/dev/null
