@@ -6,7 +6,6 @@
   ...
 }:
 [
-
   nix-ros-overlay.overlays.default # Makes ROS packages available via pkgs.rosPackages...
   # add ros workspace functionality
   nix-ros-workspace.overlays.default

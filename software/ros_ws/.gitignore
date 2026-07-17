@@ -1,0 +1,2 @@
+# This not in the main gitignore since the web ui needs a lib folder
+lib/

@@ -21,11 +21,13 @@ let
   # import individual overlays
   shared = (import ./shared/overlay.nix);
   native = (import ./native/overlay.nix);
+  ros_ws = (import ./ros_ws/overlay.nix rosDistro);
   # combine above overlays into a single overlay
   composed = prev.lib.composeManyExtensions [
     (final: prev: { inherit cleanCmakeSource; })
     shared
     native
+    ros_ws
   ] final prev;
 in
 composed
