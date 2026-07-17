@@ -21,7 +21,7 @@ inputs:
     url: github:rrbutani/nix-mk-shell-bin
 allow_unfree: true
 imports:
-  - ./software/web-ui/devenv.nix
   - ./nix/scripts.nix
   - ./nix/treefmt.nix
+  - ./nix/profiles.nix
   - ./nix/machines/default.nix
