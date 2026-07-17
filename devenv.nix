@@ -27,7 +27,6 @@ in
 
   # Configure Cachix binary caches for faster builds
   cachix.pull = [ "ros" ]; # Pull pre-built ROS packages
-  cachix.push = "rover-test"; # Optional: Push your builds to a private cache
 
   overlays = import ./nix/overlays.nix {
     inherit
@@ -41,16 +40,10 @@ in
   packages =
     with pkgs;
     [
-      git
       colcon # The ROS 2 build tool
       graphviz # Often needed for ROS visualization tools
     ]
     ++ flattenDerivationSet examples;
-
-  treefmt = {
-    enable = true;
-    config = import ./treefmt.nix;
-  };
 
   enterShell = ''
     echo -e "\e[38;5;208m______                                    _____ ";
