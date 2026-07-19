@@ -3,25 +3,31 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  backward-ros,
+  hi-can-raw,
+  nlohmann_json,
   rclcpp,
-  std-msgs,
+  sensor-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-template-package";
+  pname = "ros-jazzy-perseus-can-if";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/example;
+  src = ./../../../../software/ros_ws/src/perseus_can_if;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
+    backward-ros
+    hi-can-raw
+    nlohmann_json
     rclcpp
-    std-msgs
+    sensor-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Template Package";
+    description = "Payload-specific nodes and launch files for the Perseus Rover.";
     license = with lib.licenses; [ mit ];
   };
 }
