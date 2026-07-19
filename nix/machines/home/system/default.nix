@@ -1,7 +1,4 @@
 {
   imports = [
-    ./system
-    ./cli
-    ./shell
   ];
 }

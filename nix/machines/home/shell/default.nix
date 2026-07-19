@@ -1,7 +1,7 @@
+{ pkgs, ... }:
 {
   imports = [
-    ./system
-    ./cli
-    ./shell
+    ./zsh.nix
   ];
+  home.shell = pkgs.zsh;
 }
