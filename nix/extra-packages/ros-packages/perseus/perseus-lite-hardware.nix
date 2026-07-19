@@ -3,25 +3,37 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  ament-lint-auto,
+  ament-lint-common,
+  boost,
+  hardware-interface,
+  pluginlib,
   rclcpp,
-  std-msgs,
+  rclcpp-lifecycle,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-template-package";
-  version = "0.0.1";
+  pname = "ros-jazzy-perseus-lite-hardware";
+  version = "0.1.0";
 
-  src = ./../../../../software/ros_ws/src/example;
+  src = ./../../../../software/ros_ws/src/perseus_lite_hardware;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
+  checkInputs = [
+    ament-lint-auto
+    ament-lint-common
+  ];
   propagatedBuildInputs = [
+    boost
+    hardware-interface
+    pluginlib
     rclcpp
-    std-msgs
+    rclcpp-lifecycle
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Template Package";
+    description = "Hardware interface for Perseus Lite robot";
     license = with lib.licenses; [ mit ];
   };
 }
