@@ -2,7 +2,7 @@
 {
   profiles = {
     # Waiting for docs release but autoactivation should drop you into this shell
-    default.module = import ./profiles/default.nix {
+    base.module = import ./profiles/base.nix {
       inherit pkgs config;
     };
 
@@ -10,11 +10,16 @@
       inherit pkgs config;
     };
 
+    cicd.module = import ./profiles/cicd.nix {
+      inherit pkgs config;
+    };
+
     simulation = {
-      extends = [ "default" ];
+      extends = [ "base" ];
       module = {
 
       };
     };
+
   };
 }

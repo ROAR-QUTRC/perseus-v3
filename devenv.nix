@@ -2,7 +2,7 @@
 {
   # Access to inputs from devenv.yaml
   pkgs,
-  lib,
+  # lib,
   # config,
   # nixpkgs,
   nix-ros-overlay,
@@ -20,7 +20,7 @@ let
   # };
   rosDistro = "jazzy";
   # packagesFromDirectoryRecursive returns a deep set and this converts to a list of derivations
-  flattenDerivationSet = set: (lib.collect lib.isDerivation set);
+  # flattenDerivationSet = set: (lib.collect lib.isDerivation set);
 in
 {
   name = "Perseus-v3";
@@ -37,12 +37,10 @@ in
   };
 
   # --- Packages ---
-  packages =
-    with pkgs;
-    [
-      colcon # The ROS 2 build tool
-      graphviz # Often needed for ROS visualization tools
-      livox-sdk2
-    ]
-    ++ flattenDerivationSet examples;
+  packages = with pkgs; [
+    colcon # The ROS 2 build tool
+    graphviz # Often needed for ROS visualization tools
+    livox-sdk2
+  ];
+  # ++ flattenDerivationSet examples;
 }

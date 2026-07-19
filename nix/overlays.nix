@@ -7,6 +7,8 @@
 }:
 [
   nix-ros-overlay.overlays.default # Makes ROS packages available via pkgs.rosPackages...
+  # fix colcon (silence warnings, add extensions)
+  (import ../software/ros_ws/colcon/overlay.nix)
   # add ros workspace functionality
   nix-ros-workspace.overlays.default
   # import ros workspace packages + fixes

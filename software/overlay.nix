@@ -32,5 +32,6 @@ let
 in
 composed
 // {
-
+  sharedDevPackages = (builtins.intersectAttrs (shared null null) final);
+  nativeDevPackages = (builtins.intersectAttrs (native null null) final);
 }
