@@ -43,4 +43,10 @@ in
     livox-sdk2
   ];
   # ++ flattenDerivationSet examples;
+
+  # Only used for debugging: Can do `devenv build outputs.pkgs.XXX` to build a specific package
+  outputs = {
+    # Needs to be a derivation because devenv doesn't like pkgs.lib.recurseIntoAttrs for some reason
+    pkgs = pkgs.runCommand "roar-all-pkgs" { passthru = pkgs; } "touch $out";
+  };
 }
