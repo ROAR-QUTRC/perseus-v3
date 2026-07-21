@@ -14,11 +14,32 @@ inputs:
   # formatting
   treefmt-nix:
     url: github:numtide/treefmt-nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   # Other utilities
   nixgl:
     url: github:nix-community/nixGL/main
+    inputs:
+      flake-utils:
+        follows: nix-ros-overlay/flake-utils
+      nixpkgs:
+        follows: nixpkgs
   mk-shell-bin:
     url: github:rrbutani/nix-mk-shell-bin
+  ros2nix:
+    url: github:wentasah/ros2nix
+    inputs:
+      nix-ros-overlay:
+        follows: nix-ros-overlay
+      flake-utils:
+        follows: nix-ros-overlay/flake-utils
+      nixpkgs:
+        follows: nixpkgs
+      rosdistro:
+        follows: nix-ros-overlay/rosdistro
+      treefmt-nix:
+        follows: treefmt-nix
 allow_unfree: true
 imports:
   - ./nix/scripts.nix
