@@ -19,6 +19,10 @@
       inherit pkgs config;
     };
 
+    firmware.module = import ./profiles/firmware.nix {
+      inherit pkgs config;
+    };
+
     autonomy = {
       extends = [ "base" ];
       module = import ./profiles/autonomy.nix {
