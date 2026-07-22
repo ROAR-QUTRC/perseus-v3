@@ -1,0 +1,19 @@
+# Team lead is global code owner for convenience
+* @LucaLubrano
+
+# For code owners and github action workflows
+/.github/ @OMEN44
+
+/firmware/ @OMEN44 @GR3Y-SCALE
+/software/ @OMEN44
+
+# Additional code owners
+/software/web_ui/ @OMEN44 @UltraFishy
+/software/shared/ @OMEN44 @UltraFishy @GR3Y-SCALE
+/software/ros_ws/ @OMEN44 @UltraFishy
+
+# Any nix code
+*.nix @OMEN44 @BrockoliniMorgan
+
+# no owner for auto-generated packages
+/nix/extra-packages/ros-packages
