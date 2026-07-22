@@ -14,6 +14,10 @@
       inherit pkgs config;
     };
 
+    firmware.module = import ./profiles/firmware.nix {
+      inherit pkgs config;
+    };
+
     simulation = {
       extends = [ "base" ];
       module = {

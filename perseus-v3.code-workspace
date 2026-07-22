@@ -3,10 +3,10 @@
     {
       "path": ".",
     },
-    // {
-    //     "name": "BMS Firmware",
-    //     "path": "./firmware/battery-management-system"
-    // }
+    {
+      "name": "Excavation Bucket Firmware",
+      "path": "./firmware/excavation-bucket"
+    }
   ],
   "settings": {
     "nixEnvSelector.suggestion": true,
@@ -138,6 +138,9 @@
       "cschlosser.doxdocgen",
       "ms-vscode.cpptools",
       "ibecker.treefmt-vscode",
+      "platformio.platformio-ide",
     ],
   },
+
+  // "platformio-ide.useBuiltinPIOCore": false,
 }
