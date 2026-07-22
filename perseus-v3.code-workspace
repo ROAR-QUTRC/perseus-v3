@@ -138,9 +138,6 @@
       "cschlosser.doxdocgen",
       "ms-vscode.cpptools",
       "ibecker.treefmt-vscode",
-      "platformio.platformio-ide",
     ],
   },
-
-  // "platformio-ide.useBuiltinPIOCore": false,
 }
