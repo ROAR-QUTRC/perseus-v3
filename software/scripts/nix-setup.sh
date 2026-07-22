@@ -88,4 +88,5 @@ if [ ! -z "$RESTART_NIX_DAEMON" ]; then
   sudo systemctl restart nix-daemon
 fi
 
+"$(git rev-parse --show-toplevel)/software/scripts/devenv-install.sh" || exit
 . "$(git rev-parse --show-toplevel)/software/scripts/devenv-setup.sh"
