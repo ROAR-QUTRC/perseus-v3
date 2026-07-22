@@ -10,7 +10,7 @@
 # Additional code owners
 /software/web_ui/ @OMEN44 @UltraFishy
 /software/shared/ @OMEN44 @UltraFishy @GR3Y-SCALE
-/software/ros_ws/ @OMEN44 @UltraFishy
+/software/ros_ws/ @OMEN44 @UltraFishy @bocho0600
 
 # Any nix code
 *.nix @OMEN44 @BrockoliniMorgan
