@@ -8,9 +8,7 @@ idf_component_register(
   ${app_sources}
   REQUIRES
   board-support
-  crc
   hi-can
-  type
   PRIV_REQUIRES
   esp_driver_sdm)
 
