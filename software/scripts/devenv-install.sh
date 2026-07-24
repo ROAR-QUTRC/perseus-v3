@@ -10,15 +10,15 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
-if command -v nixos-rebuild >/dev/null 2>&1; then
-  echo "User is on NixOS! Add the following to your configuration.nix:"
-  echo "environment.systemPackages = with pkgs; [ devenv ];"
-  exit 1
-fi
-
 if command -v home-manager >/dev/null 2>&1; then
   echo "User is using Home Manager! Add the following to your home.nix:"
   echo "home.packages = with pkgs; [ devenv ];"
+  exit 1
+fi
+
+if command -v nixos-rebuild >/dev/null 2>&1; then
+  echo "User is on NixOS! Add the following to your configuration.nix:"
+  echo "environment.systemPackages = with pkgs; [ devenv ];"
   exit 1
 fi
 
