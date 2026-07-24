@@ -21,7 +21,7 @@ in
       deps = with prev; [ git ];
     };
     vcan-setup = build-wrapped-script {
-      name = "nix-package.sh";
+      name = "vcan-setup.sh";
       deps = with prev; [
         kmod
         iproute2
