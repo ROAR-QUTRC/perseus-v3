@@ -49,12 +49,12 @@ else
   fi
 fi
 
-# Note the escaping of the '+' character
-ROS_SUB_KEY="ros.cachix.org-1:dSyZxI8geDCJrwgvCOHDoAfOm5sV1wCPjBkKL\+38Rvo="
-ROAR_SUB_KEY="roar-qutrc.cachix.org-1:ZKgHZSSHH2hOAN7\+83gv1gkraXze5LSEzdocPAEBNnA="
+ROS_SUB_KEY="ros.cachix.org-1:dSyZxI8geDCJrwgvCOHDoAfOm5sV1wCPjBkKL+38Rvo="
+ROAR_SUB_KEY="roar-qutrc.cachix.org-1:ZKgHZSSHH2hOAN7+83gv1gkraXze5LSEzdocPAEBNnA="
 
-ROS_TRUSTED_KEY_PATTERN=".*?trusted-public-keys = .*?$ROS_SUB_KEY"
-ROAR_TRUSTED_KEY_PATTERN=".*?trusted-public-keys = .*?$ROAR_SUB_KEY"
+# Using sed to escape the '+' characters for grep
+ROS_TRUSTED_KEY_PATTERN=".*?trusted-public-keys = .*?$(echo $ROS_SUB_KEY | sed 's/\+/\\\+/')"
+ROAR_TRUSTED_KEY_PATTERN=".*?trusted-public-keys = .*?$(echo $ROAR_SUB_KEY | sed 's/\+/\\\+/')"
 if grep -Eq "$ROAR_TRUSTED_KEY_PATTERN" "$NIX_CONFIG_FILE_PATH" && grep -Eq "$ROS_TRUSTED_KEY_PATTERN" "$NIX_CONFIG_FILE_PATH"; then
   echo "Extra trusted keys already present!"
 else
@@ -88,4 +88,9 @@ if [ ! -z "$RESTART_NIX_DAEMON" ]; then
   sudo systemctl restart nix-daemon
 fi
 
+# shellcheck disable=SC1091
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh >/dev/null 2>&1
+"$(git rev-parse --show-toplevel)/software/scripts/devenv-install.sh" || exit
+
+# shellcheck disable=SC1091
 . "$(git rev-parse --show-toplevel)/software/scripts/devenv-setup.sh"
