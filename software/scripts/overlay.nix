@@ -5,7 +5,7 @@ let
       name,
       deps ? [ ],
     }:
-    prev.runCommandLocal name { nativeBuildInputs = [ prev.mkWrapper ]; } ''
+    prev.runCommandLocal name { nativeBuildInputs = [ prev.makeWrapper ]; } ''
       makeWrapper ${./${name}} $out/bin/${name} \
         --prefix PATH : ${prev.lib.makeBinPath deps}
     '';
