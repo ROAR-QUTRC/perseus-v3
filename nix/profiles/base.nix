@@ -89,9 +89,74 @@ let
       + additionalPostShellHook;
     };
 
+  # Build-time (dev) dependencies of the workspace source packages.
+  # These must be dev packages (not prebuilt) so colcon gets their headers,
+  # CMake config and link libraries. ROS dev packages also bring their
+  # propagated dev closure (e.g. lttng-ust via rclcpp), so listing a direct
+  # dependency is usually enough.
+  # TODO: replace with per-package Nix derivations (ros2nix) once packaged.
+  workspaceDevDeps = {
+    inherit (pkgs)
+      nlohmann_json # perseus_can_if, perseus_sensors
+      openssl # perseus_sensors
+      onnxruntime # perseus_vision (provides libonnxruntime.pc for pkg_check_modules)
+      # opencv intentionally omitted: cv-bridge propagates the ROS-consistent
+      # OpenCV; adding pkgs.opencv causes a buildEnv version conflict.
+      ;
+    inherit (pkgs.ros)
+      # ros2_control / hardware
+      hardware-interface # perseus_hardware, perseus_sensors
+      pluginlib # perseus_hardware
+      rclcpp-lifecycle # perseus_hardware, perseus_sensors
+      # behaviour tree
+      behaviortree-cpp # perseus_bt_nodes
+      # messages / interfaces
+      actuator-msgs # perseus_input
+      nav-msgs # perseus_sensors (CMake-only, not in package.xml)
+      rcl-interfaces # perseus_vision
+      std-msgs # perseus_vision
+      visualization-msgs # perseus_vision
+      builtin-interfaces # perseus_interfaces, perseus_bt_nodes
+      # rosidl codegen (perseus_interfaces)
+      rosidl-default-generators # msg/srv codegen
+      rosidl-default-runtime # generated interface runtime
+      python-cmake-module # rosidl python bindings
+      # tf / geometry
+      tf2 # perseus_sensors, perseus_vision
+      tf2-ros # perseus_vision
+      tf2-geometry-msgs # perseus_sensors, perseus_vision
+      # core / misc
+      rclcpp # brings lttng-ust link libs (perseus_bt_nodes etc.)
+      rclcpp-components # perseus_sensors (CMake-only, not in package.xml)
+      backward-ros # perseus_hardware, perseus_sensors, perseus_input, perseus_interfaces
+      ament-index-cpp # perseus_vision
+      cv-bridge # perseus_vision
+      # sensors
+      realsense2-camera # perseus_sensors
+      realsense2-description # perseus_sensors
+      rplidar-ros # perseus_sensors
+      # lint (test deps)
+      ament-lint-auto # perseus_interfaces, perseus_bt_nodes, perseus_vision
+      ament-lint-common # perseus_interfaces, perseus_bt_nodes, perseus_vision
+      ;
+  };
+
   defaultWorkspace = mkWorkspace {
     inherit (pkgs) ros;
     name = "default";
+    additionalDevPkgs = workspaceDevDeps;
+    additionalPostShellHook = ''
+      # onnxruntime ships libonnxruntime.pc in its dev output, which the
+      # workspace buildEnv does not surface. Add it so perseus_vision's
+      # pkg_check_modules(libonnxruntime) resolves. The .pc uses absolute
+      # paths, so this also supplies the correct lib flags.
+      export PKG_CONFIG_PATH="${pkgs.onnxruntime.dev}/lib/pkgconfig''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+      # perseus_vision includes <onnxruntime/onnxruntime_cxx_api.h>, but the .pc
+      # only advertises the .../include/onnxruntime subdir. Nix build inputs
+      # normally get -isystem $dev/include automatically; replicate that here
+      # so the "onnxruntime/"-prefixed include resolves.
+      export CPATH="${pkgs.onnxruntime.dev}/include''${CPATH:+:$CPATH}"
+    '';
   };
 in
 {
