@@ -23,4 +23,4 @@ if command -v nixos-rebuild >/dev/null 2>&1; then
 fi
 
 echo "Installing devenv"
-nix-env -iA devenv -f https://github.com/NixOS/nixpkgs/tarball/nixpkgs-unstable
+nix-env -iA devenv -f https://github.com/NixOS/nixpkgs/tarball/nixpkgs-unstable >/dev/null 2>&1
