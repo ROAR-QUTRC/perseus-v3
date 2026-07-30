@@ -12,7 +12,7 @@ fi
 
 # Update and install required packages
 sudo apt-get update >/dev/null 2>&1
-sudo apt-get install -y gh git direnv >/dev/null 2>&1
+sudo apt-get install -y git gh >/dev/null 2>&1
 
 # Sign into gh CLI
 if ! gh auth status >/dev/null 2>&1; then
@@ -22,26 +22,22 @@ else
   echo "GitHub CLI already logged in."
 fi
 
-# Clone the perseus-v2 repo
+# Clone the perseus-v3 repo
 cd ~
-if ! [ -d "perseus-v2" ]; then
+if ! [ -d "perseus-v3" ]; then
   echo "Perseus repo not detected. Cloning now."
-  gh repo clone ROAR-QUTRC/perseus-v2
+  gh repo clone ROAR-QUTRC/perseus-v3
 else
   echo "Perseus repo already cloned. Continuing."
 fi
 
 # Run the nix-setup script
 echo "Running nix-setup.sh script. If asked, accept all config options by typing 'y', then press enter."
-
-cd ~/perseus-v2
+cd ~/perseus-v3
 ./software/scripts/nix-setup.sh
 
-# Build nix packages
-echo "Building nix packages. If asked, accept all config options with 'y'"
-/nix/var/nix/profiles/default/bin/nix build --accept-flake-config
+# Enable devenv environment
+devenv allow
 
 echo "Setup script ran successfully!"
-echo "Restarting shell"
-
-exec "$SHELL"
+echo "cd out and into the perseus-v3 directory to build the environment. This may perform several builds or downloads."
