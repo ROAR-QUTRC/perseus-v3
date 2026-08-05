@@ -40,7 +40,7 @@ else
   if [ -z "$NIXOS" ]; then
     # TODO: Add logic for adding just one substituter if the other is already present
     echo "Adding trusted substituters to nix configuration"
-    EXTRA_TRUSTED_SUBSTITUTERS="extra-trusted-substituters = $ROAR_SUB $ROS_SUB"
+    EXTRA_TRUSTED_SUBSTITUTERS="extra-substituters = $ROAR_SUB $ROS_SUB"
     echo "$EXTRA_TRUSTED_SUBSTITUTERS" | sudo tee -a "$NIX_CONFIG_FILE_PATH"
     RESTART_NIX_DAEMON=true
   else
