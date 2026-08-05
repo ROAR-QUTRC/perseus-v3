@@ -80,7 +80,7 @@ def generate_launch_description():
         ),
     )
     preferred_config_path = PathJoinSubstitution(
-        [FindPackageShare("perseus_input_config"), "config", controller_config_name]
+        [FindPackageShare("perseus_teleop"), "config", controller_config_name]
     )
     config_path = IfElseSubstitution(
         EqualsSubstitution(config, ""), preferred_config_path, config
@@ -100,7 +100,7 @@ def generate_launch_description():
         emulate_tty=True,
     )
     controller_node = Node(
-        package="perseus_input",
+        package="perseus_teleop",
         executable="generic_controller",
         name="generic_controller",
         output="both",

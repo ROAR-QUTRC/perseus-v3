@@ -46,7 +46,7 @@ def generate_launch_description():
         ],
     )
     controller_node = Node(
-        package="input_devices",
+        package="perseus_teleop",
         executable="xbox_controller",
         name="xbox_controller",
         output="both",
