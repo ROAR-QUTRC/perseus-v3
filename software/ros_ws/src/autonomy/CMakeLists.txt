@@ -2,8 +2,8 @@
 cmake_minimum_required(VERSION 3.23)
 
 project(
-  perseus_teleop
-  VERSION 2.3.3
+  autonomy
+  VERSION 0.0.1
   LANGUAGES CXX)
 
 # credit https://www.kitware.com/cmake-and-the-default-build-type/
@@ -26,6 +26,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# COMPILER SETUP
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow)
 endif()
@@ -38,13 +39,11 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# INCLUDE DEPENDENCIES
-
-# public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs geometry_msgs actuator_msgs)
+# INCLUDE DEPENDENCIES public dependencies (which should propagate)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp robot_localization)
 
 # packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake ament_cmake_python)
+set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
@@ -54,45 +53,12 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
-# COMPILE (Executables)
-
-# Find all source files for the executables
-file(GLOB_RECURSE GENERIC_CONTROLLER_CODE_SOURCES src/generic_controller/*.cpp)
-
-# Add exec targets
-add_executable(generic_controller ${GENERIC_CONTROLLER_CODE_SOURCES})
-
-# Add include dirs
-target_include_directories(generic_controller
-                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-# Add dependencies for the executables
-ament_target_dependencies(generic_controller PUBLIC
-                          ${THIS_PACKAGE_INCLUDE_DEPENDS})
-
-# Install ROS Executable
-install(TARGETS generic_controller DESTINATION lib/${PROJECT_NAME})
-
-# INSTALL (Python)
-
-# Installs the perseus_teleop python package (and its teleop_keyboard script
-# submodule) into site-packages
-ament_python_install_package(${PROJECT_NAME})
-
-# Install the python nodes as `ros2 run`-able executables
-install(
-  PROGRAMS ${PROJECT_NAME}/script/teleop_keyboard.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME teleop_keyboard)
-install(
-  PROGRAMS ${PROJECT_NAME}/script/xbox_controller.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME xbox_controller)
-
-# INSTALL (ROS)
+# Install the package's resource files These directories will only be installed
+# if they exist
 install(
   DIRECTORY config launch maps rviz urdf worlds
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
 
+# ROS FINALISATION
 ament_package()
