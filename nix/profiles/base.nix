@@ -111,7 +111,7 @@ let
       # behaviour tree
       behaviortree-cpp # perseus_bt_nodes
       # messages / interfaces
-      actuator-msgs # perseus_input
+      actuator-msgs # perseus_teleop
       nav-msgs # perseus_sensors (CMake-only, not in package.xml)
       rcl-interfaces # perseus_vision
       std-msgs # perseus_vision
@@ -128,7 +128,7 @@ let
       # core / misc
       rclcpp # brings lttng-ust link libs (perseus_bt_nodes etc.)
       rclcpp-components # perseus_sensors (CMake-only, not in package.xml)
-      backward-ros # perseus_hardware, perseus_sensors, perseus_input, perseus_interfaces
+      backward-ros # perseus_hardware, perseus_sensors, perseus_teleop, perseus_interfaces
       ament-index-cpp # perseus_vision
       cv-bridge # perseus_vision
       # sensors
@@ -138,6 +138,11 @@ let
       # lint (test deps)
       ament-lint-auto # perseus_interfaces, perseus_bt_nodes, perseus_vision
       ament-lint-common # perseus_interfaces, perseus_bt_nodes, perseus_vision
+      # navigation / localization
+      robot-localization # autonomy
+      slam-toolbox # autonomy
+      navigation2 # autonomy
+      xacro # autonomy
       ;
   };
 
