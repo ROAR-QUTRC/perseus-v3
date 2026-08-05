@@ -2,8 +2,8 @@
 cmake_minimum_required(VERSION 3.23)
 
 project(
-  perseus_teleop
-  VERSION 2.3.3
+  perseus_payloads
+  VERSION 0.0.1
   LANGUAGES CXX)
 
 # credit https://www.kitware.com/cmake-and-the-default-build-type/
@@ -41,10 +41,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs geometry_msgs actuator_msgs)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs actuator_msgs)
 
 # packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake ament_cmake_python)
+set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
@@ -54,44 +54,53 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
+find_package(hi_can_raw QUIET)
+if(NOT hi_can_raw_FOUND)
+  message(STATUS "hi-can-raw not found, adding subdirectory...")
+  message(
+    STATUS "Attempting to add hi-can-raw from: ../../../shared/hi-can-raw")
+  add_subdirectory(../../../shared/hi-can-raw hi-can-raw)
+endif()
+
 # COMPILE (Executables)
 
 # Find all source files for the executables
-file(GLOB_RECURSE GENERIC_CONTROLLER_CODE_SOURCES src/generic_controller/*.cpp)
+file(GLOB_RECURSE ARM_DRIVER_CODE_SOURCES src/arm_driver/*.cpp)
+file(GLOB_RECURSE BUCKET_CONTROLLER_CODE_SOURCES src/bucket_controller/*.cpp)
+file(GLOB_RECURSE BUCKET_DRIVER_CODE_SOURCES src/bucket_driver/*.cpp)
 
 # Add exec targets
-add_executable(generic_controller ${GENERIC_CONTROLLER_CODE_SOURCES})
+add_executable(arm_driver ${ARM_DRIVER_CODE_SOURCES})
+add_executable(bucket_controller ${BUCKET_CONTROLLER_CODE_SOURCES})
+add_executable(bucket_driver ${BUCKET_DRIVER_CODE_SOURCES})
 
 # Add include dirs
-target_include_directories(generic_controller
+target_include_directories(arm_driver
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(bucket_controller
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(bucket_driver
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Add dependencies for the executables
-ament_target_dependencies(generic_controller PUBLIC
-                          ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_target_dependencies(arm_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
+                          sensor_msgs)
+ament_target_dependencies(
+  bucket_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS} actuator_msgs
+  sensor_msgs)
+ament_target_dependencies(bucket_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
+                          actuator_msgs)
+
+# target_link_libraries(arm_driver PUBLIC st3215_lib)
+target_link_libraries(bucket_driver PUBLIC hi_can_raw)
 
 # Install ROS Executable
-install(TARGETS generic_controller DESTINATION lib/${PROJECT_NAME})
+install(TARGETS arm_driver DESTINATION lib/${PROJECT_NAME})
+install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
+install(TARGETS bucket_driver DESTINATION lib/${PROJECT_NAME})
 
-# INSTALL (Python)
-
-# Installs the perseus_teleop python package (and its teleop_keyboard script
-# submodule) into site-packages
-ament_python_install_package(${PROJECT_NAME})
-
-# Install the python nodes as `ros2 run`-able executables
 install(
-  PROGRAMS ${PROJECT_NAME}/script/teleop_keyboard.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME teleop_keyboard)
-install(
-  PROGRAMS ${PROJECT_NAME}/script/xbox_controller.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME xbox_controller)
-
-# INSTALL (ROS)
-install(
-  DIRECTORY config launch maps rviz urdf worlds
+  DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
 
