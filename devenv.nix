@@ -26,7 +26,7 @@ in
   name = "Perseus-v3";
 
   # Configure Cachix binary caches for faster builds
-  cachix.pull = [ "ros" ]; # Pull pre-built ROS packages
+  cachix.pull = [ "ros" "rover-test" ]; # Pull pre-built ROS packages
 
   overlays = import ./nix/overlays.nix {
     inherit
