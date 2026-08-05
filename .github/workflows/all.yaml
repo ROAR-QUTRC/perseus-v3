@@ -1,0 +1,64 @@
+name: "CI/CD"
+on:
+  push: # any push ignoring push actions triggered by merge queue
+    branches-ignore:
+      - gh-readonly-queue/**
+  pull_request: # run when pr is opened
+  merge_group: # run when pr enters the merge queue
+  workflow_dispatch: # run manually
+permissions:
+  contents: read # only read as we must commit to write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} # defines a concurrentcy group key
+  cancel-in-progress: true # only allow one job with this group key at a time
+jobs:
+  global-vars:
+    name: Setup global variables
+    runs-on: ubuntu-latest
+    outputs:
+      format_msg: ${{ steps.export-vars.outputs.format_msg }}
+      package_msg: ${{ steps.export-vars.outputs.package_msg }}
+      is-main: ${{ (github.repository == 'ROAR-QUTRC/perseus-v2') && (github.ref == 'refs/heads/main') }}
+      has-cachix-secret: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+      has-repo-secret: ${{ secrets.REPO_DEPLOY_KEY != '' }}
+      can-push-commits: ${{ (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
+    steps:
+      - name: Export Nix config
+        id: export-vars
+        run: |
+          {
+            echo 'nix_conf<<NIX_EOF'
+            echo 'extra-trusted-substituters = https://roar-qutrc.cachix.org https://ros.cachix.org'
+            echo 'extra-trusted-public-keys = roar-qutrc.cachix.org-1:ZKgHZSSHH2hOAN7+83gv1gkraXze5LSEzdocPAEBNnA= ros.cachix.org-1:dSyZxI8geDCJrwgvCOHDoAfOm5sV1wCPjBkKL+38Rvo='
+            echo "extra-trusted-users = $(whoami)"
+            echo 'NIX_EOF'
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "format_msg=chore: Format and lint"
+            echo "package_msg=chore: Update Nix packaging"
+          } >> "$GITHUB_OUTPUT"
+  build-env:
+    name: Build environment
+    needs: global-vars
+    runs-on: ubuntu-latest
+    steps:
+      - name: print global variables
+        run: |
+          echo "format_msg=${{ needs.global-vars.outputs.format_msg }}"
+          echo "package_msg=${{ needs.global-vars.outputs.package_msg }}"
+          echo "is-main=${{ needs.global-vars.outputs.is-main }}"
+          echo "has-cachix-secret=${{ needs.global-vars.outputs.has-cachix-secret }}"
+          echo "has-repo-secret=${{ needs.global-vars.outputs.has-repo-secret }}"
+          echo "can-push-commits=${{ needs.global-vars.outputs.can-push-commits }}"
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
+        if: needs.global-vars.outputs.has-cachix-secret == 'true'
+        with:
+          name: rover-test
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: devenv,ros
+      - name: Install devenv.sh
+        run: nix profile add nixpkgs#devenv
+      - name: Build and test environment
+        run: devenv test
