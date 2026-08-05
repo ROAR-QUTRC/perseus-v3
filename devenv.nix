@@ -26,7 +26,13 @@ in
   name = "Perseus-v3";
 
   # Configure Cachix binary caches for faster builds
-  cachix.pull = [ "ros" "rover-test" ]; # Pull pre-built ROS packages
+  env.CACHIX_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiNEW3NzM3YS0zZTZkLTRjNzItYWM1ZC01ODc5NjkxZjRiZGMiLCJzY29wZXMiOiJjYWNoZSJ9.ftRVvGENelFosMB6dN4Nhizxed4SPJ5qSdDkYQV5RAE";
+  cachix = {
+    pull = [
+      "ros"
+    ]; # Pull pre-built ROS packages
+    push = "rover-test";
+  };
 
   overlays = import ./nix/overlays.nix {
     inherit
@@ -38,9 +44,7 @@ in
 
   # --- Packages ---
   packages = with pkgs; [
-    colcon # The ROS 2 build tool
-    graphviz # Often needed for ROS visualization tools
-    livox-sdk2
+    colcon
   ];
   # ++ flattenDerivationSet examples;
 

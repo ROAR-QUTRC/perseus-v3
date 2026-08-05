@@ -58,6 +58,10 @@ jobs:
           name: rover-test
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: devenv,ros
+      - name: Setup Cachix
+        run: |
+          cachix --version
+          cachix watch-store rover-test
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
       - name: Build and test environment

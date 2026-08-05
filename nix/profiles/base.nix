@@ -16,6 +16,8 @@ let
       # nixgl-script
       # nixcuda-script
       yaml-cpp
+      graphviz # Often needed for ROS visualization tools
+      livox-sdk2
       ;
     inherit (pkgs.ros)
       ros-core
