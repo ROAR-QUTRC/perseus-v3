@@ -26,10 +26,10 @@ in
   name = "Perseus-v3";
 
   # Configure Cachix binary caches for faster builds
-  env.CACHIX_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiNEW3NzM3YS0zZTZkLTRjNzItYWM1ZC01ODc5NjkxZjRiZGMiLCJzY29wZXMiOiJjYWNoZSJ9.ftRVvGENelFosMB6dN4Nhizxed4SPJ5qSdDkYQV5RAE";
   cachix = {
     pull = [
       "ros"
+      "rover-test"
     ]; # Pull pre-built ROS packages
     push = "rover-test";
   };
