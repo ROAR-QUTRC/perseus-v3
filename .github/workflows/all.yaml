@@ -61,4 +61,4 @@ jobs:
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
       - name: Build and test environment
-        run: devenv test
+        run: devenv --profile base --profile web-ui test
