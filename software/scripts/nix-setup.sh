@@ -42,6 +42,8 @@ else
     echo "Adding trusted substituters to nix configuration"
     EXTRA_TRUSTED_SUBSTITUTERS="extra-substituters = $ROAR_SUB $ROS_SUB"
     echo "$EXTRA_TRUSTED_SUBSTITUTERS" | sudo tee -a "$NIX_CONFIG_FILE_PATH"
+    EXTRA_TRUSTED_SUBSTITUTERS="extra-trusted-substituters = $ROAR_SUB $ROS_SUB"
+    echo "$EXTRA_TRUSTED_SUBSTITUTERS" | sudo tee -a "$NIX_CONFIG_FILE_PATH"
     RESTART_NIX_DAEMON=true
   else
     echo "Add the following to your configuration.nix:"
