@@ -28,7 +28,7 @@ else
 fi
 
 ROS_SUB="https://ros.cachix.org"
-ROAR_SUB="https://rover-test.cachix.org"
+ROAR_SUB="https://roar.cachix.org" # manage by signing into cachix with the QUTRC-ROAR-ADMIN github account 
 
 ROS_TRUSTED_SUBSTITUTER_PATTERN=".*trusted-substituters = .*?$ROS_SUB"
 ROAR_TRUSTED_SUBSTITUTER_PATTERN=".*trusted-substituters = .*?$ROAR_SUB"
@@ -52,7 +52,7 @@ else
 fi
 
 ROS_SUB_KEY="ros.cachix.org-1:dSyZxI8geDCJrwgvCOHDoAfOm5sV1wCPjBkKL+38Rvo="
-ROAR_SUB_KEY="rover-test.cachix.org-1:oKrjMSfZYXuiMmBhQmD8xPRxLj/6VX+pPOYzAR5Ld9k="
+ROAR_SUB_KEY="roar.cachix.org-1:XYRwk2AeKATRiicsHxRkk3VWIaitbG6saW5YZvIaPec="
 
 # Using sed to escape the '+' characters for grep
 ROS_TRUSTED_KEY_PATTERN=".*?trusted-public-keys = .*?$(echo $ROS_SUB_KEY | sed 's/\+/\\\+/')"
