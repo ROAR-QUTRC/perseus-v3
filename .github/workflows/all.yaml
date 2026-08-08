@@ -60,5 +60,4 @@ jobs:
           devenv --version
       - name: Build and test environment
         run: |
-          devenv --profile cicd shell
-          devenv build
+          devenv --profile cicd test
