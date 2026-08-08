@@ -33,7 +33,10 @@ jobs:
   build-env:
     name: Build environment
     needs: global-vars
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: print global variables
         run: |
@@ -57,5 +60,5 @@ jobs:
           devenv --version
       - name: Build and test environment
         run: |
-          devenv --profile base --profile web-ui shell
+          devenv --profile cicd shell
           devenv build

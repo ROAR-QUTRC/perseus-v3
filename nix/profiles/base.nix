@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   productionDomainId = 42;
   devDomainId = 51;
@@ -17,7 +17,7 @@ let
       # nixcuda-script
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
-      livox-sdk2
+      # livox-sdk2
       ;
     inherit (pkgs.ros)
       ros-core
@@ -97,6 +97,14 @@ in
   packages = [
     defaultWorkspace
   ];
+
+  processes = {
+    "perseus" = {
+      exec = ''
+        ${defaultWorkspace}/bin/ros2 launch perseus perseus.launch.py
+      '';
+    };
+  };
 
   enterShell = ''
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
