@@ -34,15 +34,7 @@ in
   };
 
   # --- Packages ---
-  packages =
-    with pkgs;
-    [
-      colcon # The ROS 2 build tool
-      graphviz # Often needed for ROS visualization tools
-      # livox-sdk2
-    ]
-    ++ flattenDerivationSet examples
-    ++ flattenDerivationSet scripts;
+  packages = with pkgs; [ ] ++ flattenDerivationSet examples ++ flattenDerivationSet scripts;
 
   # Only used for debugging: Can do `devenv build outputs.pkgs.XXX` to build a specific package
   outputs = {

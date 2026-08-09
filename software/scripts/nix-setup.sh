@@ -28,7 +28,7 @@ else
 fi
 
 ROS_SUB="https://ros.cachix.org"
-ROAR_SUB="https://roar.cachix.org" # manage by signing into cachix with the QUTRC-ROAR-ADMIN github account 
+ROAR_SUB="https://roar.cachix.org" # manage by signing into cachix with the QUTRC-ROAR-ADMIN github account
 
 ROS_TRUSTED_SUBSTITUTER_PATTERN=".*trusted-substituters = .*?$ROS_SUB"
 ROAR_TRUSTED_SUBSTITUTER_PATTERN=".*trusted-substituters = .*?$ROAR_SUB"

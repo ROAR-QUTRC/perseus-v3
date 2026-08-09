@@ -8,6 +8,7 @@ let
   # Packages which should be base profile
   standardPkgs = {
     inherit (pkgs)
+      colcon
       bashInteractive
       can-utils
       glibcLocales
