@@ -1,0 +1,2 @@
+# INSTALL (ROS Executables)
+install(TARGETS ${PROJECT_NAME} DESTINATION lib/${PROJECT_NAME})
