@@ -1,4 +1,0 @@
-# INSTALL (Executables)
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-# Versioning
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
