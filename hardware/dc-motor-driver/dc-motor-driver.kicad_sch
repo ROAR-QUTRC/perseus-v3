@@ -2700,7 +2700,7 @@
 	)
 	(wire
 		(pts
-			(xy 142.24 127) (xy 148.59 127)
+			(xy 142.24 124.46) (xy 152.4 124.46)
 		)
 		(stroke
 			(width 0)
@@ -2880,16 +2880,6 @@
 	)
 	(wire
 		(pts
-			(xy 142.24 124.46) (xy 152.4 124.46)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "67698b8c-3b74-4ed5-92e7-b5c5e2ac5eb0")
-	)
-	(wire
-		(pts
 			(xy 148.59 33.02) (xy 163.83 33.02)
 		)
 		(stroke
@@ -2917,6 +2907,16 @@
 			(type default)
 		)
 		(uuid "6c612654-663a-4b3f-9cef-09468f350f9a")
+	)
+	(wire
+		(pts
+			(xy 142.24 127) (xy 152.4 127)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6d759c53-d140-43d9-8044-e0eb19fbb88c")
 	)
 	(wire
 		(pts
@@ -3559,7 +3559,7 @@
 		(uuid "fce991e0-a42e-47c1-9508-afee7f42affa")
 	)
 	(label "~{SLEEP}"
-		(at 148.59 127 180)
+		(at 152.4 124.46 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3689,7 +3689,7 @@
 		(uuid "3d3cd5e2-fd1d-42b4-973e-7a29dbe79e53")
 	)
 	(label "MCU2_DIR"
-		(at 152.4 124.46 180)
+		(at 152.4 127 180)
 		(effects
 			(font
 				(size 1.27 1.27)

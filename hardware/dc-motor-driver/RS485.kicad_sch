@@ -216,7 +216,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector_Generic:Conn_01x04"
+		(symbol "Connector_Generic:Conn_01x02"
 			(pin_names
 				(offset 1.016)
 				(hide yes)
@@ -227,7 +227,7 @@
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(property "Reference" "J"
-				(at 0 5.08 0)
+				(at 0 2.54 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -236,8 +236,8 @@
 					)
 				)
 			)
-			(property "Value" "Conn_01x04"
-				(at 0 -7.62 0)
+			(property "Value" "Conn_01x02"
+				(at 0 -5.08 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
@@ -268,7 +268,7 @@
 					)
 				)
 			)
-			(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -301,27 +301,16 @@
 					)
 				)
 			)
-			(symbol "Conn_01x04_1_1"
+			(symbol "Conn_01x02_1_1"
 				(rectangle
-					(start -1.27 3.81)
-					(end 1.27 -6.35)
+					(start -1.27 1.27)
+					(end 1.27 -3.81)
 					(stroke
 						(width 0.254)
 						(type default)
 					)
 					(fill
 						(type background)
-					)
-				)
-				(rectangle
-					(start -1.27 2.667)
-					(end 0 2.413)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
 					)
 				)
 				(rectangle
@@ -346,19 +335,8 @@
 						(type none)
 					)
 				)
-				(rectangle
-					(start -1.27 -4.953)
-					(end 0 -5.207)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
 				(pin passive line
-					(at -5.08 2.54 0)
+					(at -5.08 0 0)
 					(length 3.81)
 					(name "Pin_1"
 						(effects
@@ -376,7 +354,7 @@
 					)
 				)
 				(pin passive line
-					(at -5.08 0 0)
+					(at -5.08 -2.54 0)
 					(length 3.81)
 					(name "Pin_2"
 						(effects
@@ -386,42 +364,6 @@
 						)
 					)
 					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -5.08 -2.54 0)
-					(length 3.81)
-					(name "Pin_3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -5.08 -5.08 0)
-					(length 3.81)
-					(name "Pin_4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1879,26 +1821,6 @@
 		)
 		(uuid "fccf2923-2a94-47bf-a7b3-27110d7ec415")
 	)
-	(label "A"
-		(at 123.19 77.47 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "82ee5ed1-ce86-4f96-9a33-e0d74e45c718")
-	)
-	(label "B"
-		(at 123.19 82.55 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "e085460d-a37e-424c-be57-2fc9ff377492")
-	)
 	(hierarchical_label "MCU_TX"
 		(shape input)
 		(at 90.17 90.17 180)
@@ -2002,6 +1924,12 @@
 			(uuid "260cbb88-be88-4982-8ccf-357d3f4c1cae")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR061")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR061")
@@ -2009,6 +1937,223 @@
 				)
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/61fde4a3-9ead-4a32-9461-24e8bd358e08"
 					(reference "#PWR074")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 170.18 76.2 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "09049349-bb31-41d2-b3f5-37f0323c46ca")
+		(property "Reference" "J10"
+			(at 172.72 76.1999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "OQ0232510000G"
+			(at 172.72 78.7399 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "ConnectorsOther:AnyTek_OQ_3.81mm_90_2P_TriangleKeyLock"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "http://www.anytek.com.tw/UserUpFiles/20181018/_S_eBwgMo_mC.pdf"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "609-3819-ND"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com/en/products/detail/amphenol-anytek/OQ0232510000G/2261255"
+			(at 170.18 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2a4e957d-bfb5-43a1-a5f4-1a652b71990f")
+		)
+		(pin "2"
+			(uuid "d2f0f7bd-3eef-46cf-a5dc-ce993504cc4e")
+		)
+		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "J?")
+					(unit 1)
+				)
+			)
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
+					(reference "J10")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/61fde4a3-9ead-4a32-9461-24e8bd358e08"
+					(reference "J12")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 170.18 81.28 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1f70edca-ffd4-41da-9acd-c31ef224526b")
+		(property "Reference" "J11"
+			(at 172.72 81.2799 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "OQ0232510000G"
+			(at 172.72 83.8199 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "ConnectorsOther:AnyTek_OQ_3.81mm_90_2P_TriangleKeyLock"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "http://www.anytek.com.tw/UserUpFiles/20181018/_S_eBwgMo_mC.pdf"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "778207eb-21e4-490b-9b92-2decb5e6577e")
+		)
+		(pin "2"
+			(uuid "8857cbd2-e1e8-4f42-a6dd-51b049d73f56")
+		)
+		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "J?")
+					(unit 1)
+				)
+			)
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
+					(reference "J11")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/61fde4a3-9ead-4a32-9461-24e8bd358e08"
+					(reference "J13")
 					(unit 1)
 				)
 			)
@@ -2145,6 +2290,12 @@
 			(uuid "1717d026-b43a-4073-ab9a-2202b6a61e96")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "C?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "C25")
@@ -2264,6 +2415,12 @@
 			(uuid "120c7544-b851-40c1-891d-5d74f16cf919")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "R?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "R16")
@@ -2346,6 +2503,12 @@
 			(uuid "cbf4d72f-c688-49fd-ab0c-2f123314a34f")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR062")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR062")
@@ -2465,6 +2628,12 @@
 			(uuid "67f3b8fd-1f97-4c02-8ff2-1f616aa046c2")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "R?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "R17")
@@ -2472,131 +2641,6 @@
 				)
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/61fde4a3-9ead-4a32-9461-24e8bd358e08"
 					(reference "R20")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector_Generic:Conn_01x04")
-		(at 170.18 78.74 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "9dfaaeb4-9cb5-4ffc-a565-46db673d6308")
-		(property "Reference" "J10"
-			(at 172.72 78.7399 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "ECH350R-04P"
-			(at 172.72 81.2799 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "ConnectorsOther:TerminalBlock_Dinkle_ECH350R-04_P3.50mm"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/4364/ECH350R-XXP.pdf"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier" "DigiKey"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/dinkle-corporation-usa/ECH350R-04P/25601661"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "5239-ECH350R-04P-ND"
-			(at 170.18 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "d20642be-ec2a-45be-8479-5aa1c3cc89b3")
-		)
-		(pin "3"
-			(uuid "58620599-78fc-4b67-8ab9-4c6c5a5f88f3")
-		)
-		(pin "4"
-			(uuid "ef87cf3b-4d98-4444-9e9b-e5156bfbb9f0")
-		)
-		(pin "2"
-			(uuid "38c1a940-9f67-4c61-b697-2806b2873eba")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
-					(reference "J10")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/61fde4a3-9ead-4a32-9461-24e8bd358e08"
-					(reference "J11")
 					(unit 1)
 				)
 			)
@@ -2671,6 +2715,12 @@
 			(uuid "50bb39f1-9f0f-49b2-ad2c-7c4368a2b3e4")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR065")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR065")
@@ -2753,6 +2803,12 @@
 			(uuid "45c81661-997b-401f-a562-cd1d146c3277")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR067")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR067")
@@ -2873,6 +2929,12 @@
 			(uuid "fa44112d-47ac-4b95-bc9c-4629cb0f5a3a")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "D?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "D1")
@@ -2955,6 +3017,12 @@
 			(uuid "6ee98c26-122b-4172-b43b-2b21983c06e5")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR064")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR064")
@@ -3036,6 +3104,12 @@
 			(uuid "ee034179-7111-4aaa-8ddb-474dc7c24350")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR063")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR063")
@@ -3118,6 +3192,12 @@
 			(uuid "1bff6529-afb9-4503-8e72-3dab7ec4da18")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR066")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR066")
@@ -3237,6 +3317,12 @@
 			(uuid "32b3ee77-1d64-41b1-905b-56b3b0441a2b")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "R?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "R18")
@@ -3374,6 +3460,12 @@
 			(uuid "f0807410-e93d-4a60-a6af-5bce36d28d63")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "U?")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "U7")
@@ -3455,6 +3547,12 @@
 			(uuid "24099cd6-9f7d-4249-9a16-13c2c8e82750")
 		)
 		(instances
+			(project "RS485"
+				(path "/2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078"
+					(reference "#PWR068")
+					(unit 1)
+				)
+			)
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/248c9f41-6be5-4998-8da0-57ff13dead05"
 					(reference "#PWR068")
@@ -3465,6 +3563,11 @@
 					(unit 1)
 				)
 			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
 		)
 	)
 )
