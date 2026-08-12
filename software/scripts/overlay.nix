@@ -6,7 +6,8 @@ let
       deps ? [ ],
     }:
     prev.runCommandLocal name { nativeBuildInputs = [ prev.makeWrapper ]; } ''
-      makeWrapper ${./${name}} $out/bin/${name} \
+      makeWrapper ${./${name}} \
+        $out/bin/${builtins.head (prev.lib.splitString "." name)} \
         --prefix PATH : ${prev.lib.makeBinPath deps}
     '';
 in
