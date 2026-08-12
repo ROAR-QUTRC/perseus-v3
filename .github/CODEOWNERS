@@ -1,5 +1,5 @@
 # Team lead is global code owner for convenience
-* @LucaLubrano
+* @LucaLubrano @mcugl
 
 # For code owners and github action workflows
 /.github/ @OMEN44
@@ -8,12 +8,12 @@
 /software/ @OMEN44
 
 # Additional code owners
-/software/web_ui/ @OMEN44 @UltraFishy
-/software/shared/ @OMEN44 @UltraFishy @GR3Y-SCALE
-/software/ros_ws/ @OMEN44 @UltraFishy @bocho0600
+/software/web_ui/ @OMEN44 @dbreth
+/software/shared/ @OMEN44 @dbreth @GR3Y-SCALE
+/software/ros_ws/ @OMEN44 @dbreth @bocho0600
 
 # Any nix code
-*.nix @OMEN44 @BrockoliniMorgan
+*.nix @OMEN44 @dbreth
 
 # no owner for auto-generated packages
 /nix/extra-packages/ros-packages
