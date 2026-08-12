@@ -13,83 +13,81 @@ pkgs.mkShell {
   packages = [
     (pkgs.rosPackages.${rosDistro}.buildEnv {
       wrapPrograms = false;
-      paths =
-        [
-          pkgs.colcon
-          pkgs.rosPackages.${rosDistro}.ros-core
+      paths = [
+        pkgs.colcon
+        pkgs.rosPackages.${rosDistro}.ros-core
 
-          # Work around https://github.com/lopsided98/nix-ros-overlay/pull/624
-          pkgs.rosPackages.${rosDistro}.ament-cmake-core
-          pkgs.rosPackages.${rosDistro}.python-cmake-module
+        # Work around https://github.com/lopsided98/nix-ros-overlay/pull/624
+        pkgs.rosPackages.${rosDistro}.ament-cmake-core
+        pkgs.rosPackages.${rosDistro}.python-cmake-module
+      ]
+      ++ (
+        with pkgs;
+        with pkgs.rosPackages.${rosDistro};
+        with extraPkgs;
+        [
+          # Dependencies from package.xml files
+          actuator-msgs
+          ament-cmake
+          ament-cmake-python
+          ament-index-cpp
+          ament-lint-auto
+          ament-lint-common
+          backward-ros
+          builtin-interfaces
+          compressed-depth-image-transport
+          compressed-image-transport
+          controller-manager
+          cv-bridge
+          diff-drive-controller
+          fast-lio
+          geometry-msgs
+          grid-map-core
+          hardware-interface
+          hi-can
+          hi-can-raw
+          joint-state-broadcaster
+          joint-state-publisher-gui
+          joy
+          mecanum-drive-controller
+          nav-msgs
+          navigation2
+          nlohmann_json
+          onnxruntime
+          opencv
+          pcl-conversions
+          pluginlib
+          rcl-interfaces
+          rclcpp
+          rclcpp-components
+          rclcpp-lifecycle
+          rclpy
+          realsense2-camera
+          realsense2-description
+          robot-localization
+          robot-state-publisher
+          ros2controlcli
+          ros2launch
+          rosidl-default-generators
+          rosidl-default-runtime
+          rplidar-ros
+          rviz2
+          sensor-msgs
+          slam-toolbox
+          std-msgs
+          tf2
+          tf2-geometry-msgs
+          tf2-ros
+          twist-mux
+          v4l2-camera
+          visualization-msgs
+          xacro
         ]
-        ++ (
-          with pkgs;
-          with pkgs.rosPackages.${rosDistro};
-          with extraPkgs;
-          [
-            # Dependencies from package.xml files
-            actuator-msgs
-            ament-cmake
-            ament-cmake-python
-            ament-index-cpp
-            ament-lint-auto
-            ament-lint-common
-            backward-ros
-            builtin-interfaces
-            compressed-depth-image-transport
-            compressed-image-transport
-            controller-manager
-            cv-bridge
-            diff-drive-controller
-            fast-lio
-            geometry-msgs
-            grid-map-core
-            hardware-interface
-            hi-can
-            hi-can-raw
-            joint-state-broadcaster
-            joint-state-publisher-gui
-            joy
-            mecanum-drive-controller
-            nav-msgs
-            navigation2
-            nlohmann_json
-            onnxruntime
-            opencv
-            pcl-conversions
-            pluginlib
-            rcl-interfaces
-            rclcpp
-            rclcpp-components
-            rclcpp-lifecycle
-            rclpy
-            realsense2-camera
-            realsense2-description
-            robot-localization
-            robot-state-publisher
-            ros2controlcli
-            ros2launch
-            rosidl-default-generators
-            rosidl-default-runtime
-            rplidar-ros
-            rviz2
-            sensor-msgs
-            slam-toolbox
-            std-msgs
-            tf2
-            tf2-geometry-msgs
-            tf2-ros
-            twist-mux
-            v4l2-camera
-            visualization-msgs
-            xacro
-          ]
-        )
-        ++ builtins.attrValues extraPkgs
-        ++ extraPaths
-        ++ withPackages (pkgs // pkgs.rosPackages.${rosDistro});
-      }
-    )
+      )
+      ++ builtins.attrValues extraPkgs
+      ++ extraPaths
+      ++ withPackages (pkgs // pkgs.rosPackages.${rosDistro});
+    })
   ];
   shellHook = ''
     # Setup ROS 2 shell completion. Doing it in direnv is useless.
@@ -97,5 +95,6 @@ pkgs.mkShell {
         eval "$(${pkgs.python3Packages.argcomplete}/bin/register-python-argcomplete ros2)"
         eval "$(${pkgs.python3Packages.argcomplete}/bin/register-python-argcomplete colcon)"
     fi
-  '' + extraShellHook;
+  ''
+  + extraShellHook;
 }
