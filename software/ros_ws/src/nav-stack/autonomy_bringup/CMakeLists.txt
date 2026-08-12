@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 project(
-  autonomy
+  autonomy_bringup
   VERSION 0.0.1
   LANGUAGES CXX)
 
@@ -56,7 +56,13 @@ endforeach()
 # Install the package's resource files These directories will only be installed
 # if they exist
 install(
-  DIRECTORY config launch maps rviz urdf worlds
+  DIRECTORY config
+            launch
+            maps
+            rviz
+            urdf
+            worlds
+            behavior_trees
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
 

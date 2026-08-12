@@ -3,8 +3,9 @@
 
 Two pieces, and the split matters:
 
-  1. fast_lio provides LiDAR-inertial odometry from config/livox_mid360.yaml. It publishes
-     /Odometry as odom -> base_link and broadcasts no TF of its own.
+  1. fast_lio provides LiDAR-inertial odometry from config/livox_mid360.yaml, reading the
+     raw Livox cloud directly off common.lid_topic (/livox/lidar). It publishes /Odometry
+     as odom -> base_link and broadcasts no TF of its own.
   2. ekf.launch.py runs robot_localization from config/ekf_config.yaml, fusing that pose
      with IMU angular velocity and owning the odom -> base_link transform.
 
@@ -31,6 +32,8 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -68,7 +71,7 @@ def launch_setup(context, *args, **kwargs):
     is_sim = LaunchConfiguration("sim").perform(context).lower() == "true"
 
     fast_lio_params_file = os.path.join(
-        get_package_share_directory("autonomy"), "config", "livox_mid360.yaml"
+        get_package_share_directory("autonomy_bringup"), "config", "livox_mid360.yaml"
     )
     with open(fast_lio_params_file, "r") as f:
         fast_lio_params = yaml.safe_load(f)
@@ -105,7 +108,7 @@ def launch_setup(context, *args, **kwargs):
     ekf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("autonomy"), "launch", "ekf.launch.py"]
+                [FindPackageShare("autonomy_bringup"), "launch", "ekf.launch.py"]
             )
         ),
         launch_arguments={
@@ -114,7 +117,20 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-    return [fast_lio_launch, ekf_launch]
+    # Watches /odometry/filtered against /cmd_vel_out for wheel slip, so it belongs
+    # wherever the EKF that produces /odometry/filtered is brought up.
+    watchdog_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("watchdog"), "launch", "mobility_watchdog.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
+    return [fast_lio_launch, ekf_launch, watchdog_launch]
 
 
 def generate_launch_description():
@@ -141,17 +157,57 @@ def generate_launch_description():
     declare_ekf_params_file = DeclareLaunchArgument(
         "ekf_params_file",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("autonomy"), "config", "ekf_config.yaml"]
+            [FindPackageShare("autonomy_bringup"), "config", "ekf_config.yaml"]
         ),
         description="Parameters file for the robot_localization EKF.",
     )
 
+    bias_remover_container = ComposableNodeContainer(
+        name="imu_bias_container",
+        namespace="",
+        package="rclcpp_components",
+        executable="component_container_mt",  # mt is nice for multiple callbacks
+        output="screen",
+        composable_node_descriptions=[
+            ComposableNode(
+                package="perseus_sensors",
+                plugin="imu_processors::BiasEstimator",
+                name="imu_bias_estimator",
+                parameters=[
+                    {
+                        "use_odom": True,
+                        "use_cmd_vel": False,
+                        "accumulator_alpha": 0.01,
+                        "stationary_mode": "AND",  # OR / AND
+                        "imu_in_topic": "/livox/imu",
+                        "odom_topic": "/odom",  # from the wheel encoder
+                        "bias_out_topic": "/livox/gyro_bias",
+                        "estimator_rate_hz": 100.0,
+                    }
+                ],
+            ),
+            ComposableNode(
+                package="perseus_sensors",
+                plugin="imu_processors::BiasRemover",
+                name="imu_bias_remover",
+                parameters=[
+                    {
+                        "imu_in_topic": "/livox/imu",
+                        "bias_in_topic": "/livox/gyro_bias",
+                        "imu_out_topic": "/livox/imu/corrected",
+                        "output_rate_hz": 100.0,
+                    }
+                ],
+            ),
+        ],
+    )
     return LaunchDescription(
         [
             declare_sim,
             declare_use_sim_time,
             declare_rviz,
             declare_ekf_params_file,
+            bias_remover_container,
             OpaqueFunction(function=launch_setup),
         ]
     )
