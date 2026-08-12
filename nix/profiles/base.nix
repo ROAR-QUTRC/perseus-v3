@@ -13,7 +13,6 @@ let
       can-utils
       glibcLocales
       # groot2
-      ncurses
       # nixgl-script
       # nixcuda-script
       yaml-cpp
