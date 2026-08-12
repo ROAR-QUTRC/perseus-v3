@@ -3,25 +3,29 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  rclcpp,
-  std-msgs,
+  joint-state-publisher-gui,
+  realsense2-description,
+  robot-state-publisher,
+  rviz2,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-template-package";
+  pname = "ros-jazzy-perseus-description";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/example;
+  src = ./../../../../software/ros_ws/src/perseus_description;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
-    rclcpp
-    std-msgs
+    joint-state-publisher-gui
+    realsense2-description
+    robot-state-publisher
+    rviz2
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Template Package";
+    description = "Package containing description files for Perseus V2";
     license = with lib.licenses; [ mit ];
   };
 }

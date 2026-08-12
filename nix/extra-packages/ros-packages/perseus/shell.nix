@@ -27,13 +27,59 @@ pkgs.mkShell {
         with extraPkgs;
         [
           # Dependencies from package.xml files
+          actuator-msgs
           ament-cmake
+          ament-cmake-python
+          ament-index-cpp
+          ament-lint-auto
+          ament-lint-common
           backward-ros
+          builtin-interfaces
+          compressed-depth-image-transport
+          compressed-image-transport
+          controller-manager
+          cv-bridge
+          diff-drive-controller
+          fast-lio
+          geometry-msgs
+          hardware-interface
+          hi-can
           hi-can-raw
+          joint-state-broadcaster
+          joint-state-publisher-gui
+          joy
+          mecanum-drive-controller
+          nav-msgs
+          navigation2
           nlohmann_json
+          onnxruntime
+          opencv
+          pluginlib
+          rcl-interfaces
           rclcpp
+          rclcpp-components
+          rclcpp-lifecycle
+          rclpy
+          realsense2-camera
+          realsense2-description
+          robot-localization
+          robot-state-publisher
+          ros2controlcli
+          ros2launch
+          rosidl-default-generators
+          rosidl-default-runtime
+          rplidar-ros
+          rviz2
           sensor-msgs
+          slam-toolbox
           std-msgs
+          tf2
+          tf2-geometry-msgs
+          tf2-ros
+          twist-mux
+          v4l2-camera
+          visualization-msgs
+          xacro
         ]
       )
       ++ builtins.attrValues extraPkgs
