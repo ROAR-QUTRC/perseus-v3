@@ -5,6 +5,129 @@
 	(uuid "95b892ef-6ed5-41f2-94d3-84cb5e1b68c5")
 	(paper "A4")
 	(lib_symbols
+		(symbol "Connector:TestPoint"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_0_1"
+				(circle
+					(center 0 3.302)
+					(radius 0.762)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:C"
 			(pin_numbers
 				(hide yes)
@@ -2790,6 +2913,16 @@
 			(embedded_fonts no)
 		)
 	)
+	(text "Flash mem"
+		(exclude_from_sim no)
+		(at 185.166 67.564 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "1ce20f30-29f5-4854-ae4a-119a140fee97")
+	)
 	(junction
 		(at 193.04 64.77)
 		(diameter 0)
@@ -2831,6 +2964,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "4664907d-347d-4c38-9258-00d5e2fe8dbe")
+	)
+	(junction
+		(at 168.91 71.12)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4afa31bb-0abb-4bf8-adb4-b2db54155c27")
 	)
 	(junction
 		(at 77.47 133.35)
@@ -2970,6 +3109,76 @@
 		(color 0 0 0 0)
 		(uuid "f7ec98a0-a9a3-4b19-8e3e-c382ea767d6a")
 	)
+	(no_connect
+		(at 165.1 119.38)
+		(uuid "160940a2-4ac0-43e4-9f8b-ac9bc68aadb1")
+	)
+	(no_connect
+		(at 165.1 144.78)
+		(uuid "4522258c-5aeb-42b3-8121-03a6932c3186")
+	)
+	(no_connect
+		(at 165.1 116.84)
+		(uuid "4e4f96a0-20a2-4815-9191-ac1d00028396")
+	)
+	(no_connect
+		(at 165.1 114.3)
+		(uuid "4efb57ca-d5c3-44a3-ac1a-4539e2adeaca")
+	)
+	(no_connect
+		(at 165.1 142.24)
+		(uuid "50628d41-a7e0-4963-b37c-64531d79a5ba")
+	)
+	(no_connect
+		(at 165.1 124.46)
+		(uuid "5d736068-adc5-4976-b090-f1d5673c7641")
+	)
+	(no_connect
+		(at 165.1 129.54)
+		(uuid "6762adcd-af3b-4319-bbba-351bd0367af8")
+	)
+	(no_connect
+		(at 165.1 127)
+		(uuid "90e6b08f-8bec-458a-999d-3d374b183e71")
+	)
+	(no_connect
+		(at 165.1 106.68)
+		(uuid "9b4da598-3239-44f6-a810-905fdf5e614e")
+	)
+	(no_connect
+		(at 165.1 132.08)
+		(uuid "b1471981-eb36-4991-ac0a-c28a4e1613a5")
+	)
+	(no_connect
+		(at 165.1 134.62)
+		(uuid "bcf59342-c82e-43f3-88dc-ef7f91c64f4e")
+	)
+	(no_connect
+		(at 165.1 121.92)
+		(uuid "c14d5ba2-b740-48f7-a25d-f324080f5591")
+	)
+	(no_connect
+		(at 165.1 111.76)
+		(uuid "ea257e1c-61ab-4adf-92e2-856e5a29aeba")
+	)
+	(no_connect
+		(at 165.1 147.32)
+		(uuid "f7df91d4-9314-4f31-b52b-297babfa7e4f")
+	)
+	(no_connect
+		(at 165.1 109.22)
+		(uuid "fc62b7a1-f24e-4dfc-aa3e-54704cc2a03c")
+	)
+	(wire
+		(pts
+			(xy 168.91 71.12) (xy 172.72 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "00f8697f-2f5d-4bdd-8ad2-66d6d6a78f08")
+	)
 	(wire
 		(pts
 			(xy 189.23 26.67) (xy 198.12 26.67)
@@ -3032,6 +3241,16 @@
 	)
 	(wire
 		(pts
+			(xy 176.53 99.06) (xy 176.53 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0ec86803-424d-406d-b4a5-91c8df7aff23")
+	)
+	(wire
+		(pts
 			(xy 99.06 92.71) (xy 102.87 92.71)
 		)
 		(stroke
@@ -3039,6 +3258,26 @@
 			(type default)
 		)
 		(uuid "0f56dfc6-1d56-4dcc-a4d4-f0508818b6e7")
+	)
+	(wire
+		(pts
+			(xy 165.1 78.74) (xy 172.72 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1321e2b4-919b-42ce-8d1f-10dacbb53672")
+	)
+	(wire
+		(pts
+			(xy 172.72 101.6) (xy 172.72 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "14054ee5-a080-4b06-93f6-67bb1348c90b")
 	)
 	(wire
 		(pts
@@ -3189,6 +3428,16 @@
 			(type default)
 		)
 		(uuid "2f2708f4-3de7-42a6-80f8-dbde05292517")
+	)
+	(wire
+		(pts
+			(xy 165.1 93.98) (xy 172.72 93.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "330a1131-c2eb-445f-884f-dc6a048f40d9")
 	)
 	(wire
 		(pts
@@ -3352,6 +3601,26 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 73.66) (xy 172.72 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5d265ecf-6903-4205-b842-ad36eb28b26a")
+	)
+	(wire
+		(pts
+			(xy 165.1 71.12) (xy 168.91 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5d2cb8af-c7d1-46cb-a9ec-5cd51abe2c25")
+	)
+	(wire
+		(pts
 			(xy 102.87 97.79) (xy 99.06 97.79)
 		)
 		(stroke
@@ -3402,6 +3671,26 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 86.36) (xy 172.72 86.36)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6d622e7f-74a8-44a8-9a4d-b3b98e0cbf74")
+	)
+	(wire
+		(pts
+			(xy 168.91 110.49) (xy 179.07 110.49)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6e797a56-4190-4edc-9de3-e77e5404b5df")
+	)
+	(wire
+		(pts
 			(xy 147.32 57.15) (xy 147.32 63.5)
 		)
 		(stroke
@@ -3409,6 +3698,16 @@
 			(type default)
 		)
 		(uuid "705b9ac0-76a4-465b-b869-96320e3d4251")
+	)
+	(wire
+		(pts
+			(xy 168.91 68.58) (xy 168.91 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "756e83fb-d3c5-4650-9f1f-7759d4895b3a")
 	)
 	(wire
 		(pts
@@ -3492,6 +3791,26 @@
 	)
 	(wire
 		(pts
+			(xy 172.72 105.41) (xy 179.07 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8bd5f15f-4dd9-431e-838e-709741a9bc1e")
+	)
+	(wire
+		(pts
+			(xy 165.1 139.7) (xy 173.99 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8cca47af-80e2-4e48-810f-e3b7b59a80e1")
+	)
+	(wire
+		(pts
 			(xy 54.61 143.51) (xy 64.77 143.51)
 		)
 		(stroke
@@ -3532,6 +3851,16 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 81.28) (xy 172.72 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "917f0584-8380-44a0-a30b-70b50b0173f5")
+	)
+	(wire
+		(pts
 			(xy 110.49 93.98) (xy 110.49 92.71)
 		)
 		(stroke
@@ -3539,6 +3868,16 @@
 			(type default)
 		)
 		(uuid "91886502-0377-46a6-96fd-17b00f6f3b29")
+	)
+	(wire
+		(pts
+			(xy 165.1 96.52) (xy 172.72 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "93727777-2e92-407a-994e-08283393f3e5")
 	)
 	(wire
 		(pts
@@ -3572,6 +3911,16 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 104.14) (xy 168.91 104.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9f727a40-7d7e-4214-bad4-b463b85d5b28")
+	)
+	(wire
+		(pts
 			(xy 142.24 52.07) (xy 193.04 52.07)
 		)
 		(stroke
@@ -3599,6 +3948,16 @@
 			(type default)
 		)
 		(uuid "a790c1c5-6e01-48ba-b3f2-fb6437ffc294")
+	)
+	(wire
+		(pts
+			(xy 168.91 104.14) (xy 168.91 110.49)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "aab84b59-6ce0-477c-8516-59d7a9cdab31")
 	)
 	(wire
 		(pts
@@ -3692,6 +4051,16 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 91.44) (xy 172.72 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bf3f2233-026d-462a-89c0-477cbbe7565c")
+	)
+	(wire
+		(pts
 			(xy 129.54 63.5) (xy 132.08 63.5)
 		)
 		(stroke
@@ -3712,6 +4081,16 @@
 	)
 	(wire
 		(pts
+			(xy 176.53 100.33) (xy 179.07 100.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c215d1ae-1920-4e44-89ee-c7901cfc5839")
+	)
+	(wire
+		(pts
 			(xy 77.47 125.73) (xy 77.47 133.35)
 		)
 		(stroke
@@ -3719,6 +4098,16 @@
 			(type default)
 		)
 		(uuid "c4b333d0-8aed-48c2-a7ab-8d0e770af979")
+	)
+	(wire
+		(pts
+			(xy 165.1 76.2) (xy 172.72 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c54a5846-b5fa-405e-a8fe-5d61ee04a0f7")
 	)
 	(wire
 		(pts
@@ -3749,6 +4138,26 @@
 			(type default)
 		)
 		(uuid "cbc595bf-1734-43cf-9cac-f54c0b4ef0ee")
+	)
+	(wire
+		(pts
+			(xy 172.72 68.58) (xy 168.91 68.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ce1b1807-6ac3-44b0-bbfb-bc97f1109c47")
+	)
+	(wire
+		(pts
+			(xy 165.1 83.82) (xy 172.72 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ced2abcc-3e90-40c6-bfe3-873b0e2f3a76")
 	)
 	(wire
 		(pts
@@ -3822,6 +4231,26 @@
 	)
 	(wire
 		(pts
+			(xy 165.1 88.9) (xy 172.72 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e8d77c9f-a4e7-4969-8f2e-c10677eb9bad")
+	)
+	(wire
+		(pts
+			(xy 165.1 99.06) (xy 176.53 99.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e8db174a-45b9-4a29-8295-aa334bdf5157")
+	)
+	(wire
+		(pts
 			(xy 193.04 59.69) (xy 193.04 64.77)
 		)
 		(stroke
@@ -3829,6 +4258,16 @@
 			(type default)
 		)
 		(uuid "eff73704-d04d-4353-914f-1a4796032ceb")
+	)
+	(wire
+		(pts
+			(xy 165.1 101.6) (xy 172.72 101.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f2087089-6be3-4b0f-b4c3-c963df1fbdaf")
 	)
 	(wire
 		(pts
@@ -3901,6 +4340,16 @@
 		(uuid "098a15df-d53c-4593-b09f-34a69905c868")
 	)
 	(label "GPIO_0"
+		(at 172.72 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "259f43c6-6a3a-42c2-a4ee-a55d3276e437")
+	)
+	(label "GPIO_0"
 		(at 95.25 105.41 180)
 		(effects
 			(font
@@ -3950,6 +4399,17 @@
 		)
 		(uuid "f9b5ecca-b4c7-4a74-96be-fadb73aedc55")
 	)
+	(hierarchical_label "RP_I2C_SCL"
+		(shape input)
+		(at 172.72 73.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2f4f1372-5db2-4b22-b76a-99caec13b602")
+	)
 	(hierarchical_label "SWDIO"
 		(shape bidirectional)
 		(at 111.76 144.78 180)
@@ -3960,6 +4420,17 @@
 			(justify right)
 		)
 		(uuid "3f71a72c-3ffa-42fe-bfc1-752d260993a6")
+	)
+	(hierarchical_label "RP_ID_ADDR2"
+		(shape input)
+		(at 172.72 91.44 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "432bf74f-c3a2-4513-9164-71d1cf4932bb")
 	)
 	(hierarchical_label "USB_N"
 		(shape bidirectional)
@@ -3984,6 +4455,72 @@
 			)
 		)
 	)
+	(hierarchical_label "RP_HALL_DIR"
+		(shape input)
+		(at 172.72 88.9 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "4e52b7b4-6ac5-47a4-b700-630d794f2bc6")
+	)
+	(hierarchical_label "RP_HALL_AOUT"
+		(shape input)
+		(at 173.99 139.7 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7940c138-7351-49d8-96f4-e22ec6eeb746")
+	)
+	(hierarchical_label "RP_STATUS_LED"
+		(shape input)
+		(at 172.72 83.82 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "83b6a972-e27b-47f2-902d-16eaeaf75162")
+	)
+	(hierarchical_label "RP_RS485_RX"
+		(shape input)
+		(at 172.72 76.2 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8b4b6fcd-4934-4a50-89dc-14a43e16d2a9")
+	)
+	(hierarchical_label "RP_I2C_SDA"
+		(shape input)
+		(at 172.72 71.12 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "94224b28-7331-4a01-9c5f-16c122949fe4")
+	)
+	(hierarchical_label "RP_RS485_TX"
+		(shape input)
+		(at 172.72 78.74 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "956b3c7c-4452-4695-82dc-90cbaac64fb7")
+	)
 	(hierarchical_label "3V3"
 		(shape input)
 		(at 81.28 33.02 90)
@@ -4005,6 +4542,50 @@
 			(justify right)
 		)
 		(uuid "ae0dd659-ad87-464e-8934-bc0e2a6839d2")
+	)
+	(hierarchical_label "RP_HALL_PGO"
+		(shape input)
+		(at 172.72 86.36 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "afbd52f1-26ea-4359-beed-cfb96e5ba708")
+	)
+	(hierarchical_label "RP_ID_ADDR1"
+		(shape input)
+		(at 172.72 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "bc407aab-28dd-4315-b96f-1a2cc6637a3c")
+	)
+	(hierarchical_label "RP_ID_ADDR0"
+		(shape input)
+		(at 172.72 96.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "c2c3c2e4-c27d-4b90-b600-c9308be92bb8")
+	)
+	(hierarchical_label "RP_RS485_DIR"
+		(shape input)
+		(at 172.72 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ce6519c8-7329-493d-ab32-0a06105bdcc8")
 	)
 	(hierarchical_label "USB_P"
 		(shape bidirectional)
@@ -4040,7 +4621,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "0243947d-b0d5-4e9d-b3b1-a19a04260409")
-		(property "Reference" "#PWR032"
+		(property "Reference" "#PWR040"
 			(at 90.17 129.54 0)
 			(hide yes)
 			(show_name no)
@@ -4100,7 +4681,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR032")
+					(reference "#PWR040")
 					(unit 1)
 				)
 			)
@@ -4117,7 +4698,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "06874af6-dd46-46ab-990a-90fb6e083458")
-		(property "Reference" "C22"
+		(property "Reference" "C9"
 			(at 55.88 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4214,7 +4795,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C22")
+					(reference "C9")
 					(unit 1)
 				)
 			)
@@ -4231,7 +4812,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "097d12e8-e60c-4912-be68-b0aab9147fdf")
-		(property "Reference" "C8"
+		(property "Reference" "C18"
 			(at 110.49 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4328,7 +4909,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C8")
+					(reference "C18")
 					(unit 1)
 				)
 			)
@@ -4345,7 +4926,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "0ea898e1-24c9-4b35-ac2c-987f37070d3c")
-		(property "Reference" "#PWR030"
+		(property "Reference" "#PWR034"
 			(at 53.34 102.87 0)
 			(hide yes)
 			(show_name no)
@@ -4405,7 +4986,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR030")
+					(reference "#PWR034")
 					(unit 1)
 				)
 			)
@@ -4422,7 +5003,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "103089ea-b210-4653-ab6b-a400a8011545")
-		(property "Reference" "C13"
+		(property "Reference" "C12"
 			(at 74.93 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4519,7 +5100,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C13")
+					(reference "C12")
 					(unit 1)
 				)
 			)
@@ -4761,7 +5342,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "1dfd0767-e174-4b52-a2a5-704277c273d8")
-		(property "Reference" "C17"
+		(property "Reference" "C24"
 			(at 209.55 30.48 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4858,7 +5439,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C17")
+					(reference "C24")
 					(unit 1)
 				)
 			)
@@ -4875,7 +5456,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "258239e6-0844-4fc8-a42d-f66feafa1cbc")
-		(property "Reference" "#PWR019"
+		(property "Reference" "#PWR048"
 			(at 198.12 34.29 0)
 			(hide yes)
 			(show_name no)
@@ -4935,7 +5516,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR019")
+					(reference "#PWR048")
 					(unit 1)
 				)
 			)
@@ -4952,7 +5533,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "275210cd-e28f-4ba4-b4af-6f5bb10d1312")
-		(property "Reference" "R5"
+		(property "Reference" "R18"
 			(at 108.204 99.822 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5014,7 +5595,86 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R5")
+					(reference "R18")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 179.07 100.33 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "276f83db-7840-4c7a-aab0-873af52765a1")
+		(property "Reference" "TP1"
+			(at 184.15 99.0599 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SPARE_GPIO"
+			(at 184.15 101.5999 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+			(at 179.07 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 179.07 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 179.07 100.33 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "71f78b22-3fd0-40fe-8fcf-23f89c3a0cc1")
+		)
+		(instances
+			(project "enc-encoder"
+				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
+					(reference "TP1")
 					(unit 1)
 				)
 			)
@@ -5032,7 +5692,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "27a7617f-4515-4783-a737-3b6b8756ca0d")
-		(property "Reference" "R15"
+		(property "Reference" "R16"
 			(at 107.442 84.074 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5094,7 +5754,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R15")
+					(reference "R16")
 					(unit 1)
 				)
 			)
@@ -5111,7 +5771,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "2997b635-55dc-4eff-bc5e-41d9f71207a6")
-		(property "Reference" "C9"
+		(property "Reference" "C17"
 			(at 101.6 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5208,7 +5868,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C9")
+					(reference "C17")
 					(unit 1)
 				)
 			)
@@ -5225,7 +5885,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "2dcad806-3058-465e-af61-64838a8ca6b3")
-		(property "Reference" "#PWR023"
+		(property "Reference" "#PWR036"
 			(at 67.31 130.81 0)
 			(hide yes)
 			(show_name no)
@@ -5285,7 +5945,86 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR023")
+					(reference "#PWR036")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 179.07 110.49 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "338f272b-a2e8-4cc6-8642-b49eabe98855")
+		(property "Reference" "TP3"
+			(at 184.15 109.2199 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SPARE_GPIO"
+			(at 184.15 111.7599 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+			(at 179.07 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 179.07 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 179.07 110.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "62bb77a7-2be3-4716-bd70-9eecf5986d9b")
+		)
+		(instances
+			(project "enc-encoder"
+				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
+					(reference "TP3")
 					(unit 1)
 				)
 			)
@@ -5302,7 +6041,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "352b5da0-4979-43d5-91a1-e82ca1e3996b")
-		(property "Reference" "C14"
+		(property "Reference" "C13"
 			(at 83.82 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5399,7 +6138,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C14")
+					(reference "C13")
 					(unit 1)
 				)
 			)
@@ -5416,7 +6155,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "3cb7ca27-32d1-4d97-9d85-d2e02ba0abbe")
-		(property "Reference" "C21"
+		(property "Reference" "C20"
 			(at 185.42 60.96 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5513,7 +6252,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C21")
+					(reference "C20")
 					(unit 1)
 				)
 			)
@@ -5530,7 +6269,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "4e06944c-9dac-4fb0-921e-75be0befd7ac")
-		(property "Reference" "#PWR015"
+		(property "Reference" "#PWR043"
 			(at 137.16 158.75 0)
 			(hide yes)
 			(show_name no)
@@ -5590,7 +6329,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR015")
+					(reference "#PWR043")
 					(unit 1)
 				)
 			)
@@ -5608,7 +6347,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "51794d18-30ea-4095-af21-3d795ce83ef0")
-		(property "Reference" "#PWR02"
+		(property "Reference" "#PWR047"
 			(at 198.12 30.48 0)
 			(hide yes)
 			(show_name no)
@@ -5668,7 +6407,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR02")
+					(reference "#PWR047")
 					(unit 1)
 				)
 			)
@@ -5685,7 +6424,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "59df63f1-a19d-42ad-893b-892dfec76c46")
-		(property "Reference" "#PWR016"
+		(property "Reference" "#PWR039"
 			(at 81.28 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -5745,7 +6484,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR016")
+					(reference "#PWR039")
 					(unit 1)
 				)
 			)
@@ -5762,7 +6501,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "613f8757-e41d-4e0b-b0df-a330b74aad61")
-		(property "Reference" "#PWR033"
+		(property "Reference" "#PWR038"
 			(at 77.47 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -5822,7 +6561,86 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR033")
+					(reference "#PWR038")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 179.07 105.41 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "62e0aca6-30fd-4c94-9b67-db4b365b538a")
+		(property "Reference" "TP2"
+			(at 184.15 104.1399 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SPARE_GPIO"
+			(at 184.15 106.6799 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+			(at 179.07 110.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 179.07 110.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 179.07 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "fac46018-3feb-4402-bea7-9fffe0d71d4a")
+		)
+		(instances
+			(project "enc-encoder"
+				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
+					(reference "TP2")
 					(unit 1)
 				)
 			)
@@ -5839,7 +6657,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "66754e89-3ef2-4b82-8db8-18188b1aef86")
-		(property "Reference" "#PWR027"
+		(property "Reference" "#PWR045"
 			(at 193.04 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -5899,7 +6717,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR027")
+					(reference "#PWR045")
 					(unit 1)
 				)
 			)
@@ -5917,7 +6735,7 @@
 		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "68aa6da5-7430-4c19-9116-2fc64d204f03")
-		(property "Reference" "R6"
+		(property "Reference" "R13"
 			(at 80.01 97.7899 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5981,7 +6799,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R6")
+					(reference "R13")
 					(unit 1)
 				)
 			)
@@ -5998,7 +6816,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "68e1efde-3f1b-4f3e-9113-16b49d6f7e1d")
-		(property "Reference" "#PWR020"
+		(property "Reference" "#PWR042"
 			(at 125.73 55.88 0)
 			(hide yes)
 			(show_name no)
@@ -6058,7 +6876,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR020")
+					(reference "#PWR042")
 					(unit 1)
 				)
 			)
@@ -6075,7 +6893,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "69c83da1-ba9d-4587-a3d2-9ed19bab8aa7")
-		(property "Reference" "C11"
+		(property "Reference" "C16"
 			(at 92.71 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6172,7 +6990,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C11")
+					(reference "C16")
 					(unit 1)
 				)
 			)
@@ -6189,7 +7007,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "79193af1-cfc5-43eb-abfe-2abbd4af7a92")
-		(property "Reference" "#PWR06"
+		(property "Reference" "#PWR044"
 			(at 182.88 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -6249,7 +7067,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR06")
+					(reference "#PWR044")
 					(unit 1)
 				)
 			)
@@ -6266,7 +7084,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "7b3b5b7b-2256-4735-9a20-5c55154246c1")
-		(property "Reference" "#PWR021"
+		(property "Reference" "#PWR046"
 			(at 193.04 67.31 0)
 			(hide yes)
 			(show_name no)
@@ -6326,7 +7144,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR021")
+					(reference "#PWR046")
 					(unit 1)
 				)
 			)
@@ -6343,7 +7161,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "807eddee-991d-44a7-ad69-72f778198bcb")
-		(property "Reference" "C15"
+		(property "Reference" "C10"
 			(at 57.15 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6440,7 +7258,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C15")
+					(reference "C10")
 					(unit 1)
 				)
 			)
@@ -6457,7 +7275,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "89a85542-ed49-4682-ae07-31f90eaa5674")
-		(property "Reference" "R14"
+		(property "Reference" "R19"
 			(at 108.712 135.636 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6519,7 +7337,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R14")
+					(reference "R19")
 					(unit 1)
 				)
 			)
@@ -6536,7 +7354,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "8a7794af-4750-4728-96f2-c4ec745e5980")
-		(property "Reference" "C12"
+		(property "Reference" "C11"
 			(at 66.04 36.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6633,7 +7451,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C12")
+					(reference "C11")
 					(unit 1)
 				)
 			)
@@ -6650,7 +7468,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "a0cbdf34-ed2f-48c9-8401-a7140ec172cb")
-		(property "Reference" "C1"
+		(property "Reference" "C15"
 			(at 78.486 131.572 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6712,7 +7530,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C1")
+					(reference "C15")
 					(unit 1)
 				)
 			)
@@ -6844,7 +7662,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "b22c2308-6b3e-45a7-9ae2-e0933ee80516")
-		(property "Reference" "R13"
+		(property "Reference" "R12"
 			(at 67.818 141.224 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6906,7 +7724,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R13")
+					(reference "R12")
 					(unit 1)
 				)
 			)
@@ -6923,7 +7741,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "b2b747c5-c449-46d3-9f76-0b71aef00bdc")
-		(property "Reference" "R7"
+		(property "Reference" "R15"
 			(at 81.28 108.204 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6985,7 +7803,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R7")
+					(reference "R15")
 					(unit 1)
 				)
 			)
@@ -7002,7 +7820,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "b2ea3edc-6693-4376-81cf-1656e68a079d")
-		(property "Reference" "#PWR035"
+		(property "Reference" "#PWR041"
 			(at 92.71 76.2 0)
 			(hide yes)
 			(show_name no)
@@ -7062,7 +7880,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR035")
+					(reference "#PWR041")
 					(unit 1)
 				)
 			)
@@ -7080,7 +7898,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "b4fbfb53-d24f-4f0d-8f28-04ca5d8f5fa0")
-		(property "Reference" "U2"
+		(property "Reference" "U4"
 			(at 59.69 106.68 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7162,7 +7980,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "U2")
+					(reference "U4")
 					(unit 1)
 				)
 			)
@@ -7179,7 +7997,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "bf00137d-3120-4d89-987e-8fa6069bc847")
-		(property "Reference" "#PWR031"
+		(property "Reference" "#PWR037"
 			(at 76.2 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -7239,7 +8057,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR031")
+					(reference "#PWR037")
 					(unit 1)
 				)
 			)
@@ -7371,7 +8189,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c925acd4-bfeb-4d0c-baab-19c7e20e0634")
-		(property "Reference" "R3"
+		(property "Reference" "R20"
 			(at 179.07 41.91 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7433,7 +8251,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R3")
+					(reference "R20")
 					(unit 1)
 				)
 			)
@@ -7450,7 +8268,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "caf78c77-1ccb-4c00-91a3-214bfba93507")
-		(property "Reference" "R4"
+		(property "Reference" "R17"
 			(at 105.156 90.678 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7512,7 +8330,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R4")
+					(reference "R17")
 					(unit 1)
 				)
 			)
@@ -7530,7 +8348,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "d29fcf51-1ed8-4dd8-9982-36f97df3e4fd")
-		(property "Reference" "C2"
+		(property "Reference" "C14"
 			(at 78.486 127.508 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7592,7 +8410,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C2")
+					(reference "C14")
 					(unit 1)
 				)
 			)
@@ -7609,7 +8427,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "dba99caa-904a-426a-8f7d-c3fc84a36204")
-		(property "Reference" "C18"
+		(property "Reference" "C21"
 			(at 191.77 30.48 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7706,7 +8524,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C18")
+					(reference "C21")
 					(unit 1)
 				)
 			)
@@ -7838,7 +8656,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "df2474d6-c0d9-4470-8037-6b9aec96fed1")
-		(property "Reference" "U1"
+		(property "Reference" "U5"
 			(at 141.8433 153.67 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8101,7 +8919,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "U1")
+					(reference "U5")
 					(unit 1)
 				)
 			)
@@ -8118,7 +8936,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "e4785054-b01c-4e93-971e-0fc40617f6ad")
-		(property "Reference" "C16"
+		(property "Reference" "C23"
 			(at 200.66 30.48 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8215,7 +9033,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C16")
+					(reference "C23")
 					(unit 1)
 				)
 			)
@@ -8232,7 +9050,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "ed06d7ea-cc00-4ee4-9bc4-e02c373272ec")
-		(property "Reference" "C20"
+		(property "Reference" "C22"
 			(at 195.58 55.88 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8329,7 +9147,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "C20")
+					(reference "C22")
 					(unit 1)
 				)
 			)
@@ -8346,7 +9164,7 @@
 		(in_pos_files yes)
 		(dnp yes)
 		(uuid "f3ccae44-5ad0-4b81-b222-2cc56dbc8bad")
-		(property "Reference" "R12"
+		(property "Reference" "R14"
 			(at 81.28 103.124 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8408,7 +9226,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "R12")
+					(reference "R14")
 					(unit 1)
 				)
 			)
@@ -8425,7 +9243,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "fec52f0a-414f-40e2-a9a5-e494adedcc0f")
-		(property "Reference" "#PWR028"
+		(property "Reference" "#PWR035"
 			(at 67.31 95.25 0)
 			(hide yes)
 			(show_name no)
@@ -8485,7 +9303,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/b9ddf1db-6260-42b9-a51b-bae57295b5be"
-					(reference "#PWR028")
+					(reference "#PWR035")
 					(unit 1)
 				)
 			)
