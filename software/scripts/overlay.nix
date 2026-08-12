@@ -17,8 +17,8 @@ in
       name = "clean.bash";
       deps = with prev; [ git ];
     };
-    nix-package = build-wrapped-script {
-      name = "nix-package.sh";
+    generate-ros-pkgs = build-wrapped-script {
+      name = "generate-ros-pkgs.sh";
       deps = with prev; [ git ];
     };
     vcan-setup = build-wrapped-script {

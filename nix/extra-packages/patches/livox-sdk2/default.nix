@@ -17,7 +17,7 @@ stdenv.mkDerivation {
   };
 
   patches = [
-    # ./patches/fix-cstdint-and-enum.patch
+    ./fix-cstdint-and-enum.patch
   ];
 
   nativeBuildInputs = [ cmake ];
