@@ -6,13 +6,12 @@
 #include "rclcpp/rclcpp.hpp"
 #include "topic_remapper/topic_remapper.hpp"
 
-int main(int argc, char* argv[])
-{
-    rclcpp::init(argc, argv);
+int main(int argc, char *argv[]) {
+  rclcpp::init(argc, argv);
 
-    rclcpp::NodeOptions options;
-    rclcpp::spin(std::make_shared<TopicRemapper>(options));
+  rclcpp::NodeOptions options;
+  rclcpp::spin(std::make_shared<TopicRemapper>(options));
 
-    rclcpp::shutdown();
-    return 0;
+  rclcpp::shutdown();
+  return 0;
 }

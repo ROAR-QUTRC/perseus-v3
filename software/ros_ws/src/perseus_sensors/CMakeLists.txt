@@ -56,8 +56,8 @@ endforeach()
 
 # COMPILE (Executables)
 
-# Topic Remapper
-# Dynamic topic remapper that detects message type and republishes at lower frequency
+# Topic Remapper Dynamic topic remapper that detects message type and
+# republishes at lower frequency
 add_executable(topic_remapper src/topic_remapper/main.cpp
                               src/topic_remapper/topic_remapper.cpp)
 
@@ -89,11 +89,11 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-# Dust Filter
-# Radius outlier removal, decluttering the Livox point cloud before FAST-LIO or the
-# obstacle costmap sees it. Built as a component so it can be loaded into a shared
-# container with another node (e.g. FAST-LIO's LaserMappingNode) and pass point clouds
-# between them by pointer instead of over DDS.
+# Dust Filter Radius outlier removal, decluttering the Livox point cloud before
+# FAST-LIO or the obstacle costmap sees it. Built as a component so it can be
+# loaded into a shared container with another node (e.g. FAST-LIO's
+# LaserMappingNode) and pass point clouds between them by pointer instead of
+# over DDS.
 add_library(dust_filter_component SHARED src/dust_filter/dust_filter.cpp)
 
 target_include_directories(dust_filter_component

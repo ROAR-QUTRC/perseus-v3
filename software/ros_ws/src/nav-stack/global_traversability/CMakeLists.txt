@@ -43,11 +43,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # public dependencies (which should propagate)
 #
-# Deliberately grid_map_core only, not grid_map_ros: its own exported dependency is Eigen3
-# alone, so it can't be what pulls in the VTK/Qt/OpenCV chain the find_package(PCL) ordering
-# comment below is about. Depending on grid_map_ros would have added another, separate such
-# chain (via grid_map_cv -> filters) for no benefit -- GridMap -> OccupancyGrid is hand-rolled
-# below using grid_map_core's own getIndex() instead of grid_map_ros's converter.
+# Deliberately grid_map_core only, not grid_map_ros: its own exported dependency
+# is Eigen3 alone, so it can't be what pulls in the VTK/Qt/OpenCV chain the
+# find_package(PCL) ordering comment below is about. Depending on grid_map_ros
+# would have added another, separate such chain (via grid_map_cv -> filters) for
+# no benefit -- GridMap -> OccupancyGrid is hand-rolled below using
+# grid_map_core's own getIndex() instead of grid_map_ros's converter.
 set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs nav_msgs grid_map_core
                                  pcl_conversions)
 
@@ -58,11 +59,12 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
-# Deliberately found before pcl_conversions below, and scoped to COMPONENTS common: found
-# this way first, the cached result is a minimal PCL (no visualization/VTK/Qt). Found only via
-# pcl_conversions' own transitive re-export instead, CMake resolves it unscoped, pulling all
-# of PCL including visualization -- which is what actually injects "-isystem /usr/include" in
-# the first place (via one of VTK/Qt's legacy CMake modules), not grid_map_core.
+# Deliberately found before pcl_conversions below, and scoped to COMPONENTS
+# common: found this way first, the cached result is a minimal PCL (no
+# visualization/VTK/Qt). Found only via pcl_conversions' own transitive
+# re-export instead, CMake resolves it unscoped, pulling all of PCL including
+# visualization -- which is what actually injects "-isystem /usr/include" in the
+# first place (via one of VTK/Qt's legacy CMake modules), not grid_map_core.
 find_package(PCL REQUIRED COMPONENTS common)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
