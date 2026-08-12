@@ -29,7 +29,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "footprints:SW_218-4LPSTR"
 			(at 0 0 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -423,7 +423,7 @@
 		(symbol "AS5600_0_1"
 			(rectangle
 				(start -7.62 7.62)
-				(end 7.62 -7.62)
+				(end 7.62 -6.35)
 				(stroke
 					(width 0)
 					(type default)
@@ -471,7 +471,7 @@
 				)
 			)
 			(pin output line
-				(at -10.16 -2.54 0)
+				(at -10.16 -1.27 0)
 				(length 2.54)
 				(name "OUT"
 					(effects
@@ -489,7 +489,7 @@
 				)
 			)
 			(pin input line
-				(at -10.16 -6.35 0)
+				(at -10.16 -5.08 0)
 				(length 2.54)
 				(name "GND"
 					(effects
@@ -507,7 +507,7 @@
 				)
 			)
 			(pin input line
-				(at 10.16 -6.35 180)
+				(at 10.16 -5.08 180)
 				(length 2.54)
 				(name "PGO"
 					(effects
@@ -525,7 +525,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 10.16 -2.54 180)
+				(at 10.16 -1.27 180)
 				(length 2.54)
 				(name "SDA"
 					(effects
