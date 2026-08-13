@@ -21,7 +21,7 @@
     typescript.enable = true;
     javascript = {
       enable = true;
-      # npm.enable = true;
+      npm.enable = true;
       corepack.enable = true;
     };
   };
@@ -33,7 +33,7 @@
       exec = ''
         cd ${config.env.DEVENV_ROOT}/software/web_ui
         # pipe yes to automatically install yarn if prompted
-        yes | yarn 
+        yes | yarn
       '';
       after = [
         "devenv:enterShell"
@@ -43,11 +43,22 @@
   };
 
   scripts = {
-    "web-ui" = {
+    "web-ui-dev" = {
       exec = ''
         cd ${config.env.DEVENV_ROOT}/software/web_ui
-        yarn build
-        yarn start
+        vite dev --host
+      '';
+    };
+    "web-ui-build" = {
+      exec = ''
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
+        vite build
+        node ./src/server/server.js
+      '';
+    };
+    "web-ui" = {
+      exec = ''
+        node ${config.env.DEVENV_ROOT}/software/web_ui/src/server/server.js
       '';
     };
     "camera-server" = {
