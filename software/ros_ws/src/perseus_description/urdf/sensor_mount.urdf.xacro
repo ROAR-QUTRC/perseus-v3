@@ -21,7 +21,7 @@
       </inertial>
 
       <visual>
-        <origin xyz="0.0 0.0 ${-0.04}" rpy="0.0 0.0 ${pi/2}"/>
+        <origin xyz="${-0.023} ${0.01} ${-0.035}" rpy="0.0 0.0 ${pi/2}"/>
         <geometry>
           <mesh scale="1.0 1.0 1.0" filename="file://$(find perseus_description)/meshes/sensor_mount.dae"/>
         </geometry>
@@ -50,7 +50,7 @@
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
     <xacro:sensor_d455 parent="${prefix}sensor_mount" name="camera" use_nominal_extrinsics="true">
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <origin xyz="0.035 0.0 0.006" rpy="0.0 0.0 0.0"/>
     </xacro:sensor_d455>
     <xacro:camera_d455_gazebo name="camera"/>
   </xacro:macro>
