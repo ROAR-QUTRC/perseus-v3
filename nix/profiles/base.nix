@@ -12,7 +12,7 @@ let
       bashInteractive
       can-utils
       glibcLocales
-      nixgl-script
+      # nixgl-script
       # nixcuda-script
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
@@ -40,7 +40,7 @@ let
       rqt-graph
       rqt-gui
       rqt-gui-py
-      rviz2-fixed
+      # rviz2-fixed
       teleop-twist-keyboard
       tf2-tools
       twist-stamper
@@ -52,7 +52,7 @@ let
       man-pages
       man-pages-posix
       stdmanpages
-      nix-gl-host
+      # nix-gl-host
       ;
   };
 
