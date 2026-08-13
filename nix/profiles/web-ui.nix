@@ -6,6 +6,7 @@
     (
       [
         libnice
+        tsx
       ]
       ++ (with gst_all_1; [
         gstreamer
@@ -20,6 +21,7 @@
     typescript.enable = true;
     javascript = {
       enable = true;
+      # npm.enable = true;
       corepack.enable = true;
     };
   };
@@ -46,6 +48,11 @@
         cd ${config.env.DEVENV_ROOT}/software/web_ui
         yarn build
         yarn start
+      '';
+    };
+    "camera-server" = {
+      exec = ''
+        tsx ${config.env.DEVENV_ROOT}/software/web_ui/pi-server/index.ts
       '';
     };
   };
