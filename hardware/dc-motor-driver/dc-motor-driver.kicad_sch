@@ -11,10 +11,9 @@
 		(company "QUTRC")
 	)
 	(lib_symbols
-		(symbol "Connector:Screw_Terminal_01x02"
+		(symbol "Manufacturer Connectors:54-00274"
 			(pin_names
 				(offset 1.016)
-				(hide yes)
 			)
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -22,26 +21,40 @@
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
 			(property "Reference" "J"
-				(at 0 2.54 0)
+				(at -5.08 8.382 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
+					(justify left bottom)
 				)
 			)
-			(property "Value" "Screw_Terminal_01x02"
-				(at 0 -5.08 0)
+			(property "Value" "54-00274"
+				(at -5.08 -12.7 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
+					(justify left bottom)
 				)
 			)
-			(property "Footprint" ""
+			(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Datasheet" "https://tensility.s3.us-west-2.amazonaws.com/uploads/pdffiles/54-00274.pdf"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -52,7 +65,7 @@
 					)
 				)
 			)
-			(property "Datasheet" ""
+			(property "Description" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -63,7 +76,55 @@
 					)
 				)
 			)
-			(property "Description" "Generic screw terminal, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(property "PARTREV" "A"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "STANDARD" "Manufacturer Recommendations"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MANUFACTURER" "Tensility"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "Supplier" "DigiKey"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -74,7 +135,7 @@
 					)
 				)
 			)
-			(property "ki_keywords" "screw terminal"
+			(property "Supplier Part No" " 839-54-00274-ND"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -85,7 +146,7 @@
 					)
 				)
 			)
-			(property "ki_fp_filters" "TerminalBlock*:*"
+			(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tensility-international-corp/54-00274/16604946"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -96,36 +157,121 @@
 					)
 				)
 			)
-			(symbol "Screw_Terminal_01x02_1_1"
-				(rectangle
-					(start -1.27 1.27)
-					(end 1.27 -3.81)
+			(symbol "54-00274_0_0"
+				(polyline
+					(pts
+						(xy -5.08 7.62) (xy 5.08 7.62)
+					)
 					(stroke
 						(width 0.254)
 						(type default)
 					)
 					(fill
-						(type background)
-					)
-				)
-				(polyline
-					(pts
-						(xy -0.5334 0.3302) (xy 0.3302 -0.508)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
 						(type none)
 					)
 				)
 				(polyline
 					(pts
-						(xy -0.5334 -2.2098) (xy 0.3302 -3.048)
+						(xy -5.08 -10.16) (xy -5.08 7.62)
 					)
 					(stroke
-						(width 0.1524)
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 4.445 5.715)
+					(mid 4.894 5.529)
+					(end 5.08 5.08)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 5.08 5.08)
+					(mid 4.894 4.631)
+					(end 4.445 4.445)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 4.445 3.175)
+					(mid 4.894 2.989)
+					(end 5.08 2.54)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 5.08 2.54)
+					(mid 4.894 2.091)
+					(end 4.445 1.905)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 4.445 0.635)
+					(mid 4.894 0.449)
+					(end 5.08 0)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 5.08 0)
+					(mid 4.894 -0.449)
+					(end 4.445 -0.635)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 4.445 -1.905)
+					(mid 4.894 -2.091)
+					(end 5.08 -2.54)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(arc
+					(start 5.08 -2.54)
+					(mid 4.894 -2.989)
+					(end 4.445 -3.175)
+					(stroke
+						(width 0.254)
 						(type default)
 					)
 					(fill
@@ -134,10 +280,10 @@
 				)
 				(polyline
 					(pts
-						(xy -0.3556 0.508) (xy 0.508 -0.3302)
+						(xy 5.08 -10.16) (xy -5.08 -10.16)
 					)
 					(stroke
-						(width 0.1524)
+						(width 0.254)
 						(type default)
 					)
 					(fill
@@ -146,32 +292,34 @@
 				)
 				(polyline
 					(pts
-						(xy -0.3556 -2.032) (xy 0.508 -2.8702)
+						(xy 6.35 6.35) (xy 5.08 7.62)
 					)
 					(stroke
-						(width 0.1524)
+						(width 0.254)
 						(type default)
 					)
 					(fill
 						(type none)
 					)
 				)
-				(circle
-					(center 0 0)
-					(radius 0.635)
+				(polyline
+					(pts
+						(xy 6.35 6.35) (xy 6.35 -8.89)
+					)
 					(stroke
-						(width 0.1524)
+						(width 0.254)
 						(type default)
 					)
 					(fill
 						(type none)
 					)
 				)
-				(circle
-					(center 0 -2.54)
-					(radius 0.635)
+				(polyline
+					(pts
+						(xy 6.35 -8.89) (xy 5.08 -10.16)
+					)
 					(stroke
-						(width 0.1524)
+						(width 0.254)
 						(type default)
 					)
 					(fill
@@ -179,37 +327,109 @@
 					)
 				)
 				(pin passive line
-					(at -5.08 0 0)
-					(length 3.81)
-					(name "Pin_1"
+					(at 10.16 5.08 180)
+					(length 5.08)
+					(name "1"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 					(number "1"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 				)
 				(pin passive line
-					(at -5.08 -2.54 0)
-					(length 3.81)
-					(name "Pin_2"
+					(at 10.16 2.54 180)
+					(length 5.08)
+					(name "2"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 					(number "2"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 10.16 0 180)
+					(length 5.08)
+					(name "3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 10.16 -2.54 180)
+					(length 5.08)
+					(name "4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 10.16 -5.08 180)
+					(length 5.08)
+					(name "SHIELD"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "S1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 10.16 -7.62 180)
+					(length 5.08)
+					(name "SHIELD__1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "S2"
+						(effects
+							(font
+								(size 1.016 1.016)
 							)
 						)
 					)
@@ -217,7 +437,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Manufacturer_Connectors:A-DF_09_A/KG-T2S"
+		(symbol "Manufacturer Connectors:A-DF_09_A/KG-T2S"
 			(pin_names
 				(offset 1.016)
 			)
@@ -540,7 +760,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Manufacturer_Connectors:XT_Connector"
+		(symbol "Manufacturer Connectors:XT_Connector"
 			(pin_names
 				(offset 0.889)
 			)
@@ -2325,13 +2545,7 @@
 		(uuid "c95f8412-d203-4bfd-9891-65fb8369cdb7")
 	)
 	(junction
-		(at 27.94 35.56)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "0203add9-4ff9-4639-bb87-936d6ebe95e3")
-	)
-	(junction
-		(at 77.47 119.38)
+		(at 64.77 119.38)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "26103637-9715-40d9-a92f-453da673b3f9")
@@ -2349,6 +2563,12 @@
 		(uuid "3f6e0459-0122-4f16-876c-29bc5e1491a2")
 	)
 	(junction
+		(at 27.94 38.1)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6710cc5e-bb60-4746-882f-14b1279c3070")
+	)
+	(junction
 		(at 57.15 66.04)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2361,7 +2581,7 @@
 		(uuid "80db7910-23fd-46db-88dc-0ef4c6b96176")
 	)
 	(junction
-		(at 77.47 121.92)
+		(at 64.77 121.92)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "839e865e-881b-4432-97be-abef9c15d32c")
@@ -2397,6 +2617,12 @@
 		(uuid "93b4eb67-38dc-4f50-9f39-d6914b0433e3")
 	)
 	(junction
+		(at 27.94 35.56)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "96349e2c-fdde-4487-b990-db6fd05b7ae5")
+	)
+	(junction
 		(at 39.37 92.71)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2407,12 +2633,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "b44d3814-da22-4d88-90c0-bf3599c1c224")
-	)
-	(junction
-		(at 27.94 38.1)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "bb9bdd2e-255b-44fe-95ff-1209eeedb2c9")
 	)
 	(junction
 		(at 39.37 100.33)
@@ -2451,6 +2671,12 @@
 		(uuid "ef0415ee-3a94-4cde-9efd-0e7fb5ffc021")
 	)
 	(junction
+		(at 69.85 154.94)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "f16632cf-c129-4569-ba0b-5099371c44b7")
+	)
+	(junction
 		(at 194.31 35.56)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2475,7 +2701,11 @@
 		(uuid "185a3675-d770-403c-851d-9dd22d0b566c")
 	)
 	(no_connect
-		(at 74.93 111.76)
+		(at 68.58 149.86)
+		(uuid "2f64af62-89d2-4ca6-89fe-aad9976b4b67")
+	)
+	(no_connect
+		(at 62.23 111.76)
 		(uuid "3a200bed-69f0-4c26-9277-c22197c2f40c")
 	)
 	(no_connect
@@ -2483,11 +2713,11 @@
 		(uuid "71f2b7fd-2370-4540-b25f-67cab80dd93f")
 	)
 	(no_connect
-		(at 74.93 109.22)
+		(at 62.23 109.22)
 		(uuid "7545abbd-fbd4-46cb-909f-e2898381851a")
 	)
 	(no_connect
-		(at 74.93 124.46)
+		(at 62.23 124.46)
 		(uuid "7fc7ee10-e3af-4ef1-91f1-7564e6f3399d")
 	)
 	(no_connect
@@ -2503,11 +2733,15 @@
 		(uuid "c81fa452-2202-422e-beb2-3f77e48d483c")
 	)
 	(no_connect
+		(at 68.58 147.32)
+		(uuid "d4845062-2626-4b76-9d3a-43130434f313")
+	)
+	(no_connect
 		(at 96.52 114.3)
 		(uuid "e844b1e5-fce7-4ad7-aaac-efab8ab52de6")
 	)
 	(no_connect
-		(at 74.93 116.84)
+		(at 62.23 116.84)
 		(uuid "e84b64e4-050f-4660-896a-a896a1c58a25")
 	)
 	(no_connect
@@ -2515,7 +2749,7 @@
 		(uuid "eb6a929e-dd03-423c-8880-c300ff0ca2c2")
 	)
 	(no_connect
-		(at 74.93 106.68)
+		(at 62.23 106.68)
 		(uuid "f4cb6444-988c-4973-b295-2bc3ced8a387")
 	)
 	(wire
@@ -2600,6 +2834,16 @@
 	)
 	(wire
 		(pts
+			(xy 69.85 156.21) (xy 69.85 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1b998f0d-9690-4589-b1cf-84c25661e3f2")
+	)
+	(wire
+		(pts
 			(xy 140.97 60.96) (xy 138.43 60.96)
 		)
 		(stroke
@@ -2630,13 +2874,13 @@
 	)
 	(wire
 		(pts
-			(xy 27.94 27.94) (xy 25.4 27.94)
+			(xy 69.85 152.4) (xy 68.58 152.4)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "240da8c5-dee2-4ec2-8120-8d3d164d3e0e")
+		(uuid "2a71168e-6304-4a1e-be04-eaf65375cbc8")
 	)
 	(wire
 		(pts
@@ -2780,7 +3024,7 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 114.3) (xy 77.47 119.38)
+			(xy 64.77 114.3) (xy 64.77 119.38)
 		)
 		(stroke
 			(width 0)
@@ -2800,7 +3044,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 121.92) (xy 77.47 121.92)
+			(xy 62.23 121.92) (xy 64.77 121.92)
 		)
 		(stroke
 			(width 0)
@@ -2900,6 +3144,16 @@
 	)
 	(wire
 		(pts
+			(xy 68.58 144.78) (xy 74.93 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6bc52e91-009d-4dbd-9a5d-7d4ec71b0c36")
+	)
+	(wire
+		(pts
 			(xy 57.15 66.04) (xy 59.69 66.04)
 		)
 		(stroke
@@ -2950,7 +3204,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 119.38) (xy 77.47 119.38)
+			(xy 62.23 119.38) (xy 64.77 119.38)
 		)
 		(stroke
 			(width 0)
@@ -2960,7 +3214,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 114.3) (xy 77.47 114.3)
+			(xy 62.23 114.3) (xy 64.77 114.3)
 		)
 		(stroke
 			(width 0)
@@ -2970,7 +3224,7 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 119.38) (xy 96.52 119.38)
+			(xy 64.77 119.38) (xy 96.52 119.38)
 		)
 		(stroke
 			(width 0)
@@ -3090,7 +3344,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 127) (xy 77.47 127)
+			(xy 62.23 127) (xy 64.77 127)
 		)
 		(stroke
 			(width 0)
@@ -3130,16 +3384,6 @@
 	)
 	(wire
 		(pts
-			(xy 27.94 25.4) (xy 25.4 25.4)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a8f04b43-6f32-42a1-a1b5-0c11c3593c39")
-	)
-	(wire
-		(pts
 			(xy 90.17 60.96) (xy 90.17 48.26)
 		)
 		(stroke
@@ -3147,6 +3391,16 @@
 			(type default)
 		)
 		(uuid "ac8b4755-cdfc-4b3c-84cd-4e4e75ba049d")
+	)
+	(wire
+		(pts
+			(xy 68.58 142.24) (xy 74.93 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "af07030c-0b96-4315-892b-83056045712a")
 	)
 	(wire
 		(pts
@@ -3240,7 +3494,17 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 127) (xy 77.47 121.92)
+			(xy 68.58 154.94) (xy 69.85 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c7339600-2ed1-4ded-a556-d054c0d634f9")
+	)
+	(wire
+		(pts
+			(xy 64.77 127) (xy 64.77 121.92)
 		)
 		(stroke
 			(width 0)
@@ -3257,6 +3521,16 @@
 			(type default)
 		)
 		(uuid "c8d01fc8-22e2-4d39-8776-28af7fb30f55")
+	)
+	(wire
+		(pts
+			(xy 69.85 154.94) (xy 69.85 152.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c9890b17-3e32-427d-a6b8-1e90738e0344")
 	)
 	(wire
 		(pts
@@ -3370,7 +3644,7 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 121.92) (xy 96.52 121.92)
+			(xy 64.77 121.92) (xy 96.52 121.92)
 		)
 		(stroke
 			(width 0)
@@ -3567,6 +3841,16 @@
 			(justify right bottom)
 		)
 		(uuid "03fa5792-0ce2-45a5-90ff-dfe802416794")
+	)
+	(label "CAN_H"
+		(at 74.93 144.78 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "0c7b270a-9d06-4a29-b3f8-c4c0807e8451")
 	)
 	(label "BANK2_~{FLT}"
 		(at 140.97 30.48 90)
@@ -3848,7 +4132,7 @@
 		)
 		(uuid "87e39561-090c-40f8-ba28-72e7251c921a")
 	)
-	(label "CAN+"
+	(label "CAN_H"
 		(at 85.09 119.38 0)
 		(effects
 			(font
@@ -3948,7 +4232,7 @@
 		)
 		(uuid "a208e84b-d895-448f-a2c5-982ebacee248")
 	)
-	(label "CAN-"
+	(label "CAN_L"
 		(at 85.09 121.92 0)
 		(effects
 			(font
@@ -3977,6 +4261,16 @@
 			(justify right bottom)
 		)
 		(uuid "ad7260e9-63b8-4c47-8eb9-7bb1b53dfe66")
+	)
+	(label "CAN_L"
+		(at 74.93 142.24 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "b34cf1b7-bd05-4e53-ae52-1ba273becbce")
 	)
 	(label "BANK1_~{FLT}"
 		(at 90.17 30.48 90)
@@ -4193,6 +4487,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Manufacturer Connectors:XT_Connector")
+		(at 22.86 35.56 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0664afd2-e521-4222-8a00-35fd8db3fda8")
+		(property "Reference" "J2"
+			(at 20.955 31.75 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VIN"
+			(at 21.082 41.402 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal"
+			(at 22.86 42.164 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 22.86 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "XT-Series Battery Connector"
+			(at 22.86 28.702 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c5356b4f-47e2-4e7c-b9b8-9c7177c5ec14")
+		)
+		(pin "2"
+			(uuid "d4b00e3c-ea6a-48db-8f64-d52787de807e")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:PWR_FLAG")
 		(at 27.94 35.56 0)
 		(unit 1)
@@ -4271,85 +4644,6 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 27.94 27.94 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "14c1f40d-a5f1-4c8d-885c-12b652da660c")
-		(property "Reference" "#PWR02"
-			(at 34.29 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 31.115 27.9401 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 27.94 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 27.94 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 27.94 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "baf373b9-23fe-4d5b-8522-3510ecac8693")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "#PWR02")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
 		(at 39.37 115.57 0)
 		(unit 1)
 		(body_style 1)
@@ -4421,85 +4715,6 @@
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
 					(reference "#PWR05")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:VCC")
-		(at 27.94 25.4 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "1c44c56c-3af4-4e48-9d6d-33293cb669be")
-		(property "Reference" "#PWR01"
-			(at 24.13 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "VCC"
-			(at 31.115 25.4001 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 27.94 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 27.94 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"VCC\""
-			(at 27.94 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "06c38bf9-0e0f-4181-b60e-f8f22c0d53de")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "#PWR01")
 					(unit 1)
 				)
 			)
@@ -4933,98 +5148,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Screw_Terminal_01x02")
-		(at 20.32 27.94 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "5c5bc20e-db07-483c-9cd3-aad8a3fab7f6")
-		(property "Reference" "J1"
-			(at 17.78 27.9401 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "VIN"
-			(at 17.78 25.4001 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Horizontal"
-			(at 20.32 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 20.32 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic screw terminal, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 20.32 27.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier" ""
-			(at 20.32 27.94 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "78a3c5ab-2b46-4a87-b71f-51b03e41547b")
-		)
-		(pin "1"
-			(uuid "73c39da1-f0cf-4942-bd71-0659daeed40d")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "J1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 121.92 160.02 0)
 		(unit 1)
@@ -5339,149 +5462,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Manufacturer_Connectors:A-DF_09_A/KG-T2S")
-		(at 67.31 116.84 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "75d68394-04a7-4ec2-9a07-8ec95f935a82")
-		(property "Reference" "J3"
-			(at 60.96 118.1101 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "DE9"
-			(at 60.96 115.5701 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "THT:A-DF_09_A_KG-T2S"
-			(at 54.61 101.6 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "http://www.assmann-wsw.com/uploads/datasheets/ASS_4888_CO.pdf"
-			(at 67.31 137.16 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Description" "9-pin D-SUB connector, socket (female), Mounting Hole"
-			(at 69.85 99.06 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier" "DigiKey"
-			(at 67.31 142.24 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Supplier Part No" "AE10921-ND"
-			(at 57.15 142.24 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/assmann-wsw-components/A-DF-09-A-KG-T2S/1241800"
-			(at 67.31 139.7 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(pin "2"
-			(uuid "e1880b62-a490-48cc-9728-79792cb39c50")
-		)
-		(pin "7"
-			(uuid "0bc24f73-6d83-4b71-bb41-50cfc91608b6")
-		)
-		(pin "4"
-			(uuid "b5a98e82-b53b-4bf1-916d-4954e29b3f30")
-		)
-		(pin "9"
-			(uuid "f016ee83-9f38-4744-a48b-396905f3e344")
-		)
-		(pin "3"
-			(uuid "8d5e903f-ce5c-419a-8d56-2094409dc8de")
-		)
-		(pin "1"
-			(uuid "8221c00e-4c00-4415-ab09-c62da91d71e0")
-		)
-		(pin "8"
-			(uuid "4150659b-4c61-4d19-94d9-4ea7ec653fef")
-		)
-		(pin "6"
-			(uuid "6b55858c-ab79-4750-b2e0-083a2859ef75")
-		)
-		(pin "0"
-			(uuid "fb4f4777-76d7-4d6a-a06c-d90c1432c079")
-		)
-		(pin "5"
-			(uuid "1155e133-8f34-45dd-92bb-d58ce936a2ac")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "J3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
 		(at 36.83 107.95 90)
 		(unit 1)
@@ -5717,6 +5697,149 @@
 		)
 	)
 	(symbol
+		(lib_id "Manufacturer Connectors:A-DF_09_A/KG-T2S")
+		(at 54.61 116.84 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "94b800b9-87dc-46df-ba1f-e9941f0d9938")
+		(property "Reference" "J3"
+			(at 48.26 115.5699 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "DE9"
+			(at 48.26 118.1099 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "THT:A-DF_09_A_KG-T2S"
+			(at 41.91 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "http://www.assmann-wsw.com/uploads/datasheets/ASS_4888_CO.pdf"
+			(at 54.61 137.16 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Description" "9-pin D-SUB connector, socket (female), Mounting Hole"
+			(at 57.15 99.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 54.61 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Supplier Part No" "AE10921-ND"
+			(at 44.45 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/assmann-wsw-components/A-DF-09-A-KG-T2S/1241800"
+			(at 54.61 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "2"
+			(uuid "ea0f2514-b518-4a54-8122-ac5dc69fb36b")
+		)
+		(pin "4"
+			(uuid "8ad2fd10-459a-4991-bd0f-07c6eeaae27f")
+		)
+		(pin "0"
+			(uuid "39eb241d-c1e9-44e8-852b-8f6431e88276")
+		)
+		(pin "1"
+			(uuid "3703c6be-7497-4218-83b4-52dcd241ea84")
+		)
+		(pin "8"
+			(uuid "aed2c5a6-6800-4df4-a2c7-4f202266a027")
+		)
+		(pin "5"
+			(uuid "4550f510-5bac-45c2-9bb7-8a867734b747")
+		)
+		(pin "9"
+			(uuid "bd5a3f45-e3c4-4736-9ece-51a90969ba3e")
+		)
+		(pin "3"
+			(uuid "10381e5e-ceef-4da7-b54b-2ae128647f68")
+		)
+		(pin "6"
+			(uuid "3de00be8-7083-40ef-986e-64274aa31765")
+		)
+		(pin "7"
+			(uuid "e9319687-9fc1-4994-bc88-c7614bf7761c")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
 		(at 36.83 85.09 90)
 		(unit 1)
@@ -5797,18 +5920,18 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 67.31 101.6 180)
+		(at 69.85 156.21 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(fields_autoplaced yes)
-		(uuid "ae043d74-dcc4-4855-bab1-5be330e08c3d")
-		(property "Reference" "#PWR07"
-			(at 67.31 95.25 0)
+		(uuid "98273bfe-7fdb-491a-b762-b8974487b601")
+		(property "Reference" "#PWR077"
+			(at 69.85 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5819,7 +5942,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 67.31 96.52 0)
+			(at 69.85 161.29 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5829,7 +5952,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 67.31 101.6 0)
+			(at 69.85 156.21 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5840,7 +5963,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 67.31 101.6 0)
+			(at 69.85 156.21 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5851,7 +5974,85 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 67.31 101.6 0)
+			(at 69.85 156.21 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "dc33b1ac-e972-4a69-8502-258617480a8d")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "#PWR077")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 54.61 101.6 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ae043d74-dcc4-4855-bab1-5be330e08c3d")
+		(property "Reference" "#PWR07"
+			(at 54.61 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 54.61 96.52 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 54.61 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 54.61 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 54.61 101.6 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5947,6 +6148,180 @@
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
 					(reference "#PWR04")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Manufacturer Connectors:54-00274")
+		(at 58.42 147.32 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp yes)
+		(fields_autoplaced yes)
+		(uuid "c3d4c4b5-85b3-4730-8307-454bb6309691")
+		(property "Reference" "J14"
+			(at 59.055 134.62 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "54-00274"
+			(at 59.055 137.16 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Datasheet" "https://tensility.s3.us-west-2.amazonaws.com/uploads/pdffiles/54-00274.pdf"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "PARTREV" "A"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Tensility"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" " 839-54-00274-ND"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tensility-international-corp/54-00274/16604946"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "S1"
+			(uuid "5a83c8e4-25ad-452a-99f0-8d8855292b18")
+		)
+		(pin "2"
+			(uuid "7f126f1d-6c20-441c-935b-ddc703761c91")
+		)
+		(pin "S2"
+			(uuid "2be5b72e-c606-4bce-807c-1f2822df51b9")
+		)
+		(pin "4"
+			(uuid "98ea9182-1420-4252-9ec5-cc9945f0c792")
+		)
+		(pin "3"
+			(uuid "23dff766-adc7-4db9-833b-39c2ff9482c4")
+		)
+		(pin "1"
+			(uuid "81849e09-9a61-4bf7-b614-48675998269f")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "J14")
 					(unit 1)
 				)
 			)
@@ -6215,85 +6590,6 @@
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
 					(reference "#PWR06")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Manufacturer_Connectors:XT_Connector")
-		(at 22.86 35.56 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "fa23be84-894c-4d95-acfa-9da2f9d335f8")
-		(property "Reference" "J2"
-			(at 21.082 40.894 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" ""
-			(at 20.955 31.75 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal"
-			(at 22.86 42.164 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 22.86 35.56 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "XT-Series Battery Connector"
-			(at 22.86 28.702 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "3b73d3be-fb9f-4d32-94bc-553a0adcde76")
-		)
-		(pin "2"
-			(uuid "d6d85bda-0e17-4182-af7d-0ccca8febdf8")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "J2")
 					(unit 1)
 				)
 			)

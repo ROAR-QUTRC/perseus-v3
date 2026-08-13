@@ -39,9 +39,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.6,
-          "height": 2.1,
-          "width": 1.0
+          "drill": 1.3,
+          "height": 1.7,
+          "width": 1.7
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -548,7 +548,8 @@
       "PMIC, Motor Drivers",
       "Manufacturer Connectors",
       "Project_PCB",
-      "Semiconductor_Diodes"
+      "Semiconductor_Diodes",
+      "54-00274"
     ]
   },
   "meta": {
@@ -766,7 +767,7 @@
         "uuid": "fc286157-4263-4a46-ad05-98b3354aa28a"
       }
     ],
-    "used_designators": "C25-26,#PWR69-76,D1-2,R16-21,J10-11,U7-8",
+    "used_designators": "C25-26,#PWR68-77,D1-2,R16-21,J1,J10-11,J14-15,U7-8",
     "variants": []
   },
   "sheets": [
