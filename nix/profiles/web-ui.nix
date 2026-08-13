@@ -24,12 +24,12 @@
     };
   };
 
-  enterShell = "cd ${config.env.DEVENV_ROOT}/software/web-ui";
+  enterShell = "cd ${config.env.DEVENV_ROOT}/software/web_ui";
 
   tasks = {
     "web-ui:init" = {
       exec = ''
-        cd ${config.env.DEVENV_ROOT}/software/web-ui
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
         # pipe yes to automatically install yarn if prompted
         yes | yarn 
       '';
@@ -37,6 +37,16 @@
         "devenv:enterShell"
         "devenv:enterTest"
       ];
+    };
+  };
+
+  scripts = {
+    "web-ui" = {
+      exec = ''
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
+        yarn build
+        yarn start
+      '';
     };
   };
 }

@@ -7,9 +7,9 @@ let
   localPackagingOverlay = import ../../nix/extra-packages/ros-packages/perseus/overlay.nix;
 
   # add a wrapper to run GUI tools with nixGL, including setting needed environment variables
-  # nixgl-script = prev.writeShellScriptBin "nixgl" ''
-  #   NIXPKGS_ALLOW_UNFREE=1 QT_QPA_PLATFORM=xcb QT_SCREEN_SCALE_FACTORS=1 nix run --impure ${final.self}#pkgs.nixgl.auto.nixGLDefault -- "$@"
-  # '';
+  nixgl-script = prev.writeShellScriptBin "nixgl" ''
+    NIXPKGS_ALLOW_UNFREE=1 QT_QPA_PLATFORM=xcb QT_SCREEN_SCALE_FACTORS=1 nix run --impure ${final.self}#pkgs.nixgl.auto.nixGLDefault -- "$@"
+  '';
 
   # add a wrapper to run CUDA programs with host GPU driver passthrough
   # uses nix-gl-host which handles both OpenGL and CUDA on NVIDIA hardware
@@ -56,9 +56,9 @@ let
         {
           inherit devPackages simDevPackages;
           # wrap gz and rviz with nixGL
-          # rviz2-fixed = prev.writeShellScriptBin "rviz2-fixed" ''
-          #   ${final.nixgl-script} "${prev.lib.getExe rosPrev.rviz2}" "$@"
-          # '';
+          rviz2-fixed = prev.writeShellScriptBin "rviz2-fixed" ''
+            ${final.nixgl-script} "${prev.lib.getExe rosPrev.rviz2}" "$@"
+          '';
           # gz-sim-fixed = prev.writeShellScriptBin "gz-sim-fixed" ''
           #   ${final.nixgl-script} gz sim "$@"
           # '';
@@ -68,7 +68,8 @@ let
 in
 prev.lib.composeManyExtensions [
   (final: prev: {
-    # inherit nixgl-script nixcuda-script;
+    inherit nixgl-script;
+    # nixcuda-script;
     rosPackages = prev.rosPackages // {
       ${rosDistro} = prev.rosPackages.${rosDistro}.overrideScope rosPkgsOverlay;
     };

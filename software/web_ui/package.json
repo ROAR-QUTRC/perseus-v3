@@ -56,5 +56,5 @@
     "svelte-grid-extended": "^1.2.1",
     "svelte-radix": "^3.0.2"
   },
-  "packageManager": "yarn@4.17.1"
+  "packageManager": "yarn@4.12.0"
 }
