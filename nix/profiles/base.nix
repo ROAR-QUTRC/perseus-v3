@@ -96,47 +96,47 @@ let
   # TODO: replace with per-package Nix derivations (ros2nix) once packaged.
   workspaceDevDeps = {
     inherit (pkgs)
-      nlohmann_json # perseus_can_if, perseus_sensors
-      openssl # perseus_sensors
-      onnxruntime # perseus_vision (provides libonnxruntime.pc for pkg_check_modules)
+      nlohmann_json # can_if, sensors
+      openssl # sensors
+      onnxruntime # vision (provides libonnxruntime.pc for pkg_check_modules)
       # opencv intentionally omitted: cv-bridge propagates the ROS-consistent
       # OpenCV; adding pkgs.opencv causes a buildEnv version conflict.
       ;
     inherit (pkgs.ros)
       # ros2_control / hardware
-      hardware-interface # perseus_hardware, perseus_sensors
-      pluginlib # perseus_hardware
-      rclcpp-lifecycle # perseus_hardware, perseus_sensors
+      hardware-interface # hardware, sensors
+      pluginlib # hardware
+      rclcpp-lifecycle # hardware, sensors
       # behaviour tree
       behaviortree-cpp # perseus_bt_nodes
       # messages / interfaces
-      actuator-msgs # perseus_teleop
-      nav-msgs # perseus_sensors (CMake-only, not in package.xml)
-      rcl-interfaces # perseus_vision
-      std-msgs # perseus_vision
-      visualization-msgs # perseus_vision
-      builtin-interfaces # perseus_interfaces, perseus_bt_nodes
-      # rosidl codegen (perseus_interfaces)
+      actuator-msgs # teleop
+      nav-msgs # sensors (CMake-only, not in package.xml)
+      rcl-interfaces # vision
+      std-msgs # vision
+      visualization-msgs # vision
+      builtin-interfaces # interfaces, perseus_bt_nodes
+      # rosidl codegen (interfaces)
       rosidl-default-generators # msg/srv codegen
       rosidl-default-runtime # generated interface runtime
       python-cmake-module # rosidl python bindings
       # tf / geometry
-      tf2 # perseus_sensors, perseus_vision
-      tf2-ros # perseus_vision
-      tf2-geometry-msgs # perseus_sensors, perseus_vision
+      tf2 # sensors, vision
+      tf2-ros # vision
+      tf2-geometry-msgs # sensors, vision
       # core / misc
       rclcpp # brings lttng-ust link libs (perseus_bt_nodes etc.)
-      rclcpp-components # perseus_sensors (CMake-only, not in package.xml)
-      backward-ros # perseus_hardware, perseus_sensors, perseus_teleop, perseus_interfaces
-      ament-index-cpp # perseus_vision
-      cv-bridge # perseus_vision
+      rclcpp-components # sensors (CMake-only, not in package.xml)
+      backward-ros # hardware, sensors, teleop, interfaces
+      ament-index-cpp # vision
+      cv-bridge # vision
       # sensors
-      realsense2-camera # perseus_sensors
-      realsense2-description # perseus_sensors
-      rplidar-ros # perseus_sensors
+      realsense2-camera # sensors
+      realsense2-description # sensors
+      rplidar-ros # sensors
       # lint (test deps)
-      ament-lint-auto # perseus_interfaces, perseus_bt_nodes, perseus_vision
-      ament-lint-common # perseus_interfaces, perseus_bt_nodes, perseus_vision
+      ament-lint-auto # interfaces, perseus_bt_nodes, vision
+      ament-lint-common # interfaces, perseus_bt_nodes, vision
       # navigation / localization
       robot-localization # autonomy
       slam-toolbox # autonomy
@@ -151,11 +151,11 @@ let
     additionalDevPkgs = workspaceDevDeps;
     additionalPostShellHook = ''
       # onnxruntime ships libonnxruntime.pc in its dev output, which the
-      # workspace buildEnv does not surface. Add it so perseus_vision's
+      # workspace buildEnv does not surface. Add it so vision's
       # pkg_check_modules(libonnxruntime) resolves. The .pc uses absolute
       # paths, so this also supplies the correct lib flags.
       export PKG_CONFIG_PATH="${pkgs.onnxruntime.dev}/lib/pkgconfig''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-      # perseus_vision includes <onnxruntime/onnxruntime_cxx_api.h>, but the .pc
+      # vision includes <onnxruntime/onnxruntime_cxx_api.h>, but the .pc
       # only advertises the .../include/onnxruntime subdir. Nix build inputs
       # normally get -isystem $dev/include automatically; replicate that here
       # so the "onnxruntime/"-prefixed include resolves.

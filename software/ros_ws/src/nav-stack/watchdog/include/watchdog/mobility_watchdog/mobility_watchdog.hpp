@@ -10,7 +10,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 
-#include "perseus_interfaces/msg/mobility_status.hpp"
+#include "interfaces/msg/mobility_status.hpp"
 #include "watchdog/mobility_watchdog/slip_channel_monitor.hpp"
 
 namespace watchdog {
@@ -105,7 +105,7 @@ private:
       _cmd_vel_subscription;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr
       _odometry_subscription;
-  rclcpp::Publisher<perseus_interfaces::msg::MobilityStatus>::SharedPtr
+  rclcpp::Publisher<interfaces::msg::MobilityStatus>::SharedPtr
       _status_publisher;
 };
 

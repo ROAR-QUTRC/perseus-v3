@@ -7,7 +7,7 @@
   ament-lint-common,
   geometry-msgs,
   nav-msgs,
-  perseus-interfaces,
+  interfaces,
   rclcpp,
 }:
 buildRosPackage rec {
@@ -25,7 +25,7 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     geometry-msgs
     nav-msgs
-    perseus-interfaces
+    interfaces
     rclcpp
   ];
   nativeBuildInputs = [ ament-cmake ];

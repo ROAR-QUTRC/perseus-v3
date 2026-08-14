@@ -31,7 +31,7 @@ MobilityWatchdog::MobilityWatchdog(const rclcpp::NodeOptions &options)
                 std::placeholders::_1));
 
   _status_publisher =
-      this->create_publisher<perseus_interfaces::msg::MobilityStatus>(
+      this->create_publisher<interfaces::msg::MobilityStatus>(
           output_topic, QOS_DEPTH);
 }
 
@@ -95,7 +95,7 @@ void MobilityWatchdog::_odometry_callback(
   _linear_monitor.update(commanded_linear, msg->twist.twist.linear.x, now);
   _angular_monitor.update(commanded_angular, msg->twist.twist.angular.z, now);
 
-  perseus_interfaces::msg::MobilityStatus status;
+  interfaces::msg::MobilityStatus status;
   status.header = msg->header;
   status.is_evaluating =
       _linear_monitor.is_evaluating() || _angular_monitor.is_evaluating();

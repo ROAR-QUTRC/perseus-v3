@@ -37,11 +37,11 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "hardware_plugin",
-            default_value="perseus_hardware/VescSystemHardware",
+            default_value="hardware/VescSystemHardware",
             choices=[
                 "mock_components/GenericSystem",
-                "perseus_hardware/VescSystemHardware",
-                "perseus_hardware/McbSystemHardware",
+                "hardware/VescSystemHardware",
+                "hardware/McbSystemHardware",
                 "gz_ros2_control/GazeboSimSystem",
             ],
             description="The hardware plugin to use for ros2_control",
@@ -144,7 +144,7 @@ def generate_launch_description():
                         [
                             PathJoinSubstitution(
                                 [
-                                    FindPackageShare("perseus_payloads"),
+                                    FindPackageShare("payloads"),
                                     "launch",
                                     "bucket.launch.py",
                                 ]

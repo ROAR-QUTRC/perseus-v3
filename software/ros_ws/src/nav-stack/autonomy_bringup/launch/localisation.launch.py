@@ -170,7 +170,7 @@ def generate_launch_description():
         output="screen",
         composable_node_descriptions=[
             ComposableNode(
-                package="perseus_sensors",
+                package="sensors",
                 plugin="imu_processors::BiasEstimator",
                 name="imu_bias_estimator",
                 parameters=[
@@ -187,7 +187,7 @@ def generate_launch_description():
                 ],
             ),
             ComposableNode(
-                package="perseus_sensors",
+                package="sensors",
                 plugin="imu_processors::BiasRemover",
                 name="imu_bias_remover",
                 parameters=[
