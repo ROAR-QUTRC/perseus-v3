@@ -93,6 +93,16 @@ let
       + additionalPostShellHook;
     };
 
+  # nix-ros-workspace wires buildROSWorkspace's `buildROSEnv` argument to
+  # `rosFinal.buildEnv`, so overriding buildEnv in the ROS scope is what makes
+  # the workspace it builds an underlay. Only the env builder changes, so no
+  # package derivation is rebuilt.
+  rosUnderlay = pkgs.ros.overrideScope (
+    rosFinal: rosPrev: {
+      buildEnv = args: rosPrev.buildEnv (args // { underlay = true; });
+    }
+  );
+
   # Build-time (dev) dependencies of the workspace source packages.
   # These must be dev packages (not prebuilt) so colcon gets their headers,
   # CMake config and link libraries. ROS dev packages also bring their
@@ -150,8 +160,7 @@ let
       ;
   };
 
-  # NOTE the `.override` below: it sets `underlay` on the buildROSEnv call
-  # inside buildROSWorkspace, which flips the program wrappers from
+  # Built against rosUnderlay, which flips the program wrappers from
   # `--prefix AMENT_PREFIX_PATH` to `--suffix`.
   #
   # Every workspace package is also packaged for Nix (nix/extra-packages) with
@@ -165,8 +174,8 @@ let
   # As an underlay the Nix copies still resolve when nothing else is sourced,
   # so running straight out of the shell is unchanged, but
   # `source install/setup.bash` now takes priority over them.
-  defaultWorkspace = (mkWorkspace {
-    inherit (pkgs) ros;
+  defaultWorkspace = mkWorkspace {
+    ros = rosUnderlay;
     name = "default";
     additionalDevPkgs = workspaceDevDeps;
     additionalPostShellHook = ''
@@ -181,7 +190,7 @@ let
       # so the "onnxruntime/"-prefixed include resolves.
       export CPATH="${pkgs.onnxruntime.dev}/include''${CPATH:+:$CPATH}"
     '';
-  }).override (_: { underlay = true; });
+  };
 
   rosWs = "${config.env.DEVENV_ROOT}/software/ros_ws";
 in
