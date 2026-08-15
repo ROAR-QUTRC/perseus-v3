@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "DC Motor Driver")
-		(date "2026-08-05")
-		(rev "V1R1")
+		(date "2026-08-15")
+		(rev "V2R1")
 		(company "QUTRC")
 	)
 	(lib_symbols

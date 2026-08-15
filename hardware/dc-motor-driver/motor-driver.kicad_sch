@@ -6,7 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Motor Driver")
-		(rev "V0R1")
+		(date "2026-08-15")
+		(rev "V1R2")
 	)
 	(lib_symbols
 		(symbol "Capacitor:C_100n_50V_0603"

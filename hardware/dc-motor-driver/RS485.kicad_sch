@@ -4,6 +4,11 @@
 	(generator_version "10.0")
 	(uuid "2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078")
 	(paper "A4")
+	(title_block
+		(title "RS485 Master")
+		(date "2026-08-15")
+		(rev "V1R1")
+	)
 	(lib_symbols
 		(symbol "Capacitor:C_100n_50V_0603"
 			(pin_numbers
@@ -2263,6 +2268,39 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com/en/products/detail/amphenol-anytek/OQ0232510000G/2261255"
+			(at 170.18 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "609-3819-ND"
 			(at 170.18 81.28 0)
 			(hide yes)
 			(show_name no)
