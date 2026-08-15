@@ -484,8 +484,22 @@
     }
   },
   "libraries": {
-    "pinned_footprint_libs": [],
-    "pinned_symbol_libs": []
+    "pinned_footprint_libs": [
+      "THT",
+      "footprints",
+      "ConnectorsOther",
+      "SMD"
+    ],
+    "pinned_symbol_libs": [
+      "Capacitor",
+      "component_library",
+      "Connectors",
+      "PMIC_MotorDriver",
+      "PMIC_SwitchesDrivers",
+      "Project_PCB",
+      "Resistor",
+      "Semiconductor_Diodes"
+    ]
   },
   "meta": {
     "filename": "enc-encoder.kicad_pro",
@@ -633,7 +647,7 @@
           "group_by": false,
           "label": "Qty",
           "name": "${QUANTITY}",
-          "show": true
+          "show": false
         },
         {
           "group_by": true,
@@ -657,19 +671,19 @@
           "group_by": true,
           "label": "Exclude from Board",
           "name": "${EXCLUDE_FROM_BOARD}",
-          "show": true
+          "show": false
         },
         {
           "group_by": true,
           "label": "Exclude from Simulation",
           "name": "${EXCLUDE_FROM_SIM}",
-          "show": true
+          "show": false
         },
         {
           "group_by": true,
           "label": "Exclude from Position Files",
           "name": "${EXCLUDE_FROM_POS_FILES}",
-          "show": true
+          "show": false
         },
         {
           "group_by": true,
@@ -682,12 +696,72 @@
           "label": "Datasheet",
           "name": "Datasheet",
           "show": true
+        },
+        {
+          "group_by": false,
+          "label": "Supplier",
+          "name": "Supplier",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "Supplier Part No",
+          "name": "Supplier Part No",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "Supplier Link",
+          "name": "Supplier Link",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "distributors part number",
+          "name": "distributors part number",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "manufactuer part number",
+          "name": "manufactuer part number",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "manufacturer",
+          "name": "manufacturer",
+          "show": true
+        },
+        {
+          "group_by": false,
+          "label": "Description",
+          "name": "Description",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "#",
+          "name": "${ITEM_NUMBER}",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "KLC_S4.2_DVDD",
+          "name": "KLC_S4.2_DVDD",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "KLC_S4.2_VREG_LX",
+          "name": "KLC_S4.2_VREG_LX",
+          "show": false
         }
       ],
       "filter_string": "",
       "group_symbols": true,
       "include_excluded_from_bom": true,
-      "name": "Default Editing",
+      "name": "",
       "sort_asc": true,
       "sort_field": "Reference"
     },
@@ -732,7 +806,7 @@
         "uuid": "830e855f-c01b-4865-ac3f-fca5cbe32ffd"
       }
     ],
-    "used_designators": "C1-24,VBUS1,F1-2,GND1,RST1-2,VIN_IND1,Y1,#PWR1-49,#PWR51,#PWR61-70,#FLG1-2,R1-20,STATUS1,TP1-3,VCC1,RUN1,3V3_IND1,L1-2,3V1,3V3,D1-7,D11-12,U1-6,H1-4,SW1,J1-4,VR1",
+    "used_designators": "C1-25,RST1-2,VBUS1,F1-2,GND1,Y1-2,U1-6,VIN_IND1,#PWR1-51,#PWR61-70,#FLG1-7,R1-23,STATUS1,SW1,TP1-3,VCC1,RUN1,JP1,3V3_IND1,L1-2,3V1,3V3,D1-8,D11-12,H1-4,J1-6,VR1",
     "variants": []
   },
   "sheets": [
@@ -741,8 +815,12 @@
       "enc-encoder"
     ],
     [
-      "b9ddf1db-6260-42b9-a51b-bae57295b5be",
+      "772c9f81-7e5d-44a6-ac7a-4279420baea9",
       "rp2350"
+    ],
+    [
+      "d84734c9-d73d-4ade-9699-54ea74a43d21",
+      "RS485_SLAVE"
     ]
   ],
   "text_variables": {
