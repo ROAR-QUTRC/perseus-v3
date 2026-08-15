@@ -287,7 +287,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": "V1R1"
+      "sch_revision": "V2R1"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -709,6 +709,30 @@
           "label": "Exclude from Board",
           "name": "${EXCLUDE_FROM_BOARD}",
           "show": false
+        },
+        {
+          "group_by": false,
+          "label": "MANUFACTURER",
+          "name": "MANUFACTURER",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "MAXIMUM_PACKAGE_HEIGHT",
+          "name": "MAXIMUM_PACKAGE_HEIGHT",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "PARTREV",
+          "name": "PARTREV",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "STANDARD",
+          "name": "STANDARD",
+          "show": false
         }
       ],
       "filter_string": "",
@@ -809,7 +833,7 @@
     ]
   ],
   "text_variables": {
-    "DRAWN_BY": "James Nichol, Maurice Blake",
+    "DRAWN_BY": "Zeph Hardie, Maurice Blake, James Nichol",
     "PROJECT": "Perseus Rover",
     "SUBSYSTEM": "Excavation & Construction"
   },

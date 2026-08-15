@@ -6,7 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Magnetic Angle Sensor")
-		(date "2026-07-14")
+		(date "2026-08-15")
+		(rev "V1R1")
 	)
 	(lib_symbols
 		(symbol "Connector:TestPoint"
