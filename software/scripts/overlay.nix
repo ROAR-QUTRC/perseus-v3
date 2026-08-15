@@ -6,7 +6,8 @@ let
       deps ? [ ],
     }:
     prev.runCommandLocal name { nativeBuildInputs = [ prev.makeWrapper ]; } ''
-      makeWrapper ${./${name}} $out/bin/${name} \
+      makeWrapper ${./${name}} \
+        $out/bin/${builtins.head (prev.lib.splitString "." name)} \
         --prefix PATH : ${prev.lib.makeBinPath deps}
     '';
 in
@@ -16,8 +17,8 @@ in
       name = "clean.bash";
       deps = with prev; [ git ];
     };
-    nix-package = build-wrapped-script {
-      name = "nix-package.sh";
+    generate-ros-pkgs = build-wrapped-script {
+      name = "generate-ros-pkgs.sh";
       deps = with prev; [ git ];
     };
     vcan-setup = build-wrapped-script {

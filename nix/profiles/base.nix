@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   productionDomainId = 42;
   devDomainId = 51;
@@ -8,6 +8,7 @@ let
   # Packages which should be base profile
   standardPkgs = {
     inherit (pkgs)
+      colcon
       bashInteractive
       can-utils
       glibcLocales
@@ -16,6 +17,8 @@ let
       # nixgl-script
       # nixcuda-script
       yaml-cpp
+      graphviz # Often needed for ROS visualization tools
+      # livox-sdk2
       ;
     inherit (pkgs.ros)
       ros-core
@@ -95,6 +98,14 @@ in
   packages = [
     defaultWorkspace
   ];
+
+  processes = {
+    "perseus" = {
+      exec = ''
+        ${defaultWorkspace}/bin/ros2 launch perseus perseus.launch.py
+      '';
+    };
+  };
 
   enterShell = ''
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
