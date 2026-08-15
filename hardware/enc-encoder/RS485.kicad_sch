@@ -4,6 +4,11 @@
 	(generator_version "10.0")
 	(uuid "2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078")
 	(paper "A4")
+	(title_block
+		(title "RS485 Slave")
+		(date "2026-08-15")
+		(rev "V1R1")
+	)
 	(lib_symbols
 		(symbol "Capacitor:C_100n_50V_0603"
 			(pin_numbers
