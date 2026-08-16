@@ -96,14 +96,6 @@ in
     defaultWorkspace
   ];
 
-  processes = {
-    "perseus" = {
-      exec = ''
-        ${defaultWorkspace}/bin/ros2 launch perseus perseus.launch.py
-      '';
-    };
-  };
-
   enterShell = ''
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
     ${defaultWorkspace.env.shellHook}
