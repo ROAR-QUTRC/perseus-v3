@@ -21,6 +21,10 @@ let
       # livox-sdk2
       ;
     inherit (pkgs.ros)
+      ros-core
+      ament-cmake-core
+      python-cmake-module
+
       demo-nodes-cpp
       joy
       # livox-ros-driver2
@@ -110,7 +114,4 @@ in
     echo "QUTRC - Remote Off-world Autonomous Robotics";
     printf '\e[0m'
   '';
-
-  tasks = {
-  };
 }
