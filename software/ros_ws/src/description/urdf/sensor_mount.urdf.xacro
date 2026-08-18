@@ -45,12 +45,12 @@
     <joint name="${prefix}laser_joint" type="fixed">
       <parent link="${prefix}sensor_mount"/>
       <child link="${prefix}livox_frame"/>
-      <origin xyz="0.04 0.0 0.13" rpy="0.0 ${livox_pitch} 0.0"/>
+      <origin xyz="0.04 0.0 0.13" rpy="${-livox_pitch} 0.0 ${0.0}"/>
     </joint>
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
     <xacro:sensor_d455 parent="${prefix}sensor_mount" name="camera" use_nominal_extrinsics="true">
-      <origin xyz="0.035 0.0 0.006" rpy="0.0 0.0 0.0"/>
+      <origin xyz="10.035 0.0 0.006" rpy="0.0 0.0 0.0"/>
     </xacro:sensor_d455>
     <xacro:camera_d455_gazebo name="camera"/>
   </xacro:macro>
