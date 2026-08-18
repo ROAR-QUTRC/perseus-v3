@@ -3132,12 +3132,6 @@
 		(uuid "7c5c23ef-67ea-4279-b996-9d3cfc991683")
 	)
 	(junction
-		(at 191.77 53.34)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "84f4c2ce-0df8-4346-8eeb-43ddaab01d63")
-	)
-	(junction
 		(at 30.48 177.8)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3232,6 +3226,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "f7ec98a0-a9a3-4b19-8e3e-c382ea767d6a")
+	)
+	(junction
+		(at 191.77 53.34)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "f9ca0c4f-4798-4ba4-b033-71164b173534")
 	)
 	(junction
 		(at 139.7 154.94)
@@ -3659,7 +3659,7 @@
 			(width 0)
 			(type default)
 		)
-		(uuid "421f6175-435e-4cea-b366-6491d4c91c60")
+		(uuid "4170c6af-5790-4550-8da4-2f0d27c61e5a")
 	)
 	(wire
 		(pts
@@ -4751,6 +4751,17 @@
 		)
 		(uuid "f60d81f5-fad9-4a32-a580-c7bed33ee992")
 	)
+	(hierarchical_label "RP_HALL_DIR"
+		(shape input)
+		(at 176.53 78.74 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2c47654c-1850-4b26-b91a-dea2296fc46c")
+	)
 	(hierarchical_label "RP_I2C_SCL"
 		(shape input)
 		(at 172.72 76.2 0)
@@ -4807,17 +4818,6 @@
 			)
 		)
 	)
-	(hierarchical_label "RP_HALL_DIR"
-		(shape input)
-		(at 172.72 91.44 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "4e52b7b4-6ac5-47a4-b700-630d794f2bc6")
-	)
 	(hierarchical_label "RP_HALL_AOUT"
 		(shape input)
 		(at 173.99 139.7 0)
@@ -4840,17 +4840,6 @@
 		)
 		(uuid "83b6a972-e27b-47f2-902d-16eaeaf75162")
 	)
-	(hierarchical_label "RP_RS485_RX"
-		(shape input)
-		(at 172.72 78.74 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "8b4b6fcd-4934-4a50-89dc-14a43e16d2a9")
-	)
 	(hierarchical_label "RP_I2C_SDA"
 		(shape input)
 		(at 172.72 73.66 0)
@@ -4861,17 +4850,6 @@
 			(justify left)
 		)
 		(uuid "94224b28-7331-4a01-9c5f-16c122949fe4")
-	)
-	(hierarchical_label "RP_RS485_TX"
-		(shape input)
-		(at 172.72 81.28 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "956b3c7c-4452-4695-82dc-90cbaac64fb7")
 	)
 	(hierarchical_label "SWCLK"
 		(shape input)
@@ -4917,16 +4895,38 @@
 		)
 		(uuid "c2c3c2e4-c27d-4b90-b600-c9308be92bb8")
 	)
-	(hierarchical_label "RP_RS485_DIR"
+	(hierarchical_label "RP_RS485_TX"
 		(shape input)
-		(at 172.72 83.82 0)
+		(at 190.5 91.44 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 			(justify left)
 		)
-		(uuid "ce6519c8-7329-493d-ab32-0a06105bdcc8")
+		(uuid "ea78aec0-b173-46b9-9a94-746d012e3bdf")
+	)
+	(hierarchical_label "RP_RS485_DIR"
+		(shape input)
+		(at 190.5 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f11f6990-35d3-41e6-a4b0-3310d78a019b")
+	)
+	(hierarchical_label "RP_RS485_RX"
+		(shape input)
+		(at 190.5 88.9 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f29776df-d9a2-4122-a061-7452f62eed1c")
 	)
 	(hierarchical_label "USB_P"
 		(shape bidirectional)
@@ -5017,7 +5017,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 16.51 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -5028,7 +5028,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 16.51 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -5039,7 +5039,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 16.51 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -5072,7 +5072,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 16.51 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -5083,18 +5083,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 16.51 86.36 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 16.51 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -5186,7 +5175,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 107.95 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5197,7 +5186,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 107.95 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5208,7 +5197,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 107.95 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5241,7 +5230,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 107.95 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5252,18 +5241,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 107.95 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 107.95 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5353,28 +5331,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 66.04 177.8 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 66.04 177.8 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 66.04 177.8 90)
 			(hide yes)
@@ -5398,6 +5354,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-1.00KLRCT-ND"
+			(at 66.04 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 66.04 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 66.04 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 66.04 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 66.04 177.8 90)
 			(hide yes)
 			(show_name no)
@@ -5566,7 +5566,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 72.39 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5577,7 +5577,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 72.39 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5588,7 +5588,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 72.39 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5621,7 +5621,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 72.39 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5632,18 +5632,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 72.39 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 72.39 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -5703,7 +5692,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Package_DFN_QFN:QFN-60-1EP_7x7mm_P0.4mm_EP3.4x3.4mm"
+		(property "Footprint" "SMD:RP2350A-QFN-60-1EP_7x7mm_P0.4mm_EP3.4x3.4mm"
 			(at 139.7 109.22 0)
 			(hide yes)
 			(show_name no)
@@ -5781,6 +5770,28 @@
 			)
 		)
 		(property "Supplier Part No" "2648-SC1509-A4CT-ND"
+			(at 139.7 109.22 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 139.7 109.22 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 139.7 109.22 0)
 			(hide yes)
 			(show_name no)
@@ -6049,7 +6060,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 179.07 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -6060,7 +6071,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 179.07 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -6071,7 +6082,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 179.07 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -6104,7 +6115,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 179.07 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -6115,18 +6126,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 179.07 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 179.07 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -6318,6 +6318,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 179.07 102.87 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 179.07 102.87 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "3754fa8d-a38e-4eba-bd02-ef9da4b4b0db")
 		)
@@ -6396,7 +6418,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 99.06 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6407,7 +6429,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 99.06 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6418,7 +6440,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 99.06 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6451,7 +6473,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 99.06 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6462,18 +6484,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 99.06 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 99.06 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6742,6 +6753,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 179.07 113.03 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 179.07 113.03 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "2072e33b-7a7f-4245-a404-4056ef98fbeb")
 		)
@@ -6820,7 +6853,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 81.28 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6831,7 +6864,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 81.28 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6842,7 +6875,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 81.28 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6875,7 +6908,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 81.28 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6886,18 +6919,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 81.28 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 81.28 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -6956,7 +6978,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric_Pad0.74x0.62mm_HandSolder"
+		(property "Footprint" "SMD:C_0402_1005Metric_small"
 			(at 205.4352 62.23 0)
 			(hide yes)
 			(show_name no)
@@ -6979,61 +7001,6 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 204.47 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufacturer" ""
-			(at 204.47 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 204.47 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 204.47 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 204.47 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
 			(at 204.47 58.42 0)
 			(hide yes)
 			(show_name no)
@@ -7067,6 +7034,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-5915-1-ND"
+			(at 204.47 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 204.47 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 204.47 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 204.47 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 204.47 58.42 0)
 			(hide yes)
 			(show_name no)
@@ -7235,28 +7246,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 106.68 97.79 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 106.68 97.79 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 106.68 97.79 90)
 			(hide yes)
@@ -7280,6 +7269,50 @@
 			)
 		)
 		(property "Supplier Part No" "YAG3086CT-ND"
+			(at 106.68 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 106.68 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 106.68 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 106.68 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 106.68 97.79 90)
 			(hide yes)
 			(show_name no)
@@ -7703,6 +7736,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 179.07 107.95 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 179.07 107.95 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "ba59ddae-3c72-46d6-aa6b-999e251ca81d")
 		)
@@ -7859,28 +7914,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 40.64 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 40.64 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 40.64 88.9 0)
 			(hide yes)
@@ -7904,6 +7937,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-10.0KLRCT-ND"
+			(at 40.64 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 40.64 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 40.64 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 40.64 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 40.64 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -8072,7 +8149,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 90.17 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8083,7 +8160,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 90.17 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8094,7 +8171,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 90.17 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8127,7 +8204,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 90.17 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8138,18 +8215,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 90.17 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 90.17 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8263,28 +8329,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 54.61 172.72 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 54.61 172.72 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 54.61 172.72 90)
 			(hide yes)
@@ -8308,6 +8352,28 @@
 			)
 		)
 		(property "Supplier Part No" "535-ABM8-272-T3CT-ND"
+			(at 54.61 172.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 54.61 172.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
 			(at 54.61 172.72 90)
 			(hide yes)
 			(show_name no)
@@ -8483,7 +8549,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 83.82 111.76 0)
 			(hide yes)
 			(show_name no)
@@ -8494,7 +8560,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/c-k/PTS636SKG25SMTR-LFS/10071737"
 			(at 83.82 111.76 0)
 			(hide yes)
 			(show_name no)
@@ -8505,7 +8571,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "CKN12324-1-ND"
 			(at 83.82 111.76 0)
 			(hide yes)
 			(show_name no)
@@ -8538,7 +8604,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 83.82 111.76 0)
 			(hide yes)
 			(show_name no)
@@ -8549,18 +8615,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/c-k/PTS636SKG25SMTR-LFS/10071737"
-			(at 83.82 111.76 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "CKN12324-1-ND"
+		(property "KLC_S4.1" ""
 			(at 83.82 111.76 0)
 			(hide yes)
 			(show_name no)
@@ -8727,28 +8782,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 36.83 177.8 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 36.83 177.8 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 36.83 177.8 90)
 			(hide yes)
@@ -8772,6 +8805,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-5888-1-ND"
+			(at 36.83 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 36.83 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 36.83 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 36.83 177.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 36.83 177.8 90)
 			(hide yes)
 			(show_name no)
@@ -8863,7 +8940,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 54.61 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8874,7 +8951,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 54.61 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8885,7 +8962,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 54.61 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8918,7 +8995,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 54.61 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -8929,18 +9006,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 54.61 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 54.61 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9031,28 +9097,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 92.71 86.36 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 92.71 86.36 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 92.71 86.36 90)
 			(hide yes)
@@ -9076,6 +9120,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-1.00KLRCT-ND"
+			(at 92.71 86.36 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 92.71 86.36 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 92.71 86.36 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 92.71 86.36 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 92.71 86.36 90)
 			(hide yes)
 			(show_name no)
@@ -9167,7 +9255,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 63.5 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9178,7 +9266,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 63.5 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9189,7 +9277,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 63.5 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9222,7 +9310,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 63.5 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9233,18 +9321,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 63.5 36.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 63.5 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -9334,28 +9411,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 97.79 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 97.79 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 97.79 104.14 90)
 			(hide yes)
@@ -9379,6 +9434,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-1.00KLRCT-ND"
+			(at 97.79 104.14 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 97.79 104.14 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 97.79 104.14 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 97.79 104.14 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 97.79 104.14 90)
 			(hide yes)
 			(show_name no)
@@ -9623,28 +9722,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 58.42 97.79 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 58.42 97.79 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 58.42 97.79 90)
 			(hide yes)
@@ -9668,6 +9745,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-0.0JRCT-ND"
+			(at 58.42 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 58.42 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 58.42 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 58.42 97.79 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 58.42 97.79 90)
 			(hide yes)
 			(show_name no)
@@ -9837,28 +9958,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 30.48 105.41 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 30.48 105.41 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 30.48 105.41 0)
 			(hide yes)
@@ -9882,6 +9981,50 @@
 			)
 		)
 		(property "Supplier Part No" "256-W25Q128JVSIQTRCT-ND"
+			(at 30.48 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 30.48 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 30.48 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 30.48 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 30.48 105.41 0)
 			(hide yes)
 			(show_name no)
@@ -9992,7 +10135,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 104.14 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -10003,7 +10146,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/c-k/PTS636SKG25SMTR-LFS/10071737"
 			(at 104.14 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -10014,7 +10157,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "CKN12324-1-ND"
 			(at 104.14 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -10047,7 +10190,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 104.14 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -10058,18 +10201,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/c-k/PTS636SKG25SMTR-LFS/10071737"
-			(at 104.14 86.36 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "CKN12324-1-ND"
+		(property "KLC_S4.1" ""
 			(at 104.14 86.36 0)
 			(hide yes)
 			(show_name no)
@@ -10162,28 +10294,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 39.37 52.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 39.37 52.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 39.37 52.07 0)
 			(hide yes)
@@ -10207,6 +10317,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-3886-1-ND"
+			(at 39.37 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 39.37 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 39.37 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 39.37 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 39.37 52.07 0)
 			(hide yes)
 			(show_name no)
@@ -10311,7 +10465,7 @@
 	)
 	(symbol
 		(lib_id "Device:L")
-		(at 191.77 57.15 180)
+		(at 191.77 57.15 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -10321,7 +10475,7 @@
 		(dnp no)
 		(uuid "c5e89955-b3a7-4ed9-a9b0-f7fbd4a043bb")
 		(property "Reference" "L2"
-			(at 190.754 57.15 0)
+			(at 192.786 57.15 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10332,7 +10486,7 @@
 			)
 		)
 		(property "Value" "3.3uH"
-			(at 190.5 54.61 0)
+			(at 193.04 59.69 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10342,7 +10496,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:L_0805_2012Metric_Pad1.05x1.20mm_HandSolder"
+		(property "Footprint" "SMD:L_Abracon_AOTA-B201610S3R3-101-T"
 			(at 191.77 57.15 0)
 			(hide yes)
 			(show_name no)
@@ -10365,61 +10519,6 @@
 			)
 		)
 		(property "Description" "Inductor"
-			(at 191.77 57.15 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufacturer" ""
-			(at 191.77 57.15 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 191.77 57.15 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 191.77 57.15 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 191.77 57.15 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
 			(at 191.77 57.15 0)
 			(hide yes)
 			(show_name no)
@@ -10453,6 +10552,50 @@
 			)
 		)
 		(property "Supplier Part No" "535-AOTA-B201610S3R3-101-TCT-ND"
+			(at 191.77 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 191.77 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 191.77 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 191.77 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 191.77 57.15 0)
 			(hide yes)
 			(show_name no)
@@ -10509,7 +10652,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder"
+		(property "Footprint" "SMD:R_0402_1005Metric_small"
 			(at 191.77 43.688 90)
 			(hide yes)
 			(show_name no)
@@ -10542,28 +10685,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 191.77 41.91 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 191.77 41.91 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 191.77 41.91 90)
 			(hide yes)
@@ -10587,6 +10708,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-33.0LRCT-ND"
+			(at 191.77 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 191.77 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 191.77 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 191.77 41.91 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 191.77 41.91 90)
 			(hide yes)
 			(show_name no)
@@ -10676,28 +10841,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 106.68 92.71 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 106.68 92.71 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 106.68 92.71 90)
 			(hide yes)
@@ -10721,6 +10864,50 @@
 			)
 		)
 		(property "Supplier Part No" "YAG3086CT-ND"
+			(at 106.68 92.71 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 106.68 92.71 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 106.68 92.71 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 106.68 92.71 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 106.68 92.71 90)
 			(hide yes)
 			(show_name no)
@@ -10812,7 +10999,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 161.29 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -10823,7 +11010,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R60J475ME47D/3694656"
 			(at 161.29 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -10834,7 +11021,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-5915-1-ND"
 			(at 161.29 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -10867,7 +11054,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 161.29 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -10878,18 +11065,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R60J475ME47D/3694656"
-			(at 161.29 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-5915-1-ND"
+		(property "KLC_S4.1" ""
 			(at 161.29 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -10948,7 +11124,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric_Pad0.74x0.62mm_HandSolder"
+		(property "Footprint" "SMD:C_0402_1005Metric_small"
 			(at 174.9552 49.53 0)
 			(hide yes)
 			(show_name no)
@@ -10971,28 +11147,6 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 173.99 45.72 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 173.99 45.72 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
 			(at 173.99 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -11026,6 +11180,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-5915-1-ND"
+			(at 173.99 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 173.99 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 173.99 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 173.99 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 173.99 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -11117,7 +11315,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 170.18 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -11128,7 +11326,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 170.18 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -11139,7 +11337,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 170.18 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -11172,7 +11370,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 170.18 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -11183,18 +11381,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 170.18 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 170.18 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -11363,28 +11550,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 36.83 167.64 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 36.83 167.64 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 36.83 167.64 90)
 			(hide yes)
@@ -11408,6 +11573,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-5888-1-ND"
+			(at 36.83 167.64 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 36.83 167.64 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 36.83 167.64 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 36.83 167.64 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 36.83 167.64 90)
 			(hide yes)
 			(show_name no)
@@ -11466,7 +11675,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric_Pad0.74x0.62mm_HandSolder"
+		(property "Footprint" "SMD:C_0402_1005Metric_small"
 			(at 215.5952 57.15 0)
 			(hide yes)
 			(show_name no)
@@ -11489,61 +11698,6 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 214.63 53.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufacturer" ""
-			(at 214.63 53.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 214.63 53.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 214.63 53.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 214.63 53.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
 			(at 214.63 53.34 0)
 			(hide yes)
 			(show_name no)
@@ -11577,6 +11731,50 @@
 			)
 		)
 		(property "Supplier Part No" "490-5915-1-ND"
+			(at 214.63 53.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 214.63 53.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 214.63 53.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 214.63 53.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 214.63 53.34 0)
 			(hide yes)
 			(show_name no)
@@ -11666,6 +11864,28 @@
 				)
 			)
 		)
+		(property "Supplier" "DigiKey"
+			(at 50.8 90.17 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "311-0.0JRCT-ND"
+			(at 50.8 90.17 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 50.8 90.17 90)
 			(hide yes)
@@ -11688,7 +11908,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 50.8 90.17 90)
 			(hide yes)
 			(show_name no)
@@ -11699,7 +11919,7 @@
 				)
 			)
 		)
-		(property "Supplier Part No" "311-0.0JRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 50.8 90.17 90)
 			(hide yes)
 			(show_name no)
