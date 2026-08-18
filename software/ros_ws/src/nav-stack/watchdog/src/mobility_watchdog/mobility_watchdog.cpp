@@ -30,9 +30,8 @@ MobilityWatchdog::MobilityWatchdog(const rclcpp::NodeOptions &options)
       std::bind(&MobilityWatchdog::_odometry_callback, this,
                 std::placeholders::_1));
 
-  _status_publisher =
-      this->create_publisher<interfaces::msg::MobilityStatus>(
-          output_topic, QOS_DEPTH);
+  _status_publisher = this->create_publisher<interfaces::msg::MobilityStatus>(
+      output_topic, QOS_DEPTH);
 }
 
 void MobilityWatchdog::_load_parameters(std::string &cmd_vel_topic_out,

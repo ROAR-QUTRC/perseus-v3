@@ -96,9 +96,7 @@ def launch_setup(context, *args, **kwargs):
     interface = LaunchConfiguration("interface").perform(context)
 
     config_path = (
-        Path(get_package_share_directory("sensors"))
-        / "config"
-        / "livox_config.json"
+        Path(get_package_share_directory("sensors")) / "config" / "livox_config.json"
     )
 
     livox_path = create_livox_config(str(config_path), interface)

@@ -263,8 +263,8 @@ std::string format_local_timestamp() {
 /// @brief Draws the capture timestamp and detection list onto an image.
 /// @param frame Image to draw onto. Modified in place.
 /// @param detections Detections to list, already drawn by the shared renderer.
-void draw_capture_overlay(
-    cv::Mat &frame, const interfaces::msg::DetectionArray &detections) {
+void draw_capture_overlay(cv::Mat &frame,
+                          const interfaces::msg::DetectionArray &detections) {
   const cv::Scalar timestamp_color(0, 255, 255);
   const cv::Scalar frame_id_color(255, 255, 0);
   const cv::Scalar detection_color(0, 255, 0);
@@ -333,9 +333,8 @@ CubeDetector::CubeDetector(const rclcpp::NodeOptions &options)
   }
 
   // Publishers and services
-  _detection_publisher =
-      create_publisher<interfaces::msg::DetectionArray>(
-          _output_detections_topic, QOS_DEPTH);
+  _detection_publisher = create_publisher<interfaces::msg::DetectionArray>(
+      _output_detections_topic, QOS_DEPTH);
   _cube_marker_publisher =
       create_publisher<visualization_msgs::msg::MarkerArray>(
           _output_markers_topic, QOS_DEPTH);
@@ -856,8 +855,7 @@ void CubeDetector::_publish_markers(
 }
 
 void CubeDetector::_cache_latest_detections(
-    const interfaces::msg::DetectionArray &detections,
-    std::string message) {
+    const interfaces::msg::DetectionArray &detections, std::string message) {
   std::lock_guard<std::mutex> lock(_detections_mutex);
   _latest_detections = detections;
   _latest_detection_message = std::move(message);

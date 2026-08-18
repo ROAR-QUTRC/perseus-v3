@@ -67,8 +67,8 @@ ament_target_dependencies(
   interfaces)
 
 rclcpp_components_register_nodes(
-  vision_components "vision::ArucoDetector"
-  "vision::CubeDetector" "vision::DetectionOverlay")
+  vision_components "vision::ArucoDetector" "vision::CubeDetector"
+  "vision::DetectionOverlay")
 
 # ── standalone executables ────────────────────────────────────────────────────
 # Thin wrappers so each node can still be run on its own with `ros2 run`.
@@ -125,8 +125,7 @@ elseif(NOT EXISTS "${MODEL_OUTPUT_PATH}")
     STATUS DOWNLOAD_STATUS)
   list(GET DOWNLOAD_STATUS 0 STATUS_CODE)
   if(NOT STATUS_CODE EQUAL 0)
-    message(
-      FATAL_ERROR "[vision] Model download failed: ${DOWNLOAD_STATUS}")
+    message(FATAL_ERROR "[vision] Model download failed: ${DOWNLOAD_STATUS}")
   endif()
   message(STATUS "[vision] Model downloaded successfully.")
 endif()

@@ -75,8 +75,8 @@ install(TARGETS generic_controller DESTINATION lib/${PROJECT_NAME})
 
 # INSTALL (Python)
 
-# Installs the teleop python package (and its teleop_keyboard script
-# submodule) into site-packages
+# Installs the teleop python package (and its teleop_keyboard script submodule)
+# into site-packages
 ament_python_install_package(${PROJECT_NAME})
 
 # Install the python nodes as `ros2 run`-able executables

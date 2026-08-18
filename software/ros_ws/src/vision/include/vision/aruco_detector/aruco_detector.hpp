@@ -131,11 +131,11 @@ private:
   /// @param detections_out Receives an image-space detection per accepted
   /// marker.
   /// @return Positions of the markers that were also resolved to a 3D pose.
-  std::vector<marker_coordinate_t> _estimate_marker_poses(
-      const std::vector<int> &ids,
-      const std::vector<std::vector<cv::Point2f>> &corners,
-      const std_msgs::msg::Header &header,
-      interfaces::msg::DetectionArray &detections_out);
+  std::vector<marker_coordinate_t>
+  _estimate_marker_poses(const std::vector<int> &ids,
+                         const std::vector<std::vector<cv::Point2f>> &corners,
+                         const std_msgs::msg::Header &header,
+                         interfaces::msg::DetectionArray &detections_out);
 
   /// @brief Broadcasts the camera-to-marker transform for one detected marker.
   ///
@@ -152,13 +152,11 @@ private:
   /// @brief Publishes the pose-resolved detections as rviz visualization
   /// markers.
   /// @param detections Detections from the frame just processed.
-  void _publish_marker_array(
-      const interfaces::msg::DetectionArray &detections);
+  void _publish_marker_array(const interfaces::msg::DetectionArray &detections);
 
   /// @brief Publishes the detections found in the frame just processed.
   /// @param detections Detections to publish.
-  void _publish_detections(
-      const interfaces::msg::DetectionArray &detections);
+  void _publish_detections(const interfaces::msg::DetectionArray &detections);
 
   /// @brief Answers a detection service request from the cached detections.
   /// @param request Incoming request, which may also ask for an image capture.

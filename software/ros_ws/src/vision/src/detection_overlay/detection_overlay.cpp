@@ -79,8 +79,8 @@ DetectionOverlay::DetectionOverlay(const rclcpp::NodeOptions &options)
     _detection_subscriptions.push_back(
         create_subscription<interfaces::msg::DetectionArray>(
             topic, DETECTION_QOS_DEPTH,
-            [this, topic](
-                const interfaces::msg::DetectionArray::SharedPtr msg) {
+            [this,
+             topic](const interfaces::msg::DetectionArray::SharedPtr msg) {
               _detections_callback(topic, msg);
             }));
 

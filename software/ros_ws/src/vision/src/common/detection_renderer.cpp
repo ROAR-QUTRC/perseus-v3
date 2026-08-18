@@ -95,8 +95,8 @@ void draw_detection(cv::Mat &frame,
               LABEL_THICKNESS);
 }
 
-void draw_detections(
-    cv::Mat &frame, const interfaces::msg::DetectionArray &detections) {
+void draw_detections(cv::Mat &frame,
+                     const interfaces::msg::DetectionArray &detections) {
   for (const auto &detection : detections.detections) {
     draw_detection(frame, detection);
   }

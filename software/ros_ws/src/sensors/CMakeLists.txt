@@ -101,8 +101,7 @@ target_include_directories(dust_filter_component
 
 ament_target_dependencies(dust_filter_component rclcpp rclcpp_components
                           sensor_msgs)
-rclcpp_components_register_nodes(dust_filter_component
-                                 "sensors::DustFilter")
+rclcpp_components_register_nodes(dust_filter_component "sensors::DustFilter")
 
 install(
   TARGETS dust_filter_component

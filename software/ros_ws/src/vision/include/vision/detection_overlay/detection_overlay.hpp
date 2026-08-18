@@ -72,9 +72,9 @@ private:
   /// @brief Caches the latest detections from one detector.
   /// @param topic Topic the detections arrived on, used as the cache key.
   /// @param msg Incoming detections.
-  void _detections_callback(
-      const std::string &topic,
-      const interfaces::msg::DetectionArray::SharedPtr msg);
+  void
+  _detections_callback(const std::string &topic,
+                       const interfaces::msg::DetectionArray::SharedPtr msg);
 
   /// @brief Draws every cached detection that is still fresh onto a frame.
   /// @param frame Image to annotate. Modified in place.
@@ -97,8 +97,7 @@ private:
       _compressed_image_subscription;
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr
       _compressed_image_publisher;
-  std::vector<
-      rclcpp::Subscription<interfaces::msg::DetectionArray>::SharedPtr>
+  std::vector<rclcpp::Subscription<interfaces::msg::DetectionArray>::SharedPtr>
       _detection_subscriptions;
 
   // Latest detections per source topic

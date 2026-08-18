@@ -224,15 +224,14 @@ private:
 
   /// @brief Publishes rviz markers for every pose-resolved detection.
   /// @param detections Detections from the frame just processed.
-  void
-  _publish_markers(const interfaces::msg::DetectionArray &detections);
+  void _publish_markers(const interfaces::msg::DetectionArray &detections);
 
   /// @brief Replaces the cached detections served by the detection service.
   /// @param detections Detections that were just published.
   /// @param message Human-readable summary of the detection pass.
-  void _cache_latest_detections(
-      const interfaces::msg::DetectionArray &detections,
-      std::string message);
+  void
+  _cache_latest_detections(const interfaces::msg::DetectionArray &detections,
+                           std::string message);
 
   /// @brief Estimates a cube pose from the centre pixel of its bounding box.
   /// @param detection Detection to estimate a pose for.

@@ -37,9 +37,7 @@ CONFIG_FILE_NAME = "realsense.yaml"
 def generate_launch_description():
     """Build the launch description for the RealSense driver."""
     config_file = str(
-        Path(get_package_share_directory("sensors"))
-        / "config"
-        / CONFIG_FILE_NAME
+        Path(get_package_share_directory("sensors")) / "config" / CONFIG_FILE_NAME
     )
 
     enable_depth_arg = DeclareLaunchArgument(
