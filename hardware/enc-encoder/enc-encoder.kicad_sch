@@ -4815,6 +4815,12 @@
 		(uuid "08821586-b906-49a1-b101-f66c147df3ef")
 	)
 	(junction
+		(at 58.42 29.21)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "095f36a5-bb06-45ab-a1e8-1161bda05b87")
+	)
+	(junction
 		(at 50.8 29.21)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4881,12 +4887,6 @@
 		(uuid "5bd6aba3-35e2-4335-88a5-b42683433c32")
 	)
 	(junction
-		(at 58.42 29.21)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "62680e41-bd18-42b2-a0ba-9a48e1d5b1d8")
-	)
-	(junction
 		(at 274.32 143.51)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4897,6 +4897,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "7f87378c-988a-40bf-aad6-cd25e7ef543c")
+	)
+	(junction
+		(at 58.42 26.67)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8d5babab-ea83-4047-8945-97947a1e7c28")
 	)
 	(junction
 		(at 177.8 134.62)
@@ -4989,12 +4995,6 @@
 		(uuid "eddd85b8-8ede-4091-9202-e14234a904e4")
 	)
 	(junction
-		(at 58.42 26.67)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "eec1baa0-626e-4bb9-9fad-7135280d3d0e")
-	)
-	(junction
 		(at 99.06 177.8)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5075,16 +5075,6 @@
 			(type default)
 		)
 		(uuid "005536bd-8da3-472f-94a8-5ccc5d7da779")
-	)
-	(wire
-		(pts
-			(xy 58.42 29.21) (xy 69.85 29.21)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0071fc5d-2f4c-4230-98d1-5f32a8983cab")
 	)
 	(wire
 		(pts
@@ -5498,13 +5488,13 @@
 	)
 	(wire
 		(pts
-			(xy 46.99 40.64) (xy 69.85 40.64)
+			(xy 59.69 43.18) (xy 69.85 43.18)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3a8c4366-14d1-4913-a88d-807b13f2cccf")
+		(uuid "3bc2648c-ed75-4861-9a16-8042ab21ac21")
 	)
 	(wire
 		(pts
@@ -5585,6 +5575,16 @@
 			(type default)
 		)
 		(uuid "460de84b-762b-4a33-be8f-9f51a9fc11e6")
+	)
+	(wire
+		(pts
+			(xy 57.15 43.18) (xy 59.69 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "46c4197f-d195-4d6d-aead-191ef9d1ace9")
 	)
 	(wire
 		(pts
@@ -5718,6 +5718,16 @@
 	)
 	(wire
 		(pts
+			(xy 59.69 40.64) (xy 69.85 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "614283cd-92c2-46d4-938b-de30f627e2fb")
+	)
+	(wire
+		(pts
 			(xy 58.42 179.07) (xy 58.42 186.69)
 		)
 		(stroke
@@ -5735,6 +5745,16 @@
 			(type default)
 		)
 		(uuid "679c7894-b2b1-4e3b-80a9-cbe3fe12ea56")
+	)
+	(wire
+		(pts
+			(xy 99.06 175.26) (xy 100.33 175.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "679f1b47-85f8-44c0-a47b-bb069468afe3")
 	)
 	(wire
 		(pts
@@ -5778,6 +5798,16 @@
 	)
 	(wire
 		(pts
+			(xy 46.99 43.18) (xy 57.15 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "731d994a-31a3-4a1c-8c61-ece1e482d4bc")
+	)
+	(wire
+		(pts
 			(xy 58.42 31.75) (xy 58.42 29.21)
 		)
 		(stroke
@@ -5785,16 +5815,6 @@
 			(type default)
 		)
 		(uuid "74482a0c-bdbf-49dd-8703-12dbfe5dc94c")
-	)
-	(wire
-		(pts
-			(xy 46.99 43.18) (xy 69.85 43.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "75dc2eba-7a64-4012-a72c-6b67e8465509")
 	)
 	(wire
 		(pts
@@ -5835,16 +5855,6 @@
 			(type default)
 		)
 		(uuid "7b849122-da8e-4c1c-976f-db4f783ae5b0")
-	)
-	(wire
-		(pts
-			(xy 99.06 175.26) (xy 107.95 175.26)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7b93f413-3184-4e2a-910b-4a137e2bcbda")
 	)
 	(wire
 		(pts
@@ -6018,6 +6028,16 @@
 	)
 	(wire
 		(pts
+			(xy 67.31 26.67) (xy 69.85 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9b854120-7bca-47de-b112-05c82cc554ff")
+	)
+	(wire
+		(pts
 			(xy 177.8 129.54) (xy 177.8 132.08)
 		)
 		(stroke
@@ -6035,6 +6055,26 @@
 			(type default)
 		)
 		(uuid "9f2c7841-c495-42d5-bccd-c5227ba8805f")
+	)
+	(wire
+		(pts
+			(xy 58.42 26.67) (xy 64.77 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a256cc4f-b07c-4af0-8cdf-871df469f102")
+	)
+	(wire
+		(pts
+			(xy 58.42 29.21) (xy 64.77 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a51a4696-36e1-4494-ba45-bd95476c6957")
 	)
 	(wire
 		(pts
@@ -6168,6 +6208,26 @@
 	)
 	(wire
 		(pts
+			(xy 57.15 40.64) (xy 59.69 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b898753d-9e15-4fcb-b564-62fb0f2e041e")
+	)
+	(wire
+		(pts
+			(xy 67.31 29.21) (xy 64.77 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b8ededc6-2d43-4281-9d92-be9d32251115")
+	)
+	(wire
+		(pts
 			(xy 187.96 142.24) (xy 187.96 143.51)
 		)
 		(stroke
@@ -6288,16 +6348,6 @@
 	)
 	(wire
 		(pts
-			(xy 58.42 26.67) (xy 69.85 26.67)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dbfb4d30-1d0d-4819-9c14-6f179b6fde4b")
-	)
-	(wire
-		(pts
 			(xy 50.8 157.48) (xy 63.5 157.48)
 		)
 		(stroke
@@ -6315,6 +6365,16 @@
 			(type default)
 		)
 		(uuid "dd0cfecb-c6e2-4796-9810-07495d31e1e9")
+	)
+	(wire
+		(pts
+			(xy 64.77 29.21) (xy 67.31 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "de627fdc-4460-4c1a-acc4-2cf7e1935480")
 	)
 	(wire
 		(pts
@@ -6525,6 +6585,26 @@
 			(type default)
 		)
 		(uuid "fd490c5a-463b-47a2-ac18-6a01feb652e9")
+	)
+	(wire
+		(pts
+			(xy 69.85 29.21) (xy 67.31 29.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fdf81ed0-6961-4c63-a5d7-9e1e288946c5")
+	)
+	(wire
+		(pts
+			(xy 46.99 40.64) (xy 57.15 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fe747460-738b-419d-b513-50ddcd714d33")
 	)
 	(wire
 		(pts
@@ -7032,7 +7112,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 171.45 127 90)
 			(hide yes)
 			(show_name no)
@@ -7043,7 +7123,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/SMD1812B050TF-30/10126691"
 			(at 171.45 127 90)
 			(hide yes)
 			(show_name no)
@@ -7054,7 +7134,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "13-SMD1812B050TF/30CT-ND"
 			(at 171.45 127 90)
 			(hide yes)
 			(show_name no)
@@ -7087,7 +7167,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 171.45 127 90)
 			(hide yes)
 			(show_name no)
@@ -7098,18 +7178,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/SMD1812B050TF-30/10126691"
-			(at 171.45 127 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "13-SMD1812B050TF/30CT-ND"
+		(property "KLC_S4.1" ""
 			(at 171.45 127 90)
 			(hide yes)
 			(show_name no)
@@ -7356,7 +7425,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 274.32 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -7367,7 +7436,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
 			(at 274.32 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -7378,7 +7447,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "311-10.0KHRCT-ND"
 			(at 274.32 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -7411,7 +7480,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 274.32 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -7422,18 +7491,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 274.32 161.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-10.0KHRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 274.32 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -7601,28 +7659,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 194.31 31.75 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 194.31 31.75 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 194.31 31.75 90)
 			(hide yes)
@@ -7656,6 +7692,50 @@
 				)
 			)
 		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 194.31 31.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 194.31 31.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 194.31 31.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 194.31 31.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "d20b81cd-f7c4-45b0-8114-a48d9180b2cd")
 		)
@@ -7666,6 +7746,164 @@
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
 					(reference "R2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 104.14 175.26 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "19620df3-2ddd-44c1-9323-dceee6c6a848")
+		(property "Reference" "R8"
+			(at 103.124 172.212 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "10k"
+			(at 107.442 172.212 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
+			(at 104.14 177.038 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L"
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "311-10.0KHRCT-ND"
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 104.14 175.26 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d3854afc-109c-41cb-9dc5-748d799ffe85")
+		)
+		(pin "2"
+			(uuid "126cf4fe-2013-4fbc-ab6d-1b5346beaf4a")
+		)
+		(instances
+			(project "enc-encoder"
+				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
+					(reference "R8")
 					(unit 1)
 				)
 			)
@@ -7735,7 +7973,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 201.93 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -7746,7 +7984,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
 			(at 201.93 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -7757,7 +7995,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "311-10.0KHRCT-ND"
 			(at 201.93 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -7790,7 +8028,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 201.93 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -7801,18 +8039,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 201.93 147.32 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-10.0KHRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 201.93 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -7904,7 +8131,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 243.84 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -7915,7 +8142,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603JR-07470RL/726791"
 			(at 243.84 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -7926,7 +8153,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "311-470GRCT-ND"
 			(at 243.84 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -7959,7 +8186,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 243.84 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -7970,18 +8197,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603JR-07470RL/726791"
-			(at 243.84 81.28 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-470GRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 243.84 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -8164,6 +8380,28 @@
 				)
 			)
 		)
+		(property "Supplier" "DigiKey"
+			(at 274.32 149.86 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/dialight/5991180147F/27557864"
+			(at 274.32 149.86 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 274.32 149.86 90)
 			(hide yes)
@@ -8186,7 +8424,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 274.32 149.86 90)
 			(hide yes)
 			(show_name no)
@@ -8197,7 +8435,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/dialight/5991180147F/27557864"
+		(property "KLC_S4.1" ""
 			(at 274.32 149.86 90)
 			(hide yes)
 			(show_name no)
@@ -8257,7 +8495,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad"
 			(at 29.21 158.75 0)
 			(hide yes)
 			(show_name no)
@@ -8302,6 +8540,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 29.21 158.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 29.21 158.75 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 29.21 158.75 90)
 			(hide yes)
 			(show_name no)
@@ -8467,7 +8727,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 250.19 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -8478,7 +8738,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 250.19 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -8489,7 +8749,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 250.19 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -8522,7 +8782,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 250.19 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -8533,18 +8793,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 250.19 93.98 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 250.19 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -8583,7 +8832,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "334d01bd-a48c-497f-9911-5f00f299b8ba")
-		(property "Reference" "J5"
+		(property "Reference" "J2"
 			(at 39.37 40.6399 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8693,6 +8942,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 41.91 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 41.91 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "c401b93d-b1cb-4dac-9181-473a0fef1f6b")
 		)
@@ -8702,7 +8973,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
-					(reference "J5")
+					(reference "J2")
 					(unit 1)
 				)
 			)
@@ -8772,28 +9043,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 194.31 26.67 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 194.31 26.67 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 194.31 26.67 90)
 			(hide yes)
@@ -8817,6 +9066,50 @@
 			)
 		)
 		(property "Supplier Part No" "311-5.10KLRCT-ND"
+			(at 194.31 26.67 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 194.31 26.67 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 194.31 26.67 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 194.31 26.67 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 194.31 26.67 90)
 			(hide yes)
 			(show_name no)
@@ -9120,6 +9413,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 41.91 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 41.91 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "8b602620-30b6-427f-a66a-c816368c2a75")
 		)
@@ -9281,7 +9596,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 264.16 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -9292,7 +9607,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/sparkfun-electronics/16347/11630204"
 			(at 264.16 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -9303,7 +9618,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "1568-16347CT-ND"
 			(at 264.16 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -9336,7 +9651,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 264.16 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -9347,18 +9662,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/sparkfun-electronics/16347/11630204"
-			(at 264.16 81.28 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "1568-16347CT-ND"
+		(property "KLC_S4.1" ""
 			(at 264.16 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -9535,7 +9839,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 156.21 143.51 90)
 			(hide yes)
 			(show_name no)
@@ -9546,7 +9850,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/nexperia-usa-inc/PESD1CANFD33L-QYL/25577801"
 			(at 156.21 143.51 90)
 			(hide yes)
 			(show_name no)
@@ -9557,7 +9861,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "1727-PESD1CANFD33L-QYLCT-ND"
 			(at 156.21 143.51 90)
 			(hide yes)
 			(show_name no)
@@ -9590,7 +9894,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 156.21 143.51 90)
 			(hide yes)
 			(show_name no)
@@ -9601,18 +9905,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/nexperia-usa-inc/PESD1CANFD33L-QYL/25577801"
-			(at 156.21 143.51 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "1727-PESD1CANFD33L-QYLCT-ND"
+		(property "KLC_S4.1" ""
 			(at 156.21 143.51 90)
 			(hide yes)
 			(show_name no)
@@ -9858,7 +10151,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 168.91 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -9869,7 +10162,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/amphenol-cs-commercial-products/12401610E4-2A/5775519"
 			(at 168.91 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -9880,7 +10173,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "12401610E4#2ACT-ND"
 			(at 168.91 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -9913,7 +10206,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 168.91 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -9924,18 +10217,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/amphenol-cs-commercial-products/12401610E4-2A/5775519"
-			(at 168.91 48.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "12401610E4#2ACT-ND"
+		(property "KLC_S4.1" ""
 			(at 168.91 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -10097,7 +10379,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 203.2 48.26 90)
 			(hide yes)
 			(show_name no)
@@ -10108,7 +10390,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/stmicroelectronics/ESDA5V3L/1037978"
 			(at 203.2 48.26 90)
 			(hide yes)
 			(show_name no)
@@ -10119,7 +10401,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "497-6632-1-ND"
 			(at 203.2 48.26 90)
 			(hide yes)
 			(show_name no)
@@ -10152,7 +10434,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 203.2 48.26 90)
 			(hide yes)
 			(show_name no)
@@ -10163,18 +10445,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/stmicroelectronics/ESDA5V3L/1037978"
-			(at 203.2 48.26 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "497-6632-1-ND"
+		(property "KLC_S4.1" ""
 			(at 203.2 48.26 90)
 			(hide yes)
 			(show_name no)
@@ -10425,7 +10696,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 187.96 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -10436,7 +10707,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM21BR61C106KE15L/965900"
 			(at 187.96 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -10447,7 +10718,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-3886-1-ND"
 			(at 187.96 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -10480,7 +10751,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 187.96 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -10491,18 +10762,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM21BR61C106KE15L/965900"
-			(at 187.96 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-3886-1-ND"
+		(property "KLC_S4.1" ""
 			(at 187.96 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -10592,28 +10852,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 115.57 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 115.57 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 115.57 179.07 0)
 			(hide yes)
@@ -10637,6 +10875,50 @@
 			)
 		)
 		(property "Supplier Part No" "119-219-4LPSTRCT-ND"
+			(at 115.57 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 115.57 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 115.57 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 115.57 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 115.57 179.07 0)
 			(hide yes)
 			(show_name no)
@@ -10746,7 +11028,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 205.74 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -10757,7 +11039,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 205.74 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -10768,7 +11050,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 205.74 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -10801,7 +11083,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 205.74 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -10812,18 +11094,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 205.74 153.67 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 205.74 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -10993,39 +11264,6 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
-			(at 254 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 254 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 254 154.94 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 254 154.94 0)
 			(hide yes)
@@ -11038,6 +11276,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 254 154.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 254 154.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 254 154.94 0)
 			(hide yes)
 			(show_name no)
@@ -11136,6 +11396,61 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 80.01 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 80.01 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 80.01 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 80.01 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/infineon-technologies/AS5600-ASOM-SOIC8/29758430"
+			(at 80.01 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "448-AS5600-ASOM-SOIC8CT-ND"
 			(at 80.01 152.4 0)
 			(hide yes)
 			(show_name no)
@@ -11368,7 +11683,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad"
 			(at 29.21 165.1 0)
 			(hide yes)
 			(show_name no)
@@ -11413,6 +11728,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 29.21 165.1 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 29.21 165.1 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 29.21 165.1 90)
 			(hide yes)
 			(show_name no)
@@ -11579,7 +11916,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 162.56 127 0)
 			(hide yes)
 			(show_name no)
@@ -11590,7 +11927,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/smc-diode-solutions/DSS14U/8341859"
 			(at 162.56 127 0)
 			(hide yes)
 			(show_name no)
@@ -11601,7 +11938,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "1655-DSS14UCT-ND"
 			(at 162.56 127 0)
 			(hide yes)
 			(show_name no)
@@ -11634,7 +11971,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 162.56 127 0)
 			(hide yes)
 			(show_name no)
@@ -11645,18 +11982,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/smc-diode-solutions/DSS14U/8341859"
-			(at 162.56 127 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "1655-DSS14UCT-ND"
+		(property "KLC_S4.1" ""
 			(at 162.56 127 0)
 			(hide yes)
 			(show_name no)
@@ -11748,7 +12074,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 232.41 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -11759,7 +12085,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
 			(at 232.41 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -11770,7 +12096,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "311-10.0KHRCT-ND"
 			(at 232.41 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -11803,7 +12129,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 232.41 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -11814,18 +12140,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 232.41 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-10.0KHRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 232.41 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -12071,7 +12386,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 219.71 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -12082,7 +12397,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/diodes-incorporated/AP63203WU-7/9858426"
 			(at 219.71 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -12093,7 +12408,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "AP63203WU-7DICT-ND"
 			(at 219.71 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -12126,7 +12441,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 219.71 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -12137,18 +12452,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/diodes-incorporated/AP63203WU-7/9858426"
-			(at 219.71 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "AP63203WU-7DICT-ND"
+		(property "KLC_S4.1" ""
 			(at 219.71 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -12264,6 +12568,28 @@
 				)
 			)
 		)
+		(property "Supplier" "DigiKey"
+			(at 177.8 147.32 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/dialight/5991180147F/27557864"
+			(at 177.8 147.32 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 177.8 147.32 90)
 			(hide yes)
@@ -12286,7 +12612,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 177.8 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -12297,7 +12623,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/dialight/5991180147F/27557864"
+		(property "KLC_S4.1" ""
 			(at 177.8 147.32 90)
 			(hide yes)
 			(show_name no)
@@ -12390,39 +12716,6 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
-			(at 180.34 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 180.34 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 180.34 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 180.34 129.54 90)
 			(hide yes)
@@ -12435,6 +12728,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 180.34 129.54 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 180.34 129.54 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 180.34 129.54 90)
 			(hide yes)
 			(show_name no)
@@ -12523,7 +12838,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 162.56 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -12534,7 +12849,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/smc-diode-solutions/DSS14U/8341859"
 			(at 162.56 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -12545,7 +12860,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "1655-DSS14UCT-ND"
 			(at 162.56 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -12578,7 +12893,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 162.56 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -12589,18 +12904,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/smc-diode-solutions/DSS14U/8341859"
-			(at 162.56 132.08 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "1655-DSS14UCT-ND"
+		(property "KLC_S4.1" ""
 			(at 162.56 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -12699,175 +13003,6 @@
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
 					(reference "#PWR019")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 123.19 167.64 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "9bdfdabd-4b5d-4991-bdda-615546c148ab")
-		(property "Reference" "R8"
-			(at 124.714 166.624 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "10k"
-			(at 124.714 168.91 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
-			(at 121.412 167.64 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L"
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufacturer" ""
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier" "DigiKey"
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-10.0KHRCT-ND"
-			(at 123.19 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "a08d550c-8036-4e8b-83f7-7d7d2f73c743")
-		)
-		(pin "2"
-			(uuid "e1582cda-fb85-4e37-b221-4dcbd6f53318")
-		)
-		(instances
-			(project "enc-encoder"
-				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
-					(reference "R8")
 					(unit 1)
 				)
 			)
@@ -13017,39 +13152,6 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
-			(at 254 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 254 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 254 167.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 254 167.64 0)
 			(hide yes)
@@ -13062,6 +13164,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 254 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 254 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 254 167.64 0)
 			(hide yes)
 			(show_name no)
@@ -13228,7 +13352,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 254 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13239,7 +13363,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM187R61A226ME15D/5877406"
 			(at 254 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13250,7 +13374,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-13243-1-ND"
 			(at 254 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13283,7 +13407,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 254 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13294,18 +13418,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM187R61A226ME15D/5877406"
-			(at 254 161.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-13243-1-ND"
+		(property "KLC_S4.1" ""
 			(at 254 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13397,7 +13510,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 264.16 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13408,7 +13521,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM187R61A226ME15D/5877406"
 			(at 264.16 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13419,7 +13532,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-13243-1-ND"
 			(at 264.16 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13452,7 +13565,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 264.16 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13463,18 +13576,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM187R61A226ME15D/5877406"
-			(at 264.16 161.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-13243-1-ND"
+		(property "KLC_S4.1" ""
 			(at 264.16 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -13721,7 +13823,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 237.49 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -13732,7 +13834,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 237.49 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -13743,7 +13845,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 237.49 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -13776,7 +13878,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 237.49 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -13787,18 +13889,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 237.49 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 237.49 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -13858,7 +13949,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad"
 			(at 29.21 171.45 0)
 			(hide yes)
 			(show_name no)
@@ -13903,6 +13994,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 29.21 171.45 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 29.21 171.45 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 29.21 171.45 90)
 			(hide yes)
 			(show_name no)
@@ -13992,7 +14105,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 246.38 148.59 90)
 			(hide yes)
 			(show_name no)
@@ -14003,7 +14116,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tai-tech-advanced-electronics-co-ltd/HPC-4018NF-4R7M/17835612"
 			(at 246.38 148.59 90)
 			(hide yes)
 			(show_name no)
@@ -14014,7 +14127,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "4816-HPC4018NF-4R7MCT-ND"
 			(at 246.38 148.59 90)
 			(hide yes)
 			(show_name no)
@@ -14047,7 +14160,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 246.38 148.59 90)
 			(hide yes)
 			(show_name no)
@@ -14058,18 +14171,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tai-tech-advanced-electronics-co-ltd/HPC-4018NF-4R7M/17835612"
-			(at 246.38 148.59 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "4816-HPC4018NF-4R7MCT-ND"
+		(property "KLC_S4.1" ""
 			(at 246.38 148.59 90)
 			(hide yes)
 			(show_name no)
@@ -14317,7 +14419,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 217.17 31.75 90)
 			(hide yes)
 			(show_name no)
@@ -14328,7 +14430,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/nexperia-usa-inc/PESD1CANFD33L-QYL/25577801"
 			(at 217.17 31.75 90)
 			(hide yes)
 			(show_name no)
@@ -14339,7 +14441,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "1727-PESD1CANFD33L-QYLCT-ND"
 			(at 217.17 31.75 90)
 			(hide yes)
 			(show_name no)
@@ -14372,7 +14474,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 217.17 31.75 90)
 			(hide yes)
 			(show_name no)
@@ -14383,18 +14485,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/nexperia-usa-inc/PESD1CANFD33L-QYL/25577801"
-			(at 217.17 31.75 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "1727-PESD1CANFD33L-QYLCT-ND"
+		(property "KLC_S4.1" ""
 			(at 217.17 31.75 90)
 			(hide yes)
 			(show_name no)
@@ -14487,61 +14578,6 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
-			(at 171.45 132.08 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 171.45 132.08 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 171.45 132.08 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 171.45 132.08 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 171.45 132.08 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 171.45 132.08 90)
 			(hide yes)
@@ -14575,6 +14611,50 @@
 				)
 			)
 		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 171.45 132.08 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 171.45 132.08 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 171.45 132.08 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 171.45 132.08 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "0a1b8063-7956-495d-b300-e0cae2fa44e6")
 		)
@@ -14592,7 +14672,7 @@
 	)
 	(symbol
 		(lib_id "power:+3.3V")
-		(at 123.19 163.83 0)
+		(at 123.19 171.45 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -14600,10 +14680,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "d40b4caa-66aa-4066-9bcb-a2e4a283f5e7")
 		(property "Reference" "#PWR08"
-			(at 123.19 167.64 0)
+			(at 123.19 175.26 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14614,7 +14693,7 @@
 			)
 		)
 		(property "Value" "+3.3V"
-			(at 123.19 158.75 0)
+			(at 123.19 167.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14624,7 +14703,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 123.19 163.83 0)
+			(at 123.19 171.45 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14635,7 +14714,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 123.19 163.83 0)
+			(at 123.19 171.45 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14646,7 +14725,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
-			(at 123.19 163.83 0)
+			(at 123.19 171.45 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14889,7 +14968,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 177.8 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -14900,7 +14979,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
 			(at 177.8 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -14911,7 +14990,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "311-10.0KHRCT-ND"
 			(at 177.8 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -14944,7 +15023,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 177.8 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -14955,18 +15034,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 177.8 157.48 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "311-10.0KHRCT-ND"
+		(property "KLC_S4.1" ""
 			(at 177.8 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -15059,39 +15127,6 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
-			(at 217.17 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "distributors part number" ""
-			(at 217.17 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "manufactuer part number" ""
-			(at 217.17 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "KLC_S4.2_DVDD" ""
 			(at 217.17 22.86 0)
 			(hide yes)
@@ -15104,6 +15139,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 217.17 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 217.17 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 217.17 22.86 0)
 			(hide yes)
 			(show_name no)
@@ -15238,6 +15295,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 74.93 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 74.93 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 74.93 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -15408,28 +15487,6 @@
 				)
 			)
 		)
-		(property "KLC_S4.2_DVDD" ""
-			(at 64.77 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KLC_S4.2_VREG_LX" ""
-			(at 64.77 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Supplier" "DigiKey"
 			(at 64.77 179.07 0)
 			(hide yes)
@@ -15453,6 +15510,50 @@
 			)
 		)
 		(property "Supplier Part No" "455-SM03B-SRSS-TBCT-ND"
+			(at 64.77 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_DVDD" ""
+			(at 64.77 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.2_VREG_LX" ""
+			(at 64.77 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 64.77 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 64.77 179.07 0)
 			(hide yes)
 			(show_name no)
@@ -15628,7 +15729,7 @@
 				)
 			)
 		)
-		(property "manufacturer" ""
+		(property "Supplier" "DigiKey"
 			(at 50.8 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15639,7 +15740,7 @@
 				)
 			)
 		)
-		(property "distributors part number" ""
+		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
 			(at 50.8 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15650,7 +15751,7 @@
 				)
 			)
 		)
-		(property "manufactuer part number" ""
+		(property "Supplier Part No" "490-10698-1-ND"
 			(at 50.8 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15683,7 +15784,7 @@
 				)
 			)
 		)
-		(property "Supplier" "DigiKey"
+		(property "KLC_S3.3" ""
 			(at 50.8 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15694,18 +15795,7 @@
 				)
 			)
 		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/murata-electronics/GRM155R71E104KE14D/4905173"
-			(at 50.8 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" "490-10698-1-ND"
+		(property "KLC_S4.1" ""
 			(at 50.8 149.86 0)
 			(hide yes)
 			(show_name no)
@@ -15743,7 +15833,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "fe39a012-e4c9-4845-bff9-15d16f6bf49e")
-		(property "Reference" "J2"
+		(property "Reference" "J5"
 			(at 77.47 26.6699 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -15853,6 +15943,28 @@
 				)
 			)
 		)
+		(property "KLC_S3.3" ""
+			(at 74.93 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
+			(at 74.93 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "e96ee882-db05-4da5-99d9-463071bbd8bb")
 		)
@@ -15862,7 +15974,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
-					(reference "J2")
+					(reference "J5")
 					(unit 1)
 				)
 			)
@@ -15979,7 +16091,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad"
+		(property "Footprint" "MountingHole:MountingHole_2.2mm_M2_DIN965_Pad"
 			(at 29.21 152.4 0)
 			(hide yes)
 			(show_name no)
@@ -16024,6 +16136,28 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
+			(at 29.21 152.4 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S3.3" ""
+			(at 29.21 152.4 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "KLC_S4.1" ""
 			(at 29.21 152.4 90)
 			(hide yes)
 			(show_name no)
@@ -16279,7 +16413,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "RS485.kicad_sch"
+		(property "Sheetfile" "RS485_slave.kicad_sch"
 			(at 43.18 131.3946 0)
 			(show_name no)
 			(do_not_autoplace no)
