@@ -1,0 +1,18 @@
+# Request
+# Calling this service asks the node to return its latest detections. Optionally,
+# capture and save an annotated image.
+bool capture_image
+string img_save_path
+---
+# Response
+# header.stamp/frame_id match the image the detections came from, exactly as on the
+# detections topic.
+std_msgs/Header header
+
+# Latest cached detections. Entries with has_pose false were seen in the image but
+# could not be resolved to a 3D pose.
+Detection[] detections
+
+# Human-readable status for callers, e.g. when detections were found but none could
+# be resolved into poses.
+string message
