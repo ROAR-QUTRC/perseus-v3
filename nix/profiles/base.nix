@@ -12,12 +12,10 @@ let
       bashInteractive
       can-utils
       glibcLocales
-      # groot2
       # nixgl-script
       # nixcuda-script
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
-      # livox-sdk2
       ;
     inherit (pkgs.ros)
       ros-core
@@ -26,7 +24,7 @@ let
 
       demo-nodes-cpp
       joy
-      # livox-ros-driver2
+      livox-ros-driver2
       opennav-docking
       nav2-common
       nav2-lifecycle-manager

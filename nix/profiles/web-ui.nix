@@ -6,6 +6,7 @@
     (
       [
         libnice
+        tsx
       ]
       ++ (with gst_all_1; [
         gstreamer
@@ -20,23 +21,50 @@
     typescript.enable = true;
     javascript = {
       enable = true;
+      npm.enable = true;
       corepack.enable = true;
     };
   };
 
-  enterShell = "cd ${config.env.DEVENV_ROOT}/software/web-ui";
+  enterShell = "cd ${config.env.DEVENV_ROOT}/software/web_ui";
 
   tasks = {
     "web-ui:init" = {
       exec = ''
-        cd ${config.env.DEVENV_ROOT}/software/web-ui
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
         # pipe yes to automatically install yarn if prompted
-        yes | yarn 
+        yes | yarn
       '';
       after = [
         "devenv:enterShell"
         "devenv:enterTest"
       ];
+    };
+  };
+
+  scripts = {
+    "web-ui-dev" = {
+      exec = ''
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
+        vite dev --host
+      '';
+    };
+    "web-ui-build" = {
+      exec = ''
+        cd ${config.env.DEVENV_ROOT}/software/web_ui
+        vite build
+        node ./src/server/server.js
+      '';
+    };
+    "web-ui" = {
+      exec = ''
+        node ${config.env.DEVENV_ROOT}/software/web_ui/src/server/server.js
+      '';
+    };
+    "camera-server" = {
+      exec = ''
+        tsx ${config.env.DEVENV_ROOT}/software/web_ui/pi-server/index.ts
+      '';
     };
   };
 }
