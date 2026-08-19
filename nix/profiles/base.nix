@@ -88,79 +88,9 @@ let
       + additionalPostShellHook;
     };
 
-  # Build-time (dev) dependencies of the workspace source packages.
-  # These must be dev packages (not prebuilt) so colcon gets their headers,
-  # CMake config and link libraries. ROS dev packages also bring their
-  # propagated dev closure (e.g. lttng-ust via rclcpp), so listing a direct
-  # dependency is usually enough.
-  # TODO: replace with per-package Nix derivations (ros2nix) once packaged.
-  workspaceDevDeps = {
-    inherit (pkgs)
-      nlohmann_json # can_if, sensors
-      openssl # sensors
-      onnxruntime # vision (provides libonnxruntime.pc for pkg_check_modules)
-      # opencv intentionally omitted: cv-bridge propagates the ROS-consistent
-      # OpenCV; adding pkgs.opencv causes a buildEnv version conflict.
-      ;
-    inherit (pkgs.ros)
-      # ros2_control / hardware
-      hardware-interface # hardware, sensors
-      pluginlib # hardware
-      rclcpp-lifecycle # hardware, sensors
-      # behaviour tree
-      behaviortree-cpp # perseus_bt_nodes
-      # messages / interfaces
-      actuator-msgs # teleop
-      nav-msgs # sensors (CMake-only, not in package.xml)
-      rcl-interfaces # vision
-      std-msgs # vision
-      visualization-msgs # vision
-      builtin-interfaces # interfaces, perseus_bt_nodes
-      # rosidl codegen (interfaces)
-      rosidl-default-generators # msg/srv codegen
-      rosidl-default-runtime # generated interface runtime
-      python-cmake-module # rosidl python bindings
-      # tf / geometry
-      tf2 # sensors, vision
-      tf2-ros # vision
-      tf2-geometry-msgs # sensors, vision
-      # core / misc
-      rclcpp # brings lttng-ust link libs (perseus_bt_nodes etc.)
-      rclcpp-components # sensors (CMake-only, not in package.xml)
-      backward-ros # hardware, sensors, teleop, interfaces
-      ament-index-cpp # vision
-      cv-bridge # vision
-      # sensors
-      realsense2-camera # sensors
-      realsense2-description # sensors
-      rplidar-ros # sensors
-      # lint (test deps)
-      ament-lint-auto # interfaces, perseus_bt_nodes, vision
-      ament-lint-common # interfaces, perseus_bt_nodes, vision
-      # navigation / localization
-      robot-localization # autonomy
-      slam-toolbox # autonomy
-      navigation2 # autonomy
-      xacro # autonomy
-      ;
-  };
-
   defaultWorkspace = mkWorkspace {
     inherit (pkgs) ros;
     name = "default";
-    additionalDevPkgs = workspaceDevDeps;
-    additionalPostShellHook = ''
-      # onnxruntime ships libonnxruntime.pc in its dev output, which the
-      # workspace buildEnv does not surface. Add it so vision's
-      # pkg_check_modules(libonnxruntime) resolves. The .pc uses absolute
-      # paths, so this also supplies the correct lib flags.
-      export PKG_CONFIG_PATH="${pkgs.onnxruntime.dev}/lib/pkgconfig''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-      # vision includes <onnxruntime/onnxruntime_cxx_api.h>, but the .pc
-      # only advertises the .../include/onnxruntime subdir. Nix build inputs
-      # normally get -isystem $dev/include automatically; replicate that here
-      # so the "onnxruntime/"-prefixed include resolves.
-      export CPATH="${pkgs.onnxruntime.dev}/include''${CPATH:+:$CPATH}"
-    '';
   };
 in
 {
