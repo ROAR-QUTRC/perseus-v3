@@ -44,6 +44,11 @@ TopicHealthPanel::TopicHealthPanel(QWidget *parent)
   table_->setHorizontalHeaderLabels({"Topic", "Rate (Hz)", "Age (s)"});
   table_->horizontalHeader()->setSectionResizeMode(kTopic,
                                                    QHeaderView::Stretch);
+  // Most Qt styles bold header sections by default. A stylesheet rule is used
+  // rather than setFont(), because the style reapplies its own header font over
+  // anything set that way.
+  table_->horizontalHeader()->setStyleSheet(
+      "QHeaderView::section { font-weight: normal; }");
   table_->verticalHeader()->setVisible(false);
   table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
   table_->setSelectionBehavior(QAbstractItemView::SelectRows);
