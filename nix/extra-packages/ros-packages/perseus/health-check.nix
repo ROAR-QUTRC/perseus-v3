@@ -7,7 +7,10 @@
   ament-lint-common,
   interfaces,
   iputils,
+  pluginlib,
+  qt5,
   rclcpp,
+  rviz-common,
   std-msgs,
 }:
 buildRosPackage rec {
@@ -25,7 +28,10 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     interfaces
     iputils
+    pluginlib
+    qt5.qtbase
     rclcpp
+    rviz-common
     std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
