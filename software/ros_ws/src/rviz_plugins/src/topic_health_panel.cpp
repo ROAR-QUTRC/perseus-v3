@@ -1,7 +1,7 @@
 /// @file topic_health_panel.cpp
-/// @brief Implementation of the health_check RViz panel.
+/// @brief Implementation of the topic health RViz panel.
 
-#include "health_check/rviz/topic_health_panel.hpp"
+#include "rviz_plugins/topic_health_panel.hpp"
 
 #include <QHeaderView>
 #include <QVBoxLayout>
@@ -9,7 +9,7 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rviz_common/display_context.hpp>
 
-namespace health_check {
+namespace rviz_plugins {
 namespace {
 
 /// @brief Column order of the table, kept in one place so the header and the
@@ -199,6 +199,6 @@ void TopicHealthPanel::load(const rviz_common::Config &config) {
   config.mapGetString("Topic", &topic_);
 }
 
-} // namespace health_check
+} // namespace rviz_plugins
 
-PLUGINLIB_EXPORT_CLASS(health_check::TopicHealthPanel, rviz_common::Panel)
+PLUGINLIB_EXPORT_CLASS(rviz_plugins::TopicHealthPanel, rviz_common::Panel)

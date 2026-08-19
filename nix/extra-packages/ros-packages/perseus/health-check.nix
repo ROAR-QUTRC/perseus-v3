@@ -7,17 +7,14 @@
   ament-lint-common,
   interfaces,
   iputils,
-  pluginlib,
-  qt5,
   rclcpp,
-  rviz-common,
   std-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-health-check";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/health_check;
+  src = ./../../../../software/ros_ws/src/nav-stack/health_check;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -28,10 +25,7 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     interfaces
     iputils
-    pluginlib
-    qt5.qtbase
     rclcpp
-    rviz-common
     std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];

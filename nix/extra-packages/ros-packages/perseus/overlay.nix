@@ -9,6 +9,7 @@ final: prev: {
   interfaces = final.callPackage ./interfaces.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };
+  rviz-plugins = final.callPackage ./rviz-plugins.nix { };
   sensors = final.callPackage ./sensors.nix { };
   teleop = final.callPackage ./teleop.nix { };
   vision = final.callPackage ./vision.nix { };

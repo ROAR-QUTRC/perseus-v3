@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 project(
-  health_check
+  rviz_plugins
   VERSION 0.0.1
   LANGUAGES CXX)
 
@@ -42,7 +42,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp std_msgs interfaces)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp interfaces rviz_common pluginlib)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
@@ -55,29 +55,42 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
+find_package(Qt5 REQUIRED COMPONENTS Widgets)
+
+# the panels derive from QObject, so moc has to run over their headers
+set(CMAKE_AUTOMOC ON)
+
 include_directories(include)
 
-# COMPILE (Executables)
-add_executable(
-  health_monitor
-  src/health_monitor/health_monitor.cpp
-  src/health_monitor/health_monitor_node.cpp
-  src/health_monitor/link_monitor.cpp src/health_monitor/topic_monitor.cpp)
+# COMPILE (RViz plugin library)
+#
+# The target name has to match the <library path> in plugin_description.xml,
+# which is how pluginlib finds the shared object at runtime.
+add_library(rviz_plugins SHARED src/topic_health_panel.cpp
+                                include/rviz_plugins/topic_health_panel.hpp)
 
-target_include_directories(health_monitor
+target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-ament_target_dependencies(health_monitor PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+target_link_libraries(rviz_plugins Qt5::Widgets)
+
+ament_target_dependencies(rviz_plugins ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+# tells pluginlib where to find the plugin manifest
+pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 
 # INSTALL (ROS)
-install(TARGETS health_monitor DESTINATION lib/${PROJECT_NAME})
+install(
+  TARGETS rviz_plugins
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+install(FILES plugin_description.xml DESTINATION share/${PROJECT_NAME})
+
+ament_export_libraries(rviz_plugins)
 
 install(DIRECTORY include/ DESTINATION include/)
-
-install(
-  DIRECTORY config launch
-  DESTINATION share/${PROJECT_NAME}
-  OPTIONAL)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

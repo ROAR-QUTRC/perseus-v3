@@ -1,7 +1,7 @@
-<library path="health_check_panel">
+<library path="rviz_plugins">
   <class
-    name="health_check/TopicHealthPanel"
-    type="health_check::TopicHealthPanel"
+    name="rviz_plugins/TopicHealthPanel"
+    type="rviz_plugins::TopicHealthPanel"
     base_class_type="rviz_common::Panel">
     <description>
       Table of per-topic rate, bandwidth and staleness from health_check, plus the

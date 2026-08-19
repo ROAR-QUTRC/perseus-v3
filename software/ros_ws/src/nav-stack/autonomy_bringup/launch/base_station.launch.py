@@ -4,7 +4,7 @@ Nothing here drives the robot. This launches the visualisation side alone, so it
 run on a laptop that shares a ROS domain with the rover while the sensing, estimation and
 health monitoring all run on the rover itself.
 
-The default config docks the Topic Health panel from health_check, which tabulates
+The default config docks the Topic Health panel from rviz_plugins, which tabulates
 the rate, bandwidth and staleness of each monitored topic from the rover's health_monitor.
 That table is the quickest way to tell a link problem from a node that has died.
 

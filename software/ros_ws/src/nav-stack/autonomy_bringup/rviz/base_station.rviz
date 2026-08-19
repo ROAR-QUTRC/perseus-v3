@@ -22,7 +22,7 @@ Panels:
     Splitter Ratio: 0.5
   # Table of per-topic rate, bandwidth and staleness, from health_check.
   # Subscribes to the topic named below, which is what health_monitor publishes on.
-  - Class: health_check/TopicHealthPanel
+  - Class: rviz_plugins/TopicHealthPanel
     Name: Topic Health
     Topic: /health
 Visualization Manager:

@@ -1,8 +1,8 @@
 /// @file topic_health_panel.hpp
 /// @brief RViz panel showing health_check output as a table.
 
-#ifndef HEALTH_CHECK__RVIZ__TOPIC_HEALTH_PANEL_HPP_
-#define HEALTH_CHECK__RVIZ__TOPIC_HEALTH_PANEL_HPP_
+#ifndef RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_
+#define RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_
 
 #include <memory>
 #include <mutex>
@@ -16,7 +16,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/panel.hpp>
 
-namespace health_check {
+namespace rviz_plugins {
 
 /// @brief Dockable RViz panel rendering SystemHealth as a colour-coded table.
 ///
@@ -72,6 +72,6 @@ private:
   QString topic_{"/health"};
 };
 
-} // namespace health_check
+} // namespace rviz_plugins
 
-#endif // HEALTH_CHECK__RVIZ__TOPIC_HEALTH_PANEL_HPP_
+#endif // RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_
