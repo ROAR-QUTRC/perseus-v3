@@ -42,7 +42,7 @@
     -->
     <link name="${prefix}livox_base">
       <visual>
-        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${pi/2}"/>
+        <origin xyz="${-0.082} 0.0 ${0.002}" rpy="${pi/2} 0.0 ${pi}"/>
         <geometry>
           <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/lidar_base.dae"/>
         </geometry>
@@ -88,7 +88,7 @@
     <joint name="${prefix}laser_joint" type="fixed">
       <parent link="${prefix}livox_base"/>
       <child link="${prefix}livox_frame"/>
-      <origin xyz="${-0.08} 0.0 0.05" rpy="${0.0} 0.0 ${0.0}"/>
+      <origin xyz="${-0.038} 0.0 0.064" rpy="${0.0} 0.0 ${-pi/2}"/>
     </joint>
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
