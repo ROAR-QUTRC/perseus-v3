@@ -26,7 +26,6 @@
           <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/sensor_mount.dae"/>
         </geometry>
       </visual>
-
     </link>
 
     <joint name="${prefix}sensor_mount_joint" type="fixed">
@@ -48,7 +47,6 @@
           <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/lidar_base.dae"/>
         </geometry>
       </visual>
-     
     </link>
     <joint name="${prefix}livox_base_joint" type="fixed">
       <parent link="${prefix}sensor_mount"/>
