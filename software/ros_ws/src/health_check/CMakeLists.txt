@@ -42,7 +42,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp std_msgs interfaces)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp std_msgs interfaces rviz_common
+                                 pluginlib)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
@@ -54,6 +55,11 @@ endforeach()
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
+
+find_package(Qt5 REQUIRED COMPONENTS Widgets)
+
+# the RViz panel derives from QObject, so moc has to run over its header
+set(CMAKE_AUTOMOC ON)
 
 include_directories(include)
 
@@ -69,8 +75,33 @@ target_include_directories(health_monitor
 
 ament_target_dependencies(health_monitor PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
+# COMPILE (RViz panel plugin)
+add_library(
+  health_check_panel SHARED src/rviz/topic_health_panel.cpp
+                            include/health_check/rviz/topic_health_panel.hpp)
+
+target_include_directories(health_check_panel
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(health_check_panel Qt5::Widgets)
+
+ament_target_dependencies(health_check_panel ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+# tells pluginlib where to find the plugin manifest
+pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
+
 # INSTALL (ROS)
 install(TARGETS health_monitor DESTINATION lib/${PROJECT_NAME})
+
+install(
+  TARGETS health_check_panel
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+install(FILES plugin_description.xml DESTINATION share/${PROJECT_NAME})
+
+ament_export_libraries(health_check_panel)
 
 install(DIRECTORY include/ DESTINATION include/)
 

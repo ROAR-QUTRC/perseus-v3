@@ -13,6 +13,13 @@
   <depend>std_msgs</depend>
   <depend>interfaces</depend>
 
+  <!-- The RViz panel lives here too, so the package pulls in RViz and Qt. That is a
+       deliberate trade: one package to build and install, at the cost of the rover
+       dragging in RViz alongside the monitor node. -->
+  <depend>rviz_common</depend>
+  <depend>pluginlib</depend>
+  <depend>qtbase5-dev</depend>
+
   <exec_depend>iputils</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
@@ -20,5 +27,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
   </export>
 </package>

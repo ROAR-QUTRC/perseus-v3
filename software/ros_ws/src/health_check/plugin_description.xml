@@ -1,0 +1,11 @@
+<library path="health_check_panel">
+  <class
+    name="health_check/TopicHealthPanel"
+    type="health_check::TopicHealthPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Table of per-topic rate, bandwidth and staleness from health_check, plus the
+      network link summary.
+    </description>
+  </class>
+</library>
