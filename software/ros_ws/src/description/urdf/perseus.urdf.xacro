@@ -48,10 +48,7 @@
     <xacro:property name="bar_width" value="0.03"/>
     <xacro:property name="bar_height" value="0.03"/>
 
-    <!-- 2D and 3D LIDAR Properties -->
-    <xacro:property name="laser_2d_mass" value="0.1"/>
-    <xacro:property name="laser_2d_radius" value="0.04"/>
-    <xacro:property name="laser_2d_length" value="0.04"/>
+    <!-- 3D LIDAR Properties -->
     <xacro:property name="livox_mass" value="0.2"/>
     <xacro:property name="livox_radius" value="0.04"/>
     <xacro:property name="livox_length" value="0.04"/>
@@ -66,8 +63,10 @@
     <xacro:property name="sensor_mount_x_offset" value="0.0"/>
     <xacro:property name="sensor_mount_y_offset" value="0.0"/>
     <xacro:property name="sensor_mount_z_offset" value="${chassis_height + 0.05}"/>
-    <!-- nose-down tilt of the Livox: positive pitch swings its +x axis towards -z -->
-    <xacro:property name="livox_pitch" value="${pi/4}"/>
+    <!-- nose-down tilt of the Livox base plate, applied at livox_base_joint in
+         sensor_mount.urdf.xacro: positive pitch swings its +x axis towards -z. The
+         sensor is fixed to the plate, so this aims the LiDAR. Zero leaves it level. -->
+    <xacro:property name="lidar_angle" value="${pi/4}"/>
 
     <!-- ADD COMPONENTS -->
     <xacro:include filename="$(find description)/urdf/inertia_macros.xacro"/>
@@ -111,12 +110,6 @@
 
     <!-- Livox and RealSense both hang off the mast: see sensor_mount.urdf.xacro -->
     <xacro:sensor_mount prefix="${prefix}"/>
-
-    <joint name="${prefix}laser_2d_joint" type="fixed">
-      <parent link="${prefix}chassis"/>
-      <child link="${prefix}laser_2d_frame"/>
-      <origin xyz="-0.15 0 0.25" rpy="0 0 0"/>
-    </joint>
 
   </xacro:macro>
   
