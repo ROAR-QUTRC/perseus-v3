@@ -39,19 +39,23 @@
       - /odom
       # EKF output. frequency in autonomy_bringup/config/ekf_config.yaml.
       - /odometry/filtered
-      # RealSense D455. These are the camera_info companions rather than the image
-      # topics on purpose: they are published once per frame, so they carry the same
-      # rate, but at a few hundred bytes instead of a few hundred kilobytes. Watching
-      # the images instead would push roughly 29 MB/s through this node just to count
-      # messages. Swap in the image topic if you want a real bandwidth figure:
-      #   colour /camera/camera/color/image_raw
-      #   infra  /camera/camera/infra1/image_rect_raw, .../infra2/image_rect_raw
+      # RealSense D455, watched on the image topics themselves so a stall in image
+      # publishing shows up directly rather than being inferred from the camera_info
+      # companion beside it.
+      #
+      # The colour stream is already subscribed by the vision nodes, so monitoring it
+      # costs little beyond one more copy. The infra pair has no other subscriber, so
+      # these two entries are what starts that traffic flowing: 848x480 Y8 at 30 Hz is
+      # about 12 MB/s each. If that shows up in CPU or on the DDS transport, switch
+      # just those two to /camera/camera/infraN/camera_info, which is published once
+      # per frame and so reports the same rate for a few hundred bytes.
+      #
       # Only the streams realsense.launch.py enables by default are listed. Depth is
       # off there, so watching it would report a missing publisher on every run; add it
       # here and to the rates below together if you turn it on.
-      - /camera/camera/color/camera_info
-      - /camera/camera/infra1/camera_info
-      - /camera/camera/infra2/camera_info
+      - /camera/camera/color/image_raw
+      - /camera/camera/infra1/image_rect_raw
+      - /camera/camera/infra2/image_rect_raw
     expected_rates_hz:
       - 10.0 # /livox/lidar
       - 200.0 # /livox/imu
@@ -60,10 +64,10 @@
       - 50.0 # /odom
       - 30.0 # /odometry/filtered
       # rgb_camera.color_profile in sensors/config/realsense.yaml is 424,240,15
-      - 15.0 # /camera/camera/color/camera_info
+      - 15.0 # /camera/camera/color/image_raw
       # depth_module.infra_profile is 848,480,30, shared by both infra streams
-      - 30.0 # /camera/camera/infra1/camera_info
-      - 30.0 # /camera/camera/infra2/camera_info
+      - 30.0 # /camera/camera/infra1/image_rect_raw
+      - 30.0 # /camera/camera/infra2/image_rect_raw
     # Interface the throughput and error counters are read from, via /proc/net/dev.
     interface_name: "wlan0"
     # Reachability probe. Empty disables it, which is the default: an unreachable stock
