@@ -60,7 +60,7 @@
       lid_frame: "livox_frame"
       base_frame: "base_link"
       # Level the world frame at startup from the averaged accelerometer. Required with the
-      # Livox pitched 45 deg nose-down (livox_pitch in perseus.urdf.xacro): without it the world
+      # Livox pitched 45 deg nose-down (lidar_angle in perseus.urdf.xacro): without it the world
       # frame inherits that tilt, so a level robot reports a 45 deg pitch and level travel is
       # split between the world x and z axes. Needs the robot stationary at startup.
       gravity_align_en: true

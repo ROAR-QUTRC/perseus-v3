@@ -9,8 +9,8 @@
     extends backwards in -x and upwards in +z from that origin. "Front of the chassis,
     a bit above" is therefore x near 0 and z a little over chassis_height.
 
-    Both sensors hang off sensor_mount rather than off chassis, so re-siting the mast
-    only means changing sensor_mount_*_offset.
+    Both sensors hang off sensor_mount rather than off chassis (the Livox through
+    livox_base), so re-siting the mast only means changing sensor_mount_*_offset.
   -->
   <xacro:macro name="sensor_mount" params="prefix:=^">
     <link name="${prefix}sensor_mount">
@@ -36,16 +36,63 @@
     </joint>
 
     <!--
-      Livox MID-360, on top of the mast and pitched nose-down by livox_pitch.
+      Plate on top of the mast that the Livox bolts onto. lidar_angle is applied here, and
+      the sensor is fixed to the plate, so the two tilt together: a positive pitch about +y
+      takes the plate, and with it the sensor +x axis, towards -z, pointing the LiDAR
+      forwards and down. Re-aiming the LiDAR means changing lidar_angle and nothing else.
+    -->
+    <link name="${prefix}livox_base">
+      <!-- no mesh for the plate yet: a visual without a geometry fails to parse, so the
+           whole element stays commented out until there is one to point at.
+      <visual>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 ${pi/2}"/>
+        <geometry>
+          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/sensor_mount.dae"/>
+        </geometry>
+      </visual>
+      -->
+    </link>
+    <joint name="${prefix}livox_base_joint" type="fixed">
+      <parent link="${prefix}sensor_mount"/>
+      <child link="${prefix}livox_base"/>
+      <origin xyz="0.024 0.0 0.061" rpy="0.0 ${lidar_angle} 0.0"/>
+    </joint>
 
-      A positive pitch about +y takes the sensor +x axis towards -z, so this points the
-      LiDAR forwards and down. The IMU-LiDAR extrinsic in the fast_lio config is internal
-      to the sensor housing and is unaffected by how the housing is mounted.
+    <!--
+      Livox MID-360 itself. The mesh and the collision cylinder are offset down by 20 mm
+      because the sensor frame sits above the housing floor; the rpy on the visual only
+      aligns the exported mesh with that frame.
+    -->
+    <link name="${prefix}livox_frame">
+      <inertial>
+        <origin xyz="0 0.0 0.0" rpy="${pi/2} 0.0 ${pi}"/>
+        <mass value="${livox_mass}"/>
+        <xacro:box_inertia m="${livox_mass}" x="${livox_length}" y="${livox_radius}" z="${livox_radius}"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi}"/>
+        <geometry>
+          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/mid-360.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+        <geometry>
+          <cylinder radius="${livox_radius}" length="${livox_length}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <!--
+      Livox MID-360, seated on livox_base. The joint only offsets it across the plate and
+      adds no rotation of its own, so the sensor inherits the plate's tilt. The IMU-LiDAR
+      extrinsic in the fast_lio config is internal to the sensor housing and is unaffected
+      by how the housing is mounted.
     -->
     <joint name="${prefix}laser_joint" type="fixed">
-      <parent link="${prefix}sensor_mount"/>
+      <parent link="${prefix}livox_base"/>
       <child link="${prefix}livox_frame"/>
-      <origin xyz="0.04 0.0 0.13" rpy="${-livox_pitch} 0.0 ${0.0}"/>
+      <origin xyz="${-0.08} 0.0 0.05" rpy="${0.0} 0.0 ${0.0}"/>
     </joint>
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
