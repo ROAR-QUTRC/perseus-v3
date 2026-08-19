@@ -16,12 +16,8 @@ namespace {
 /// row filling below cannot drift apart.
 enum Column {
   kTopic = 0,
-  kStatus,
   kRate,
-  kExpected,
-  kBandwidth,
   kAge,
-  kPublishers,
   kColumnCount,
 };
 
@@ -45,8 +41,7 @@ TopicHealthPanel::TopicHealthPanel(QWidget *parent)
   link_label_ = new QLabel("");
 
   table_ = new QTableWidget(0, kColumnCount);
-  table_->setHorizontalHeaderLabels({"Topic", "Status", "Rate (Hz)", "Expected",
-                                     "Bandwidth", "Age (s)", "Pubs"});
+  table_->setHorizontalHeaderLabels({"Topic", "Rate (Hz)", "Age (s)"});
   table_->horizontalHeader()->setSectionResizeMode(kTopic,
                                                    QHeaderView::Stretch);
   table_->verticalHeader()->setVisible(false);
@@ -83,32 +78,24 @@ void TopicHealthPanel::onHealth(
   latest_message_ = std::move(message);
 }
 
-QString TopicHealthPanel::statusText(std::uint8_t status) {
-  using interfaces::msg::TopicHealth;
-  switch (status) {
-  case TopicHealth::STATUS_OK:
-    return "OK";
-  case TopicHealth::STATUS_SLOW:
-    return "SLOW";
-  case TopicHealth::STATUS_STALE:
-    return "STALE";
-  case TopicHealth::STATUS_NO_PUBLISHER:
-    return "NO PUBLISHER";
-  default:
-    return "UNKNOWN";
-  }
-}
-
 QColor TopicHealthPanel::statusColour(std::uint8_t status) {
   using interfaces::msg::TopicHealth;
+  /*
+    With the status column gone the row colour is the only thing reporting
+    status, so the amber and red are pitched to be told apart at a glance rather
+    than to sit quietly behind a label. Text stays dark, so every one of these
+    has to be light enough to read against.
+  */
   switch (status) {
   case TopicHealth::STATUS_OK:
     return QColor(200, 240, 200);
+  // Publishing, but under the expected rate by more than the tolerance.
   case TopicHealth::STATUS_SLOW:
-    return QColor(255, 235, 180);
+    return QColor(255, 200, 120);
+  // Nothing arriving at all, whether the publisher is silent or gone.
   case TopicHealth::STATUS_STALE:
   case TopicHealth::STATUS_NO_PUBLISHER:
-    return QColor(250, 190, 190);
+    return QColor(245, 150, 150);
   default:
     return QColor(230, 230, 230);
   }
@@ -148,15 +135,16 @@ void TopicHealthPanel::refresh() {
 
     const QString values[kColumnCount] = {
         QString::fromStdString(topic.name),
-        statusText(topic.status),
-        QString::number(topic.measured_rate_hz, 'f', 1),
-        QString::number(topic.expected_rate_hz, 'f', 1),
-        formatBandwidth(topic.bandwidth_bytes_per_sec),
+        // Measured against expected in one cell, e.g. "197.3/200". The row
+        // colour is what flags a shortfall, so there is no status column to
+        // read across to.
+        QString("%1/%2")
+            .arg(topic.measured_rate_hz, 0, 'f', 1)
+            .arg(topic.expected_rate_hz, 0, 'f', 0),
         // -1 is the monitor's "never received anything" sentinel, not a real
         // age.
         topic.age_sec < 0.0 ? QString("never")
                             : QString::number(topic.age_sec, 'f', 2),
-        QString::number(topic.publisher_count),
     };
 
     for (int column = 0; column < kColumnCount; ++column) {

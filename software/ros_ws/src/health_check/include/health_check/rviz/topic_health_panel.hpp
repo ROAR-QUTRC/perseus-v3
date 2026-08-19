@@ -55,9 +55,6 @@ private:
   /// @brief Stores the incoming snapshot for the next refresh.
   void onHealth(interfaces::msg::SystemHealth::ConstSharedPtr message);
 
-  /// @brief Human-readable name for a TopicHealth status constant.
-  static QString statusText(std::uint8_t status);
-
   /// @brief Background colour for a row, keyed on its TopicHealth status.
   static QColor statusColour(std::uint8_t status);
 
