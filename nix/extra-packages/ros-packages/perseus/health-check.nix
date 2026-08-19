@@ -5,16 +5,16 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
-  geometry-msgs,
   interfaces,
-  nav-msgs,
+  iputils,
   rclcpp,
+  std-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-watchdog";
+  pname = "ros-jazzy-health-check";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/nav-stack/watchdog;
+  src = ./../../../../software/ros_ws/src/health_check;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -23,15 +23,15 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    geometry-msgs
     interfaces
-    nav-msgs
+    iputils
     rclcpp
+    std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Runtime monitors that watch for unsafe or degraded robot behaviour";
+    description = "Rate, bandwidth and link monitoring for the sensing and estimation stack";
     license = with lib.licenses; [ mit ];
   };
 }

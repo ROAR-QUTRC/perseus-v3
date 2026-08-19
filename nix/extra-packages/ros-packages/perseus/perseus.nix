@@ -5,9 +5,9 @@
   ament-cmake,
   controller-manager,
   diff-drive-controller,
+  hardware,
   joint-state-broadcaster,
   mecanum-drive-controller,
-  hardware,
   robot-state-publisher,
   ros2controlcli,
   ros2launch,
@@ -26,9 +26,9 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     controller-manager
     diff-drive-controller
+    hardware
     joint-state-broadcaster
     mecanum-drive-controller
-    hardware
     robot-state-publisher
     ros2controlcli
     ros2launch
