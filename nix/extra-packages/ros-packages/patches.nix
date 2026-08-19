@@ -8,10 +8,10 @@ let
         ...
       }:
       {
-        buildInputs = buildInputs ++ [ rosFinal.livox-sdk2 ];
+        buildInputs = buildInputs ++ [ final.livox-sdk2 ];
         patches = patches ++ [
-          ./livox-ros-driver2/rename-files.patch
-          ./livox-ros-driver2/livox-ros-driver2.patch
+          ./patches/livox-ros-driver2/rename-files.patch
+          ./patches/livox-ros-driver2/livox-ros-driver2.patch
         ];
       }
     );

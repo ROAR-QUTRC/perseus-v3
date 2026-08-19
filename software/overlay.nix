@@ -1,4 +1,4 @@
-rosDistro: final: prev:
+final: prev:
 let
   # utility function to provide a clean src with the cmake build directory (and typical build outputs) removed
   cleanCmakeSource =
@@ -21,14 +21,12 @@ let
   # import individual overlays
   shared = (import ./shared/overlay.nix);
   native = (import ./native/overlay.nix);
-  ros_ws = (import ./ros_ws/overlay.nix rosDistro);
   scripts = (import ./scripts/overlay.nix);
   # combine above overlays into a single overlay
   composed = prev.lib.composeManyExtensions [
     (final: prev: { inherit cleanCmakeSource; })
     shared
     native
-    ros_ws
     scripts
   ] final prev;
 in

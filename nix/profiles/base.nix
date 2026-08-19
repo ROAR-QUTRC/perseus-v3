@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 let
   productionDomainId = 42;
   devDomainId = 51;
