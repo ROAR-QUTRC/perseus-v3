@@ -28,6 +28,13 @@ in
         iproute2
       ];
     };
+    update = build-wrapped-script {
+      name = "update.sh";
+      deps = with final; [
+        ros-NUR-helper
+        git
+      ];
+    };
     # nix-setup and devenv-setup aren't needed here because they are run before nix is installed
   };
 }

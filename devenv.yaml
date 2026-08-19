@@ -40,6 +40,13 @@ inputs:
         follows: nix-ros-overlay/rosdistro
       treefmt-nix:
         follows: treefmt-nix
+  ros-nur-helper:
+    url: github:ROAR-QUTRC/ros-NUR-helper
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+      ros2nix_repo:
+        follows: ros2nix
 allow_unfree: true
 imports:
   - ./nix/scripts.nix

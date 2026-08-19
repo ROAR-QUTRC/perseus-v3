@@ -5,11 +5,11 @@
   lib,
   # config,
   # nixpkgs,
-  nix-ros-overlay,
-  nix-ros-workspace,
+  # nix-ros-overlay,
+  # nix-ros-workspace,
   # nixgl,
   ...
-}:
+}@inputs:
 
 let
   # isIntelX86Platform = pkgs.stdenv.system == "x86_64-linux";
@@ -25,13 +25,7 @@ in
 {
   name = "Perseus-v3";
 
-  overlays = import ./nix/overlays.nix {
-    inherit
-      nix-ros-overlay
-      nix-ros-workspace
-      rosDistro
-      ;
-  };
+  overlays = import ./nix/overlays.nix (inputs // { inherit rosDistro; });
 
   # --- Packages ---
   packages = with pkgs; [ ] ++ flattenDerivationSet examples ++ flattenDerivationSet scripts;

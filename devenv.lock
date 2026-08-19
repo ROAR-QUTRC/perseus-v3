@@ -160,8 +160,32 @@
           "nix-ros-overlay",
           "nixpkgs"
         ],
+        "ros-nur-helper": "ros-nur-helper",
         "ros2nix": "ros2nix",
         "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "ros-nur-helper": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "ros2nix_repo": [
+          "ros2nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787142081,
+        "narHash": "sha256-p1B9oPevB3Ybx2GWMKWh8+aHMahHQm454xXGNtKFVKY=",
+        "owner": "ROAR-QUTRC",
+        "repo": "ros-NUR-helper",
+        "rev": "f4aacbf02fd8d9942f94568015fc2c6a2b348fe2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ROAR-QUTRC",
+        "repo": "ros-NUR-helper",
+        "type": "github"
       }
     },
     "ros2nix": {

@@ -3,6 +3,8 @@
   rosDistro,
   nix-ros-overlay,
   nix-ros-workspace,
+  ros-nur-helper,
+  pkgs,
   ...
 }:
 [
@@ -15,6 +17,8 @@
   (import ../software/overlay.nix)
 
   (final: prev: {
+
+    inherit (ros-nur-helper.packages.${pkgs.stdenv.system}) ros-NUR-helper;
     # alias the output to pkgs.ros to make it easier to use
     ros = final.rosPackages.${rosDistro};
   })

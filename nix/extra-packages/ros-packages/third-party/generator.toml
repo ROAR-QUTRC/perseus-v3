@@ -1,0 +1,9 @@
+overlay_prefix = "rosDistro: "
+
+[fast-lio]
+url = "https://github.com/bocho0600/FAST_LIO"
+branch = "feat/configurable-frames"
+
+[livox-ros-driver2]
+url = "https://github.com/Livox-SDK/livox_ros_driver2"
+paths = ["package_ROS2.xml"]

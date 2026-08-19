@@ -43,6 +43,16 @@ let
           '';
         }
       );
+
+    fast-lio = rosPrev.fast-lio.overrideAttrs (
+      { src, ... }: {
+        src = src.override {
+          fetchSubmodules = true;
+          # The hash is different because of the submodule
+          sha256 = "WDLZ6nHYHOD/rPChNgeI3BhxGeOOz7x0o9QYLAKOKgQ=";
+        };
+      }
+    );
   };
 in
 {
