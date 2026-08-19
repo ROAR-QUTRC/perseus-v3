@@ -8,5 +8,5 @@
 # as well as setting PYTHONWARNINGS to silence easy_install and unknown distribution warnings
 writeShellScriptBin "colcon" ''
   PYTHONWARNINGS="ignore:easy_install command is deprecated,ignore:Unknown distribution option:UserWarning" \
-    exec ${lib.getExe colcon} "$@" 2> >(${lib.getExe gnugrep} -v "WARNING:colcon.colcon_ros.prefix_path.ament" >&2)
+    exec ${colcon}/bin/colcon "$@" 2> >(${lib.getExe gnugrep} -v "WARNING:colcon.colcon_ros.prefix_path.ament" >&2)
 ''
