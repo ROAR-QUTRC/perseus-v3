@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+# PROJECT SETUP
+cmake_minimum_required(VERSION 3.23)
+
 project(
-  interfaces
-  VERSION 1.0.0
-  LANGUAGES CXX C)
+  health_check
+  VERSION 0.0.1
+  LANGUAGES CXX)
+
 # credit https://www.kitware.com/cmake-and-the-default-build-type/
 set(default_build_type "Debug")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -23,6 +26,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# COMPILER SETUP
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow)
 endif()
@@ -37,39 +41,48 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # INCLUDE DEPENDENCIES
 
-# public dependencies (which should propagate) set(THIS_PACKAGE_INCLUDE_DEPENDS
-# )
+# public dependencies (which should propagate)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp std_msgs interfaces)
 
 # packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS
-    backward_ros ament_cmake rosidl_default_generators geometry_msgs
-    sensor_msgs std_msgs)
+set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
-# foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
-# find_package(${Dependency} REQUIRED) endforeach()
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
 
-rosidl_generate_interfaces(
-  ${PROJECT_NAME}
-  "srv/GetFrontierGoal.srv"
-  "msg/Detection.msg"
-  "msg/DetectionArray.msg"
-  "srv/DetectObjects.srv"
-  "msg/NavigationData.msg"
-  "srv/RunWaypoints.srv"
-  "msg/Waypoint.msg"
-  "msg/MobilityStatus.msg"
-  "msg/TopicHealth.msg"
-  "msg/LinkHealth.msg"
-  "msg/SystemHealth.msg"
-  DEPENDENCIES
-  geometry_msgs
-  sensor_msgs
-  std_msgs)
+include_directories(include)
 
-ament_export_dependencies(rosidl_default_runtime)
+# COMPILE (Executables)
+add_executable(
+  health_monitor
+  src/health_monitor/health_monitor.cpp
+  src/health_monitor/health_monitor_node.cpp
+  src/health_monitor/link_monitor.cpp src/health_monitor/topic_monitor.cpp)
 
+target_include_directories(health_monitor
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_target_dependencies(health_monitor PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+# INSTALL (ROS)
+install(TARGETS health_monitor DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY include/ DESTINATION include/)
+
+install(
+  DIRECTORY config launch
+  DESTINATION share/${PROJECT_NAME}
+  OPTIONAL)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+# ROS FINALISATION
 ament_package()
