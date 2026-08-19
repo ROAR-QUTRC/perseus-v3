@@ -1,9 +1,4 @@
-{
-  pkgs,
-  lib,
-  config,
-  ...
-}:
+{ pkgs, lib, ... }:
 let
   productionDomainId = 42;
   devDomainId = 51;
@@ -93,16 +88,6 @@ let
       + additionalPostShellHook;
     };
 
-  # nix-ros-workspace wires buildROSWorkspace's `buildROSEnv` argument to
-  # `rosFinal.buildEnv`, so overriding buildEnv in the ROS scope is what makes
-  # the workspace it builds an underlay. Only the env builder changes, so no
-  # package derivation is rebuilt.
-  rosUnderlay = pkgs.ros.overrideScope (
-    rosFinal: rosPrev: {
-      buildEnv = args: rosPrev.buildEnv (args // { underlay = true; });
-    }
-  );
-
   # Build-time (dev) dependencies of the workspace source packages.
   # These must be dev packages (not prebuilt) so colcon gets their headers,
   # CMake config and link libraries. ROS dev packages also bring their
@@ -160,22 +145,8 @@ let
       ;
   };
 
-  # Built against rosUnderlay, which flips the program wrappers from
-  # `--prefix AMENT_PREFIX_PATH` to `--suffix`.
-  #
-  # Every workspace package is also packaged for Nix (nix/extra-packages) with
-  # `src` pointing at the local source tree, so the workspace on PATH contains
-  # a Nix-built copy of each one. With `--prefix`, the ros2 wrapper put those
-  # copies ahead of anything the shell had exported, so a `colcon build` into
-  # ./install could never win: edits to a URDF, launch file or param only took
-  # effect after leaving and re-entering the shell, which rebuilt the
-  # derivation from the changed source rather than using the colcon build.
-  #
-  # As an underlay the Nix copies still resolve when nothing else is sourced,
-  # so running straight out of the shell is unchanged, but
-  # `source install/setup.bash` now takes priority over them.
   defaultWorkspace = mkWorkspace {
-    ros = rosUnderlay;
+    inherit (pkgs) ros;
     name = "default";
     additionalDevPkgs = workspaceDevDeps;
     additionalPostShellHook = ''
@@ -191,8 +162,6 @@ let
       export CPATH="${pkgs.onnxruntime.dev}/include''${CPATH:+:$CPATH}"
     '';
   };
-
-  rosWs = "${config.env.DEVENV_ROOT}/software/ros_ws";
 in
 {
   packages = [
@@ -212,25 +181,6 @@ in
     ${defaultWorkspace.env.shellHook}
 
     export COLCON_EXTENSION_BLOCKLIST=colcon_ros.prefix_path.ament
-
-    # Pick up an existing colcon build so ros2 resolves the workspace packages
-    # to ./install rather than the Nix-built copies. Safe when absent: the Nix
-    # underlay still provides every package.
-    if [ -f "${rosWs}/install/setup.bash" ]; then
-      source "${rosWs}/install/setup.bash"
-    fi
-
-    # Rebuild the workspace and refresh the *current* shell, so source edits
-    # apply without leaving and re-entering the profile. This has to be a
-    # function rather than a devenv script: a script runs in a child process
-    # and cannot source anything back into this shell.
-    #
-    # --symlink-install means launch files, YAML params and the teleop Python
-    # scripts take effect on save with no rebuild at all; C++ still needs one.
-    rebuild() {
-      (cd "${rosWs}" && colcon build --symlink-install "$@") &&
-        source "${rosWs}/install/setup.bash"
-    }
 
     echo -e "\e[38;5;208m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
