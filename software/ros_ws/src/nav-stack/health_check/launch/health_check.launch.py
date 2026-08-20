@@ -1,7 +1,8 @@
 """Launch the health monitor with the default watch list.
 
 The monitor publishes a single interfaces/msg/SystemHealth snapshot per cycle on
-`health`, covering topic rates, per-topic bandwidth, and network link counters.
+`/health_check/health`, covering topic rates, per-topic bandwidth, and network link
+counters.
 
 Arguments:
     config_file  path to the parameter file, to point the monitor at a different

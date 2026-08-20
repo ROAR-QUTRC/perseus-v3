@@ -10,17 +10,17 @@ namespace health_check {
 TopicMonitor::TopicMonitor(std::string name, double expected_rate_hz,
                            double window_sec, double stale_timeout_sec,
                            double rate_tolerance)
-    : name_(std::move(name)), expected_rate_hz_(expected_rate_hz),
-      window_sec_(window_sec), stale_timeout_sec_(stale_timeout_sec),
-      rate_tolerance_(rate_tolerance) {}
+    : _name(std::move(name)), _expected_rate_hz(expected_rate_hz),
+      _window_sec(window_sec), _stale_timeout_sec(stale_timeout_sec),
+      _rate_tolerance(rate_tolerance) {}
 
-bool TopicMonitor::tryBind(rclcpp::Node &node) {
-  if (subscription_) {
+bool TopicMonitor::try_bind(rclcpp::Node &node) {
+  if (_subscription) {
     return true;
   }
 
   const auto graph = node.get_topic_names_and_types();
-  const auto entry = graph.find(name_);
+  const auto entry = graph.find(_name);
   if (entry == graph.end() || entry->second.empty()) {
     return false;
   }
@@ -29,7 +29,7 @@ bool TopicMonitor::tryBind(rclcpp::Node &node) {
         node.get_logger(),
         "Topic %s is advertised with %zu types; not monitoring it, because "
         "measuring only one of them would under-report the real traffic.",
-        name_.c_str(), entry->second.size());
+        _name.c_str(), entry->second.size());
     return false;
   }
 
@@ -43,26 +43,26 @@ bool TopicMonitor::tryBind(rclcpp::Node &node) {
   */
   const auto qos = rclcpp::SensorDataQoS();
 
-  subscription_ = node.create_generic_subscription(
-      name_, entry->second.front(), qos,
+  _subscription = node.create_generic_subscription(
+      _name, entry->second.front(), qos,
       [this, &node](std::shared_ptr<const rclcpp::SerializedMessage> message) {
-        onMessage(message->size(), node.now());
+        _on_message(message->size(), node.now());
       });
 
   RCLCPP_INFO(node.get_logger(), "Monitoring %s (%s) at an expected %.1f Hz",
-              name_.c_str(), entry->second.front().c_str(), expected_rate_hz_);
+              _name.c_str(), entry->second.front().c_str(), _expected_rate_hz);
   return true;
 }
 
-void TopicMonitor::onMessage(std::size_t bytes, const rclcpp::Time &now) {
-  samples_.push_back({now, bytes});
-  last_message_time_ = now;
-  ++total_count_;
+void TopicMonitor::_on_message(std::size_t bytes, const rclcpp::Time &now) {
+  _samples.push_back({now, bytes});
+  _last_message_time = now;
+  ++_total_count;
 }
 
-void TopicMonitor::pruneTo(const rclcpp::Time &cutoff) {
-  while (!samples_.empty() && samples_.front().stamp < cutoff) {
-    samples_.pop_front();
+void TopicMonitor::_prune_to(const rclcpp::Time &cutoff) {
+  while (!_samples.empty() && _samples.front().stamp < cutoff) {
+    _samples.pop_front();
   }
 }
 
@@ -70,23 +70,23 @@ interfaces::msg::TopicHealth TopicMonitor::report(rclcpp::Node &node) {
   using interfaces::msg::TopicHealth;
 
   const rclcpp::Time now = node.now();
-  pruneTo(now - rclcpp::Duration::from_seconds(window_sec_));
+  _prune_to(now - rclcpp::Duration::from_seconds(_window_sec));
 
   TopicHealth health;
-  health.name = name_;
-  health.expected_rate_hz = expected_rate_hz_;
+  health.name = _name;
+  health.expected_rate_hz = _expected_rate_hz;
   health.publisher_count =
-      static_cast<std::uint32_t>(node.count_publishers(name_));
-  health.window_message_count = static_cast<std::uint32_t>(samples_.size());
-  health.total_message_count = total_count_;
+      static_cast<std::uint32_t>(node.count_publishers(_name));
+  health.window_message_count = static_cast<std::uint32_t>(_samples.size());
+  health.total_message_count = _total_count;
 
   std::size_t window_bytes = 0;
-  for (const auto &sample : samples_) {
+  for (const auto &sample : _samples) {
     window_bytes += sample.bytes;
   }
-  health.measured_rate_hz = static_cast<double>(samples_.size()) / window_sec_;
+  health.measured_rate_hz = static_cast<double>(_samples.size()) / _window_sec;
   health.bandwidth_bytes_per_sec =
-      static_cast<double>(window_bytes) / window_sec_;
+      static_cast<double>(window_bytes) / _window_sec;
 
   /*
     -1.0 rather than 0.0 for "never seen anything". A topic that has just this
@@ -95,14 +95,14 @@ interfaces::msg::TopicHealth TopicMonitor::report(rclcpp::Node &node) {
     the field.
   */
   health.age_sec =
-      total_count_ == 0 ? -1.0 : (now - last_message_time_).seconds();
+      _total_count == 0 ? -1.0 : (now - _last_message_time).seconds();
 
   if (health.publisher_count == 0) {
     health.status = TopicHealth::STATUS_NO_PUBLISHER;
-  } else if (total_count_ == 0 || health.age_sec > stale_timeout_sec_) {
+  } else if (_total_count == 0 || health.age_sec > _stale_timeout_sec) {
     health.status = TopicHealth::STATUS_STALE;
   } else if (health.measured_rate_hz <
-             expected_rate_hz_ * (1.0 - rate_tolerance_)) {
+             _expected_rate_hz * (1.0 - _rate_tolerance)) {
     health.status = TopicHealth::STATUS_SLOW;
   } else {
     health.status = TopicHealth::STATUS_OK;

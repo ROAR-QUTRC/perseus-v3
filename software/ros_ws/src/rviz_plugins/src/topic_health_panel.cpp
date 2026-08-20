@@ -14,21 +14,24 @@ namespace {
 
 /// @brief Column order of the table, kept in one place so the header and the
 /// row filling below cannot drift apart.
-enum Column {
-  kTopic = 0,
-  kRate,
-  kAge,
-  kColumnCount,
+enum table_columns {
+  COLUMN_TOPIC = 0,
+  COLUMN_RATE,
+  COLUMN_AGE,
+  COLUMN_COUNT,
 };
 
+/// @brief Bytes per KiB and per MiB, for picking a readable bandwidth unit.
+constexpr double BYTES_PER_KIB = 1024.0;
+constexpr double BYTES_PER_MIB = BYTES_PER_KIB * BYTES_PER_KIB;
+
 /// @brief Formats a byte rate into the largest unit that keeps it readable.
-QString formatBandwidth(double bytes_per_sec) {
-  if (bytes_per_sec >= 1024.0 * 1024.0) {
-    return QString::number(bytes_per_sec / (1024.0 * 1024.0), 'f', 2) +
-           " MiB/s";
+QString format_bandwidth(double bytes_per_sec) {
+  if (bytes_per_sec >= BYTES_PER_MIB) {
+    return QString::number(bytes_per_sec / BYTES_PER_MIB, 'f', 2) + " MiB/s";
   }
-  if (bytes_per_sec >= 1024.0) {
-    return QString::number(bytes_per_sec / 1024.0, 'f', 1) + " KiB/s";
+  if (bytes_per_sec >= BYTES_PER_KIB) {
+    return QString::number(bytes_per_sec / BYTES_PER_KIB, 'f', 1) + " KiB/s";
   }
   return QString::number(bytes_per_sec, 'f', 0) + " B/s";
 }
@@ -37,56 +40,54 @@ QString formatBandwidth(double bytes_per_sec) {
 
 TopicHealthPanel::TopicHealthPanel(QWidget *parent)
     : rviz_common::Panel(parent) {
-  summary_label_ = new QLabel("Waiting for health data...");
-  link_label_ = new QLabel("");
+  _summary_label = new QLabel("Waiting for health data...");
+  _link_label = new QLabel("");
 
-  table_ = new QTableWidget(0, kColumnCount);
-  table_->setHorizontalHeaderLabels({"Topic", "Rate (Hz)", "Age (s)"});
-  table_->horizontalHeader()->setSectionResizeMode(kTopic,
+  _table = new QTableWidget(0, COLUMN_COUNT);
+  _table->setHorizontalHeaderLabels({"Topic", "Rate (Hz)", "Age (s)"});
+  _table->horizontalHeader()->setSectionResizeMode(COLUMN_TOPIC,
                                                    QHeaderView::Stretch);
   // Most Qt styles bold header sections by default. A stylesheet rule is used
   // rather than setFont(), because the style reapplies its own header font over
   // anything set that way.
-  table_->horizontalHeader()->setStyleSheet(
+  _table->horizontalHeader()->setStyleSheet(
       "QHeaderView::section { font-weight: normal; }");
-  table_->verticalHeader()->setVisible(false);
-  table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  table_->setSelectionBehavior(QAbstractItemView::SelectRows);
+  _table->verticalHeader()->setVisible(false);
+  _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  _table->setSelectionBehavior(QAbstractItemView::SelectRows);
 
   auto *layout = new QVBoxLayout;
-  layout->addWidget(summary_label_);
-  layout->addWidget(table_);
-  layout->addWidget(link_label_);
+  layout->addWidget(_summary_label);
+  layout->addWidget(_table);
+  layout->addWidget(_link_label);
   setLayout(layout);
 
-  refresh_timer_ = new QTimer(this);
-  connect(refresh_timer_, &QTimer::timeout, this, &TopicHealthPanel::refresh);
+  _refresh_timer = new QTimer(this);
+  connect(_refresh_timer, &QTimer::timeout, this, &TopicHealthPanel::_refresh);
 }
 
 void TopicHealthPanel::onInitialize() {
-  node_ = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
+  _node = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
 
-  subscription_ = node_->create_subscription<interfaces::msg::SystemHealth>(
-      topic_.toStdString(), rclcpp::QoS(10),
+  _subscription = _node->create_subscription<interfaces::msg::SystemHealth>(
+      _topic.toStdString(), rclcpp::QoS(SUBSCRIPTION_QUEUE_DEPTH),
       [this](interfaces::msg::SystemHealth::ConstSharedPtr message) {
-        onHealth(message);
+        _on_health(message);
       });
 
-  // 5 Hz is comfortably faster than the monitor's default 1 Hz publish rate
-  // while staying cheap enough to leave the GUI responsive.
-  refresh_timer_->start(200);
+  _refresh_timer->start(REFRESH_PERIOD_MS);
 }
 
-void TopicHealthPanel::onHealth(
+void TopicHealthPanel::_on_health(
     interfaces::msg::SystemHealth::ConstSharedPtr message) {
-  const std::lock_guard<std::mutex> lock(message_mutex_);
-  latest_message_ = std::move(message);
+  const std::lock_guard<std::mutex> lock(_message_mutex);
+  _latest_message = std::move(message);
 }
 
-QColor TopicHealthPanel::statusColour(std::uint8_t status) {
+QColor TopicHealthPanel::_status_color(std::uint8_t status) {
   using interfaces::msg::TopicHealth;
   /*
-    With the status column gone the row colour is the only thing reporting
+    With the status column gone the row color is the only thing reporting
     status, so the amber and red are pitched to be told apart at a glance rather
     than to sit quietly behind a label. Text stays dark, so every one of these
     has to be light enough to read against.
@@ -106,11 +107,11 @@ QColor TopicHealthPanel::statusColour(std::uint8_t status) {
   }
 }
 
-void TopicHealthPanel::refresh() {
+void TopicHealthPanel::_refresh() {
   interfaces::msg::SystemHealth::ConstSharedPtr message;
   {
-    const std::lock_guard<std::mutex> lock(message_mutex_);
-    message = latest_message_;
+    const std::lock_guard<std::mutex> lock(_message_mutex);
+    message = _latest_message;
   }
   if (!message) {
     return;
@@ -129,19 +130,19 @@ void TopicHealthPanel::refresh() {
     overall = "ERROR";
     break;
   }
-  summary_label_->setText(QString("Overall: %1    (%2 topics)")
+  _summary_label->setText(QString("Overall: %1    (%2 topics)")
                               .arg(overall)
                               .arg(message->topics.size()));
 
-  table_->setRowCount(static_cast<int>(message->topics.size()));
+  _table->setRowCount(static_cast<int>(message->topics.size()));
   for (int row = 0; row < static_cast<int>(message->topics.size()); ++row) {
     const auto &topic = message->topics[static_cast<std::size_t>(row)];
-    const QColor colour = statusColour(topic.status);
+    const QColor color = _status_color(topic.status);
 
-    const QString values[kColumnCount] = {
+    const QString values[COLUMN_COUNT] = {
         QString::fromStdString(topic.name),
         // Measured against expected in one cell, e.g. "197.3/200". The row
-        // colour is what flags a shortfall, so there is no status column to
+        // color is what flags a shortfall, so there is no status column to
         // read across to.
         QString("%1/%2")
             .arg(topic.measured_rate_hz, 0, 'f', 1)
@@ -152,14 +153,14 @@ void TopicHealthPanel::refresh() {
                             : QString::number(topic.age_sec, 'f', 2),
     };
 
-    for (int column = 0; column < kColumnCount; ++column) {
-      auto *item = table_->item(row, column);
+    for (int column = 0; column < COLUMN_COUNT; ++column) {
+      auto *item = _table->item(row, column);
       if (item == nullptr) {
         item = new QTableWidgetItem;
-        table_->setItem(row, column, item);
+        _table->setItem(row, column, item);
       }
       item->setText(values[column]);
-      item->setBackground(colour);
+      item->setBackground(color);
       item->setForeground(QColor(20, 20, 20));
     }
   }
@@ -167,36 +168,36 @@ void TopicHealthPanel::refresh() {
   const auto &link = message->link;
   QString link_text =
       QString("Link %1: ").arg(QString::fromStdString(link.interface_name));
-  if (!link.interface_present) {
+  if (!link.is_interface_present) {
     link_text += "interface not found";
   } else {
     link_text += QString("rx %1  tx %2  errors %3/%4  dropped %5/%6")
-                     .arg(formatBandwidth(link.rx_bytes_per_sec))
-                     .arg(formatBandwidth(link.tx_bytes_per_sec))
+                     .arg(format_bandwidth(link.rx_bytes_per_sec))
+                     .arg(format_bandwidth(link.tx_bytes_per_sec))
                      .arg(link.rx_errors)
                      .arg(link.tx_errors)
                      .arg(link.rx_dropped)
                      .arg(link.tx_dropped);
   }
-  if (link.ping_enabled) {
-    link_text += link.reachable
+  if (link.is_ping_enabled) {
+    link_text += link.is_reachable
                      ? QString("   ping %1: %2 ms")
                            .arg(QString::fromStdString(link.ping_host))
                            .arg(link.rtt_ms, 0, 'f', 1)
                      : QString("   ping %1: unreachable")
                            .arg(QString::fromStdString(link.ping_host));
   }
-  link_label_->setText(link_text);
+  _link_label->setText(link_text);
 }
 
 void TopicHealthPanel::save(rviz_common::Config config) const {
   rviz_common::Panel::save(config);
-  config.mapSetValue("Topic", topic_);
+  config.mapSetValue("Topic", _topic);
 }
 
 void TopicHealthPanel::load(const rviz_common::Config &config) {
   rviz_common::Panel::load(config);
-  config.mapGetString("Topic", &topic_);
+  config.mapGetString("Topic", &_topic);
 }
 
 } // namespace rviz_plugins

@@ -1,10 +1,10 @@
+#pragma once
+
 /// @file health_monitor.hpp
 /// @brief Node that aggregates topic and link health and publishes it.
 
-#ifndef HEALTH_CHECK__HEALTH_MONITOR__HEALTH_MONITOR_HPP_
-#define HEALTH_CHECK__HEALTH_MONITOR__HEALTH_MONITOR_HPP_
-
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <interfaces/msg/system_health.hpp>
@@ -31,27 +31,54 @@ public:
       const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
 private:
+  /// @brief Topic the health snapshot is published on.
+  static inline const std::string OUTPUT_TOPIC = "/health_check/health";
+  /// @brief Queue depth of the snapshot publisher.
+  static constexpr int OUTPUT_QUEUE_DEPTH = 10;
+
+  /// @brief Default trailing window that rate and bandwidth are averaged over,
+  /// in seconds.
+  static constexpr double DEFAULT_WINDOW_SEC = 5.0;
+  /// @brief Default silence after which a bound topic is reported stale, in
+  /// seconds.
+  static constexpr double DEFAULT_STALE_TIMEOUT_SEC = 2.0;
+  /// @brief Default fraction of the expected rate a topic may fall below before
+  /// it counts as slow.
+  static constexpr double DEFAULT_RATE_TOLERANCE = 0.5;
+  /// @brief Default rate that health snapshots are published at, in Hz.
+  static constexpr double DEFAULT_PUBLISH_RATE_HZ = 1.0;
+  /// @brief Default rate that unbound topics are retried at, in Hz.
+  static constexpr double DEFAULT_DISCOVERY_RATE_HZ = 0.5;
+  /// @brief Default interface the link counters are read from.
+  static inline const std::string DEFAULT_INTERFACE_NAME = "wlan0";
+  /// @brief Default seconds between reachability probes.
+  static constexpr double DEFAULT_PING_PERIOD_SEC = 5.0;
+  /// @brief Default seconds a single reachability probe waits for a reply.
+  static constexpr double DEFAULT_PING_TIMEOUT_SEC = 1.0;
+  /// @brief Lowest permitted rate tolerance, i.e. no tolerance at all.
+  static constexpr double MIN_RATE_TOLERANCE = 0.0;
+  /// @brief Highest permitted rate tolerance, i.e. any rate is acceptable.
+  static constexpr double MAX_RATE_TOLERANCE = 1.0;
+
   /// @brief Retries binding any topic monitor that has not found a publisher
   /// yet.
-  void onDiscoveryTimer();
+  void _on_discovery_timer();
 
   /// @brief Builds and publishes one SystemHealth snapshot.
-  void onPublishTimer();
+  void _on_publish_timer();
 
   /// @brief Worst status across every topic and the link.
   /// @param message Snapshot with its topic and link fields already filled in.
   /// @return One of the SystemHealth status constants.
   static std::uint8_t
-  overallStatus(const interfaces::msg::SystemHealth &message);
+  _overall_status(const interfaces::msg::SystemHealth &message);
 
-  std::vector<std::unique_ptr<TopicMonitor>> topic_monitors_;
-  std::unique_ptr<LinkMonitor> link_monitor_;
+  std::vector<std::unique_ptr<TopicMonitor>> _topic_monitors;
+  std::unique_ptr<LinkMonitor> _link_monitor;
 
-  rclcpp::Publisher<interfaces::msg::SystemHealth>::SharedPtr publisher_;
-  rclcpp::TimerBase::SharedPtr discovery_timer_;
-  rclcpp::TimerBase::SharedPtr publish_timer_;
+  rclcpp::Publisher<interfaces::msg::SystemHealth>::SharedPtr _publisher;
+  rclcpp::TimerBase::SharedPtr _discovery_timer;
+  rclcpp::TimerBase::SharedPtr _publish_timer;
 };
 
 } // namespace health_check
-
-#endif // HEALTH_CHECK__HEALTH_MONITOR__HEALTH_MONITOR_HPP_

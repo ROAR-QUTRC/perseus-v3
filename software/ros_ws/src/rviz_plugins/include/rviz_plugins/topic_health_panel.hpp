@@ -1,8 +1,7 @@
+#pragma once
+
 /// @file topic_health_panel.hpp
 /// @brief RViz panel showing health_check output as a table.
-
-#ifndef RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_
-#define RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_
 
 #include <memory>
 #include <mutex>
@@ -18,7 +17,7 @@
 
 namespace rviz_plugins {
 
-/// @brief Dockable RViz panel rendering SystemHealth as a colour-coded table.
+/// @brief Dockable RViz panel rendering SystemHealth as a color-coded table.
 ///
 /// RViz has no generic table display for custom messages, so the table is built
 /// here as a Qt widget rather than assembled from existing displays.
@@ -49,29 +48,37 @@ public:
 
 private Q_SLOTS:
   /// @brief Repaints the table from the most recent message, on the GUI thread.
-  void refresh();
+  void _refresh();
 
 private:
+  /// @brief Topic the panel subscribes to unless the RViz config names another.
+  static inline const QString DEFAULT_TOPIC = "/health_check/health";
+  /// @brief Queue depth of the health subscription.
+  static constexpr int SUBSCRIPTION_QUEUE_DEPTH = 10;
+  /// @brief Repaint period, in milliseconds.
+  ///
+  /// 5 Hz is comfortably faster than the monitor's default 1 Hz publish rate
+  /// while staying cheap enough to leave the GUI responsive.
+  static constexpr int REFRESH_PERIOD_MS = 200;
+
   /// @brief Stores the incoming snapshot for the next refresh.
-  void onHealth(interfaces::msg::SystemHealth::ConstSharedPtr message);
+  void _on_health(interfaces::msg::SystemHealth::ConstSharedPtr message);
 
-  /// @brief Background colour for a row, keyed on its TopicHealth status.
-  static QColor statusColour(std::uint8_t status);
+  /// @brief Background color for a row, keyed on its TopicHealth status.
+  static QColor _status_color(std::uint8_t status);
 
-  QLabel *summary_label_{nullptr};
-  QLabel *link_label_{nullptr};
-  QTableWidget *table_{nullptr};
-  QTimer *refresh_timer_{nullptr};
+  QLabel *_summary_label{nullptr};
+  QLabel *_link_label{nullptr};
+  QTableWidget *_table{nullptr};
+  QTimer *_refresh_timer{nullptr};
 
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<interfaces::msg::SystemHealth>::SharedPtr subscription_;
+  rclcpp::Node::SharedPtr _node;
+  rclcpp::Subscription<interfaces::msg::SystemHealth>::SharedPtr _subscription;
 
-  std::mutex message_mutex_;
-  interfaces::msg::SystemHealth::ConstSharedPtr latest_message_;
+  std::mutex _message_mutex;
+  interfaces::msg::SystemHealth::ConstSharedPtr _latest_message;
 
-  QString topic_{"/health"};
+  QString _topic{DEFAULT_TOPIC};
 };
 
 } // namespace rviz_plugins
-
-#endif // RVIZ_PLUGINS__TOPIC_HEALTH_PANEL_HPP_

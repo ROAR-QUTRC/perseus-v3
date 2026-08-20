@@ -15,22 +15,23 @@ HealthMonitor::HealthMonitor(const rclcpp::NodeOptions &options)
       "topics", std::vector<std::string>{});
   const auto expected_rates = declare_parameter<std::vector<double>>(
       "expected_rates_hz", std::vector<double>{});
-  const double window_sec = declare_parameter<double>("window_sec", 5.0);
+  const double window_sec =
+      declare_parameter<double>("window_sec", DEFAULT_WINDOW_SEC);
   const double stale_timeout_sec =
-      declare_parameter<double>("stale_timeout_sec", 2.0);
+      declare_parameter<double>("stale_timeout_sec", DEFAULT_STALE_TIMEOUT_SEC);
   const double rate_tolerance =
-      declare_parameter<double>("rate_tolerance", 0.5);
+      declare_parameter<double>("rate_tolerance", DEFAULT_RATE_TOLERANCE);
   const double publish_rate_hz =
-      declare_parameter<double>("publish_rate_hz", 1.0);
+      declare_parameter<double>("publish_rate_hz", DEFAULT_PUBLISH_RATE_HZ);
   const double discovery_rate_hz =
-      declare_parameter<double>("discovery_rate_hz", 0.5);
+      declare_parameter<double>("discovery_rate_hz", DEFAULT_DISCOVERY_RATE_HZ);
   const auto interface_name =
-      declare_parameter<std::string>("interface_name", "wlan0");
+      declare_parameter<std::string>("interface_name", DEFAULT_INTERFACE_NAME);
   const auto ping_host = declare_parameter<std::string>("ping_host", "");
   const double ping_period_sec =
-      declare_parameter<double>("ping_period_sec", 5.0);
+      declare_parameter<double>("ping_period_sec", DEFAULT_PING_PERIOD_SEC);
   const double ping_timeout_sec =
-      declare_parameter<double>("ping_timeout_sec", 1.0);
+      declare_parameter<double>("ping_timeout_sec", DEFAULT_PING_TIMEOUT_SEC);
 
   if (topics.size() != expected_rates.size()) {
     throw std::runtime_error(
@@ -47,72 +48,73 @@ HealthMonitor::HealthMonitor(const rclcpp::NodeOptions &options)
     throw std::runtime_error("health_monitor: 'publish_rate_hz' and "
                              "'discovery_rate_hz' must be positive.");
   }
-  if (rate_tolerance < 0.0 || rate_tolerance > 1.0) {
+  if (rate_tolerance < MIN_RATE_TOLERANCE ||
+      rate_tolerance > MAX_RATE_TOLERANCE) {
     throw std::runtime_error(
         "health_monitor: 'rate_tolerance' must be within [0, 1].");
   }
 
-  topic_monitors_.reserve(topics.size());
+  _topic_monitors.reserve(topics.size());
   for (std::size_t i = 0; i < topics.size(); ++i) {
     if (expected_rates[i] <= 0.0) {
       throw std::runtime_error("health_monitor: expected rate for '" +
                                topics[i] + "' must be positive.");
     }
-    topic_monitors_.push_back(
+    _topic_monitors.push_back(
         std::make_unique<TopicMonitor>(topics[i], expected_rates[i], window_sec,
                                        stale_timeout_sec, rate_tolerance));
   }
 
-  if (topic_monitors_.empty()) {
+  if (_topic_monitors.empty()) {
     RCLCPP_WARN(get_logger(),
                 "No topics configured; publishing link health only. Set the "
                 "'topics' and "
                 "'expected_rates_hz' parameters to watch something.");
   }
 
-  link_monitor_ = std::make_unique<LinkMonitor>(
+  _link_monitor = std::make_unique<LinkMonitor>(
       interface_name, ping_host, ping_period_sec, ping_timeout_sec);
-  link_monitor_->start(get_logger());
+  _link_monitor->start(get_logger());
 
-  publisher_ = create_publisher<interfaces::msg::SystemHealth>("health",
-                                                               rclcpp::QoS(10));
+  _publisher = create_publisher<interfaces::msg::SystemHealth>(
+      OUTPUT_TOPIC, rclcpp::QoS(OUTPUT_QUEUE_DEPTH));
 
-  discovery_timer_ =
+  _discovery_timer =
       create_wall_timer(std::chrono::duration<double>(1.0 / discovery_rate_hz),
-                        [this] { onDiscoveryTimer(); });
-  publish_timer_ =
+                        [this] { _on_discovery_timer(); });
+  _publish_timer =
       create_wall_timer(std::chrono::duration<double>(1.0 / publish_rate_hz),
-                        [this] { onPublishTimer(); });
+                        [this] { _on_publish_timer(); });
 
-  RCLCPP_INFO(
-      get_logger(),
-      "Health monitor up: %zu topics, interface %s, publishing on 'health' at "
-      "%.1f Hz",
-      topic_monitors_.size(), interface_name.c_str(), publish_rate_hz);
+  RCLCPP_INFO(get_logger(),
+              "Health monitor up: %zu topics, interface %s, publishing on %s "
+              "at %.1f Hz",
+              _topic_monitors.size(), interface_name.c_str(),
+              OUTPUT_TOPIC.c_str(), publish_rate_hz);
 }
 
-void HealthMonitor::onDiscoveryTimer() {
-  for (auto &monitor : topic_monitors_) {
-    monitor->tryBind(*this);
+void HealthMonitor::_on_discovery_timer() {
+  for (auto &monitor : _topic_monitors) {
+    monitor->try_bind(*this);
   }
 }
 
-void HealthMonitor::onPublishTimer() {
+void HealthMonitor::_on_publish_timer() {
   interfaces::msg::SystemHealth message;
   message.header.stamp = now();
 
-  message.topics.reserve(topic_monitors_.size());
-  for (auto &monitor : topic_monitors_) {
+  message.topics.reserve(_topic_monitors.size());
+  for (auto &monitor : _topic_monitors) {
     message.topics.push_back(monitor->report(*this));
   }
-  message.link = link_monitor_->report(now());
-  message.overall_status = overallStatus(message);
+  message.link = _link_monitor->report(now());
+  message.overall_status = _overall_status(message);
 
-  publisher_->publish(message);
+  _publisher->publish(message);
 }
 
 std::uint8_t
-HealthMonitor::overallStatus(const interfaces::msg::SystemHealth &message) {
+HealthMonitor::_overall_status(const interfaces::msg::SystemHealth &message) {
   using interfaces::msg::SystemHealth;
   using interfaces::msg::TopicHealth;
 
@@ -138,7 +140,7 @@ HealthMonitor::overallStatus(const interfaces::msg::SystemHealth &message) {
     interface are only a degradation, since a link can shed packets and still
     carry the stack.
   */
-  if (message.link.ping_enabled && !message.link.reachable) {
+  if (message.link.is_ping_enabled && !message.link.is_reachable) {
     return SystemHealth::STATUS_ERROR;
   }
   const auto &link = message.link;

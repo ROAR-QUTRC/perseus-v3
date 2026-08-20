@@ -10,7 +10,7 @@ string interface_name
 
 # False when the interface is not listed in /proc/net/dev, in which case every numeric
 # field below is zero and means nothing.
-bool interface_present
+bool is_interface_present
 
 float64 rx_bytes_per_sec
 float64 tx_bytes_per_sec
@@ -24,11 +24,11 @@ uint64 tx_dropped
 # Reachability probe. Disabled by default: it only runs when a host is configured, since
 # an unreachable default would otherwise report a fault on every robot that does not have
 # a base station up.
-bool ping_enabled
+bool is_ping_enabled
 string ping_host
 
-# Whether the most recent probe got a reply. Always false while ping_enabled is false.
-bool reachable
+# Whether the most recent probe got a reply. Always false while is_ping_enabled is false.
+bool is_reachable
 
 # Round-trip time of the most recent successful probe, and -1.0 when the last probe failed
 # or none has completed yet. Held from the last success rather than zeroed, so a consumer

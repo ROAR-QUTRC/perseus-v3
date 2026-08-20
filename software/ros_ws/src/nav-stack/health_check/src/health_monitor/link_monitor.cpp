@@ -7,9 +7,11 @@
 #include <array>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 namespace health_check {
@@ -17,35 +19,45 @@ namespace {
 
 /// @brief Fields of /proc/net/dev in order, after the "iface:" prefix is
 /// stripped. Only the ones the message carries are pulled out by index.
-constexpr int kRxBytesField = 0;
-constexpr int kRxErrorsField = 2;
-constexpr int kRxDroppedField = 3;
-constexpr int kTxBytesField = 8;
-constexpr int kTxErrorsField = 10;
-constexpr int kTxDroppedField = 11;
-constexpr int kFieldCount = 16;
+constexpr int RX_BYTES_FIELD = 0;
+constexpr int RX_ERRORS_FIELD = 2;
+constexpr int RX_DROPPED_FIELD = 3;
+constexpr int TX_BYTES_FIELD = 8;
+constexpr int TX_ERRORS_FIELD = 10;
+constexpr int TX_DROPPED_FIELD = 11;
+constexpr int FIELD_COUNT = 16;
+
+/// @brief Number of header lines in /proc/net/dev before the per-interface
+/// rows.
+constexpr int HEADER_LINE_COUNT = 2;
+
+/// @brief Marker preceding the round-trip time in a ping reply line.
+constexpr std::string_view RTT_MARKER = "time=";
+
+/// @brief Size of the buffer a single line of ping output is read into.
+constexpr std::size_t PING_OUTPUT_LINE_LENGTH = 256;
 
 } // namespace
 
 LinkMonitor::LinkMonitor(std::string interface_name, std::string ping_host,
                          double ping_period_sec, double ping_timeout_sec)
-    : interface_name_(std::move(interface_name)),
-      ping_host_(std::move(ping_host)), ping_period_sec_(ping_period_sec),
-      ping_timeout_sec_(ping_timeout_sec) {}
+    : _interface_name(std::move(interface_name)),
+      _ping_host(std::move(ping_host)), _ping_period_sec(ping_period_sec),
+      _ping_timeout_sec(ping_timeout_sec) {}
 
 LinkMonitor::~LinkMonitor() {
   {
-    const std::lock_guard<std::mutex> lock(probe_mutex_);
-    stop_requested_ = true;
+    const std::lock_guard<std::mutex> lock(_probe_mutex);
+    _is_stop_requested = true;
   }
-  probe_cv_.notify_all();
-  if (probe_thread_.joinable()) {
-    probe_thread_.join();
+  _probe_condition.notify_all();
+  if (_probe_thread.joinable()) {
+    _probe_thread.join();
   }
 }
 
-bool LinkMonitor::isHostSafe(const std::string &host) {
-  if (host.empty() || host.size() > 253) {
+bool LinkMonitor::is_host_safe(const std::string &host) {
+  if (host.empty() || host.size() > MAX_HOST_LENGTH) {
     return false;
   }
   // A leading dash would be read as an option by the ping command.
@@ -58,63 +70,65 @@ bool LinkMonitor::isHostSafe(const std::string &host) {
 }
 
 void LinkMonitor::start(const rclcpp::Logger &logger) {
-  if (ping_host_.empty()) {
+  if (_ping_host.empty()) {
     RCLCPP_INFO(logger,
                 "No ping host configured; reporting link counters only.");
     return;
   }
-  if (!isHostSafe(ping_host_)) {
+  if (!is_host_safe(_ping_host)) {
     RCLCPP_ERROR(
         logger,
         "Refusing to probe ping host '%s': only letters, digits, '.', ':', '-' "
         "and '_' are accepted. Reachability reporting is disabled.",
-        ping_host_.c_str());
+        _ping_host.c_str());
     return;
   }
 
-  ping_enabled_ = true;
-  probe_thread_ = std::thread(&LinkMonitor::probeLoop, this);
+  _is_ping_enabled = true;
+  _probe_thread = std::thread(&LinkMonitor::_probe_loop, this);
 }
 
-void LinkMonitor::probeLoop() {
+void LinkMonitor::_probe_loop() {
   for (;;) {
-    probeOnce();
+    _probe_once();
 
-    std::unique_lock<std::mutex> lock(probe_mutex_);
-    const auto period = std::chrono::duration<double>(ping_period_sec_);
-    probe_cv_.wait_for(lock, period, [this] { return stop_requested_; });
-    if (stop_requested_) {
+    std::unique_lock<std::mutex> lock(_probe_mutex);
+    const auto period = std::chrono::duration<double>(_ping_period_sec);
+    _probe_condition.wait_for(lock, period,
+                              [this] { return _is_stop_requested; });
+    if (_is_stop_requested) {
       return;
     }
   }
 }
 
-void LinkMonitor::probeOnce() {
+void LinkMonitor::_probe_once() {
   /*
     -n skips reverse DNS, which would otherwise add its own timeout on a network
     that has lost its resolver -- exactly the situation this is trying to
-    measure. The host has already been checked against isHostSafe(), so it
+    measure. The host has already been checked against is_host_safe(), so it
     cannot introduce shell syntax here.
   */
   std::ostringstream command;
-  command << "ping -n -c 1 -W " << static_cast<int>(ping_timeout_sec_ + 0.5)
-          << " " << ping_host_ << " 2>/dev/null";
+  command << "ping -n -c 1 -W "
+          << static_cast<int>(std::lround(_ping_timeout_sec)) << " "
+          << _ping_host << " 2>/dev/null";
 
   bool reachable = false;
   double rtt_ms = -1.0;
 
   std::FILE *pipe = popen(command.str().c_str(), "r");
   if (pipe != nullptr) {
-    std::array<char, 256> buffer{};
+    std::array<char, PING_OUTPUT_LINE_LENGTH> buffer{};
     while (std::fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) !=
            nullptr) {
       const std::string line(buffer.data());
-      const auto marker = line.find("time=");
+      const auto marker = line.find(RTT_MARKER);
       if (marker == std::string::npos) {
         continue;
       }
       try {
-        rtt_ms = std::stod(line.substr(marker + 5));
+        rtt_ms = std::stod(line.substr(marker + RTT_MARKER.size()));
         reachable = true;
       } catch (const std::exception &) {
         // A reply we could not parse still tells us the host answered.
@@ -129,27 +143,27 @@ void LinkMonitor::probeOnce() {
     }
   }
 
-  const std::lock_guard<std::mutex> lock(probe_mutex_);
-  reachable_ = reachable;
+  const std::lock_guard<std::mutex> lock(_probe_mutex);
+  _is_reachable = reachable;
   // Hold the last good RTT rather than zeroing it, so "no reply" stays
   // distinguishable.
   if (reachable) {
-    rtt_ms_ = rtt_ms;
+    _rtt_ms = rtt_ms;
   } else {
-    rtt_ms_ = -1.0;
+    _rtt_ms = -1.0;
   }
 }
 
-bool LinkMonitor::readCounters(interfaces::msg::LinkHealth &out) const {
+bool LinkMonitor::_read_counters(interfaces::msg::LinkHealth &out) const {
   std::ifstream proc("/proc/net/dev");
   if (!proc) {
     return false;
   }
 
   std::string line;
-  // Two header lines precede the per-interface rows.
-  std::getline(proc, line);
-  std::getline(proc, line);
+  for (int i = 0; i < HEADER_LINE_COUNT; ++i) {
+    std::getline(proc, line);
+  }
 
   while (std::getline(proc, line)) {
     const auto colon = line.find(':');
@@ -164,26 +178,26 @@ bool LinkMonitor::readCounters(interfaces::msg::LinkHealth &out) const {
       continue;
     }
     name = name.substr(first);
-    if (name != interface_name_) {
+    if (name != _interface_name) {
       continue;
     }
 
     std::istringstream fields(line.substr(colon + 1));
-    std::array<std::uint64_t, kFieldCount> values{};
-    for (int i = 0; i < kFieldCount; ++i) {
+    std::array<std::uint64_t, FIELD_COUNT> values{};
+    for (int i = 0; i < FIELD_COUNT; ++i) {
       if (!(fields >> values[static_cast<std::size_t>(i)])) {
         return false;
       }
     }
 
-    out.rx_errors = values[kRxErrorsField];
-    out.tx_errors = values[kTxErrorsField];
-    out.rx_dropped = values[kRxDroppedField];
-    out.tx_dropped = values[kTxDroppedField];
+    out.rx_errors = values[RX_ERRORS_FIELD];
+    out.tx_errors = values[TX_ERRORS_FIELD];
+    out.rx_dropped = values[RX_DROPPED_FIELD];
+    out.tx_dropped = values[TX_DROPPED_FIELD];
     // Byte totals are returned through the rate fields and converted by the
     // caller.
-    out.rx_bytes_per_sec = static_cast<double>(values[kRxBytesField]);
-    out.tx_bytes_per_sec = static_cast<double>(values[kTxBytesField]);
+    out.rx_bytes_per_sec = static_cast<double>(values[RX_BYTES_FIELD]);
+    out.tx_bytes_per_sec = static_cast<double>(values[TX_BYTES_FIELD]);
     return true;
   }
 
@@ -192,30 +206,30 @@ bool LinkMonitor::readCounters(interfaces::msg::LinkHealth &out) const {
 
 interfaces::msg::LinkHealth LinkMonitor::report(const rclcpp::Time &now) {
   interfaces::msg::LinkHealth health;
-  health.interface_name = interface_name_;
-  health.ping_enabled = ping_enabled_;
-  health.ping_host = ping_host_;
+  health.interface_name = _interface_name;
+  health.is_ping_enabled = _is_ping_enabled;
+  health.ping_host = _ping_host;
 
   {
-    const std::lock_guard<std::mutex> lock(probe_mutex_);
-    health.reachable = ping_enabled_ && reachable_;
-    health.rtt_ms = ping_enabled_ ? rtt_ms_ : -1.0;
+    const std::lock_guard<std::mutex> lock(_probe_mutex);
+    health.is_reachable = _is_ping_enabled && _is_reachable;
+    health.rtt_ms = _is_ping_enabled ? _rtt_ms : -1.0;
   }
 
-  health.interface_present = readCounters(health);
-  if (!health.interface_present) {
+  health.is_interface_present = _read_counters(health);
+  if (!health.is_interface_present) {
     health.rx_bytes_per_sec = 0.0;
     health.tx_bytes_per_sec = 0.0;
     return health;
   }
 
-  // readCounters() leaves cumulative totals in the rate fields; difference them
-  // here.
+  // _read_counters() leaves cumulative totals in the rate fields; difference
+  // them here.
   const auto rx_total = static_cast<std::uint64_t>(health.rx_bytes_per_sec);
   const auto tx_total = static_cast<std::uint64_t>(health.tx_bytes_per_sec);
 
-  if (have_previous_) {
-    const double elapsed = (now - previous_sample_time_).seconds();
+  if (_has_previous_sample) {
+    const double elapsed = (now - _previous_sample_time).seconds();
     if (elapsed > 0.0) {
       /*
         Counters are monotonic in practice but wrap on 32-bit kernels and reset
@@ -223,9 +237,9 @@ interfaces::msg::LinkHealth LinkMonitor::report(const rclcpp::Time &now) {
         negative rate.
       */
       const std::uint64_t rx_delta =
-          rx_total >= previous_rx_bytes_ ? rx_total - previous_rx_bytes_ : 0;
+          rx_total >= _previous_rx_bytes ? rx_total - _previous_rx_bytes : 0;
       const std::uint64_t tx_delta =
-          tx_total >= previous_tx_bytes_ ? tx_total - previous_tx_bytes_ : 0;
+          tx_total >= _previous_tx_bytes ? tx_total - _previous_tx_bytes : 0;
       health.rx_bytes_per_sec = static_cast<double>(rx_delta) / elapsed;
       health.tx_bytes_per_sec = static_cast<double>(tx_delta) / elapsed;
     } else {
@@ -238,10 +252,10 @@ interfaces::msg::LinkHealth LinkMonitor::report(const rclcpp::Time &now) {
     health.tx_bytes_per_sec = 0.0;
   }
 
-  previous_rx_bytes_ = rx_total;
-  previous_tx_bytes_ = tx_total;
-  previous_sample_time_ = now;
-  have_previous_ = true;
+  _previous_rx_bytes = rx_total;
+  _previous_tx_bytes = tx_total;
+  _previous_sample_time = now;
+  _has_previous_sample = true;
 
   return health;
 }

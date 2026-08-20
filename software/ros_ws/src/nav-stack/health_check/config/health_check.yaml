@@ -43,7 +43,7 @@
       # publishing shows up directly rather than being inferred from the camera_info
       # companion beside it.
       #
-      # The colour stream is already subscribed by the vision nodes, so monitoring it
+      # The color stream is already subscribed by the vision nodes, so monitoring it
       # costs little beyond one more copy. The infra pair has no other subscriber, so
       # these two entries are what starts that traffic flowing: 848x480 Y8 at 30 Hz is
       # about 12 MB/s each. If that shows up in CPU or on the DDS transport, switch

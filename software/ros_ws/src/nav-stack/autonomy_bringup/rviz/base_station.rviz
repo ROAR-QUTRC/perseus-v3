@@ -24,7 +24,7 @@ Panels:
   # Subscribes to the topic named below, which is what health_monitor publishes on.
   - Class: rviz_plugins/TopicHealthPanel
     Name: Topic Health
-    Topic: /health
+    Topic: /health_check/health
 Visualization Manager:
   Class: ""
   Displays:

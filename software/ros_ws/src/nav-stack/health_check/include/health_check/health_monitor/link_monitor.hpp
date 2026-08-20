@@ -1,11 +1,11 @@
+#pragma once
+
 /// @file link_monitor.hpp
 /// @brief Network interface counters and base-station reachability.
 
-#ifndef HEALTH_CHECK__HEALTH_MONITOR__LINK_MONITOR_HPP_
-#define HEALTH_CHECK__HEALTH_MONITOR__LINK_MONITOR_HPP_
-
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -62,42 +62,43 @@ public:
   ///
   /// @param host Candidate hostname or address.
   /// @return True if the host is safe to use.
-  static bool isHostSafe(const std::string &host);
+  static bool is_host_safe(const std::string &host);
 
 private:
+  /// @brief Longest permitted hostname, per the DNS name length limit.
+  static constexpr std::size_t MAX_HOST_LENGTH = 253;
+
   /// @brief Body of the probe thread: probe, wait, repeat until stopped.
-  void probeLoop();
+  void _probe_loop();
 
   /// @brief Runs one ping and records the result.
-  void probeOnce();
+  void _probe_once();
 
   /// @brief Reads the counters for the configured interface out of
   /// /proc/net/dev.
   /// @param[out] out Counters, untouched unless the interface was found.
   /// @return True if the interface was present.
-  bool readCounters(interfaces::msg::LinkHealth &out) const;
+  bool _read_counters(interfaces::msg::LinkHealth &out) const;
 
-  std::string interface_name_;
-  std::string ping_host_;
-  double ping_period_sec_;
-  double ping_timeout_sec_;
-  bool ping_enabled_{false};
+  std::string _interface_name;
+  std::string _ping_host;
+  double _ping_period_sec;
+  double _ping_timeout_sec;
+  bool _is_ping_enabled{false};
 
   /// @brief Previous counter sample, for turning cumulative byte counts into
   /// rates.
-  bool have_previous_{false};
-  std::uint64_t previous_rx_bytes_{0};
-  std::uint64_t previous_tx_bytes_{0};
-  rclcpp::Time previous_sample_time_{0, 0, RCL_ROS_TIME};
+  bool _has_previous_sample{false};
+  std::uint64_t _previous_rx_bytes{0};
+  std::uint64_t _previous_tx_bytes{0};
+  rclcpp::Time _previous_sample_time{0, 0, RCL_ROS_TIME};
 
-  std::thread probe_thread_;
-  std::mutex probe_mutex_;
-  std::condition_variable probe_cv_;
-  bool stop_requested_{false};
-  bool reachable_{false};
-  double rtt_ms_{-1.0};
+  std::thread _probe_thread;
+  std::mutex _probe_mutex;
+  std::condition_variable _probe_condition;
+  bool _is_stop_requested{false};
+  bool _is_reachable{false};
+  double _rtt_ms{-1.0};
 };
 
 } // namespace health_check
-
-#endif // HEALTH_CHECK__HEALTH_MONITOR__LINK_MONITOR_HPP_

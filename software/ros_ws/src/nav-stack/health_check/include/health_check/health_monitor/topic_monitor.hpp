@@ -1,8 +1,7 @@
+#pragma once
+
 /// @file topic_monitor.hpp
 /// @brief Type-agnostic rate and bandwidth measurement for a single topic.
-
-#ifndef HEALTH_CHECK__HEALTH_MONITOR__TOPIC_MONITOR_HPP_
-#define HEALTH_CHECK__HEALTH_MONITOR__TOPIC_MONITOR_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -27,8 +26,8 @@ namespace health_check {
 /// the monitor reports NO_PUBLISHER and retries on every discovery tick.
 class TopicMonitor {
 public:
-  /// @brief Creates a monitor for one topic. Does not subscribe; call tryBind()
-  /// for that.
+  /// @brief Creates a monitor for one topic. Does not subscribe; call
+  /// try_bind() for that.
   /// @param name Fully qualified topic name to watch.
   /// @param expected_rate_hz Rate the topic is configured to publish at, used
   /// to decide whether a measured rate counts as slow. Must be positive.
@@ -42,6 +41,9 @@ public:
   TopicMonitor(std::string name, double expected_rate_hz, double window_sec,
                double stale_timeout_sec, double rate_tolerance);
 
+  /// @brief Topic this monitor was configured to watch.
+  const std::string &get_name() const;
+
   /// @brief Attempts to create the generic subscription if it does not exist
   /// yet.
   ///
@@ -53,7 +55,7 @@ public:
   /// @param node Node the subscription is created on.
   /// @return True if the monitor is bound, whether it bound just now or already
   /// was.
-  bool tryBind(rclcpp::Node &node);
+  bool try_bind(rclcpp::Node &node);
 
   /// @brief Drops samples that have fallen outside the window and fills in a
   /// report.
@@ -61,39 +63,36 @@ public:
   /// @return Health of this topic as of now.
   interfaces::msg::TopicHealth report(rclcpp::Node &node);
 
-  /// @brief Topic this monitor was configured to watch.
-  const std::string &name() const { return name_; }
-
 private:
-  /// @brief Records one arrival. Called from the subscription callback.
-  /// @param bytes Size of the serialised payload as delivered by the transport.
-  /// @param now Arrival time, taken from the node clock.
-  void onMessage(std::size_t bytes, const rclcpp::Time &now);
-
-  /// @brief Discards samples older than the window so the averages stay
-  /// trailing.
-  void pruneTo(const rclcpp::Time &cutoff);
-
   /// @brief One received message: when it landed and how big it was.
-  struct Sample {
+  struct sample_t {
     rclcpp::Time stamp;
     std::size_t bytes;
   };
 
-  std::string name_;
-  double expected_rate_hz_;
-  double window_sec_;
-  double stale_timeout_sec_;
-  double rate_tolerance_;
+  /// @brief Records one arrival. Called from the subscription callback.
+  /// @param bytes Size of the serialised payload as delivered by the transport.
+  /// @param now Arrival time, taken from the node clock.
+  void _on_message(std::size_t bytes, const rclcpp::Time &now);
 
-  rclcpp::GenericSubscription::SharedPtr subscription_;
-  std::deque<Sample> samples_;
-  /// @brief Zero-initialised sentinel; only meaningful once total_count_ is
+  /// @brief Discards samples older than the window so the averages stay
+  /// trailing.
+  void _prune_to(const rclcpp::Time &cutoff);
+
+  std::string _name;
+  double _expected_rate_hz;
+  double _window_sec;
+  double _stale_timeout_sec;
+  double _rate_tolerance;
+
+  rclcpp::GenericSubscription::SharedPtr _subscription;
+  std::deque<sample_t> _samples;
+  /// @brief Zero-initialised sentinel; only meaningful once _total_count is
   /// non-zero.
-  rclcpp::Time last_message_time_{0, 0, RCL_ROS_TIME};
-  std::uint64_t total_count_{0};
+  rclcpp::Time _last_message_time{0, 0, RCL_ROS_TIME};
+  std::uint64_t _total_count{0};
 };
 
-} // namespace health_check
+inline const std::string &TopicMonitor::get_name() const { return _name; }
 
-#endif // HEALTH_CHECK__HEALTH_MONITOR__TOPIC_MONITOR_HPP_
+} // namespace health_check
