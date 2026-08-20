@@ -38,6 +38,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    GroupAction,
     IncludeLaunchDescription,
     OpaqueFunction,
 )
@@ -181,12 +182,23 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    # Every include is scoped, and it is not optional. IncludeLaunchDescription sets its
+    # launch_arguments into the *enclosing* context with no push/pop of its own, and
+    # DeclareLaunchArgument only applies a default when the name is not already set. So an
+    # argument one include sets is inherited by every include after it, and the inheriting
+    # launch file cannot tell that happened.
+    #
+    # fast_lio makes that concrete: it takes an argument called `config_file`, which is
+    # generic enough that health_check takes one by the same name. Unscoped, the health
+    # monitor was handed fast_lio's rewritten temp filename as its parameter file and came
+    # up with an empty watch list -- silently, since a missing watch list is a warning and
+    # not an error. Scoping confines each include's arguments to the include that set them.
     return [
-        fast_lio_launch,
-        ekf_launch,
+        GroupAction([fast_lio_launch], scoped=True),
+        GroupAction([ekf_launch], scoped=True),
         flat_footprint_broadcaster_node,
-        watchdog_launch,
-        health_check_launch,
+        GroupAction([watchdog_launch], scoped=True),
+        GroupAction([health_check_launch], scoped=True),
     ]
 
 
