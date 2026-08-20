@@ -68,7 +68,8 @@ let
 in
 prev.lib.composeManyExtensions [
   (final: prev: {
-    # inherit nixgl-script nixcuda-script;
+    # inherit nixgl-script;
+    # nixcuda-script;
     rosPackages = prev.rosPackages // {
       ${rosDistro} = prev.rosPackages.${rosDistro}.overrideScope rosPkgsOverlay;
     };

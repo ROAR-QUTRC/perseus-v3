@@ -32,7 +32,7 @@ if ! cd "$OUTPUT_DIR"; then
   echo "Error when entering generated packages output directory"
   exit
 fi
-treefmt "$OUTPUT_DIR"
+NO_COLOR=1 TERM=dumb treefmt "$OUTPUT_DIR"
 
 echo "$*"
 if [ "--no-commit" = "$1" ]; then

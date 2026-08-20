@@ -12,21 +12,19 @@ let
       bashInteractive
       can-utils
       glibcLocales
-      # groot2
-      ncurses
       # nixgl-script
       # nixcuda-script
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
-      # livox-sdk2
       ;
     inherit (pkgs.ros)
       ros-core
       ament-cmake-core
+      python-cmake-module
 
       demo-nodes-cpp
       joy
-      # livox-ros-driver2
+      livox-ros-driver2
       opennav-docking
       nav2-common
       nav2-lifecycle-manager
@@ -99,27 +97,18 @@ in
     defaultWorkspace
   ];
 
-  processes = {
-    "perseus" = {
-      exec = ''
-        ${defaultWorkspace}/bin/ros2 launch perseus perseus.launch.py
-      '';
-    };
-  };
-
   enterShell = ''
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
     ${defaultWorkspace.env.shellHook}
 
-    export COLCON_EXTENSION_BLOCKLIST=colcon_ros.prefix_path.ament
-
-    echo -e "\e[38;5;208m______                                    _____ ";
-    echo -e "| ___ \\                                  |____ |";
-    echo -e "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";
-    echo -e "|  __/ _ \\ '__/ __|/ _ \\ | | / __| \\ \\ / /   \\ \\";
-    echo -e "| | |  __/ |  \\__ \\  __/ |_| \\__ \\  \\ V /.___/ /";
-    echo -e "\\_|  \\___|_|  |___/\\___|\\__,_|___/   \\_/ \\____/ ";
-    # echo -e "------------------------------------------------";
-    echo -e "QUTRC - Remote Off-world Autonomous Robotics\e[0m";
+    printf '\e[38;5;208m'
+    echo "______                                    _____ ";
+    echo "| ___ \\                                  |____ |";
+    echo "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";
+    echo "|  __/ _ \\ '__/ __|/ _ \\ | | / __| \\ \\ / /   \\ \\";
+    echo "| | |  __/ |  \\__ \\  __/ |_| \\__ \\  \\ V /.___/ /";
+    echo "\\_|  \\___|_|  |___/\\___|\\__,_|___/   \\_/ \\____/ ";
+    echo "QUTRC - Remote Off-world Autonomous Robotics";
+    printf '\e[0m'
   '';
 }

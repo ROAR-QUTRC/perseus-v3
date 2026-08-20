@@ -371,4 +371,4 @@ Temporary Items
 /software/ros_ws/src/spark-fast-lio
 
 # Ignore generated models, which are too large
-/software/ros_ws/src/perseus_vision/models/
+/software/ros_ws/src/vision/models/

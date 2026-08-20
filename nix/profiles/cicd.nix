@@ -6,6 +6,7 @@
     "web-ui"
     "simulation"
     "autonomy"
+    "firmware"
   ];
 
   module = {
