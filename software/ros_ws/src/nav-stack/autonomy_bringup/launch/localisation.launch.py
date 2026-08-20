@@ -177,6 +177,7 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "ping_host": LaunchConfiguration("ping_host"),
+            "interface_name": LaunchConfiguration("link_interface"),
         }.items(),
     )
 
@@ -216,6 +217,15 @@ def generate_launch_description():
         description="Host the health monitor probes for reachability, typically the base "
         "station. Empty disables probing, so a robot running on its own does not report "
         "an unreachable link as a fault.",
+    )
+
+    declare_link_interface = DeclareLaunchArgument(
+        "link_interface",
+        default_value="wlan0",
+        description="Interface the health monitor reads throughput and error counters "
+        "from. wlan0 for the wireless teleop link; name the wired interface instead when "
+        "the robot is tethered, since an interface with no carrier reports present with "
+        "every counter at zero.",
     )
 
     declare_ekf_params_file = DeclareLaunchArgument(
@@ -271,6 +281,7 @@ def generate_launch_description():
             declare_use_sim_time,
             declare_rviz,
             declare_ping_host,
+            declare_link_interface,
             declare_ekf_params_file,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),
