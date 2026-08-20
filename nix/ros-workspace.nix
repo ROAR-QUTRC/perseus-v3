@@ -1,5 +1,5 @@
-{ pkgs, lib, ... }:
-let
+{ pkgs, ... }:
+rec {
   productionDomainId = 42;
   devDomainId = 51;
 
@@ -8,23 +8,20 @@ let
   # Packages which should be base profile
   standardPkgs = {
     inherit (pkgs)
-      colcon
       bashInteractive
       can-utils
       glibcLocales
+      # groot2
       # nixgl-script
       # nixcuda-script
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
+      # livox-sdk2
       ;
     inherit (pkgs.ros)
-      ros-core
-      ament-cmake-core
-      python-cmake-module
-
       demo-nodes-cpp
       joy
-      livox-ros-driver2
+      # livox-ros-driver2
       opennav-docking
       nav2-common
       nav2-lifecycle-manager
@@ -61,6 +58,7 @@ let
   mkWorkspace =
     {
       ros,
+      isDev ? false,
       name ? "ROAR",
       additionalDevPkgs ? { },
       additionalPkgs ? { },
@@ -69,9 +67,11 @@ let
     }:
     ros.callPackage ros.buildROSWorkspace {
       inherit name;
-      devPackages = devPackages // additionalDevPkgs;
+      # in dev we dont want pkgs we maintain to be built by nix (so we can develop them)
+      devPackages = if isDev then additionalDevPkgs else devPackages // additionalDevPkgs;
       prebuiltPackages = standardPkgs // additionalPkgs;
-      prebuiltShellPackages = devShellPkgs // additionalPrebuiltPkgs;
+      prebuiltShellPackages =
+        if isDev then devShellPkgs // additionalPrebuiltPkgs else additionalPrebuiltPkgs;
       releaseDomainId = productionDomainId;
       environmentDomainId = devDomainId;
       forceReleaseDomainId = true;
@@ -86,29 +86,4 @@ let
       ''
       + additionalPostShellHook;
     };
-
-  defaultWorkspace = mkWorkspace {
-    inherit (pkgs) ros;
-    name = "default";
-  };
-in
-{
-  packages = [
-    defaultWorkspace
-  ];
-
-  enterShell = ''
-    # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
-    ${defaultWorkspace.env.shellHook}
-
-    printf '\e[38;5;208m'
-    echo "______                                    _____ ";
-    echo "| ___ \\                                  |____ |";
-    echo "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";
-    echo "|  __/ _ \\ '__/ __|/ _ \\ | | / __| \\ \\ / /   \\ \\";
-    echo "| | |  __/ |  \\__ \\  __/ |_| \\__ \\  \\ V /.___/ /";
-    echo "\\_|  \\___|_|  |___/\\___|\\__,_|___/   \\_/ \\____/ ";
-    echo "QUTRC - Remote Off-world Autonomous Robotics";
-    printf '\e[0m'
-  '';
 }
