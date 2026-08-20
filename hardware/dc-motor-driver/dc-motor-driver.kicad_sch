@@ -5347,7 +5347,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "ConnectorsOther:AnyTek_OQ_3.81mm_90_2P_TriangleKeyLock"
+		(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
 			(at 82.042 160.274 0)
 			(hide yes)
 			(show_name no)
