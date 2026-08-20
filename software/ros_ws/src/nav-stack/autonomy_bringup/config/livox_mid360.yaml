@@ -2,15 +2,27 @@
   ros__parameters:
     # FAST-LIO on the real Perseus: Livox MID-360 on a Jetson.
     #
-    # Sized for the Jetson rather than a workstation. Two things drive that: the real MID-360
-    # emits ~200k points/s (~20k per scan, roughly 2.7x what the Gazebo sensor produces), and a
-    # Jetson core is several times slower than a desktop one. So the voxel sizes here are
-    # deliberately coarser and the iteration count lower than in livox_mid360_sim.yaml.
-    # Measure on the board (`ps -o pcpu,rss` plus `ros2 topic hz /Odometry`) and give back
-    # filter_size_surf first if /Odometry cannot keep up with its input.
+    # Sized for the Jetson rather than a workstation. The real MID-360 emits ~200k points/s
+    # (~20k per scan), and a Jetson core is several times slower than a desktop one, so the
+    # voxel sizes and iteration count are set from what the board has spare rather than from
+    # what the algorithm would like.
     #
-    # See livox_mid360_sim.yaml for the simulation values; several settings must differ between
-    # the two and are called out below.
+    # These three are the compute dials, in the order they cost:
+    #
+    #   filter_size_surf  how many points survive to be matched -- dominant cost
+    #   max_iteration     how many times the match re-runs over those points
+    #   filter_size_map   how finely the map they match against is stored
+    #
+    # They were previously set well below what measurement showed the board doing, and are
+    # now spending that headroom. Check it holds on the hardware: `ros2 topic hz /Odometry`
+    # must stay at the 10 Hz its input arrives at, and `ps -o pcpu,rss` on laserMapping must
+    # leave room for Nav2, perception and the driver. If /Odometry falls behind, walk these
+    # back in the order above -- filter_size_surf first, and keep filter_size_map at roughly
+    # twice whatever it ends up as.
+    #
+    # Simulation differs in the point cloud's layout, not its size: localisation.launch.py's
+    # sim_overrides() rewrites lidar_type and scan_line for Gazebo and leaves everything here
+    # alone.
 
     # No feature extraction on FAST-LIO2: it registers raw points against the map instead, and
     # the along-scan-line logic assumes dense ordered rings that a non-repetitive Livox pattern
@@ -19,30 +31,34 @@
     # Inert with lidar_type 4: mid360_handler never reads it, so decimation has to come from
     # filter_size_surf below. Left at the upstream value so it is not mistaken for a live dial.
     point_filter_num: 3
-    # 3 rather than the sim's 4. Each iteration re-runs the nearest-neighbour search over every
-    # downsampled point, so this multiplies the dominant cost directly.
-    max_iteration: 3
+    # Each iteration re-runs the nearest-neighbour search over every downsampled point, so
+    # this multiplies the cost of filter_size_surf directly rather than adding to it. Past 4
+    # the pose has usually stopped moving between iterations, so further passes cost a full
+    # search each and change the estimate very little.
+    max_iteration: 4
     # 0 sizes the residual loop to the machine, leaving one core for Nav2, perception and the
     # driver. Upstream compiled this loop out entirely on ARM, so it ran single-threaded on the
     # Jetson no matter how many cores the board had; that is fixed, and this is what makes
     # FAST-LIO fit here at all.
     max_threads: 0
-    # 0.15 rather than the sim's 0.1. This is the strongest accuracy dial and also the most
-    # expensive: halving it roughly multiplies the surviving point count, and with 2.7x more
-    # incoming points than the sim there is far less headroom to spend.
-    filter_size_surf: 0.15
-    # Kept near filter_size_surf: a map coarser than the scans caps how precisely a scan can be
-    # matched, which would undo the setting above.
-    filter_size_map: 0.3
-    # Smaller than the sim's 500 to bound memory on a Jetson sharing RAM with the rest of the
-    # stack. Must stay well above 3 * mapping.det_range (210 m here) or the cube slides on
-    # every scan and thrashes the ikd-Tree.
+    # The strongest accuracy dial and also the most expensive: every surviving point is
+    # searched against the map on each iteration. Returns land on surfaces rather than
+    # filling the volume, so the count grows nearer the square of the reduction than the
+    # cube -- this step is worth roughly 1.5x the points of 0.15. 0.12 rather than 0.10
+    # because max_iteration above is already spending part of the same headroom.
+    filter_size_surf: 0.12
+    # Held at roughly twice filter_size_surf. A map coarser than that caps how precisely a
+    # scan can be matched and would undo the setting above; finer costs ikd-Tree memory and
+    # insertion time without giving the matcher anything it can use.
+    filter_size_map: 0.24
+    # Bounds memory on a Jetson sharing RAM with the rest of the stack. Must stay well above
+    # 3 * mapping.det_range (210 m here) or the cube slides on every scan and thrashes the
+    # ikd-Tree.
     cube_side_length: 300.0
     runtime_pos_log_enable: false
     map_file_path: "~/maps/scan.pcd"
     common:
-      # The Livox driver's own topics. The sim config reads /livox/lidar_filtered instead,
-      # because the simulated sensor emits NaN and Inf that need stripping first.
+      # The Livox driver's own topics.
       lid_topic: "/livox/lidar"
       imu_topic: "/livox/imu/corrected"
       # TF frames FAST-LIO publishes. These were hardcoded upstream and rewritten by
@@ -72,13 +88,13 @@
       time_offset_lidar_to_imu: 0.0
     preprocess:
       # 1 = Livox CustomMsg, 2 = Velodyne, 3 = Ouster, 4 = Livox MID360 PointCloud2.
-      # 4 is correct for the real driver, which emits reflectivity/tag/line. The sim config uses
-      # 2, because Gazebo publishes ring instead of line and type 4 would read the scan-line
-      # index as 0 for every point, wrecking the per-point timestamps.
+      # 4 is correct for the real driver, which emits reflectivity/tag/line. sim_overrides()
+      # sets 2 for Gazebo, which publishes ring instead of line: type 4 would read the
+      # scan-line index as 0 for every point and wreck the per-point timestamps.
       lidar_type: 4
-      # A MID-360 has 4 scan lines. The sim's 32 is its vertical sample count, not a real sensor
-      # property. Do not set this below the real line count: the handler indexes per-line state
-      # arrays with it.
+      # A MID-360 has 4 scan lines. sim_overrides() sets 32 for Gazebo, which is its vertical
+      # sample count rather than a real sensor property. Do not set this below the real line
+      # count: the handler indexes per-line state arrays with it.
       scan_line: 4
       # Minimum range (m); points closer are dropped. Rejects returns off the robot itself.
       # Raise if the bucket enters the field of view -- but note it is a sphere, so it blinds the
@@ -127,8 +143,8 @@
     pcd_save:
       pcd_save_en: true
       interval: -1 # dead in this branch; the frame-count chunking is commented out upstream
-      # 60 s rather than the sim's 30: each save serialises the whole accumulated map, and the
-      # map never shrinks, so the write gets slower as the run goes on.
+      # Each save serialises the whole accumulated map, and the map never shrinks, so the
+      # write gets slower as the run goes on. 60 s keeps that off the critical path.
       save_interval_sec: 60.0
       # false, and it matters: true writes a full timestamped snapshot on every save, so disk
       # use grows with the square of run time. A single sim session produced 310 files and
