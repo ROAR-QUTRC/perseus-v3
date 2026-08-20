@@ -593,7 +593,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "../../../Downloads/ENC_V1R1.step",
       "svg": "",
       "vrml": ""
     },
