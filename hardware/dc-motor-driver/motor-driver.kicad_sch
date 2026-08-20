@@ -657,7 +657,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector:Screw_Terminal_01x02"
+		(symbol "Connector_Generic:Conn_01x02"
 			(pin_names
 				(offset 1.016)
 				(hide yes)
@@ -677,7 +677,7 @@
 					)
 				)
 			)
-			(property "Value" "Screw_Terminal_01x02"
+			(property "Value" "Conn_01x02"
 				(at 0 -5.08 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -709,7 +709,7 @@
 					)
 				)
 			)
-			(property "Description" "Generic screw terminal, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -720,7 +720,7 @@
 					)
 				)
 			)
-			(property "ki_keywords" "screw terminal"
+			(property "ki_keywords" "connector"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -731,7 +731,7 @@
 					)
 				)
 			)
-			(property "ki_fp_filters" "TerminalBlock*:*"
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -742,7 +742,7 @@
 					)
 				)
 			)
-			(symbol "Screw_Terminal_01x02_1_1"
+			(symbol "Conn_01x02_1_1"
 				(rectangle
 					(start -1.27 1.27)
 					(end 1.27 -3.81)
@@ -754,10 +754,9 @@
 						(type background)
 					)
 				)
-				(polyline
-					(pts
-						(xy -0.5334 0.3302) (xy 0.3302 -0.508)
-					)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
 					(stroke
 						(width 0.1524)
 						(type default)
@@ -766,56 +765,9 @@
 						(type none)
 					)
 				)
-				(polyline
-					(pts
-						(xy -0.5334 -2.2098) (xy 0.3302 -3.048)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -0.3556 0.508) (xy 0.508 -0.3302)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -0.3556 -2.032) (xy 0.508 -2.8702)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 0 0)
-					(radius 0.635)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 0 -2.54)
-					(radius 0.635)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
 					(stroke
 						(width 0.1524)
 						(type default)
@@ -2417,6 +2369,16 @@
 	)
 	(wire
 		(pts
+			(xy 119.38 25.4) (xy 123.19 25.4)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3aa08fd5-4f21-40b0-a2a3-26d6b680c8d4")
+	)
+	(wire
+		(pts
 			(xy 119.38 45.72) (xy 121.92 45.72)
 		)
 		(stroke
@@ -2437,16 +2399,6 @@
 	)
 	(wire
 		(pts
-			(xy 121.92 25.4) (xy 119.38 25.4)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "56764515-2b68-4b09-8aa0-25334254ca72")
-	)
-	(wire
-		(pts
 			(xy 73.66 59.69) (xy 73.66 50.8)
 		)
 		(stroke
@@ -2457,6 +2409,16 @@
 	)
 	(wire
 		(pts
+			(xy 119.38 27.94) (xy 123.19 27.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7203862c-1f74-459a-8527-eb66e6459979")
+	)
+	(wire
+		(pts
 			(xy 82.55 40.64) (xy 83.82 40.64)
 		)
 		(stroke
@@ -2464,16 +2426,6 @@
 			(type default)
 		)
 		(uuid "aaf2ad54-ea77-40ca-a3bd-93767ba67a76")
-	)
-	(wire
-		(pts
-			(xy 121.92 27.94) (xy 119.38 27.94)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "aeb2add0-261c-47ef-86e2-160934fe3fb3")
 	)
 	(wire
 		(pts
@@ -3285,6 +3237,141 @@
 				)
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/d9a6d9bc-65d3-41fc-becf-b57a61750c4d"
 					(reference "C23")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 128.27 27.94 0)
+		(mirror x)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "52ca6afd-0cbd-416d-8b46-0e967f292b0e")
+		(property "Reference" "J15"
+			(at 130.81 27.9401 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "OQ0232510000G"
+			(at 130.81 25.4001 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "ConnectorsOther:AnyTek_OQ_3.81mm_90_2P_TriangleKeyLock"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "http://www.anytek.com.tw/UserUpFiles/20181018/_S_eBwgMo_mC.pdf"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier" "DigiKey"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Part No" "609-3819-ND"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Supplier Link" "https://www.digikey.com/en/products/detail/amphenol-anytek/OQ0232510000G/2261255"
+			(at 128.27 27.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "3713b69b-5674-46ec-9e52-d663f322be84")
+		)
+		(pin "2"
+			(uuid "3dd4a6ac-8b26-4e76-80f7-93550511e201")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/40f5114d-d621-443c-9e87-66cb3392bce6"
+					(reference "J18")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/47ca5528-118a-41e5-93e9-251f6cf35694"
+					(reference "J19")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/7de317d4-3d1e-4d6a-9df4-d39eb3e35b32"
+					(reference "J15")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/92e3a97b-4604-4305-8719-7a31c2be7d8e"
+					(reference "J16")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/cb7f55f2-47ab-49cc-bc72-89df683d7d50"
+					(reference "J17")
+					(unit 1)
+				)
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/d9a6d9bc-65d3-41fc-becf-b57a61750c4d"
+					(reference "J20")
 					(unit 1)
 				)
 			)
@@ -4296,117 +4383,6 @@
 				)
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/d9a6d9bc-65d3-41fc-becf-b57a61750c4d"
 					(reference "JP6")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:Screw_Terminal_01x02")
-		(at 127 25.4 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "d01ad91d-6f49-4ef3-af67-fb86e7476b35")
-		(property "Reference" "J4"
-			(at 130.175 25.3999 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "MOT"
-			(at 130.175 27.9399 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Horizontal"
-			(at 127 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 127 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Generic screw terminal, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 127 25.4 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier" ""
-			(at 127 25.4 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "3de83e73-c37f-41b6-9329-54f9c7d26f49")
-		)
-		(pin "2"
-			(uuid "410f6864-ac2e-40ea-a9c1-6def3c0d09bb")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/40f5114d-d621-443c-9e87-66cb3392bce6"
-					(reference "J7")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/47ca5528-118a-41e5-93e9-251f6cf35694"
-					(reference "J8")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/7de317d4-3d1e-4d6a-9df4-d39eb3e35b32"
-					(reference "J4")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/92e3a97b-4604-4305-8719-7a31c2be7d8e"
-					(reference "J5")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/cb7f55f2-47ab-49cc-bc72-89df683d7d50"
-					(reference "J6")
-					(unit 1)
-				)
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a/d9a6d9bc-65d3-41fc-becf-b57a61750c4d"
-					(reference "J9")
 					(unit 1)
 				)
 			)

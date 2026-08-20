@@ -6118,10 +6118,10 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "98273bfe-7fdb-491a-b762-b8974487b601")
 		(property "Reference" "#PWR077"
@@ -6508,7 +6508,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c3d4c4b5-85b3-4730-8307-454bb6309691")
 		(property "Reference" "J14"
