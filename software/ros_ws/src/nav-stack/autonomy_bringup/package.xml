@@ -21,6 +21,8 @@
   <depend>global_traversability</depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
+  <!-- health_monitor, launched alongside localisation -->
+  <depend>health_check</depend>
 
 
   <test_depend>ament_lint_auto</test_depend>

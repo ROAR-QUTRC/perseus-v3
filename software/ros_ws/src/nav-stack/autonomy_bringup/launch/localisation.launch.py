@@ -15,6 +15,11 @@ Three pieces, and the split matters:
      exists in the URDF, deliberately -- a static base_link -> base_footprint from
      robot_state_publisher would give the frame a second parent and TF would reject it.
 
+Two monitors ride along with them, both watching what this stack produces rather than
+adding to it: the mobility watchdog, which compares commanded velocity against the EKF
+output to catch sustained wheel slip, and the health monitor, which reports the rate and
+staleness of the topics above on /health_check/health.
+
 Start order does not matter. fast_lio withholds /Odometry until lid_frame -> base_frame
 resolves in TF, so until robot_state_publisher is up the EKF runs on the IMU alone.
 
@@ -158,11 +163,29 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    # Measures the rate, bandwidth and staleness of the topics this stack consumes and
+    # produces -- the raw and corrected IMU, the Livox cloud, /Odometry, /odom and
+    # /odometry/filtered are most of its default watch list -- so it comes up with them.
+    # It takes no use_sim_time: rate and staleness are measured against arrival in real
+    # time, which is what a stalled publisher shows up in regardless of the clock the
+    # rest of the stack is on.
+    health_check_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("health_check"), "launch", "health_check.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "ping_host": LaunchConfiguration("ping_host"),
+        }.items(),
+    )
+
     return [
         fast_lio_launch,
         ekf_launch,
         flat_footprint_broadcaster_node,
         watchdog_launch,
+        health_check_launch,
     ]
 
 
@@ -185,6 +208,14 @@ def generate_launch_description():
         "rviz",
         default_value="false",
         description="Launch RViz with fast_lio's own display config.",
+    )
+
+    declare_ping_host = DeclareLaunchArgument(
+        "ping_host",
+        default_value="",
+        description="Host the health monitor probes for reachability, typically the base "
+        "station. Empty disables probing, so a robot running on its own does not report "
+        "an unreachable link as a fault.",
     )
 
     declare_ekf_params_file = DeclareLaunchArgument(
@@ -239,6 +270,7 @@ def generate_launch_description():
             declare_sim,
             declare_use_sim_time,
             declare_rviz,
+            declare_ping_host,
             declare_ekf_params_file,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),
