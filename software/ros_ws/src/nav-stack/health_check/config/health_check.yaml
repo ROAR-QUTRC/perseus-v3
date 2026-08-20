@@ -68,11 +68,3 @@
       # depth_module.infra_profile is 848,480,30, shared by both infra streams
       - 30.0 # /camera/camera/infra1/image_rect_raw
       - 30.0 # /camera/camera/infra2/image_rect_raw
-    # Interface the throughput and error counters are read from, via /proc/net/dev.
-    interface_name: "wlan0"
-    # Reachability probe. Empty disables it, which is the default: an unreachable stock
-    # address would otherwise report a fault on every robot with no base station up. Set
-    # this to the base station to monitor the teleop link.
-    ping_host: ""
-    ping_period_sec: 5.0
-    ping_timeout_sec: 1.0

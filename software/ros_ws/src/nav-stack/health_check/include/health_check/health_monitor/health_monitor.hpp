@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file health_monitor.hpp
-/// @brief Node that aggregates topic and link health and publishes it.
+/// @brief Node that aggregates per-topic health and publishes it.
 
 #include <memory>
 #include <string>
@@ -10,7 +10,6 @@
 #include <interfaces/msg/system_health.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include "health_check/health_monitor/link_monitor.hpp"
 #include "health_check/health_monitor/topic_monitor.hpp"
 
 namespace health_check {
@@ -49,12 +48,6 @@ private:
   static constexpr double DEFAULT_PUBLISH_RATE_HZ = 1.0;
   /// @brief Default rate that unbound topics are retried at, in Hz.
   static constexpr double DEFAULT_DISCOVERY_RATE_HZ = 0.5;
-  /// @brief Default interface the link counters are read from.
-  static inline const std::string DEFAULT_INTERFACE_NAME = "wlan0";
-  /// @brief Default seconds between reachability probes.
-  static constexpr double DEFAULT_PING_PERIOD_SEC = 5.0;
-  /// @brief Default seconds a single reachability probe waits for a reply.
-  static constexpr double DEFAULT_PING_TIMEOUT_SEC = 1.0;
   /// @brief Lowest permitted rate tolerance, i.e. no tolerance at all.
   static constexpr double MIN_RATE_TOLERANCE = 0.0;
   /// @brief Highest permitted rate tolerance, i.e. any rate is acceptable.
@@ -67,14 +60,13 @@ private:
   /// @brief Builds and publishes one SystemHealth snapshot.
   void _on_publish_timer();
 
-  /// @brief Worst status across every topic and the link.
-  /// @param message Snapshot with its topic and link fields already filled in.
+  /// @brief Worst status across every topic.
+  /// @param message Snapshot with its topic array already filled in.
   /// @return One of the SystemHealth status constants.
   static std::uint8_t
   _overall_status(const interfaces::msg::SystemHealth &message);
 
   std::vector<std::unique_ptr<TopicMonitor>> _topic_monitors;
-  std::unique_ptr<LinkMonitor> _link_monitor;
 
   rclcpp::Publisher<interfaces::msg::SystemHealth>::SharedPtr _publisher;
   rclcpp::TimerBase::SharedPtr _discovery_timer;

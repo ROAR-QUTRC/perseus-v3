@@ -68,7 +68,6 @@ private:
   static QColor _status_color(std::uint8_t status);
 
   QLabel *_summary_label{nullptr};
-  QLabel *_link_label{nullptr};
   QTableWidget *_table{nullptr};
   QTimer *_refresh_timer{nullptr};
 

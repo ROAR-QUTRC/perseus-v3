@@ -21,27 +21,11 @@ enum table_columns {
   COLUMN_COUNT,
 };
 
-/// @brief Bytes per KiB and per MiB, for picking a readable bandwidth unit.
-constexpr double BYTES_PER_KIB = 1024.0;
-constexpr double BYTES_PER_MIB = BYTES_PER_KIB * BYTES_PER_KIB;
-
-/// @brief Formats a byte rate into the largest unit that keeps it readable.
-QString format_bandwidth(double bytes_per_sec) {
-  if (bytes_per_sec >= BYTES_PER_MIB) {
-    return QString::number(bytes_per_sec / BYTES_PER_MIB, 'f', 2) + " MiB/s";
-  }
-  if (bytes_per_sec >= BYTES_PER_KIB) {
-    return QString::number(bytes_per_sec / BYTES_PER_KIB, 'f', 1) + " KiB/s";
-  }
-  return QString::number(bytes_per_sec, 'f', 0) + " B/s";
-}
-
 } // namespace
 
 TopicHealthPanel::TopicHealthPanel(QWidget *parent)
     : rviz_common::Panel(parent) {
   _summary_label = new QLabel("Waiting for health data...");
-  _link_label = new QLabel("");
 
   _table = new QTableWidget(0, COLUMN_COUNT);
   _table->setHorizontalHeaderLabels({"Topic", "Rate (Hz)", "Age (s)"});
@@ -59,7 +43,6 @@ TopicHealthPanel::TopicHealthPanel(QWidget *parent)
   auto *layout = new QVBoxLayout;
   layout->addWidget(_summary_label);
   layout->addWidget(_table);
-  layout->addWidget(_link_label);
   setLayout(layout);
 
   _refresh_timer = new QTimer(this);
@@ -164,30 +147,6 @@ void TopicHealthPanel::_refresh() {
       item->setForeground(QColor(20, 20, 20));
     }
   }
-
-  const auto &link = message->link;
-  QString link_text =
-      QString("Link %1: ").arg(QString::fromStdString(link.interface_name));
-  if (!link.is_interface_present) {
-    link_text += "interface not found";
-  } else {
-    link_text += QString("rx %1  tx %2  errors %3/%4  dropped %5/%6")
-                     .arg(format_bandwidth(link.rx_bytes_per_sec))
-                     .arg(format_bandwidth(link.tx_bytes_per_sec))
-                     .arg(link.rx_errors)
-                     .arg(link.tx_errors)
-                     .arg(link.rx_dropped)
-                     .arg(link.tx_dropped);
-  }
-  if (link.is_ping_enabled) {
-    link_text += link.is_reachable
-                     ? QString("   ping %1: %2 ms")
-                           .arg(QString::fromStdString(link.ping_host))
-                           .arg(link.rtt_ms, 0, 'f', 1)
-                     : QString("   ping %1: unreachable")
-                           .arg(QString::fromStdString(link.ping_host));
-  }
-  _link_label->setText(link_text);
 }
 
 void TopicHealthPanel::save(rviz_common::Config config) const {

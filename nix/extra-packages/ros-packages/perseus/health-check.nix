@@ -6,7 +6,6 @@
   ament-lint-auto,
   ament-lint-common,
   interfaces,
-  iputils,
   rclcpp,
   std-msgs,
 }:
@@ -24,14 +23,13 @@ buildRosPackage rec {
   ];
   propagatedBuildInputs = [
     interfaces
-    iputils
     rclcpp
     std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Rate, bandwidth and link monitoring for the sensing and estimation stack";
+    description = "Topic rate and staleness monitoring for the sensing and estimation stack";
     license = with lib.licenses; [ mit ];
   };
 }

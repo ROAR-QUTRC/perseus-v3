@@ -25,13 +25,6 @@ HealthMonitor::HealthMonitor(const rclcpp::NodeOptions &options)
       declare_parameter<double>("publish_rate_hz", DEFAULT_PUBLISH_RATE_HZ);
   const double discovery_rate_hz =
       declare_parameter<double>("discovery_rate_hz", DEFAULT_DISCOVERY_RATE_HZ);
-  const auto interface_name =
-      declare_parameter<std::string>("interface_name", DEFAULT_INTERFACE_NAME);
-  const auto ping_host = declare_parameter<std::string>("ping_host", "");
-  const double ping_period_sec =
-      declare_parameter<double>("ping_period_sec", DEFAULT_PING_PERIOD_SEC);
-  const double ping_timeout_sec =
-      declare_parameter<double>("ping_timeout_sec", DEFAULT_PING_TIMEOUT_SEC);
 
   if (topics.size() != expected_rates.size()) {
     throw std::runtime_error(
@@ -67,14 +60,10 @@ HealthMonitor::HealthMonitor(const rclcpp::NodeOptions &options)
 
   if (_topic_monitors.empty()) {
     RCLCPP_WARN(get_logger(),
-                "No topics configured; publishing link health only. Set the "
-                "'topics' and "
-                "'expected_rates_hz' parameters to watch something.");
+                "No topics configured; every snapshot will be empty. Set the "
+                "'topics' and 'expected_rates_hz' parameters to watch "
+                "something.");
   }
-
-  _link_monitor = std::make_unique<LinkMonitor>(
-      interface_name, ping_host, ping_period_sec, ping_timeout_sec);
-  _link_monitor->start(get_logger());
 
   _publisher = create_publisher<interfaces::msg::SystemHealth>(
       OUTPUT_TOPIC, rclcpp::QoS(OUTPUT_QUEUE_DEPTH));
@@ -87,10 +76,8 @@ HealthMonitor::HealthMonitor(const rclcpp::NodeOptions &options)
                         [this] { _on_publish_timer(); });
 
   RCLCPP_INFO(get_logger(),
-              "Health monitor up: %zu topics, interface %s, publishing on %s "
-              "at %.1f Hz",
-              _topic_monitors.size(), interface_name.c_str(),
-              OUTPUT_TOPIC.c_str(), publish_rate_hz);
+              "Health monitor up: %zu topics, publishing on %s at %.1f Hz",
+              _topic_monitors.size(), OUTPUT_TOPIC.c_str(), publish_rate_hz);
 }
 
 void HealthMonitor::_on_discovery_timer() {
@@ -107,7 +94,6 @@ void HealthMonitor::_on_publish_timer() {
   for (auto &monitor : _topic_monitors) {
     message.topics.push_back(monitor->report(*this));
   }
-  message.link = _link_monitor->report(now());
   message.overall_status = _overall_status(message);
 
   _publisher->publish(message);
@@ -132,22 +118,6 @@ HealthMonitor::_overall_status(const interfaces::msg::SystemHealth &message) {
     default:
       break;
     }
-  }
-
-  /*
-    A configured host that has stopped answering is an error: it is the same
-    class of problem as a topic losing its publisher. Errors and drops on the
-    interface are only a degradation, since a link can shed packets and still
-    carry the stack.
-  */
-  if (message.link.is_ping_enabled && !message.link.is_reachable) {
-    return SystemHealth::STATUS_ERROR;
-  }
-  const auto &link = message.link;
-  if (link.rx_errors > 0 || link.tx_errors > 0 || link.rx_dropped > 0 ||
-      link.tx_dropped > 0) {
-    worst = std::max(worst,
-                     static_cast<std::uint8_t>(SystemHealth::STATUS_DEGRADED));
   }
 
   return worst;

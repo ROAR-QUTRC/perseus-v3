@@ -63,7 +63,6 @@ rosidl_generate_interfaces(
   "msg/Waypoint.msg"
   "msg/MobilityStatus.msg"
   "msg/TopicHealth.msg"
-  "msg/LinkHealth.msg"
   "msg/SystemHealth.msg"
   DEPENDENCIES
   geometry_msgs

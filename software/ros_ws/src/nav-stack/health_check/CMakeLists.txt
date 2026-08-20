@@ -62,7 +62,7 @@ add_executable(
   health_monitor
   src/health_monitor/health_monitor.cpp
   src/health_monitor/health_monitor_node.cpp
-  src/health_monitor/link_monitor.cpp src/health_monitor/topic_monitor.cpp)
+  src/health_monitor/topic_monitor.cpp)
 
 target_include_directories(health_monitor
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
