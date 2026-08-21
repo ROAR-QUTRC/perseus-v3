@@ -37,7 +37,7 @@ cd ~/perseus-v3
 ./software/scripts/nix-setup.sh
 
 # Enable autoactivation for the base environment
-devenv allow --profile base
+devenv allow --profile dev
 
 echo "Setup script ran successfully!"
 echo "cd out and into the perseus-v3 directory to build the environment. This may perform several builds or downloads."

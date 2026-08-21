@@ -2,7 +2,8 @@
 
 { ... }: {
   extends = [
-    "base"
+    "dev"
+    "prod"
     "web-ui"
     "simulation"
     "autonomy"
