@@ -4751,27 +4751,16 @@
 		)
 		(uuid "f60d81f5-fad9-4a32-a580-c7bed33ee992")
 	)
-	(hierarchical_label "RP_HALL_DIR"
+	(hierarchical_label "RP_HALL_PGO"
 		(shape input)
-		(at 176.53 78.74 0)
+		(at 172.72 78.74 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 			(justify left)
 		)
-		(uuid "2c47654c-1850-4b26-b91a-dea2296fc46c")
-	)
-	(hierarchical_label "RP_I2C_SCL"
-		(shape input)
-		(at 172.72 76.2 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "2f4f1372-5db2-4b22-b76a-99caec13b602")
+		(uuid "2b64ec1e-a6a1-4f87-9670-47bb36d74af7")
 	)
 	(hierarchical_label "SWDIO"
 		(shape bidirectional)
@@ -4783,17 +4772,6 @@
 			(justify right)
 		)
 		(uuid "3f71a72c-3ffa-42fe-bfc1-752d260993a6")
-	)
-	(hierarchical_label "RP_ID_ADDR2"
-		(shape input)
-		(at 172.72 93.98 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "432bf74f-c3a2-4513-9164-71d1cf4932bb")
 	)
 	(hierarchical_label "USB_N"
 		(shape bidirectional)
@@ -4818,6 +4796,28 @@
 			)
 		)
 	)
+	(hierarchical_label "RP_STATUS_LED"
+		(shape input)
+		(at 172.72 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "50fd15c6-62e1-4685-abe4-ea79053986cf")
+	)
+	(hierarchical_label "RP_HALL_DIR"
+		(shape input)
+		(at 172.72 91.44 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "6176381e-fe5f-48b1-b08c-88a69e9ffe6b")
+	)
 	(hierarchical_label "RP_HALL_AOUT"
 		(shape input)
 		(at 173.99 139.7 0)
@@ -4829,18 +4829,7 @@
 		)
 		(uuid "7940c138-7351-49d8-96f4-e22ec6eeb746")
 	)
-	(hierarchical_label "RP_STATUS_LED"
-		(shape input)
-		(at 172.72 86.36 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "83b6a972-e27b-47f2-902d-16eaeaf75162")
-	)
-	(hierarchical_label "RP_I2C_SDA"
+	(hierarchical_label "RP_I2C_SCL"
 		(shape input)
 		(at 172.72 73.66 0)
 		(effects
@@ -4849,7 +4838,7 @@
 			)
 			(justify left)
 		)
-		(uuid "94224b28-7331-4a01-9c5f-16c122949fe4")
+		(uuid "83337aa0-e1f0-474e-95e0-8b60f4f3ca04")
 	)
 	(hierarchical_label "SWCLK"
 		(shape input)
@@ -4862,16 +4851,16 @@
 		)
 		(uuid "ae0dd659-ad87-464e-8934-bc0e2a6839d2")
 	)
-	(hierarchical_label "RP_HALL_PGO"
+	(hierarchical_label "RP_I2C_SDA"
 		(shape input)
-		(at 172.72 88.9 0)
+		(at 172.72 76.2 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 			(justify left)
 		)
-		(uuid "afbd52f1-26ea-4359-beed-cfb96e5ba708")
+		(uuid "afaad144-9781-4885-b043-8bc58828b82e")
 	)
 	(hierarchical_label "RP_ID_ADDR1"
 		(shape input)
@@ -4884,6 +4873,28 @@
 		)
 		(uuid "bc407aab-28dd-4315-b96f-1a2cc6637a3c")
 	)
+	(hierarchical_label "RP_ID_ADDR2"
+		(shape input)
+		(at 172.72 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ca3292ce-9bad-41b7-a551-ae506176cf09")
+	)
+	(hierarchical_label "RP_RS485_TX"
+		(shape input)
+		(at 172.72 86.36 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ea78aec0-b173-46b9-9a94-746d012e3bdf")
+	)
 	(hierarchical_label "RP_ID_ADDR0"
 		(shape input)
 		(at 172.72 99.06 0)
@@ -4893,22 +4904,11 @@
 			)
 			(justify left)
 		)
-		(uuid "c2c3c2e4-c27d-4b90-b600-c9308be92bb8")
-	)
-	(hierarchical_label "RP_RS485_TX"
-		(shape input)
-		(at 190.5 91.44 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "ea78aec0-b173-46b9-9a94-746d012e3bdf")
+		(uuid "ede494e9-1027-46db-be4a-1374a45f9861")
 	)
 	(hierarchical_label "RP_RS485_DIR"
 		(shape input)
-		(at 190.5 93.98 0)
+		(at 172.72 88.9 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4919,7 +4919,7 @@
 	)
 	(hierarchical_label "RP_RS485_RX"
 		(shape input)
-		(at 190.5 88.9 0)
+		(at 172.72 83.82 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8493,7 +8493,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "792c5f75-74dd-4e07-b131-1acf3d17fe83")
-		(property "Reference" "RST1"
+		(property "Reference" "RST"
 			(at 79.502 114.046 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8635,7 +8635,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/772c9f81-7e5d-44a6-ac7a-4279420baea9"
-					(reference "RST1")
+					(reference "RST")
 					(unit 1)
 				)
 			)
@@ -10079,7 +10079,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "ba29550d-276a-446a-b4e0-59fed6f7b538")
-		(property "Reference" "RUN1"
+		(property "Reference" "RUN"
 			(at 101.854 82.042 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10221,7 +10221,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/772c9f81-7e5d-44a6-ac7a-4279420baea9"
-					(reference "RUN1")
+					(reference "RUN")
 					(unit 1)
 				)
 			)
