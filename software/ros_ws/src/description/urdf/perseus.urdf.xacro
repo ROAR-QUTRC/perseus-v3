@@ -89,13 +89,13 @@
       <child link="${prefix}chassis"/>
     </joint>
 
-    <link name="${prefix}base_footprint"/>
-
-    <joint name="base_footprint_joint" type="fixed">
-        <parent link="${prefix}base_link"/>
-        <child link="${prefix}base_footprint"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-    </joint>
+    <!--
+      No base_footprint link here on purpose. footprint_broadcaster's
+      flat_footprint_broadcaster publishes odom -> base_footprint at runtime, and a
+      static base_link -> base_footprint from robot_state_publisher would give the frame
+      a second parent, which TF rejects. The frame is produced by that node, not by the
+      model.
+    -->
 
     <!-- ADD 2 ROCKERS (INCLUDING 4 MOTORS + 4 WHEELS) -->
     <xacro:rocker prefix="" side="left"/>
