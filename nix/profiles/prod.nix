@@ -1,16 +1,19 @@
 { pkgs, ... }:
 let
-  defaultWorkspace = (import ../ros-workspace.nix { inherit pkgs; }).mkWorkspace {
+  prod_ws = (import ../ros-workspace.nix { inherit pkgs; }).mkWorkspace {
     inherit (pkgs) ros;
     name = "prod";
   };
 in
 {
   packages = [
-    defaultWorkspace
+    prod_ws
   ];
 
   enterShell = ''
+    # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
+    ${prod_ws.env.shellHook}
+
     echo -e "\033[35m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
     echo -e "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";

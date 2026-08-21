@@ -23,9 +23,6 @@ in
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
     ${ros_ws.env.shellHook}
 
-    # This will setup autocomplete for ros2 and colcon
-    ${ros2nixShell.shellHook}
-
     echo -e "\e[38;5;208m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
     echo -e "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";
