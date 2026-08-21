@@ -11,7 +11,6 @@ let
   };
 in
 {
-  # Use the pkgs from the
   packages =
     # dev and standard pkgs propagated through the nix ros workspace
     (builtins.attrValues workspace.devShellPkgs)
