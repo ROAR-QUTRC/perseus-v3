@@ -167,6 +167,10 @@
     },
     "ros-nur-helper": {
       "inputs": {
+        "flake-utils": [
+          "nix-ros-overlay",
+          "flake-utils"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -175,11 +179,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787142081,
-        "narHash": "sha256-p1B9oPevB3Ybx2GWMKWh8+aHMahHQm454xXGNtKFVKY=",
+        "lastModified": 1787321919,
+        "narHash": "sha256-Yizgta2mSrxNOyVju9Q2PUXaU/ZQ47URWAsOL1cDBR4=",
         "owner": "ROAR-QUTRC",
         "repo": "ros-NUR-helper",
-        "rev": "f4aacbf02fd8d9942f94568015fc2c6a2b348fe2",
+        "rev": "75e6472dec856c2f2ef40f1dfcbf116637e255c9",
         "type": "github"
       },
       "original": {

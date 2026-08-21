@@ -47,6 +47,8 @@ inputs:
         follows: nixpkgs
       ros2nix_repo:
         follows: ros2nix
+      flake-utils:
+        follows: nix-ros-overlay/flake-utils
 allow_unfree: true
 imports:
   - ./nix/scripts.nix
