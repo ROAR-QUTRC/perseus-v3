@@ -5748,7 +5748,7 @@
 	)
 	(wire
 		(pts
-			(xy 99.06 175.26) (xy 100.33 175.26)
+			(xy 99.06 175.26) (xy 107.95 175.26)
 		)
 		(stroke
 			(width 0)
@@ -7753,7 +7753,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 104.14 175.26 90)
+		(at 123.19 167.64 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -7763,7 +7763,7 @@
 		(dnp no)
 		(uuid "19620df3-2ddd-44c1-9323-dceee6c6a848")
 		(property "Reference" "R8"
-			(at 103.124 172.212 90)
+			(at 120.142 168.656 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7774,7 +7774,7 @@
 			)
 		)
 		(property "Value" "10k"
-			(at 107.442 172.212 90)
+			(at 120.142 164.338 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7785,7 +7785,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder"
-			(at 104.14 177.038 90)
+			(at 124.968 167.64 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7796,7 +7796,7 @@
 			)
 		)
 		(property "Datasheet" "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L"
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7807,7 +7807,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7818,7 +7818,7 @@
 			)
 		)
 		(property "Supplier" "DigiKey"
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7829,7 +7829,7 @@
 			)
 		)
 		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/yageo/RC0603FR-0710KL/726880"
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7840,7 +7840,7 @@
 			)
 		)
 		(property "Supplier Part No" "311-10.0KHRCT-ND"
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7851,7 +7851,7 @@
 			)
 		)
 		(property "KLC_S4.2_DVDD" ""
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7862,7 +7862,7 @@
 			)
 		)
 		(property "KLC_S4.2_VREG_LX" ""
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7873,7 +7873,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7884,7 +7884,7 @@
 			)
 		)
 		(property "KLC_S4.1" ""
-			(at 104.14 175.26 0)
+			(at 123.19 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8814,6 +8814,84 @@
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
 					(reference "C7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 123.19 163.83 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "329c660b-b45a-47c7-b546-bcb263fba168")
+		(property "Reference" "#PWR08"
+			(at 123.19 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 123.19 158.75 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 123.19 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 123.19 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 123.19 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "67340586-b9d4-4426-8967-19f14eb938d4")
+		)
+		(instances
+			(project "enc-encoder"
+				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
+					(reference "#PWR08")
 					(unit 1)
 				)
 			)
@@ -11231,7 +11309,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 259.08 154.94 0)
 			(hide yes)
 			(show_name no)
@@ -12683,7 +12761,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 180.34 134.62 0)
 			(hide yes)
 			(show_name no)
@@ -13119,7 +13197,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 248.92 167.64 0)
 			(hide yes)
 			(show_name no)
@@ -14671,83 +14749,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+3.3V")
-		(at 123.19 171.45 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "d40b4caa-66aa-4066-9bcb-a2e4a283f5e7")
-		(property "Reference" "#PWR08"
-			(at 123.19 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3.3V"
-			(at 123.19 167.64 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 123.19 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 123.19 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
-			(at 123.19 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "53719fe9-169f-4162-81ce-73c2b94324f6")
-		)
-		(instances
-			(project "enc-encoder"
-				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
-					(reference "#PWR08")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 219.71 152.4 0)
 		(unit 1)
@@ -15094,7 +15095,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 222.25 22.86 0)
 			(hide yes)
 			(show_name no)

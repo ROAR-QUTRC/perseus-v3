@@ -4862,6 +4862,17 @@
 		)
 		(uuid "afaad144-9781-4885-b043-8bc58828b82e")
 	)
+	(hierarchical_label "RP_RS485_TX"
+		(shape input)
+		(at 172.72 88.9 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "bbdd43f1-816a-4ead-9fbb-62c2f4e35b78")
+	)
 	(hierarchical_label "RP_ID_ADDR1"
 		(shape input)
 		(at 172.72 96.52 0)
@@ -4884,17 +4895,6 @@
 		)
 		(uuid "ca3292ce-9bad-41b7-a551-ae506176cf09")
 	)
-	(hierarchical_label "RP_RS485_TX"
-		(shape input)
-		(at 172.72 86.36 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "ea78aec0-b173-46b9-9a94-746d012e3bdf")
-	)
 	(hierarchical_label "RP_ID_ADDR0"
 		(shape input)
 		(at 172.72 99.06 0)
@@ -4908,7 +4908,7 @@
 	)
 	(hierarchical_label "RP_RS485_DIR"
 		(shape input)
-		(at 172.72 88.9 0)
+		(at 172.72 86.36 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -6263,7 +6263,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 179.07 107.95 0)
 			(hide yes)
 			(show_name no)
@@ -6698,7 +6698,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 179.07 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -7681,7 +7681,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.0x1.0mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 179.07 113.03 0)
 			(hide yes)
 			(show_name no)
@@ -8493,7 +8493,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "792c5f75-74dd-4e07-b131-1acf3d17fe83")
-		(property "Reference" "RST"
+		(property "Reference" "RST1"
 			(at 79.502 114.046 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8635,7 +8635,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/772c9f81-7e5d-44a6-ac7a-4279420baea9"
-					(reference "RST")
+					(reference "RST1")
 					(unit 1)
 				)
 			)
@@ -10079,7 +10079,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "ba29550d-276a-446a-b4e0-59fed6f7b538")
-		(property "Reference" "RUN"
+		(property "Reference" "RUN1"
 			(at 101.854 82.042 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10221,7 +10221,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd/772c9f81-7e5d-44a6-ac7a-4279420baea9"
-					(reference "RUN")
+					(reference "RUN1")
 					(unit 1)
 				)
 			)
