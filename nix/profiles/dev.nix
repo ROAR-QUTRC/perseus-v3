@@ -13,10 +13,16 @@ in
 {
   # Use the pkgs from the
   packages =
+    # dev and standard pkgs propagated through the nix ros workspace
     (builtins.attrValues workspace.devShellPkgs)
     ++ (builtins.attrValues workspace.standardPkgs)
-    ++ ros2nixShell.nativeBuildInputs
+    # run time dependencies from the ros2nix shell
     ++ ros2nixShell.buildInputs
+    ++ ros2nixShell.propagatedBuildInputs
+    # build time dependencies from the ros2nix shell
+    ++ ros2nixShell.nativeBuildInputs
+    ++ ros2nixShell.propagatedNativeBuildInputs
+    # cli autocomplete run by the shell hook
     ++ [ ros_ws.standardPackages.workspace-shell-setup ];
 
   enterShell = ''
