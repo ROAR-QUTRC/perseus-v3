@@ -13,6 +13,13 @@
   <depend>interfaces</depend>
   <depend>rviz_common</depend>
   <depend>pluginlib</depend>
+  <depend>image_transport</depend>
+  <depend>sensor_msgs</depend>
+  <!-- Transport plugins the panel can select. They are loaded into RViz's own
+       process, so they have to be present here rather than only on the
+       publishing side. -->
+  <exec_depend>compressed_image_transport</exec_depend>
+  <exec_depend>ffmpeg_image_transport</exec_depend>
   <depend>qtbase5-dev</depend>
 
   <test_depend>ament_lint_auto</test_depend>

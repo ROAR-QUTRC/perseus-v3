@@ -5,11 +5,15 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
+  compressed-image-transport,
+  ffmpeg-image-transport,
+  image-transport,
   interfaces,
   pluginlib,
   qt5,
   rclcpp,
   rviz-common,
+  sensor-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-rviz-plugins";
@@ -24,11 +28,15 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
+    compressed-image-transport
+    ffmpeg-image-transport
+    image-transport
     interfaces
     pluginlib
     qt5.qtbase
     rclcpp
     rviz-common
+    sensor-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
