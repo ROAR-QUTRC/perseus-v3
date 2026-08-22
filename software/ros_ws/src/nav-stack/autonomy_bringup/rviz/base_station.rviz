@@ -8,7 +8,6 @@ Panels:
         - /TF1/Frames1
         - /RobotModel1/Description Topic1
         - /Livox Cloud1/Topic1
-        - /PCL Map1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 417
   - Class: rviz_common/Selection
@@ -54,29 +53,11 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_footprint:
-          Value: true
-        base_link:
-          Value: true
-        camera_accel_frame:
-          Value: true
-        camera_accel_optical_frame:
-          Value: true
-        camera_bottom_screw_frame:
+        camera_aligned_depth_to_infra1_frame:
           Value: true
         camera_color_frame:
           Value: true
         camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_gyro_frame:
-          Value: true
-        camera_gyro_optical_frame:
-          Value: true
-        camera_imu_optical_frame:
           Value: true
         camera_infra1_frame:
           Value: true
@@ -88,93 +69,13 @@ Visualization Manager:
           Value: true
         camera_link:
           Value: true
-        chassis:
-          Value: true
-        differential_bar:
-          Value: true
-        flange_bearing:
-          Value: true
-        front_left_motor:
-          Value: true
-        front_left_wheel:
-          Value: true
-        front_right_motor:
-          Value: true
-        front_right_wheel:
-          Value: true
-        left_rocker:
-          Value: true
-        livox_base:
-          Value: true
-        livox_frame:
-          Value: true
-        odom:
-          Value: true
-        rear_left_motor:
-          Value: true
-        rear_left_wheel:
-          Value: true
-        rear_right_motor:
-          Value: true
-        rear_right_wheel:
-          Value: true
-        right_rocker:
-          Value: true
-        sensor_mount:
-          Value: true
       Marker Scale: 0.5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        odom:
-          base_footprint:
-            {}
-          base_link:
-            chassis:
-              flange_bearing:
-                differential_bar:
-                  {}
-              left_rocker:
-                front_left_motor:
-                  front_left_wheel:
-                    {}
-                rear_left_motor:
-                  rear_left_wheel:
-                    {}
-              right_rocker:
-                front_right_motor:
-                  front_right_wheel:
-                    {}
-                rear_right_motor:
-                  rear_right_wheel:
-                    {}
-              sensor_mount:
-                camera_bottom_screw_frame:
-                  camera_link:
-                    camera_accel_frame:
-                      camera_accel_optical_frame:
-                        {}
-                    camera_color_frame:
-                      camera_color_optical_frame:
-                        {}
-                    camera_depth_frame:
-                      camera_depth_optical_frame:
-                        {}
-                    camera_gyro_frame:
-                      camera_gyro_optical_frame:
-                        camera_imu_optical_frame:
-                          {}
-                    camera_infra1_frame:
-                      camera_infra1_optical_frame:
-                        {}
-                    camera_infra2_frame:
-                      camera_infra2_optical_frame:
-                        {}
-                livox_base:
-                  livox_frame:
-                    {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -195,151 +96,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_bottom_screw_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_imu_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        chassis:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        differential_bar:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flange_bearing:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        sensor_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -442,6 +198,20 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Front Camera
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /camera/camera/color/image_raw
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -513,10 +283,12 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
+  Front Camera:
+    collapsed: false
   Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000004fb000000100044006900730070006c006100790073010000003f0000022f000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000274000001600000008800ffffff000000010000010000000395fc0200000001fb0000000a00560069006500770073010000003f00000395000000a900ffffff0000051e0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000004fb000000100044006900730070006c006100790073010000003f0000022f000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000274000001600000008800ffffff000000010000010000000395fc0200000002fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000d00000001700fffffffb0000000a005600690065007700730100000115000002bf000000a900ffffff0000051e0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
