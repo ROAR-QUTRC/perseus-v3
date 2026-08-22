@@ -19,6 +19,8 @@
   <depend>watchdog</depend>
   <depend>footprint_broadcaster</depend>
   <depend>global_traversability</depend>
+  <!-- health_monitor, launched alongside localisation -->
+  <depend>health_check</depend>
 
 
   <test_depend>ament_lint_auto</test_depend>

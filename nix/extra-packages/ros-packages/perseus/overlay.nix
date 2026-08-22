@@ -6,6 +6,7 @@ final: prev: {
   can-if = final.callPackage ./can-if.nix { };
   description = final.callPackage ./description.nix { };
   hardware = final.callPackage ./hardware.nix { };
+  health-check = final.callPackage ./health-check.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
   payloads = final.callPackage ./payloads.nix { };
   sensors = final.callPackage ./sensors.nix { };

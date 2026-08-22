@@ -8,6 +8,7 @@
   fast-lio,
   footprint-broadcaster,
   global-traversability,
+  health-check,
   navigation2,
   rclcpp,
   robot-localization,
@@ -31,6 +32,7 @@ buildRosPackage rec {
     fast-lio
     footprint-broadcaster
     global-traversability
+    health-check
     navigation2
     rclcpp
     robot-localization
