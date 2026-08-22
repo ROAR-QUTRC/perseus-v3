@@ -57,6 +57,7 @@ pkgs.mkShell {
           opencv
           pcl-conversions
           pluginlib
+          qt5.qtbase
           rcl-interfaces
           rclcpp
           rclcpp-components
@@ -71,6 +72,7 @@ pkgs.mkShell {
           rosidl-default-generators
           rosidl-default-runtime
           rplidar-ros
+          rviz-common
           rviz2
           sensor-msgs
           slam-toolbox
