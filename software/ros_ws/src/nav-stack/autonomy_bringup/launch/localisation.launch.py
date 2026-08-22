@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Launch the localisation stack: FAST-LIO odometry fused by the EKF.
 
-Two pieces, and the split matters:
+Three pieces, and the split matters:
 
   1. fast_lio provides LiDAR-inertial odometry from config/livox_mid360.yaml, reading the
      raw Livox cloud directly off common.lid_topic (/livox/lidar). It publishes /Odometry
@@ -37,7 +37,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 
@@ -120,6 +120,28 @@ def launch_setup(context, *args, **kwargs):
             "params_file": ekf_params_file,
             "use_sim_time": use_sim_time,
         }.items(),
+    )
+
+    # Flattens the EKF's odom -> base_link into odom -> base_footprint, dropping z, roll
+    # and pitch while keeping yaw. nav2's costmaps and controller are the consumers, but
+    # the transform is derived from the EKF output, so it is brought up here rather than
+    # with navigation: anything reading base_footprint then gets it as soon as
+    # localisation is running, without nav2 having to be up.
+    flat_footprint_broadcaster_node = Node(
+        package="footprint_broadcaster",
+        executable="flat_footprint_broadcaster",
+        name="flat_footprint_broadcaster",
+        parameters=[
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("autonomy_bringup"),
+                    "config",
+                    "footprint_broadcaster.yaml",
+                ]
+            ),
+            {"use_sim_time": use_sim_time},
+        ],
+        output="screen",
     )
 
     # Watches /odometry/filtered against /cmd_vel_out for wheel slip, so it belongs
