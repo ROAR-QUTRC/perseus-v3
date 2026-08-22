@@ -51,8 +51,8 @@ DetectionOverlay::DetectionOverlay(const rclcpp::NodeOptions &options)
       "detection_topics", DEFAULT_DETECTION_TOPICS);
   _max_detection_age_s = declare_parameter<double>("max_detection_age_s",
                                                    DEFAULT_MAX_DETECTION_AGE_S);
-  _input_transport =
-      declare_parameter<std::string>("input_transport", DEFAULT_INPUT_TRANSPORT);
+  _input_transport = declare_parameter<std::string>("input_transport",
+                                                    DEFAULT_INPUT_TRANSPORT);
   _should_show_staleness =
       declare_parameter<bool>("show_staleness", DEFAULT_SHOULD_SHOW_STALENESS);
 
