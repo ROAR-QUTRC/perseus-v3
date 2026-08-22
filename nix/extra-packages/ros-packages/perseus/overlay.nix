@@ -3,6 +3,7 @@ final: prev: {
   footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
   global-traversability = final.callPackage ./global-traversability.nix { };
   perseus = final.callPackage ./perseus.nix { };
+  rviz-plugins = final.callPackage ./rviz-plugins.nix { };
   can-if = final.callPackage ./can-if.nix { };
   description = final.callPackage ./description.nix { };
   hardware = final.callPackage ./hardware.nix { };
