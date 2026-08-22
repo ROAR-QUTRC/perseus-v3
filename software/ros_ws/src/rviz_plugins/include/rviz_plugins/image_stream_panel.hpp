@@ -26,21 +26,22 @@ namespace rviz_plugins {
 /// arriving.
 ///
 /// RViz's built-in Image display already renders any image_transport stream, so
-/// this panel exists for the parts it does not show: the measured frame rate and
-/// the end-to-end age of each frame, which is what tells you whether a remote
-/// link is keeping up. The transport can also be switched from the panel, which
-/// makes it quick to compare raw against a codec over the same link.
+/// this panel exists for the parts it does not show: the measured frame rate
+/// and the end-to-end age of each frame, which is what tells you whether a
+/// remote link is keeping up. The transport can also be switched from the
+/// panel, which makes it quick to compare raw against a codec over the same
+/// link.
 ///
 /// Subscribing through image_transport rather than to Image directly means the
-/// wire format is a runtime choice — "raw", "compressed", "ffmpeg", or any other
-/// installed plugin — and the frame arrives already decoded either way.
+/// wire format is a runtime choice — "raw", "compressed", "ffmpeg", or any
+/// other installed plugin — and the frame arrives already decoded either way.
 ///
 /// The subscription callback runs on an executor thread while Qt widgets may
-/// only be touched from the GUI thread, so the callback converts to a QImage and
-/// stores it, and a timer on the GUI thread repaints from the latest one. That
-/// also decouples repaint cost from frame rate: a stream arriving faster than
-/// the panel refreshes simply has frames skipped rather than queueing work onto
-/// the GUI thread.
+/// only be touched from the GUI thread, so the callback converts to a QImage
+/// and stores it, and a timer on the GUI thread repaints from the latest one.
+/// That also decouples repaint cost from frame rate: a stream arriving faster
+/// than the panel refreshes simply has frames skipped rather than queueing work
+/// onto the GUI thread.
 class ImageStreamPanel : public rviz_common::Panel {
   Q_OBJECT
 

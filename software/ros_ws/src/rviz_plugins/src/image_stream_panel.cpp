@@ -115,8 +115,9 @@ void ImageStreamPanel::_resubscribe() {
     // The usual cause is the plugin for this transport not being installed in
     // RViz's environment, which is worth saying plainly rather than leaving the
     // panel silently blank.
-    _status_label->setText(
-        QString("Transport '%1' unavailable: %2").arg(_transport).arg(e.what()));
+    _status_label->setText(QString("Transport '%1' unavailable: %2")
+                               .arg(_transport)
+                               .arg(e.what()));
     _image_label->clear();
   }
 }
@@ -182,9 +183,8 @@ void ImageStreamPanel::_refresh() {
   }
 
   if (frames_total == 0) {
-    _status_label->setText(QString("Waiting for %1 (%2)...")
-                               .arg(_topic)
-                               .arg(_transport));
+    _status_label->setText(
+        QString("Waiting for %1 (%2)...").arg(_topic).arg(_transport));
     return;
   }
 
@@ -195,9 +195,9 @@ void ImageStreamPanel::_refresh() {
     return;
   }
 
-  const QString age_text = age_s > STALE_AFTER_S
-                               ? QString("STALE %1 s").arg(age_s, 0, 'f', 1)
-                               : QString("%1 ms").arg(age_s * 1000.0, 0, 'f', 0);
+  const QString age_text =
+      age_s > STALE_AFTER_S ? QString("STALE %1 s").arg(age_s, 0, 'f', 1)
+                            : QString("%1 ms").arg(age_s * 1000.0, 0, 'f', 0);
   _status_label->setText(QString("%1x%2  %3  ·  %4 fps  ·  %5")
                              .arg(frame.width())
                              .arg(frame.height())
