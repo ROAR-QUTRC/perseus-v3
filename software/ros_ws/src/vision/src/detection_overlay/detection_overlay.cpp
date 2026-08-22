@@ -22,8 +22,15 @@ namespace {
 constexpr int IMAGE_QOS_DEPTH = 1;
 /// @brief Queue depth used for the detection topics.
 constexpr int DETECTION_QOS_DEPTH = 5;
-/// @brief JPEG quality used when re-encoding the annotated compressed image.
+/// @brief JPEG quality used when encoding the annotated image.
 constexpr int JPEG_QUALITY = 90;
+/// @brief Suffix appended to the output topic, the image_transport convention
+/// for a compressed companion of a raw image topic.
+const std::string COMPRESSED_TOPIC_SUFFIX = "/compressed";
+/// @brief Container format the annotated image is encoded into.
+const std::string COMPRESSED_FORMAT = "jpeg";
+/// @brief OpenCV extension selecting the encoder for COMPRESSED_FORMAT.
+const std::string COMPRESSED_EXTENSION = ".jpg";
 /// @brief Minimum gap between repeated warning logs, in milliseconds.
 constexpr int64_t LOG_THROTTLE_MS = 2000;
 /// @brief Left margin used for the staleness readout, in pixels.
@@ -37,7 +44,9 @@ constexpr int STALENESS_THICKNESS = 1;
 /// @brief Decimal places shown for the detection age.
 constexpr int STALENESS_PRECISION = 2;
 
-/// @brief Encoding the overlay works in and republishes.
+/// @brief Encoding the overlay decodes to and draws in. The published frame is
+/// JPEG, so this only has to be something the renderer and the encoder both
+/// take.
 const std::string IMAGE_ENCODING = "bgr8";
 } // namespace
 
@@ -51,27 +60,29 @@ DetectionOverlay::DetectionOverlay(const rclcpp::NodeOptions &options)
       "detection_topics", DEFAULT_DETECTION_TOPICS);
   _max_detection_age_s = declare_parameter<double>("max_detection_age_s",
                                                    DEFAULT_MAX_DETECTION_AGE_S);
-  _is_compressed_io =
-      declare_parameter<bool>("compressed_io", DEFAULT_IS_COMPRESSED_IO);
+  _is_compressed_input =
+      declare_parameter<bool>("compressed_input", DEFAULT_IS_COMPRESSED_INPUT);
   _should_show_staleness =
       declare_parameter<bool>("show_staleness", DEFAULT_SHOULD_SHOW_STALENESS);
 
-  if (_is_compressed_io) {
+  // The output is compressed whatever the input is, so the publisher is set up
+  // once and only the subscription side branches.
+  const std::string output_topic = _output_image_topic + COMPRESSED_TOPIC_SUFFIX;
+  _compressed_image_publisher =
+      create_publisher<sensor_msgs::msg::CompressedImage>(output_topic,
+                                                          IMAGE_QOS_DEPTH);
+
+  if (_is_compressed_input) {
     _compressed_image_subscription =
         create_subscription<sensor_msgs::msg::CompressedImage>(
-            _input_image_topic + "/compressed", IMAGE_QOS_DEPTH,
+            _input_image_topic + COMPRESSED_TOPIC_SUFFIX, IMAGE_QOS_DEPTH,
             std::bind(&DetectionOverlay::_compressed_image_callback, this,
                       std::placeholders::_1));
-    _compressed_image_publisher =
-        create_publisher<sensor_msgs::msg::CompressedImage>(
-            _output_image_topic + "/compressed", IMAGE_QOS_DEPTH);
   } else {
     _image_subscription = create_subscription<sensor_msgs::msg::Image>(
         _input_image_topic, IMAGE_QOS_DEPTH,
         std::bind(&DetectionOverlay::_image_callback, this,
                   std::placeholders::_1));
-    _image_publisher = create_publisher<sensor_msgs::msg::Image>(
-        _output_image_topic, IMAGE_QOS_DEPTH);
   }
 
   _detection_subscriptions.reserve(_detection_topics.size());
@@ -88,7 +99,7 @@ DetectionOverlay::DetectionOverlay(const rclcpp::NodeOptions &options)
   }
 
   RCLCPP_INFO(get_logger(), "DetectionOverlay ready — %s -> %s",
-              _input_image_topic.c_str(), _output_image_topic.c_str());
+              _input_image_topic.c_str(), output_topic.c_str());
 }
 
 void DetectionOverlay::_detections_callback(
@@ -154,8 +165,7 @@ void DetectionOverlay::_image_callback(
   }
 
   _draw_cached_detections(frame, msg->header.stamp);
-  _image_publisher->publish(
-      *cv_bridge::CvImage(msg->header, IMAGE_ENCODING, frame).toImageMsg());
+  _publish_overlay(msg->header, frame);
 }
 
 void DetectionOverlay::_compressed_image_callback(
@@ -175,15 +185,23 @@ void DetectionOverlay::_compressed_image_callback(
   }
 
   _draw_cached_detections(frame, msg->header.stamp);
+  _publish_overlay(msg->header, frame);
+}
 
-  sensor_msgs::msg::CompressedImage compressed_msg;
-  compressed_msg.header = msg->header;
-  compressed_msg.format = "jpeg";
-
+void DetectionOverlay::_publish_overlay(const std_msgs::msg::Header &header,
+                                        const cv::Mat &frame) {
   std::vector<uchar> buffer;
   const std::vector<int> encode_params = {cv::IMWRITE_JPEG_QUALITY,
                                           JPEG_QUALITY};
-  cv::imencode(".jpg", frame, buffer, encode_params);
+  if (!cv::imencode(COMPRESSED_EXTENSION, frame, buffer, encode_params)) {
+    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_THROTTLE_MS,
+                          "Failed to JPEG-encode the annotated image");
+    return;
+  }
+
+  sensor_msgs::msg::CompressedImage compressed_msg;
+  compressed_msg.header = header;
+  compressed_msg.format = COMPRESSED_FORMAT;
   compressed_msg.data = std::move(buffer);
 
   _compressed_image_publisher->publish(compressed_msg);
