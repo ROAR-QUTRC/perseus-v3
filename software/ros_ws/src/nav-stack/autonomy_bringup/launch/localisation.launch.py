@@ -53,7 +53,7 @@ def sim_overrides(params):
     """Adjust the real-robot parameters for Gazebo's point cloud, in place.
 
     Gazebo publishes x,y,z,intensity,ring. The real Livox driver publishes
-    reflectivity,tag,line. lidar_type selects which of those layouts FAST-LIO deserialises
+    x,y,z,intensity,tag,line,timestamp. lidar_type selects which of those layouts FAST-LIO deserialises
     into, so against the sim, type 4 finds no `line` field and reads the scan-line index as 0
     for every point -- collapsing all points onto one line and wrecking the per-point
     timestamps that motion compensation depends on. Type 2 reads `ring`, which the sim does

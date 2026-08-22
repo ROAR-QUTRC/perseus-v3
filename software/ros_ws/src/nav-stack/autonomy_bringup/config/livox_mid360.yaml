@@ -21,7 +21,7 @@
     point_filter_num: 3
     # 3 rather than the sim's 4. Each iteration re-runs the nearest-neighbour search over every
     # downsampled point, so this multiplies the dominant cost directly.
-    max_iteration: 3
+    max_iteration: 2
     # 0 sizes the residual loop to the machine, leaving one core for Nav2, perception and the
     # driver. Upstream compiled this loop out entirely on ARM, so it ran single-threaded on the
     # Jetson no matter how many cores the board had; that is fixed, and this is what makes
@@ -72,9 +72,12 @@
       time_offset_lidar_to_imu: 0.0
     preprocess:
       # 1 = Livox CustomMsg, 2 = Velodyne, 3 = Ouster, 4 = Livox MID360 PointCloud2.
-      # 4 is correct for the real driver, which emits reflectivity/tag/line. The sim config uses
-      # 2, because Gazebo publishes ring instead of line and type 4 would read the scan-line
-      # index as 0 for every point, wrecking the per-point timestamps.
+      # 4 is correct for the real driver, which emits x/y/z/intensity/tag/line/timestamp. The
+      # sim config uses 2, because Gazebo publishes ring instead of line and type 4 would read
+      # the scan-line index as 0 for every point, wrecking the per-point timestamps.
+      #
+      # Type 4's handler ignores the timestamp field regardless and reconstructs per-point
+      # times from yaw, so scan_rate below is what those times depend on.
       lidar_type: 4
       # A MID-360 has 4 scan lines. The sim's 32 is its vertical sample count, not a real sensor
       # property. Do not set this below the real line count: the handler indexes per-line state
@@ -84,7 +87,10 @@
       # Raise if the bucket enters the field of view -- but note it is a sphere, so it blinds the
       # robot in every direction at that radius.
       blind: 0.5
-      timestamp_unit: 3 # ns, as the driver publishes
+      # Also inert with lidar_type 4, for the same reason: the handler never reads the
+      # message's timestamp field, so there is no unit to scale. Left at the value matching
+      # what the driver publishes (ns) so it stays correct if the handler ever uses it.
+      timestamp_unit: 3
       scan_rate: 10 # MID-360 frame rate; drives the per-point time reconstruction
     mapping:
       acc_cov: 0.1
@@ -125,7 +131,7 @@
       # message's child frame and base_link.
       odom_in_base_en: true
     pcd_save:
-      pcd_save_en: true
+      pcd_save_en: false # false for the real robot: the sim's /map_save service is not advertised
       interval: -1 # dead in this branch; the frame-count chunking is commented out upstream
       # 60 s rather than the sim's 30: each save serialises the whole accumulated map, and the
       # map never shrinks, so the write gets slower as the run goes on.
@@ -134,3 +140,70 @@
       # use grows with the square of run time. A single sim session produced 310 files and
       # 3.8 GB that way.
       keep_history: false
+    # ---------------------------------------------------------------------------------------
+    # Re-localisation in a prior map. Read by the `global_localization` node, NOT by
+    # fastlio_mapping -- it is a separate executable, because an ICP taking hundreds of
+    # milliseconds inside the mapping node would block its 100 Hz timer and drop scans. The
+    # keys live here anyway: the `/**` wildcard above applies them to whichever node is given
+    # this file, and the two are configured as one stack.
+    #
+    # What this does: low-rate ICP against a prior map supplies odom -> map, while FAST-LIO
+    # keeps supplying odom -> base_link per scan. It corrects accumulated drift by moving the
+    # map -> odom edge, so odom stays continuous for nav2 and map -> base_link is the
+    # drift-free pose.
+    #
+    # What it does NOT do: loop closure. FAST-LIO2 has no place recognition and no pose
+    # graph. This only helps when there is a prior map to align against.
+    relocalization:
+      # Off by default. Disabled, the node declares these, logs one line and creates no
+      # subscriptions, timers or broadcasters -- so leaving it launched costs nothing.
+      enable: false
+      # The map to localise into. Matches pcd_save.map_file_path above so the map this stack
+      # writes is the map it later relocalises into. Note pcd_save_en is false above, so
+      # nothing is currently producing this file: turn it on for the mapping run first.
+      # A leading ~/ is expanded by the node itself.
+      prior_map_path: "~/maps/scan.pcd"
+      # Upstream's values. The map is downsampled once at load; the scan every cycle.
+      map_voxel_size: 0.4
+      scan_voxel_size: 0.1
+      # 0.5 Hz is the whole reason this is affordable: the expensive registration runs rarely
+      # and the high-rate pose still comes from FAST-LIO.
+      freq_hz: 0.5
+      # Fraction of scan points with a map point within max_correspondence_distance. This is
+      # Open3D's `fitness`, which upstream's 0.95 refers to -- deliberately not PCL's
+      # getFitnessScore(), which is a mean squared distance where lower is better.
+      fitness_threshold: 0.95
+      # The gate's real sensitivity, and worth tuning before trusting a fix. At 1.0 m a
+      # half-metre misalignment still scores near 1.0 and passes fitness_threshold above;
+      # measured 1.000 at 5 cm error on synthetic data. Tighten towards map_voxel_size to make
+      # the threshold discriminating -- 0.4 still converged in testing.
+      max_correspondence_distance: 1.0
+      # 2*pi, i.e. no angular crop, and this is a real departure from upstream's 1.6 rad.
+      # That default assumes a forward-facing sensor; a MID-360 sees 360 degrees horizontally,
+      # so a 92 degree wedge would discard most of the map. Anything above pi also drops the
+      # x > 0 test, leaving a range-only crop, which is what an omnidirectional sensor wants.
+      fov_rad: 6.28318
+      # Matches mapping.det_range above rather than upstream's 150 m, which is far beyond
+      # anything a MID-360 returns. Only affects which map points enter the submap.
+      fov_far: 70.0
+      # Coarse ICP at 5x the voxel sizes and correspondence distance pulls in a bad initial
+      # guess; the fine pass at 1x is seeded from its result. A single fine pass converges to
+      # a local minimum unless the guess is already good.
+      coarse_scale: 5.0
+      max_iterations: 20
+      # Republish rate for map -> odom, so the transform does not go stale between
+      # registrations. Upstream uses a second process (transform_fusion.py) for this.
+      tf_publish_rate_hz: 10.0
+      # odom_frame must match common.map_frame above: that is the frame FAST-LIO stamps
+      # /cloud_registered and /Odometry in, and the frame this node aligns to the map.
+      map_frame: "map"
+      odom_frame: "odom"
+      # Bootstrap without RViz -- [x, y, z, roll, pitch, yaw] of base_link in the map frame.
+      # Commented out rather than left as [], and that matters: an empty YAML list has no
+      # inferable element type, so rcl_yaml_param_parser emits an override with no value and
+      # rclcpp throws InvalidParameterValueException while parsing it. That happens before
+      # declaration is considered, so it aborts fastlio_mapping too -- a node that never
+      # declares this key. Omitted, the node's own empty default applies and it waits for
+      # /initialpose. A rover in the field has no one to click for it, so uncomment and set an
+      # explicit guess for autonomous starts.
+      # initial_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
