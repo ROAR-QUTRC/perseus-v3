@@ -27,6 +27,13 @@ namespace vision {
 /// topics, and republishes the camera image annotated with every detector's
 /// boxes.
 ///
+/// The annotated stream is always published JPEG-compressed, on
+/// `<output_image_topic>/compressed`. The overlay exists to be looked at by a
+/// human, usually over the link off the vehicle, and a raw bgr8 frame costs
+/// roughly an order of magnitude more bandwidth than the JPEG of it. The input
+/// side is still switchable, since that is a property of whatever camera is
+/// feeding this node.
+///
 /// The image path is deliberately never blocked waiting for detections. Each
 /// frame is annotated with the most recent detections already received and
 /// published immediately, so the output stream keeps the source frame rate
@@ -55,8 +62,8 @@ private:
   /// @brief Default age past which cached detections stop being drawn, in
   /// seconds.
   static constexpr double DEFAULT_MAX_DETECTION_AGE_S = 1.0;
-  /// @brief Default for whether the camera source and output are compressed.
-  static constexpr bool DEFAULT_IS_COMPRESSED_IO = false;
+  /// @brief Default for whether the camera source is compressed.
+  static constexpr bool DEFAULT_IS_COMPRESSED_INPUT = false;
   /// @brief Default for whether detection staleness is drawn on the image.
   static constexpr bool DEFAULT_SHOULD_SHOW_STALENESS = false;
 
@@ -68,6 +75,16 @@ private:
   /// @param msg Incoming compressed image message.
   void _compressed_image_callback(
       const sensor_msgs::msg::CompressedImage::SharedPtr msg);
+
+  /// @brief JPEG-encodes an annotated frame and publishes it.
+  ///
+  /// The single publish path shared by both input callbacks.
+  ///
+  /// @param header Header of the source image, republished unchanged so the
+  /// annotated frame keeps the capture timestamp and frame_id.
+  /// @param frame Annotated image to encode.
+  void _publish_overlay(const std_msgs::msg::Header &header,
+                        const cv::Mat &frame);
 
   /// @brief Caches the latest detections from one detector.
   /// @param topic Topic the detections arrived on, used as the cache key.
@@ -87,12 +104,13 @@ private:
   std::string _output_image_topic{DEFAULT_OUTPUT_IMAGE_TOPIC};
   std::vector<std::string> _detection_topics{DEFAULT_DETECTION_TOPICS};
   double _max_detection_age_s{DEFAULT_MAX_DETECTION_AGE_S};
-  bool _is_compressed_io{DEFAULT_IS_COMPRESSED_IO};
+  bool _is_compressed_input{DEFAULT_IS_COMPRESSED_INPUT};
   bool _should_show_staleness{DEFAULT_SHOULD_SHOW_STALENESS};
 
   // ROS IO
+  // Exactly one of the two subscriptions is created, depending on
+  // `compressed_input`; the publisher is always the compressed one.
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _image_subscription;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _image_publisher;
   rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr
       _compressed_image_subscription;
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr
