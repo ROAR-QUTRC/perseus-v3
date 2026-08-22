@@ -185,6 +185,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         GroupAction([fast_lio_launch], scoped=True),
         GroupAction([ekf_launch], scoped=True),
+        flat_footprint_broadcaster_node,
         GroupAction([watchdog_launch], scoped=True),
         GroupAction([health_check_launch], scoped=True),
     ]
