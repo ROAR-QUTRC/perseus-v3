@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Launch the localisation stack: FAST-LIO odometry fused by the EKF.
 
-Two pieces, and the split matters:
+Three pieces, and the split matters:
 
   1. fast_lio provides LiDAR-inertial odometry from config/livox_mid360.yaml, reading the
      raw Livox cloud directly off common.lid_topic (/livox/lidar). It publishes /Odometry
      as odom -> base_link and broadcasts no TF of its own.
   2. ekf.launch.py runs robot_localization from config/ekf_config.yaml, fusing that pose
      with IMU angular velocity and owning the odom -> base_link transform.
+  3. flat_footprint_broadcaster flattens that transform into odom -> base_footprint, from
+     config/footprint_broadcaster.yaml. nav2 is what consumes the frame, but it is derived
+     from the EKF output rather than from anything nav2 provides, so it belongs here: the
+     frame then exists whenever localisation is running. Note that no base_footprint link
+     exists in the URDF, deliberately -- a static base_link -> base_footprint from
+     robot_state_publisher would give the frame a second parent and TF would reject it.
 
 Start order does not matter. fast_lio withholds /Odometry until lid_frame -> base_frame
 resolves in TF, so until robot_state_publisher is up the EKF runs on the IMU alone.
@@ -32,7 +38,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 
@@ -117,6 +123,28 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    # Flattens the EKF's odom -> base_link into odom -> base_footprint, dropping z, roll
+    # and pitch while keeping yaw. nav2's costmaps and controller are the consumers, but
+    # the transform is derived from the EKF output, so it is brought up here rather than
+    # with navigation: anything reading base_footprint then gets it as soon as
+    # localisation is running, without nav2 having to be up.
+    flat_footprint_broadcaster_node = Node(
+        package="footprint_broadcaster",
+        executable="flat_footprint_broadcaster",
+        name="flat_footprint_broadcaster",
+        parameters=[
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("autonomy_bringup"),
+                    "config",
+                    "footprint_broadcaster.yaml",
+                ]
+            ),
+            {"use_sim_time": use_sim_time},
+        ],
+        output="screen",
+    )
+
     # Watches /odometry/filtered against /cmd_vel_out for wheel slip, so it belongs
     # wherever the EKF that produces /odometry/filtered is brought up.
     watchdog_launch = IncludeLaunchDescription(
@@ -130,7 +158,12 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-    return [fast_lio_launch, ekf_launch, watchdog_launch]
+    return [
+        fast_lio_launch,
+        ekf_launch,
+        flat_footprint_broadcaster_node,
+        watchdog_launch,
+    ]
 
 
 def generate_launch_description():
