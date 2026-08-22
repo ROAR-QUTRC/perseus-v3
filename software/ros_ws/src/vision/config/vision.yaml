@@ -58,6 +58,8 @@ detection_overlay:
     # drawn from the most recent message each detector produced, so boxes lag by
     # however long inference takes rather than holding up the image.
     input_image_topic: /camera/camera/color/image_raw
+    # The annotated stream is always published JPEG-compressed, so the topic
+    # that actually appears is this name with `/compressed` appended.
     output_image_topic: /vision/overlay/image
     detection_topics:
       - /vision/aruco/detections
@@ -65,5 +67,7 @@ detection_overlay:
     # Detections older than this stop being drawn, so a stalled or crashed detector
     # leaves the image clean instead of freezing its last boxes on screen.
     max_detection_age_s: 1.0
-    compressed_io: false
+    # Input side only — set true to read <input_image_topic>/compressed instead
+    # of the raw topic. The output is compressed either way.
+    compressed_input: false
     show_staleness: false # Draw the detection count and age onto the image
