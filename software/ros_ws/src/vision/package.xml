@@ -16,6 +16,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
   <depend>tf2_ros</depend>
   <depend>tf2</depend>
   <depend>geometry_msgs</depend>
@@ -30,6 +31,13 @@
   <exec_depend>interfaces</exec_depend>
   <depend>ament_index_cpp</depend>
   <exec_depend>v4l2_camera</exec_depend>
+  <exec_depend>sensors</exec_depend>
+  <!-- image_transport plugins: each one adds a companion topic to the
+       overlay's output. compressed_depth_image_transport is deliberately
+       absent — it only handles depth formats and logs an error per frame
+       for every other encoding it is offered. -->
+  <exec_depend>compressed_image_transport</exec_depend>
+  <exec_depend>ffmpeg_image_transport</exec_depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

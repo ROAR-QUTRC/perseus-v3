@@ -11,10 +11,6 @@ worth changing per run:
 
 The defaults match the baseline setup: color and depth on, IR off.
 
-Compressed topics need no nodes here. The driver publishes through image_transport, so
-every image topic gains a `/compressed` (and depth a `/compressedDepth`) companion from
-the plugins sensors depends on.
-
 Usage:
     ros2 launch sensors realsense.launch.py
 

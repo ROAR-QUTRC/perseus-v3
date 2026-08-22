@@ -61,12 +61,12 @@
     -->
     <link name="${prefix}livox_frame">
       <inertial>
-        <origin xyz="0 0.0 0.0" rpy="${pi/2} 0.0 ${pi}"/>
+        <origin xyz="0 0.0 0.0" rpy="${pi/2} 0.0 ${pi/2}"/>
         <mass value="${livox_mass}"/>
         <xacro:box_inertia m="${livox_mass}" x="${livox_length}" y="${livox_radius}" z="${livox_radius}"/>
       </inertial>
       <visual>
-        <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi}"/>
+        <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi/2}"/>
         <geometry>
           <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/mid-360.dae"/>
         </geometry>
@@ -84,11 +84,19 @@
       adds no rotation of its own, so the sensor inherits the plate's tilt. The IMU-LiDAR
       extrinsic in the fast_lio config is internal to the sensor housing and is unaffected
       by how the housing is mounted.
+
+      Do not add a rotation here to make the mesh line up. This joint is what says where the
+      sensor points, and fast_lio composes the robot's pose as
+      T_map_base = T_map_imu * T_imu_lidar * T_lidar_base, reading lid_frame -> base_frame
+      straight out of TF, so a yaw added here lands in base_link's reported orientation.
+      A -pi/2 put here for mesh alignment is exactly why base_link once started 90 degrees
+      off odom, and gravity alignment cannot absorb it, because an accelerometer constrains
+      roll and pitch only. Mesh alignment belongs on the <visual> origin above.
     -->
     <joint name="${prefix}laser_joint" type="fixed">
       <parent link="${prefix}livox_base"/>
       <child link="${prefix}livox_frame"/>
-      <origin xyz="${-0.038} 0.0 0.064" rpy="${0.0} 0.0 ${-pi/2}"/>
+      <origin xyz="${-0.038} 0.0 0.064" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
