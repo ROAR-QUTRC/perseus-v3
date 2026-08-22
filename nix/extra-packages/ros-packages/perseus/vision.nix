@@ -7,8 +7,11 @@
   ament-lint-auto,
   ament-lint-common,
   builtin-interfaces,
+  compressed-image-transport,
   cv-bridge,
+  ffmpeg-image-transport,
   geometry-msgs,
+  image-transport,
   onnxruntime,
   opencv,
   interfaces,
@@ -39,8 +42,11 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     ament-index-cpp
     builtin-interfaces
+    compressed-image-transport
     cv-bridge
+    ffmpeg-image-transport
     geometry-msgs
+    image-transport
     onnxruntime
     opencv
     interfaces

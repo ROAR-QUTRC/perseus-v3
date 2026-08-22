@@ -6,13 +6,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cv_bridge/cv_bridge.hpp>
+#include <image_transport/image_transport.hpp>
 #include <memory>
 #include <mutex>
 #include <opencv2/core.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <std_msgs/msg/header.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,12 +26,19 @@ namespace vision {
 /// topics, and republishes the camera image annotated with every detector's
 /// boxes.
 ///
-/// The annotated stream is always published JPEG-compressed, on
-/// `<output_image_topic>/compressed`. The overlay exists to be looked at by a
-/// human, usually over the link off the vehicle, and a raw bgr8 frame costs
-/// roughly an order of magnitude more bandwidth than the JPEG of it. The input
-/// side is still switchable, since that is a property of whatever camera is
-/// feeding this node.
+/// Both sides go through image_transport rather than a plain publisher, so the
+/// wire format is a deployment choice rather than something baked in here. Each
+/// transport plugin installed alongside this node adds a companion topic to the
+/// output:
+///
+///     <output_image_topic>              raw, for consumers on the vehicle
+///     <output_image_topic>/compressed   JPEG, from compressed_image_transport
+///     <output_image_topic>/ffmpeg       H.264, from ffmpeg_image_transport
+///
+/// A subscriber picks whichever it wants, and image_transport only encodes for
+/// the transports that actually have subscribers — so the off-vehicle codecs
+/// cost nothing while nobody is watching. `input_transport` selects the format
+/// on the way in, which is a property of whatever camera is feeding this node.
 ///
 /// The image path is deliberately never blocked waiting for detections. Each
 /// frame is annotated with the most recent detections already received and
@@ -62,29 +68,19 @@ private:
   /// @brief Default age past which cached detections stop being drawn, in
   /// seconds.
   static constexpr double DEFAULT_MAX_DETECTION_AGE_S = 1.0;
-  /// @brief Default for whether the camera source is compressed.
-  static constexpr bool DEFAULT_IS_COMPRESSED_INPUT = false;
+  /// @brief Default image_transport transport used for the camera source.
+  static inline const std::string DEFAULT_INPUT_TRANSPORT = "raw";
   /// @brief Default for whether detection staleness is drawn on the image.
   static constexpr bool DEFAULT_SHOULD_SHOW_STALENESS = false;
 
-  /// @brief Annotates and republishes a raw camera image.
-  /// @param msg Incoming raw image message.
-  void _image_callback(const sensor_msgs::msg::Image::SharedPtr msg);
-
-  /// @brief Annotates and republishes a compressed camera image.
-  /// @param msg Incoming compressed image message.
-  void _compressed_image_callback(
-      const sensor_msgs::msg::CompressedImage::SharedPtr msg);
-
-  /// @brief JPEG-encodes an annotated frame and publishes it.
+  /// @brief Annotates and republishes one camera image.
   ///
-  /// The single publish path shared by both input callbacks.
+  /// image_transport has already decoded the incoming frame to an Image by the
+  /// time this runs, whatever transport carried it, so there is one image path
+  /// regardless of the wire format.
   ///
-  /// @param header Header of the source image, republished unchanged so the
-  /// annotated frame keeps the capture timestamp and frame_id.
-  /// @param frame Annotated image to encode.
-  void _publish_overlay(const std_msgs::msg::Header &header,
-                        const cv::Mat &frame);
+  /// @param msg Incoming image message.
+  void _image_callback(const sensor_msgs::msg::Image::ConstSharedPtr &msg);
 
   /// @brief Caches the latest detections from one detector.
   /// @param topic Topic the detections arrived on, used as the cache key.
@@ -104,17 +100,12 @@ private:
   std::string _output_image_topic{DEFAULT_OUTPUT_IMAGE_TOPIC};
   std::vector<std::string> _detection_topics{DEFAULT_DETECTION_TOPICS};
   double _max_detection_age_s{DEFAULT_MAX_DETECTION_AGE_S};
-  bool _is_compressed_input{DEFAULT_IS_COMPRESSED_INPUT};
+  std::string _input_transport{DEFAULT_INPUT_TRANSPORT};
   bool _should_show_staleness{DEFAULT_SHOULD_SHOW_STALENESS};
 
   // ROS IO
-  // Exactly one of the two subscriptions is created, depending on
-  // `compressed_input`; the publisher is always the compressed one.
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _image_subscription;
-  rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr
-      _compressed_image_subscription;
-  rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr
-      _compressed_image_publisher;
+  image_transport::Subscriber _image_subscription;
+  image_transport::Publisher _image_publisher;
   std::vector<rclcpp::Subscription<interfaces::msg::DetectionArray>::SharedPtr>
       _detection_subscriptions;
 

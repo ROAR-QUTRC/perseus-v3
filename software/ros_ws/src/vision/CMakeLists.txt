@@ -16,6 +16,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(interfaces REQUIRED)
@@ -61,6 +62,7 @@ ament_target_dependencies(
   tf2_ros
   tf2_geometry_msgs
   cv_bridge
+  image_transport
   OpenCV
   ament_index_cpp
   visualization_msgs
