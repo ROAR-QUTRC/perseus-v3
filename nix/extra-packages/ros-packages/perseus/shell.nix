@@ -41,11 +41,13 @@ pkgs.mkShell {
           cv-bridge
           diff-drive-controller
           fast-lio
+          ffmpeg-image-transport
           geometry-msgs
           grid-map-core
           hardware-interface
           hi-can
           hi-can-raw
+          image-transport
           joint-state-broadcaster
           joint-state-publisher-gui
           joy
