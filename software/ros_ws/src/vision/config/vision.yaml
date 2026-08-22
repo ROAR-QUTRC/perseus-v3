@@ -95,6 +95,15 @@ detection_overlay:
             # CPU. That is cheap at the camera's 424x240 but would not be at
             # 720p.
             encoder: libx264
+            # Must be set. The plugin's own default is -1, meaning "unset", but
+            # it passes that through to the codec, and libx264 refuses to open
+            # with "The encoder bitrate is negative" — so leaving this out
+            # breaks the transport entirely rather than picking a default.
+            #
+            # 1 Mbit/s is generous at 424x240: comfortably better quality than
+            # the JPEG companion while using roughly a quarter of its bandwidth.
+            # Drop it a long way (300k or below) before quality suffers here.
+            bit_rate: 1000000
             # Keyframe spacing, and the parameter that matters most. A viewer
             # cannot decode anything until the next keyframe, so this bounds how
             # long one that just connected waits for its first frame: ~1 s at
