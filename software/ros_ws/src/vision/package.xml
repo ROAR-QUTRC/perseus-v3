@@ -30,6 +30,7 @@
   <exec_depend>interfaces</exec_depend>
   <depend>ament_index_cpp</depend>
   <exec_depend>v4l2_camera</exec_depend>
+  <exec_depend>sensors</exec_depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>
