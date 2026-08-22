@@ -72,5 +72,36 @@ detection_overlay:
     # image_transport transport for the camera source: "raw", "compressed",
     # "ffmpeg", or any other installed plugin. Only affects the input — the
     # output always offers every transport.
+    # vision.launch.py passes this as an override, so its `input_transport:=`
+    # argument wins over the value here.
     input_transport: raw
     show_staleness: false # Draw the detection count and age onto the image
+    # ── transport plugin settings ────────────────────────────────────────────
+    # image_transport declares each plugin's parameters under
+    # "<output topic, slashes replaced by dots>.<transport>.", so these names
+    # track output_image_topic above and must be renamed with it. If in doubt,
+    # `ros2 param list` on the node prints the real names.
+    vision:
+      overlay:
+        image:
+          compressed:
+            # Stated rather than left to the plugin default so the JPEG matches
+            # what this node produced when it encoded the stream itself.
+            format: jpeg
+            jpeg_quality: 90
+          ffmpeg:
+            # No hardware encoder here: the Jetson's NVENC is not reachable
+            # through the ffmpeg this is built against, so encoding is on the
+            # CPU. That is cheap at the camera's 424x240 but would not be at
+            # 720p.
+            encoder: libx264
+            # Keyframe spacing, and the parameter that matters most. A viewer
+            # cannot decode anything until the next keyframe, so this bounds how
+            # long one that just connected waits for its first frame: ~1 s at
+            # the camera's 15 fps. The plugin defaults to 10 and warns that the
+            # value is worth choosing deliberately.
+            gop_size: 15
+            # ultrafast/zerolatency trade compression ratio for encode latency
+            # and CPU, which is the right way round for a live link that is
+            # already far below any plausible bandwidth limit.
+            encoder_av_options: preset:ultrafast,tune:zerolatency

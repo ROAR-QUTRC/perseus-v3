@@ -15,6 +15,11 @@ and is only wanted when something is actually consuming its detections:
     aruco_detect   ArUco marker detector      (default false)
     cube_detect    YOLO cube detector         (default false)
 
+`input_transport` selects the image_transport transport the overlay reads its camera
+frames with — "raw", "compressed", "ffmpeg", or any other installed plugin. It only
+affects the input; the output always offers every installed transport as a companion
+topic, and encodes for a transport only while something subscribes to it.
+
 Arguments declared by realsense.launch.py (enable_depth, enable_infra_pair,
 enable_color) pass straight through.
 
@@ -24,6 +29,8 @@ Usage:
     ros2 launch vision vision.launch.py aruco_detect:=true cube_detect:=true
 
     ros2 launch vision vision.launch.py aruco_detect:=true enable_depth:=true
+
+    ros2 launch vision vision.launch.py input_transport:=compressed
 """
 
 import os
@@ -62,6 +69,13 @@ def generate_launch_description():
         default_value="false",
         description="Run the cube detector",
     )
+    # Duplicates the default in vision.yaml, because this is passed as a
+    # parameter override and so always wins over the file.
+    input_transport_arg = DeclareLaunchArgument(
+        "input_transport",
+        default_value="raw",
+        description="image_transport transport the overlay reads camera frames with",
+    )
 
     # Not wrapped in a scoped group: realsense.launch.py declares its own stream
     # toggles, and leaving the include unscoped is what lets them be set from this
@@ -79,12 +93,13 @@ def generate_launch_description():
         {"use_sim_time": LaunchConfiguration("use_sim_time")},
     ]
 
-    def vision_node(executable, name, argument):
+    def vision_node(executable, name, argument, extra_parameters=None):
         return Node(
             package="vision",
             executable=executable,
             name=name,
-            parameters=common_parameters,
+            # Overrides go last so they win over the config file.
+            parameters=common_parameters + (extra_parameters or []),
             output="screen",
             condition=IfCondition(LaunchConfiguration(argument)),
         )
@@ -95,8 +110,14 @@ def generate_launch_description():
             overlay_arg,
             aruco_detect_arg,
             cube_detect_arg,
+            input_transport_arg,
             realsense,
-            vision_node("detection_overlay_node", "detection_overlay", "overlay"),
+            vision_node(
+                "detection_overlay_node",
+                "detection_overlay",
+                "overlay",
+                [{"input_transport": LaunchConfiguration("input_transport")}],
+            ),
             vision_node("aruco_detector_node", "aruco_detector", "aruco_detect"),
             vision_node("cube_detector", "cube_detector", "cube_detect"),
         ]
