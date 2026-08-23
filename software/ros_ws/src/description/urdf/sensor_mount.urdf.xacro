@@ -61,12 +61,12 @@
     -->
     <link name="${prefix}livox_frame">
       <inertial>
-        <origin xyz="0 0.0 0.0" rpy="${pi/2} 0.0 ${pi/2}"/>
+        <origin xyz="0 0.0 0.0" rpy="${pi/2} 0.0 ${pi}"/>
         <mass value="${livox_mass}"/>
         <xacro:box_inertia m="${livox_mass}" x="${livox_length}" y="${livox_radius}" z="${livox_radius}"/>
       </inertial>
       <visual>
-        <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi/2}"/>
+        <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi}"/>
         <geometry>
           <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/mid-360.dae"/>
         </geometry>
@@ -85,18 +85,27 @@
       extrinsic in the fast_lio config is internal to the sensor housing and is unaffected
       by how the housing is mounted.
 
-      Do not add a rotation here to make the mesh line up. This joint is what says where the
-      sensor points, and fast_lio composes the robot's pose as
-      T_map_base = T_map_imu * T_imu_lidar * T_lidar_base, reading lid_frame -> base_frame
-      straight out of TF, so a yaw added here lands in base_link's reported orientation.
-      A -pi/2 put here for mesh alignment is exactly why base_link once started 90 degrees
-      off odom, and gravity alignment cannot absorb it, because an accelerometer constrains
-      roll and pitch only. Mesh alignment belongs on the <visual> origin above.
+      The -pi/2 yaw is not mesh alignment: the sensor is physically seated on the plate
+      rotated a quarter turn, so TF has to say so. livox_ros_driver2 stamps every cloud
+      frame_id: livox_frame, which means this joint's orientation is what orients every
+      point downstream; get it wrong and the whole point cloud is rotated.
+
+      96a84d2 removed this yaw (PR #17, fix/livox-frame-yaw) to stop base_link starting
+      90 degrees off odom, and that reversed the trade. fast_lio does compose
+      T_map_base = T_map_imu * T_imu_lidar * T_lidar_base with lid_frame -> base_frame read
+      from TF, so the yaw does land in base_link's reported orientation, but odom has no
+      absolute yaw reference (see the imu0 notes in autonomy_bringup/config/ekf_config.yaml),
+      so the odom frame is defined by wherever the robot started and a 90 degree offset in it
+      is cosmetic. A rotated point cloud is not. What has to agree is the cloud and the pose,
+      and only keeping the real mounting rotation here achieves that.
+
+      Mesh alignment is the pi on the <visual> and <inertial> origins above; the two move
+      together, so changing one without the other makes the model lie about the frame.
     -->
     <joint name="${prefix}laser_joint" type="fixed">
       <parent link="${prefix}livox_base"/>
       <child link="${prefix}livox_frame"/>
-      <origin xyz="${-0.038} 0.0 0.064" rpy="0.0 0.0 0.0"/>
+      <origin xyz="${-0.038} 0.0 0.064" rpy="${0.0} 0.0 ${-pi/2}"/>
     </joint>
 
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
