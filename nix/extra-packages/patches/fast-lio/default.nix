@@ -37,8 +37,8 @@ buildRosPackage rec {
   src = fetchFromGitHub {
     owner = "bocho0600";
     repo = "FAST_LIO";
-    rev = "2f49357210f3ff589e3f5721d388d4012e43063c"; # feat/configurable-frames
-    hash = "sha256-WDLZ6nHYHOD/rPChNgeI3BhxGeOOz7x0o9QYLAKOKgQ=";
+    rev = "2cef2e49b79000bc4f936c48b138047b6b7389cc"; # feat/configurable-frames
+    hash = "sha256-QwjtUY1o9SzicPmUoE1u/BDvfeg6Z5abl+yVe1yVjd0=";
     fetchSubmodules = true;
   };
 
