@@ -30,7 +30,7 @@
     # 0.15 rather than the sim's 0.1. This is the strongest accuracy dial and also the most
     # expensive: halving it roughly multiplies the surviving point count, and with 2.7x more
     # incoming points than the sim there is far less headroom to spend.
-    filter_size_surf: 0.15
+    filter_size_surf: 0.12
     # Kept near filter_size_surf: a map coarser than the scans caps how precisely a scan can be
     # matched, which would undo the setting above.
     filter_size_map: 0.3
@@ -138,7 +138,7 @@
       # message's child frame and base_link.
       odom_in_base_en: true
     pcd_save:
-      pcd_save_en: true
+      pcd_save_en: false # /map_save service is the only way to write a file
       interval: -1 # dead in this branch; the frame-count chunking is commented out upstream
       # 60 s rather than the sim's 30: each save serialises the whole accumulated map, and the
       # map never shrinks, so the write gets slower as the run goes on.
