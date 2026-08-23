@@ -138,7 +138,7 @@
       # message's child frame and base_link.
       odom_in_base_en: true
     pcd_save:
-      pcd_save_en: true
+      pcd_save_en: false # /map_save service is the only way to write a file
       interval: -1 # dead in this branch; the frame-count chunking is commented out upstream
       # 60 s rather than the sim's 30: each save serialises the whole accumulated map, and the
       # map never shrinks, so the write gets slower as the run goes on.
