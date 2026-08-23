@@ -7,6 +7,8 @@ Panels:
         - /TF1/Frames1
         - /RobotModel1/Description Topic1
         - /Livox Cloud1/Topic1
+        - /Footprint1/Topic1
+        - /Footprint1/Shape1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 417
   - Class: rviz_common/Selection
@@ -361,7 +363,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 32.33333206176758
+      Max Intensity: 122
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Livox Cloud
@@ -416,13 +418,13 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color: 4; 196; 172
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 146
+      Max Intensity: 150
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: Cloud Map
@@ -439,6 +441,45 @@ Visualization Manager:
         Value: /Laser_map
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz_default_plugins/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: false
+      Enabled: true
+      Keep: 1000
+      Name: Footprint
+      Position Tolerance: 0.10000000149011612
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 220; 138; 221
+        Head Length: 0
+        Head Radius: 0
+        Shaft Length: 0.10000000149011612
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /odometry/filtered
       Value: true
   Enabled: true
   Global Options:
