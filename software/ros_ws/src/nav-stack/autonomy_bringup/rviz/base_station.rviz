@@ -8,8 +8,12 @@ Panels:
         - /TF1/Frames1
         - /RobotModel1/Description Topic1
         - /Livox Cloud1/Topic1
-      Splitter Ratio: 0.5833333134651184
-    Tree Height: 417
+        - /Front Camera1/Status1
+        - /Front Camera1/Topic1
+        - /Camera1/Status1
+        - /Camera1/Topic1
+      Splitter Ratio: 0.4303278625011444
+    Tree Height: 289
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -212,6 +216,29 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /camera/camera/color/image_raw
       Value: true
+    - Class: rviz_default_plugins/Camera
+      Enabled: true
+      Far Plane Distance: 100
+      Image Rendering: background
+      Name: Camera
+      Overlay Alpha: 0.5
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /vision/overlay/image/compressed
+      Value: true
+      Visibility:
+        Front Camera: true
+        Grid: true
+        Livox Cloud: true
+        PCL Map: true
+        Path: true
+        RobotModel: true
+        TF: true
+        Value: true
+      Zoom Factor: 1
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -281,6 +308,8 @@ Visualization Manager:
         Value: ThirdPersonFollower (rviz_default_plugins)
         Yaw: 3.141200065612793
 Window Geometry:
+  Camera:
+    collapsed: false
   Displays:
     collapsed: false
   Front Camera:
@@ -288,7 +317,7 @@ Window Geometry:
   Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000004fb000000100044006900730070006c006100790073010000003f0000022f000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000274000001600000008800ffffff000000010000010000000395fc0200000002fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000d00000001700fffffffb0000000a005600690065007700730100000115000002bf000000a900ffffff0000051e0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000005fb000000100044006900730070006c006100790073010000003f000001af000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001f4000001100000008800fffffffb0000000c00430061006d006500720061010000030a000000ca0000001700ffffff00000001000001c300000395fc0200000002fb0000001800460072006f006e0074002000430061006d006500720061010000003f000001110000001700fffffffb0000000a0056006900650077007301000001560000027e000000a900ffffff0000045b0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
