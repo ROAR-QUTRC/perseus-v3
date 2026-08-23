@@ -21,7 +21,7 @@
     point_filter_num: 3
     # 3 rather than the sim's 4. Each iteration re-runs the nearest-neighbour search over every
     # downsampled point, so this multiplies the dominant cost directly.
-    max_iteration: 3
+    max_iteration: 2
     # 0 sizes the residual loop to the machine, leaving one core for Nav2, perception and the
     # driver. Upstream compiled this loop out entirely on ARM, so it ran single-threaded on the
     # Jetson no matter how many cores the board had; that is fixed, and this is what makes
@@ -65,8 +65,21 @@
       # split between the world x and z axes. Needs the robot stationary at startup.
       gravity_align_en: true
       # Put the world origin on base_link rather than on the IMU up the mast, so the ground
-      # plane is near z = 0 instead of z = -0.65 for everything downstream.
+      # plane is near z = 0 instead of z = -0.65 for everything downstream. Position only:
+      # the heading is the separate switch below.
       origin_at_base_en: true
+      # And the world heading, which origin_at_base_en does not touch. Without this the world
+      # frame keeps the IMU's startup yaw -- gravity_align_en above fixes roll and pitch only,
+      # because an accelerometer cannot observe yaw -- and the IMU sits inside the Livox, which
+      # laser_joint mounts a quarter turn round. base_link therefore came up exactly 90 degrees
+      # off odom, which is what made the EKF's "both start at the robot's initial pose" comment
+      # in ekf_config.yaml false: robot_localization starts at identity and got pulled 90
+      # degrees by the first /Odometry message.
+      #
+      # Not a correctness fix -- REP-105 leaves the odom heading arbitrary -- but a 90 degree
+      # offset is confusing to read and costs a startup transient. Rotating about world z,
+      # already vertical from gravity alignment, leaves roll, pitch and gravity untouched.
+      heading_at_base_en: true
       # The MID-360's LiDAR and IMU share one clock, so leave this off.
       time_sync_en: false
       time_offset_lidar_to_imu: 0.0
