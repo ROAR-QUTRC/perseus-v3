@@ -1,0 +1,10 @@
+<library path="rviz_plugins">
+  <class
+    name="rviz_plugins/TopicHealthPanel"
+    type="rviz_plugins::TopicHealthPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Table of per-topic rate and staleness from health_check.
+    </description>
+  </class>
+</library>

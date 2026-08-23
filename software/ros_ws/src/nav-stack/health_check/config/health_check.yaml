@@ -1,0 +1,70 @@
+# Watch list for health_check/health_monitor.
+#
+# `topics` and `expected_rates_hz` are index-paired: entry i of one describes entry i of
+# the other, and the node refuses to start if their lengths disagree. ROS parameters
+# cannot express a list of structs, so this is the alternative to a bespoke config format.
+#
+# The expected rates below are the configured or documented rates of each producer, not
+# measurements. Where a rate is inherited rather than set directly the comment says so.
+/**:
+  ros__parameters:
+    # How often a health snapshot is published.
+    publish_rate_hz: 1.0
+    # How often unbound topics are retried against the ROS graph. A topic cannot be
+    # subscribed to generically until something advertises it, so a monitor for a node
+    # that starts late stays unbound until one of these ticks picks it up.
+    discovery_rate_hz: 0.5
+    # Trailing window that rate and bandwidth are averaged over. Long enough that a 10 Hz
+    # topic contributes ~50 samples, so a single late message does not read as a dropout.
+    window_sec: 5.0
+    # Silence after which a topic with a live publisher is reported STALE. Two seconds is
+    # twenty missed messages at the slowest rate monitored here.
+    stale_timeout_sec: 2.0
+    # How far below the expected rate a topic may sit before it counts as SLOW, as a
+    # fraction. 0.5 tolerates half rate, which accommodates the jitter a loaded machine
+    # introduces without hiding a genuine halving of throughput.
+    rate_tolerance: 0.5
+    topics:
+      # Livox MID-360 pointcloud. publish_freq in sensors/launch/livox.launch.py.
+      - /livox/lidar
+      # Raw IMU from the MID-360's built-in ICM40609.
+      - /livox/imu
+      # Bias-corrected IMU from sensors/bias_remover; the EKF's imu0 input. Same rate as
+      # the raw stream it derives from.
+      - /livox/imu/corrected
+      # FAST-LIO's pose output; the EKF's odom0 input. Tied to the LiDAR scan rate.
+      - /Odometry
+      # Wheel odometry from the diff drive controller. publish_rate in
+      # perseus/config/perseus_controllers.yaml.
+      - /odom
+      # EKF output. frequency in autonomy_bringup/config/ekf_config.yaml.
+      - /odometry/filtered
+      # RealSense D455, watched on the image topics themselves so a stall in image
+      # publishing shows up directly rather than being inferred from the camera_info
+      # companion beside it.
+      #
+      # The color stream is already subscribed by the vision nodes, so monitoring it
+      # costs little beyond one more copy. The infra pair has no other subscriber, so
+      # these two entries are what starts that traffic flowing: 848x480 Y8 at 30 Hz is
+      # about 12 MB/s each. If that shows up in CPU or on the DDS transport, switch
+      # just those two to /camera/camera/infraN/camera_info, which is published once
+      # per frame and so reports the same rate for a few hundred bytes.
+      #
+      # Only the streams realsense.launch.py enables by default are listed. Depth is
+      # off there, so watching it would report a missing publisher on every run; add it
+      # here and to the rates below together if you turn it on.
+      - /camera/camera/color/image_raw
+      - /camera/camera/infra1/image_rect_raw
+      - /camera/camera/infra2/image_rect_raw
+    expected_rates_hz:
+      - 10.0 # /livox/lidar
+      - 200.0 # /livox/imu
+      - 200.0 # /livox/imu/corrected
+      - 10.0 # /Odometry
+      - 50.0 # /odom
+      - 30.0 # /odometry/filtered
+      # rgb_camera.color_profile in sensors/config/realsense.yaml is 424,240,15
+      - 15.0 # /camera/camera/color/image_raw
+      # depth_module.infra_profile is 848,480,30, shared by both infra streams
+      - 30.0 # /camera/camera/infra1/image_rect_raw
+      - 30.0 # /camera/camera/infra2/image_rect_raw
