@@ -7,6 +7,7 @@
   compressed-depth-image-transport,
   compressed-image-transport,
   geometry-msgs,
+  interfaces,
   nav-msgs,
   rclcpp,
   rclcpp-components,
@@ -28,6 +29,7 @@ buildRosPackage rec {
     compressed-depth-image-transport
     compressed-image-transport
     geometry-msgs
+    interfaces
     nav-msgs
     rclcpp
     rclcpp-components

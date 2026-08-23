@@ -24,6 +24,18 @@ let
         propagatedBuildInputs = final.lib.remove rosFinal.perseus-input-config propagatedBuildInputs;
       }
     );
+    # draco isn't a ROS package, so ros2nix can't pick it up from package.xml
+    # the way it does the `interfaces` dependency -- the voxel downsampler and
+    # point cloud decoder link against it, so add it here.
+    sensors = rosPrev.sensors.overrideAttrs (
+      {
+        propagatedBuildInputs ? [ ],
+        ...
+      }:
+      {
+        propagatedBuildInputs = propagatedBuildInputs ++ [ final.draco ];
+      }
+    );
     vision =
       let
         cubeDetectorModel = prev.fetchurl {

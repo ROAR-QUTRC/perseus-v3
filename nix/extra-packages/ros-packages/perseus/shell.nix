@@ -40,6 +40,7 @@ pkgs.mkShell {
           controller-manager
           cv-bridge
           diff-drive-controller
+          draco
           fast-lio
           geometry-msgs
           grid-map-core
