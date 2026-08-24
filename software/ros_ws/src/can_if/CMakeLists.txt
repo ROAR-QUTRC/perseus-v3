@@ -41,10 +41,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs nlohmann_json)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs nlohmann_json interfaces)
 
 # packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
+set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
