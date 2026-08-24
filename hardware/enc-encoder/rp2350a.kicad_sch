@@ -4751,7 +4751,7 @@
 		)
 		(uuid "f60d81f5-fad9-4a32-a580-c7bed33ee992")
 	)
-	(hierarchical_label "RP_HALL_PGO"
+	(hierarchical_label "RP_I2C_SCL"
 		(shape input)
 		(at 172.72 78.74 0)
 		(effects
@@ -4760,7 +4760,7 @@
 			)
 			(justify left)
 		)
-		(uuid "2b64ec1e-a6a1-4f87-9670-47bb36d74af7")
+		(uuid "17398e5b-087c-4f31-b6d2-04d2f0e41795")
 	)
 	(hierarchical_label "SWDIO"
 		(shape bidirectional)
@@ -4829,7 +4829,7 @@
 		)
 		(uuid "7940c138-7351-49d8-96f4-e22ec6eeb746")
 	)
-	(hierarchical_label "RP_I2C_SCL"
+	(hierarchical_label "RP_HALL_PGO"
 		(shape input)
 		(at 172.72 73.66 0)
 		(effects
@@ -4838,7 +4838,7 @@
 			)
 			(justify left)
 		)
-		(uuid "83337aa0-e1f0-474e-95e0-8b60f4f3ca04")
+		(uuid "9aa0baf0-8542-4584-b070-e13fd4e152ec")
 	)
 	(hierarchical_label "SWCLK"
 		(shape input)
