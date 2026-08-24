@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <hi_can_raw.hpp>
+#include <interfaces/msg/rcb_power_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
@@ -41,6 +42,6 @@ private:
       _parameter_groups;
 
   rclcpp::TimerBase::SharedPtr _packet_timeout_timer;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _packet_publisher;
+  rclcpp::Publisher<interfaces::msg::RcbPowerStatus>::SharedPtr _packet_publisher;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _packet_subscriber;
 };
