@@ -11574,7 +11574,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "724bfe82-f885-406c-859f-61c98fbcd428")
-		(property "Reference" "3V1"
+		(property "Reference" "3V3"
 			(at 252.222 150.622 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11680,7 +11680,7 @@
 		(instances
 			(project "enc-encoder"
 				(path "/830e855f-c01b-4865-ac3f-fca5cbe32ffd"
-					(reference "3V1")
+					(reference "3V3")
 					(unit 1)
 				)
 			)
