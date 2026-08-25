@@ -11,6 +11,7 @@
   rclcpp,
   rclpy,
   sensor-msgs,
+  std-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-teleop";
@@ -31,6 +32,7 @@ buildRosPackage rec {
     rclcpp
     rclpy
     sensor-msgs
+    std-msgs
   ];
   nativeBuildInputs = [
     ament-cmake

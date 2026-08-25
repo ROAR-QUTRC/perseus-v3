@@ -99,6 +99,8 @@ install(TARGETS arm_driver DESTINATION lib/${PROJECT_NAME})
 install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
 install(TARGETS bucket_driver DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
+
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}

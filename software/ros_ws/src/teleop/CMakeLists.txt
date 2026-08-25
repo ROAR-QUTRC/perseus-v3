@@ -84,6 +84,10 @@ install(
   PROGRAMS ${PROJECT_NAME}/script/teleop_keyboard.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME teleop_keyboard)
+install(
+  PROGRAMS ${PROJECT_NAME}/script/arm_teleop.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME arm_teleop)
 
 # INSTALL (ROS)
 install(
