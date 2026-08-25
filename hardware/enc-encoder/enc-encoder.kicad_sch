@@ -6,11 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "Magnetic Angle Sensor")
-<<<<<<< Updated upstream
-		(date "2026-08-15")
-=======
 		(date "2026-08-25")
->>>>>>> Stashed changes
 		(rev "V1R1")
 	)
 	(lib_symbols
@@ -8776,7 +8772,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "M3"
+		(property "Value" "M2"
 			(at 33.02 160.0199 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12042,7 +12038,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "M3"
+		(property "Value" "M2"
 			(at 33.02 166.3699 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14308,7 +14304,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "M3"
+		(property "Value" "M2"
 			(at 33.02 172.7199 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16373,7 +16369,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "M3"
+		(property "Value" "M2"
 			(at 33.02 153.6699 90)
 			(show_name no)
 			(do_not_autoplace no)
