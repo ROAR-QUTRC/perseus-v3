@@ -1,6 +1,10 @@
 {
   "board": {
+<<<<<<< Updated upstream
     "active_layer": 5,
+=======
+    "active_layer": 3,
+>>>>>>> Stashed changes
     "active_layer_preset": "",
     "auto_track_width": true,
     "hidden_netclasses": [],
@@ -27,7 +31,11 @@
       "text": true,
       "tracks": true,
       "vias": true,
+<<<<<<< Updated upstream
       "zones": false
+=======
+      "zones": true
+>>>>>>> Stashed changes
     },
     "visible_items": [
       "vias",
