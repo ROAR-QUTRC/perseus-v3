@@ -5,4 +5,5 @@
 	(lib (name "Project_PCB") (type "KiCad") (uri "${KIPRJMOD} /../libraries/Project_PCB.pretty") (options "") (descr ""))
 	(lib (name "SMD") (type "KiCad") (uri "${KIPRJMOD} /../libraries/SMD.pretty") (options "") (descr ""))
 	(lib (name "THT") (type "KiCad") (uri "${KIPRJMOD} /../libraries/THT.pretty") (options "") (descr ""))
+	(lib (name "Tags") (type "KiCad") (uri "${KIPRJMOD} /../libraries/Tags.pretty") (options "") (descr ""))
 )

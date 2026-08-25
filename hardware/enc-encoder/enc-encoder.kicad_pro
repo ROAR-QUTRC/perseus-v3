@@ -511,7 +511,8 @@
       "THT",
       "footprints",
       "ConnectorsOther",
-      "SMD"
+      "SMD",
+      "Tags"
     ],
     "pinned_symbol_libs": [
       "Capacitor",
