@@ -1,10 +1,6 @@
 {
   "board": {
-<<<<<<< Updated upstream
-    "active_layer": 5,
-=======
-    "active_layer": 3,
->>>>>>> Stashed changes
+    "active_layer": 35,
     "active_layer_preset": "",
     "auto_track_width": true,
     "hidden_netclasses": [],
@@ -25,17 +21,13 @@
       "footprints": true,
       "graphics": true,
       "keepouts": true,
-      "lockedItems": false,
+      "lockedItems": true,
       "otherItems": true,
       "pads": true,
       "text": true,
       "tracks": true,
       "vias": true,
-<<<<<<< Updated upstream
-      "zones": false
-=======
       "zones": true
->>>>>>> Stashed changes
     },
     "visible_items": [
       "vias",
@@ -58,8 +50,8 @@
       "shapes",
       "ly_points"
     ],
-    "visible_layers": "ffffffff_ffffffff_ffffd575_ff55ffff",
-    "zone_display_mode": 0
+    "visible_layers": "ffffffff_ffffffff_ffffd57d_ff55ffff",
+    "zone_display_mode": 1
   },
   "git": {
     "integration_disabled": false,

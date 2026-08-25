@@ -6,11 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "RP2350A Microprocessor")
-<<<<<<< Updated upstream
-		(date "2026-08-15")
-=======
 		(date "2026-08-25")
->>>>>>> Stashed changes
 		(rev "V1R1")
 	)
 	(lib_symbols
