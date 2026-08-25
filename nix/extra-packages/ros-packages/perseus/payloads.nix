@@ -4,10 +4,23 @@
   buildRosPackage,
   actuator-msgs,
   ament-cmake,
+  ament-index-python,
   backward-ros,
+  controller-manager,
   hi-can-raw,
+  joint-state-broadcaster,
+  joint-trajectory-controller,
+  moveit-kinematics,
+  moveit-msgs,
+  moveit-servo,
   rclcpp,
+  robot-state-publisher,
+  ros2-control,
+  rviz2,
   sensor-msgs,
+  teleop,
+  tf2-ros,
+  xacro,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-payloads";
@@ -19,10 +32,23 @@ buildRosPackage rec {
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
     actuator-msgs
+    ament-index-python
     backward-ros
+    controller-manager
     hi-can-raw
+    joint-state-broadcaster
+    joint-trajectory-controller
+    moveit-kinematics
+    moveit-msgs
+    moveit-servo
     rclcpp
+    robot-state-publisher
+    ros2-control
+    rviz2
     sensor-msgs
+    teleop
+    tf2-ros
+    xacro
   ];
   nativeBuildInputs = [ ament-cmake ];
 

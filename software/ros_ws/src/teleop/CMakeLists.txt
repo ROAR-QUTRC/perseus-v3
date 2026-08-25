@@ -88,6 +88,10 @@ install(
   PROGRAMS ${PROJECT_NAME}/script/xbox_controller.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME xbox_controller)
+install(
+  PROGRAMS ${PROJECT_NAME}/script/arm_teleop.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME arm_teleop)
 
 # INSTALL (ROS)
 install(

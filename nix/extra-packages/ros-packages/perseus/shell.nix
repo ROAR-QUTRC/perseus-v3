@@ -31,6 +31,7 @@ pkgs.mkShell {
           ament-cmake
           ament-cmake-python
           ament-index-cpp
+          ament-index-python
           ament-lint-auto
           ament-lint-common
           backward-ros
@@ -48,8 +49,12 @@ pkgs.mkShell {
           hi-can-raw
           joint-state-broadcaster
           joint-state-publisher-gui
+          joint-trajectory-controller
           joy
+          moveit-kinematics
           mecanum-drive-controller
+          moveit-msgs
+          moveit-servo
           nav-msgs
           navigation2
           nlohmann_json
@@ -66,6 +71,7 @@ pkgs.mkShell {
           realsense2-description
           robot-localization
           robot-state-publisher
+          ros2-control
           ros2controlcli
           ros2launch
           rosidl-default-generators

@@ -20,6 +20,7 @@
   <depend>backward_ros</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>actuator_msgs</depend>
   <exec_depend>joy</exec_depend>
 
