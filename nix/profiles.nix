@@ -40,5 +40,12 @@
       };
     };
 
+    cyclonedds = {
+      extends = [ "dev" ];
+      module = import ./profiles/cyclonedds.nix {
+        inherit pkgs config;
+      };
+    };
+
   };
 }

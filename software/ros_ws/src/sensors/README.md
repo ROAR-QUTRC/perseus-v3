@@ -193,11 +193,11 @@ Voxel sizes and Draco quantization both live in `config/point_cloud_compress.yam
 per stream. Topic names live in the launch file itself, since it also needs them to wire up the
 matching `republish` nodes.
 
-| Parameter            | Default       | Description                                                                |
-| -------------------- | ------------- | -------------------------------------------------------------------------- |
-| `voxel_size_m`       | `0.2` / `0.3` | Voxel cube edge length, in metres (per stream)                             |
-| `quantization_bits`  | `12`          | Bits per x/y/z coordinate for Draco position quantization (0-31)           |
-| `force_quantization` | `true`        | Required for `quantization_bits` to take effect; false disables all of it   |
+| Parameter            | Default       | Description                                                               |
+| -------------------- | ------------- | ------------------------------------------------------------------------- |
+| `voxel_size_m`       | `0.2` / `0.3` | Voxel cube edge length, in metres (per stream)                            |
+| `quantization_bits`  | `12`          | Bits per x/y/z coordinate for Draco position quantization (0-31)          |
+| `force_quantization` | `true`        | Required for `quantization_bits` to take effect; false disables all of it |
 
 Leave `force_quantization` on unless a consumer needs the non-position fields bit-exact. The
 plugin defaults it to false, and while it is false it quantizes nothing at all -- positions
