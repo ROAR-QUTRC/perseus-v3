@@ -11,7 +11,6 @@
   navigation2,
   rclcpp,
   robot-localization,
-  rviz-plugins,
   sensors,
   slam-toolbox,
   watchdog,
@@ -36,7 +35,6 @@ buildRosPackage rec {
     navigation2
     rclcpp
     robot-localization
-    rviz-plugins
     sensors
     slam-toolbox
     watchdog
