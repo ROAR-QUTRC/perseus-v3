@@ -6,12 +6,12 @@
 	(paper "A4")
 	(title_block
 		(title "DC Motor Driver")
-		(date "2026-08-05")
-		(rev "V1R1")
+		(date "2026-08-15")
+		(rev "V2R1")
 		(company "QUTRC")
 	)
 	(lib_symbols
-		(symbol "Manufacturer Connectors:54-00274"
+		(symbol "ComponentLibrary:anytek_plug_terminal"
 			(pin_names
 				(offset 1.016)
 			)
@@ -31,10 +31,11 @@
 					(justify left bottom)
 				)
 			)
-			(property "Value" "54-00274"
+			(property "Value" ""
 				(at -5.08 -12.7 0)
 				(show_name no)
 				(do_not_autoplace no)
+				(hide yes)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -42,8 +43,8 @@
 					(justify left bottom)
 				)
 			)
-			(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
-				(at 0 0 0)
+			(property "Footprint" "ConnectorsOther:AnyTek_OQ_3.81mm_90_2P_TriangleKeyLock"
+				(at 23.622 -12.954 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -54,7 +55,7 @@
 					(justify bottom)
 				)
 			)
-			(property "Datasheet" "https://tensility.s3.us-west-2.amazonaws.com/uploads/pdffiles/54-00274.pdf"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -76,8 +77,8 @@
 					)
 				)
 			)
-			(property "PARTREV" "A"
-				(at 0 0 0)
+			(property "PARTREV" ""
+				(at -3.81 -22.352 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -88,8 +89,8 @@
 					(justify bottom)
 				)
 			)
-			(property "STANDARD" "Manufacturer Recommendations"
-				(at 0 0 0)
+			(property "STANDARD" ""
+				(at 10.414 -16.51 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -100,8 +101,8 @@
 					(justify bottom)
 				)
 			)
-			(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-				(at 0 0 0)
+			(property "MAXIMUM_PACKAGE_HEIGHT" ""
+				(at -0.254 -18.288 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -112,8 +113,8 @@
 					(justify bottom)
 				)
 			)
-			(property "MANUFACTURER" "Tensility"
-				(at 0 0 0)
+			(property "MANUFACTURER" ""
+				(at -0.508 -20.32 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -124,40 +125,7 @@
 					(justify bottom)
 				)
 			)
-			(property "Supplier" "DigiKey"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Supplier Part No" " 839-54-00274-ND"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tensility-international-corp/54-00274/16604946"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "54-00274_0_0"
+			(symbol "anytek_plug_terminal_0_0"
 				(polyline
 					(pts
 						(xy -5.08 7.62) (xy 5.08 7.62)
@@ -270,18 +238,6 @@
 					(start 5.08 -2.54)
 					(mid 4.894 -2.989)
 					(end 4.445 -3.175)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 5.08 -10.16) (xy -5.08 -10.16)
-					)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -432,6 +388,20 @@
 								(size 1.016 1.016)
 							)
 						)
+					)
+				)
+			)
+			(symbol "anytek_plug_terminal_1_1"
+				(polyline
+					(pts
+						(xy 5.08 -10.16) (xy -5.08 -10.16)
+					)
+					(stroke
+						(width 0.254)
+						(type solid)
+					)
+					(fill
+						(type background)
 					)
 				)
 			)
@@ -894,6 +864,102 @@
 								(size 1.27 1.27)
 							)
 						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Mechanical:Fiducial"
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "FID"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Fiducial"
+				(at 0 3.175 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Fiducial Marker"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "fiducial marker"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Fiducial*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Fiducial_0_1"
+				(circle
+					(center 0 0)
+					(radius 1.27)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type background)
 					)
 				)
 			)
@@ -2504,6 +2570,28 @@
 			)
 			(embedded_fonts no)
 		)
+	)
+	(rectangle
+		(start 214.63 49.53)
+		(end 250.19 73.025)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(uuid "ef363d7f-3770-4bef-9349-0bd459dbacfe")
+	)
+	(text "Fiducial for PNP"
+		(exclude_from_sim no)
+		(at 222.504 48.006 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "6942a675-0894-4ad7-8a63-61c146864ae9")
 	)
 	(text "Bank 2"
 		(exclude_from_sim no)
@@ -5226,6 +5314,160 @@
 		)
 	)
 	(symbol
+		(lib_id "ComponentLibrary:anytek_plug_terminal")
+		(at 58.42 147.32 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5fb8594d-67ef-41ce-8936-6d6ec2664ec1")
+		(property "Reference" "J1"
+			(at 59.055 137.16 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" ""
+			(at 53.34 160.02 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
+			(at 82.042 160.274 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Datasheet" ""
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "PARTREV" ""
+			(at 54.61 169.672 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "STANDARD" ""
+			(at 68.834 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" ""
+			(at 58.166 165.608 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" ""
+			(at 57.912 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Supplier Part Num" " 839-54-00274-ND"
+			(at 58.42 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "dbf5195f-48c8-47c3-86fa-a84108aa2d41")
+		)
+		(pin "S2"
+			(uuid "26eb2183-a80f-45ac-b36c-cea0f9480603")
+		)
+		(pin "4"
+			(uuid "ef9d6eed-5874-474a-a739-49f5b3f07d50")
+		)
+		(pin "2"
+			(uuid "273d9e3e-22ee-4e8e-9b77-d301b986d8b5")
+		)
+		(pin "S1"
+			(uuid "4ed923cb-035a-47ac-b23f-ce1930840d94")
+		)
+		(pin "3"
+			(uuid "a2621711-b757-45d8-a023-3e871a03b592")
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "J1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
 		(at 36.83 115.57 90)
 		(unit 1)
@@ -5299,6 +5541,82 @@
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
 					(reference "H5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:Fiducial")
+		(at 222.25 66.04 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "666115c5-76f3-469d-a3f2-0f399b01dfa3")
+		(property "Reference" "FID3"
+			(at 224.79 64.7699 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Fiducial"
+			(at 224.79 67.3099 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Fiducial:Fiducial_1.5mm_Mask3mm"
+			(at 222.25 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 222.25 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Fiducial Marker"
+			(at 222.25 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "FID3")
 					(unit 1)
 				)
 			)
@@ -5924,10 +6242,10 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "98273bfe-7fdb-491a-b762-b8974487b601")
 		(property "Reference" "#PWR077"
@@ -6075,6 +6393,158 @@
 		)
 	)
 	(symbol
+		(lib_id "Mechanical:Fiducial")
+		(at 236.22 54.61 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b08250e7-25e2-415d-b2d1-bf540fe36821")
+		(property "Reference" "FID1"
+			(at 238.76 53.3399 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Fiducial"
+			(at 238.76 55.8799 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Fiducial:Fiducial_1.5mm_Mask3mm"
+			(at 236.22 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 236.22 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Fiducial Marker"
+			(at 236.22 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "FID1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:Fiducial")
+		(at 222.25 54.61 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b88603ec-539e-4a7f-b88a-b1ca3c64b7e7")
+		(property "Reference" "FID2"
+			(at 224.79 53.3399 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Fiducial"
+			(at 224.79 55.8799 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Fiducial:Fiducial_1.5mm_Mask3mm"
+			(at 222.25 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 222.25 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Fiducial Marker"
+			(at 222.25 54.61 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(instances
+			(project "dc-motor-driver"
+				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
+					(reference "FID2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 30.48 38.1 90)
 		(unit 1)
@@ -6148,180 +6618,6 @@
 			(project "dc-motor-driver"
 				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
 					(reference "#PWR04")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Manufacturer Connectors:54-00274")
-		(at 58.42 147.32 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp yes)
-		(fields_autoplaced yes)
-		(uuid "c3d4c4b5-85b3-4730-8307-454bb6309691")
-		(property "Reference" "J14"
-			(at 59.055 134.62 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "54-00274"
-			(at 59.055 137.16 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "ConnectorsOther:Tensility_M8_Socket_4P_Shielded_A"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Datasheet" "https://tensility.s3.us-west-2.amazonaws.com/uploads/pdffiles/54-00274.pdf"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "PARTREV" "A"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MANUFACTURER" "Tensility"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Supplier" "DigiKey"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Part No" " 839-54-00274-ND"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Supplier Link" "https://www.digikey.com.au/en/products/detail/tensility-international-corp/54-00274/16604946"
-			(at 58.42 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "S1"
-			(uuid "5a83c8e4-25ad-452a-99f0-8d8855292b18")
-		)
-		(pin "2"
-			(uuid "7f126f1d-6c20-441c-935b-ddc703761c91")
-		)
-		(pin "S2"
-			(uuid "2be5b72e-c606-4bce-807c-1f2822df51b9")
-		)
-		(pin "4"
-			(uuid "98ea9182-1420-4252-9ec5-cc9945f0c792")
-		)
-		(pin "3"
-			(uuid "23dff766-adc7-4db9-833b-39c2ff9482c4")
-		)
-		(pin "1"
-			(uuid "81849e09-9a61-4bf7-b614-48675998269f")
-		)
-		(instances
-			(project "dc-motor-driver"
-				(path "/fc286157-4263-4a46-ad05-98b3354aa28a"
-					(reference "J14")
 					(unit 1)
 				)
 			)
