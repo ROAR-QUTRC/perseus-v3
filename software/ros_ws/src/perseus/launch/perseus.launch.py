@@ -41,7 +41,6 @@ def generate_launch_description():
             choices=[
                 "mock_components/GenericSystem",
                 "hardware/VescSystemHardware",
-                "hardware/McbSystemHardware",
                 "gz_ros2_control/GazeboSimSystem",
             ],
             description="The hardware plugin to use for ros2_control",

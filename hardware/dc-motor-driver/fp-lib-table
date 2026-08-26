@@ -1,0 +1,8 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "Project PCB") (type "KiCad") (uri "${KIPRJMOD}/../libraries/Project_PCB.pretty") (options "") (descr ""))
+	(lib (name "SMD") (type "KiCad") (uri "${KIPRJMOD}/../libraries/SMD.pretty") (options "") (descr ""))
+	(lib (name "THT") (type "KiCad") (uri "${KIPRJMOD}/../libraries/THT.pretty") (options "") (descr ""))
+	(lib (name "ConnectorsOther") (type "KiCad") (uri "C:/Users/Zoot/LOCAL DATA/ROAR/PCBs/libraries/ConnectorsOther.pretty") (options "") (descr ""))
+	(lib (name "ConnectorsOther") (type "KiCad") (uri "/home/grey/perseus-v3/hardware/libraries/ConnectorsOther.pretty") (options "") (descr ""))
+)
