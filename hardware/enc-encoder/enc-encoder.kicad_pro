@@ -50,8 +50,8 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "border_display_style": 0,
-          "border_hatch_pitch": 0.5,
+          "border_display_style": 2,
+          "border_hatch_pitch": 0.508,
           "corner_radius": 0.0,
           "corner_smoothing": 0,
           "fill_mode": 0,
@@ -60,13 +60,13 @@
           "hatch_smoothing_level": 0,
           "hatch_smoothing_value": 0.1,
           "hatch_thickness": 1.0,
-          "min_clearance": 0.1,
+          "min_clearance": 0.15,
           "min_island_area": 10.0,
-          "min_thickness": 0.1,
-          "pad_connection": 3,
+          "min_thickness": 0.2,
+          "pad_connection": 1,
           "remove_islands": 0,
-          "thermal_relief_gap": 0.2,
-          "thermal_relief_spoke_width": 1.0
+          "thermal_relief_gap": 0.3,
+          "thermal_relief_spoke_width": 0.3
         }
       },
       "diff_pair_dimensions": [
@@ -211,7 +211,6 @@
       ],
       "track_widths": [
         0.0,
-        0.1,
         0.15
       ],
       "tuning_pattern_settings": {
@@ -511,8 +510,7 @@
       "THT",
       "footprints",
       "ConnectorsOther",
-      "SMD",
-      "Tags"
+      "SMD"
     ],
     "pinned_symbol_libs": [
       "Capacitor",
@@ -635,7 +633,7 @@
       "netlist": "",
       "plot": "",
       "specctra_dsn": "",
-      "step": "enc-encoder.step",
+      "step": "",
       "vrml": ""
     },
     "page_layout_descr_file": ""
@@ -824,7 +822,7 @@
         "uuid": "830e855f-c01b-4865-ac3f-fca5cbe32ffd"
       }
     ],
-    "used_designators": "RST1-2,C1-25,VBUS1,F1-2,Y1-2,GND1,U1-6,VIN_IND1,#PWR1-51,#PWR61-70,R1-23,#FLG1-7,SW1,STATUS1,TP1-3,VCC1,RUN1,3V3_IND1,JP1,L1-2,3V1,3V3,D1-8,D11-12,H1-4,J1-6,VR1",
+    "used_designators": "FID1-3,#FLG1-7,SW1,VBUS1,C1-25,3V1,3V3,L1-2,3V3_IND1,RUN1,JP1,R1-23,STATUS1,H1-4,J1-6,VR1,D1-8,D11-12,U1-6,F1-2,GND1,Y1-2,#PWR1-51,#PWR61-70,VIN_IND1,RST1-2,TP1-3,VCC1",
     "variants": []
   },
   "sheets": [
@@ -845,8 +843,8 @@
     "CONFIGURATIONPARAMETERS": "",
     "CONFIGURATORNAME": "",
     "DOCUMENTNUMBER": "1",
-    "DRAWN_BY": "Zeph Hardie, Maurice Blake",
-    "ENGINEER": "Zeph Hardie, Maurice Blake",
+    "DRAWN_BY": "Maurice Blake, Zeph Hardy",
+    "ENGINEER": "Maurice Blake, Zeph Hardy",
     "ISUSERCONFIGURABLE": "",
     "PROJECT": "Perseus",
     "RULE": "UNIONINDEX=0¦RULEKIND=Width¦NETSCOPE=AnyNet¦LAYERKIND=SameLayer¦NAME=Schematic Width Constraint¦MAXLIMIT=800mil¦MINLIMIT=6mil¦PREFEREDWIDTH=10mil¦MIDLAYER1_MINWIDTH=10mil¦MIDLAYER1_MAXWIDTH=10mil¦MIDLAYER2_MINWIDTH=10mil¦MIDLAYER2_MAXWIDTH=10mil¦MIDLAYER3_MINWIDTH=10mil¦MIDLAYER3_MAXWIDTH=10mil¦MIDLAYER4_MINWIDTH=10mil¦MIDLAYER4_MAXWIDTH=10mil¦MIDLAYER5_MINWIDTH=10mil¦MIDLAYER5_MAXWIDTH=10mil¦MIDLAYER6_MINWIDTH=10mil¦MIDLAYER6_MAXWIDTH=10mil¦MIDLAYER7_MINWIDTH=10mil¦MIDLAYER7_MAXWIDTH=10mil¦MIDLAYER8_MINWIDTH=10mil¦MIDLAYER8_MAXWIDTH=10mil¦MIDLAYER9_MINWIDTH=10mil¦MIDLAYER9_MAXWIDTH=10mil¦MIDLAYER10_MINWIDTH=10mil¦MIDLAYER10_MAXWIDTH=10mil¦MIDLAYER11_MINWIDTH=10mil¦MIDLAYER11_MAXWIDTH=10mil¦MIDLAYER12_MINWIDTH=10mil¦MIDLAYER12_MAXWIDTH=10mil¦MIDLAYER13_MINWIDTH=10mil¦MIDLAYER13_MAXWIDTH=10mil¦MIDLAYER14_MINWIDTH=10mil¦MIDLAYER14_MAXWIDTH=10mil¦MIDLAYER15_MINWIDTH=10mil¦MIDLAYER15_MAXWIDTH=10mil¦MIDLAYER16_MINWIDTH=10mil¦MIDLAYER16_MAXWIDTH=10mil¦MIDLAYER17_MINWIDTH=10mil¦MIDLAYER17_MAXWIDTH=10mil¦MIDLAYER18_MINWIDTH=10mil¦MIDLAYER18_MAXWIDTH=10mil¦MIDLAYER19_MINWIDTH=10mil¦MIDLAYER19_MAXWIDTH=10mil¦MIDLAYER20_MINWIDTH=10mil¦MIDLAYER20_MAXWIDTH=10mil¦MIDLAYER21_MINWIDTH=10mil¦MIDLAYER21_MAXWIDTH=10mil¦MIDLAYER22_MINWIDTH=10mil¦MIDLAYER22_MAXWIDTH=10mil¦MIDLAYER23_MINWIDTH=10mil¦MIDLAYER23_MAXWIDTH=10mil¦MIDLAYER24_MINWIDTH=10mil¦MIDLAYER24_MAXWIDTH=10mil¦MIDLAYER25_MINWIDTH=10mil¦MIDLAYER25_MAXWIDTH=10mil¦MIDLAYER26_MINWIDTH=10mil¦MIDLAYER26_MAXWIDTH=10mil¦MIDLAYER27_MINWIDTH=10mil¦MIDLAYER27_MAXWIDTH=10mil¦MIDLAYER28_MINWIDTH=10mil¦MIDLAYER28_MAXWIDTH=10mil¦MIDLAYER29_MINWIDTH=10mil¦MIDLAYER29_MAXWIDTH=10mil¦MIDLAYER30_MINWIDTH=10mil¦MIDLAYER30_MAXWIDTH=10mil¦MINIMP=50.000000¦MAXIMP=50.000000¦FAVIMP=50.000000¦UNIT=Imperial",

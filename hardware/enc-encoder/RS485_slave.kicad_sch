@@ -5,8 +5,8 @@
 	(uuid "2d7ae3dd-bfc0-4939-b7a9-b7e986e3c078")
 	(paper "A4")
 	(title_block
-		(title "RS485 Slave")
-		(date "2026-08-15")
+		(title "Magnetic Angle Sensor")
+		(date "2026-08-25")
 		(rev "V1R1")
 	)
 	(lib_symbols
