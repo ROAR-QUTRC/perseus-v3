@@ -193,10 +193,21 @@ Voxel sizes and Draco quantization both live in `config/point_cloud_compress.yam
 per stream. Topic names live in the launch file itself, since it also needs them to wire up the
 matching `republish` nodes.
 
-| Parameter           | Default       | Description                                                      |
-| ------------------- | ------------- | ---------------------------------------------------------------- |
-| `voxel_size_m`      | `0.2` / `0.3` | Voxel cube edge length, in metres (per stream)                   |
-| `quantization_bits` | `12`          | Bits per x/y/z coordinate for Draco position quantization (0-31) |
+| Parameter            | Default       | Description                                                                |
+| -------------------- | ------------- | -------------------------------------------------------------------------- |
+| `voxel_size_m`       | `0.2` / `0.3` | Voxel cube edge length, in metres (per stream)                             |
+| `quantization_bits`  | `12`          | Bits per x/y/z coordinate for Draco position quantization (0-31)           |
+| `force_quantization` | `true`        | Required for `quantization_bits` to take effect; false disables all of it   |
+
+Leave `force_quantization` on unless a consumer needs the non-position fields bit-exact. The
+plugin defaults it to false, and while it is false it quantizes nothing at all -- positions
+included -- so Draco returns a payload the same size as its input. Measured on the accumulated
+map at 12 bits: 390336 B in, 390421 B out with it false, 89658 B out with it true. The live scan
+improved from 1.99x to 6.73x. Decoded positions land within 5.8 mm of the input, against a
+300 mm voxel grid.
+
+Note that Draco reorders points (it deduplicates while encoding), so the decoded cloud is not
+index-aligned with the input. Compare the two as point sets, not element-wise.
 
 > ℹ️ `republish` resolves its `in`/`out` topics _before_ the transport plugin appends its suffix, so
 > the remap has to name the suffixed topic: `out/draco:=…` when encoding, `in/draco:=…` when

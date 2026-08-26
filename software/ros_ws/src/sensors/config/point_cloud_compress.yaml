@@ -12,6 +12,15 @@
 #   *_draco_encoder node under a different, dynamic parameter name: the plugin names its own
 #   parameter after the topic it publishes on, which is only known once the launch file has
 #   resolved that topic, so it can't be declared here directly the way voxel_size_m is.
+#
+# force_quantization -- must be true for quantization_bits to have any effect at all. The
+#   plugin defaults it to false, and with it false it does not merely store the non-position
+#   fields losslessly: it disables quantization wholesale, positions included, and the encoded
+#   payload comes out the same size as the raw input. Measured on the accumulated map, with
+#   quantization_bits at 12: 390336 B of input encoded to 390421 B with this false, and to
+#   89658 B with it true -- no compression at all against 4.35x. The live scan went from 1.99x
+#   to 6.73x. The cost is that non-position fields become lossy, which is why it is set per
+#   stream rather than assumed; see the note on each stream below.
 livox_voxel_downsampler:
   ros__parameters:
     voxel_size_m: 0.2
@@ -22,6 +31,14 @@ laser_map_voxel_downsampler:
 livox_draco_encoder:
   ros__parameters:
     quantization_bits: 12
+    # The scan carries intensity and ring alongside x/y/z. Both are for display only at the
+    # base station, so quantizing them is acceptable.
+    force_quantization: true
 laser_map_draco_encoder:
   ros__parameters:
     quantization_bits: 12
+    # Free of any precision concern here: every one of the map's five non-position fields
+    # (normal_x/y/z, intensity, curvature) is identically zero on every point FAST-LIO
+    # publishes, so there is nothing in them to lose. Positions land within 5.8 mm of the
+    # input, against a 300 mm voxel grid.
+    force_quantization: true

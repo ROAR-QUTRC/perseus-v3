@@ -27,17 +27,26 @@ STREAMS = (
 )
 
 
-def draco_quantization_param(base_topic, quantization_bits):
-    """Build the {topic}.draco.quantization_POSITION parameter the plugin declares.
+def draco_params(base_topic, encoder_config):
+    """Build the {topic}.draco.* parameters the plugin declares, from a config section.
 
-    draco_point_cloud_transport names this parameter after the topic it ends up
+    draco_point_cloud_transport names its parameters after the topic it ends up
     advertising on (base_topic + "/draco"), with "/" replaced by ".". That topic is
-    only known here, once the launch file has resolved base_topic, so the full
-    parameter name can't be spelled out in the config file itself.
+    only known here, once the launch file has resolved base_topic, so these names
+    can't be spelled out in the config file itself.
+
+    force_quantization has to be set alongside quantization_POSITION, not left at the
+    plugin's default: while it is false the plugin quantizes nothing, positions
+    included, and quantization_POSITION has no observable effect -- the encoded
+    payload comes out the same size as the raw input. See the config file for the
+    measurements.
     """
     draco_topic = f"{base_topic}/draco"
     param_base = draco_topic.lstrip("/").replace("/", ".")
-    return {f"{param_base}.quantization_POSITION": quantization_bits}
+    return {
+        f"{param_base}.quantization_POSITION": encoder_config["quantization_bits"],
+        f"{param_base}.force_quantization": encoder_config["force_quantization"],
+    }
 
 
 def generate_launch_description():
@@ -70,9 +79,7 @@ def generate_launch_description():
                 output="screen",
             )
         )
-        quantization_bits = config[f"{prefix}_draco_encoder"]["ros__parameters"][
-            "quantization_bits"
-        ]
+        encoder_config = config[f"{prefix}_draco_encoder"]["ros__parameters"]
         nodes.append(
             Node(
                 package="point_cloud_transport",
@@ -80,7 +87,7 @@ def generate_launch_description():
                 name=f"{prefix}_draco_encoder",
                 parameters=[
                     {"in_transport": "raw", "out_transport": "draco"},
-                    draco_quantization_param(base_topic, quantization_bits),
+                    draco_params(base_topic, encoder_config),
                     use_sim_time,
                 ],
                 # `out` is only the base topic: the draco publisher plugin
