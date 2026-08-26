@@ -1,0 +1,12 @@
+lidar_dead_zone_filter:
+  ros__parameters:
+    input_topic: /livox/lidar
+    output_topic: /livox/lidar/filtered
+    # wedge size
+    azimuth_min_deg: 40.0
+    azimuth_max_deg: 70.0
+    zenith_min_deg: -10.0
+    zenith_max_deg: 10.0
+    enabled: true
+
+# Todo: Still need to have angles updated from a service or live from another node so not static dead zone region
