@@ -40,7 +40,7 @@ pkgs.mkShell {
           controller-manager
           cv-bridge
           diff-drive-controller
-          draco
+          draco-point-cloud-transport
           fast-lio
           geometry-msgs
           grid-map-core
@@ -58,6 +58,7 @@ pkgs.mkShell {
           opencv
           pcl-conversions
           pluginlib
+          point-cloud-transport
           rcl-interfaces
           rclcpp
           rclcpp-components

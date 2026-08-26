@@ -15,12 +15,15 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>interfaces</depend>
   <exec_depend>realsense2-camera</exec_depend>
   <exec_depend>realsense2-description</exec_depend>
   <exec_depend>rplidar_ros</exec_depend>
   <exec_depend>compressed_image_transport</exec_depend>
   <exec_depend>compressed_depth_image_transport</exec_depend>
+  <!-- point_cloud_compress/decompress.launch.py run point_cloud_transport's
+       `republish` node, and it loads the draco plugin by name at runtime. -->
+  <exec_depend>point_cloud_transport</exec_depend>
+  <exec_depend>draco_point_cloud_transport</exec_depend>
   
   <export>
     <build_type>ament_cmake</build_type>

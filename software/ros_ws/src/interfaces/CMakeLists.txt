@@ -62,7 +62,6 @@ rosidl_generate_interfaces(
   "srv/RunWaypoints.srv"
   "msg/Waypoint.msg"
   "msg/MobilityStatus.msg"
-  "msg/CompressedPointCloud.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
