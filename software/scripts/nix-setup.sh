@@ -95,4 +95,4 @@ fi
 "$(git rev-parse --show-toplevel)/software/scripts/devenv-install.sh" || exit
 
 # shellcheck disable=SC1091
-. "$(git rev-parse --show-toplevel)/software/scripts/devenv-setup.sh" >/dev/null 2>&1
+. "$(git rev-parse --show-toplevel)/software/scripts/devenv-setup.sh"
