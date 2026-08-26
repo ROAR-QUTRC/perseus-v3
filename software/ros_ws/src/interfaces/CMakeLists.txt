@@ -62,16 +62,7 @@ rosidl_generate_interfaces(
   "srv/RunWaypoints.srv"
   "msg/Waypoint.msg"
   "msg/MobilityStatus.msg"
-  <<<<<<<
-  Updated
-  upstream
-  =======
-  "msg/TopicHealth.msg"
-  "msg/SystemHealth.msg"
   "msg/CompressedPointCloud.msg"
-  >>>>>>>
-  Stashed
-  changes
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
