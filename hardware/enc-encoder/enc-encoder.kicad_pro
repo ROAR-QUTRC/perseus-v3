@@ -635,7 +635,7 @@
       "netlist": "",
       "plot": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "enc-encoder.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
