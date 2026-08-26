@@ -40,6 +40,7 @@ pkgs.mkShell {
           controller-manager
           cv-bridge
           diff-drive-controller
+          draco-point-cloud-transport
           fast-lio
           geometry-msgs
           grid-map-core
@@ -58,6 +59,7 @@ pkgs.mkShell {
           pcl-conversions
           pluginlib
           qt5.qtbase
+          point-cloud-transport
           rcl-interfaces
           rclcpp
           rclcpp-components

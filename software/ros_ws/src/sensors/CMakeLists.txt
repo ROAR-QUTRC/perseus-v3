@@ -116,6 +116,20 @@ ament_target_dependencies(dust_filter rclcpp)
 
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
 
+# Voxel Downsampler Reduces point cloud density by keeping at most one point per
+# voxel cell, thinning the Livox scan and the FAST-LIO map before
+# point_cloud_transport Draco-compresses them for the base station link.
+add_executable(
+  voxel_downsampler src/voxel_downsampler/voxel_downsampler.cpp
+                    src/voxel_downsampler/voxel_downsampler_node.cpp)
+
+target_include_directories(voxel_downsampler
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_target_dependencies(voxel_downsampler PUBLIC rclcpp sensor_msgs)
+
+install(TARGETS voxel_downsampler DESTINATION lib/${PROJECT_NAME})
+
 # Install launch
 install(
   DIRECTORY launch config
