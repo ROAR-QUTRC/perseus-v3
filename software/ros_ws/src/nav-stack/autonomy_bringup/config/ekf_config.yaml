@@ -1,0 +1,92 @@
+ekf_filter_node:
+  ros__parameters:
+    # Fuses FAST-LIO's 6-DOF pose with IMU angular velocity. 30 Hz gives a smoother, higher
+    # rate output than FAST-LIO's ~10 Hz alone.
+    frequency: 30.0
+    sensor_timeout: 1.0
+    two_d_mode: false
+    transform_time_offset: 0.0
+    transform_timeout: 0.5
+    print_diagnostics: true
+    debug: false
+    # state_var: [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel, x_accel, y_accel, z_accel]
+    #
+    # The diff drive controller's /odom is deliberately not fused. robot_localization scans
+    # odomN from N=0 and stops at the first index it does not find, so FAST-LIO has to occupy
+    # odom0 -- leaving it at odom1 with no odom0 present would make the filter skip it
+    # silently and fuse nothing but the gyro.
+    # ----- FAST-LIO (3D pose backbone) -----
+    # Full 6-DOF pose from LiDAR-inertial odometry, and now the only source of translation at
+    # all: imu0 contributes rates only. It anchors the odom frame outright, so there is nothing
+    # for it to fight with -- but equally, if FAST-LIO stops publishing (degenerate geometry, or
+    # before lid_frame -> base_frame resolves in TF) nothing else constrains position and the
+    # filter coasts on its motion model.
+    #
+    # No transform is needed: FAST-LIO publishes header.frame_id = odom (its common.map_frame)
+    # and child_frame_id = base_link (its publish.odom_in_base_en composes the 45 deg sensor
+    # mounting), which already match world_frame and base_link_frame below. Changing
+    # common.map_frame in livox_mid360.yaml would break that agreement.
+    #
+    # Roll and pitch are gravity-referenced and drift-free because FAST-LIO levels its world
+    # frame at startup (common.gravity_align_en), which is what the IMU alone cannot provide.
+    # Yaw has no absolute reference on this robot, but LIO yaw drifts far slower than
+    # integrated gyro. FAST-LIO publishes no TF, so the EKF remains the sole owner of
+    # odom -> base_link.
+    odom0: /Odometry
+    # Pose only. FAST-LIO never populates the twist of its odometry message -- there is no
+    # assignment to it anywhere in laserMapping.cpp -- so enabling the velocity columns would
+    # fuse a constant zero velocity at 10 Hz and actively drag the estimate towards standstill.
+    #                 x     y     z     roll  pitch yaw   vx     vy     vz     vroll  vpitch vyaw   ax     ay     az
+    odom0_config: [true, true, true, true, true, true, false, false, false, false, false, false, false, false, false]
+    # Absolute, not differential: this is the pose reference, and both it and the filter start
+    # at the robot's initial pose, so they agree from the first message.
+    odom0_differential: false
+    odom0_relative: false
+    # 10 Hz in against a 30 Hz filter, so the queue only needs to cover a brief stall.
+    odom0_queue_size: 10
+    odom0_nodelay: true
+    # No rejection thresholds on purpose. They gate on Mahalanobis distance, and FAST-LIO's
+    # covariance is one scan stale (it is filled after the message is published), so a tight
+    # threshold silently discards good pose updates from the filter's only pose source.
+    imu0: /livox/imu/corrected
+    # Gyroscope only. The roll/pitch/yaw entries read
+    # sensor_msgs/Imu.orientation, which the MID-360 never fills: its ICM-40609 is a 6-axis
+    # part with no magnetometer and no onboard fusion, so the driver publishes rates and
+    # accelerations and leaves orientation at its default identity (lddc.cpp). Fusing that
+    # would assert "perfectly level, yaw zero" rather than measure anything.
+    #
+    # Attitude therefore comes from integrating vroll/vpitch/vyaw: it follows the robot but
+    # starts at zero and drifts, with no absolute reference. For drift-free roll/pitch, add
+    # FAST-LIO's /Odometry as a second input -- it derives gravity from the same
+    # accelerometer (see common.gravity_align_en) -- rather than expecting it from here.
+    #
+    # The accelerometer (ax/ay/az) is deliberately not fused either. Removing gravity from it
+    # requires knowing which way is down: robot_localization takes that from the message's
+    # orientation, and only falls back to its own attitude estimate when
+    # orientation_covariance[0] is -1. The Livox driver leaves that covariance at 0, so the
+    # default identity orientation is trusted and gravity is subtracted as though the sensor
+    # were level. With the sensor pitched 45 deg that leaves ~6.9 m/s^2 of fictitious
+    # horizontal acceleration, which double-integrates straight into position. Wheel odometry
+    # supplies translation instead.
+    #
+    # robot_localization rotates the rates from the message's frame into base_link using TF,
+    # so the 45 deg sensor mounting is accounted for without any pre-processing.
+    #                x      y      z      roll   pitch  yaw    vx     vy     vz     vroll  vpitch vyaw   ax     ay     az
+    imu0_config: [false, false, false, false, false, false, false, false, false, true, true, true, false, false, false]
+    imu0_differential: false
+    imu0_remove_gravitational_acceleration: true
+    imu0_queue_size: 10
+    imu0_nodelay: true
+    imu0_relative: false
+    imu0_pose_rejection_threshold: 2.0
+    imu0_twist_rejection_threshold: 2.0
+    imu0_linear_acceleration_rejection_threshold: 2.0
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+    publish_tf: true
+    predict_to_current_time: true
+    smooth_lagged_data: false
+# In the simulation, the robot is very accurate, so we can set low noise covariances
+# process_noise_covariance: [0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# initial_estimate_covariance: [1e-3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

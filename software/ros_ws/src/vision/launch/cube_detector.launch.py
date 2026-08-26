@@ -1,0 +1,38 @@
+"""Launch the cube detection node with the shared vision configuration."""
+
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+    """Build the launch description for the cube detector node."""
+    # Get the package directory
+    vision_dir = get_package_share_directory("vision")
+    config_dir = os.path.join(vision_dir, "config")
+    config_file = os.path.join(config_dir, "vision.yaml")
+
+    # Declare launch arguments
+    use_sim_time_arg = DeclareLaunchArgument(
+        "use_sim_time", default_value="false", description="Use simulated time"
+    )
+
+    # Create the cube_detector node
+    cube_detector_node = Node(
+        package="vision",
+        executable="cube_detector",
+        name="cube_detector",
+        parameters=[config_file, {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+        output="screen",
+    )
+
+    return LaunchDescription(
+        [
+            use_sim_time_arg,
+            cube_detector_node,
+        ]
+    )
