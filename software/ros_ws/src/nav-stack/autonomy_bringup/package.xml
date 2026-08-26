@@ -21,6 +21,9 @@
   <depend>global_traversability</depend>
   <!-- health_monitor, launched alongside localisation -->
   <depend>health_check</depend>
+  <!-- imu_processors components and point_cloud_compress.launch.py, both brought up by
+       localisation.launch.py -->
+  <depend>sensors</depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
 

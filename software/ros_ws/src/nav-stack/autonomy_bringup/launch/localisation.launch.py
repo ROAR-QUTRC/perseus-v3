@@ -171,6 +171,25 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
+    # The rover half of the point cloud link: voxel downsamples the live Livox scan and
+    # FAST-LIO's /Laser_map, then Draco encodes both for the base station. Its two inputs
+    # are exactly what this stack consumes and produces, so it comes up with them; the
+    # base station runs sensors/point_cloud_decompress.launch.py against the Draco topics.
+    point_cloud_compress_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("sensors"),
+                    "launch",
+                    "point_cloud_compress.launch.py",
+                ]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
     # Every include is scoped, and it is not optional. IncludeLaunchDescription sets its
     # launch_arguments into the *enclosing* context with no push/pop of its own, and
     # DeclareLaunchArgument only applies a default when the name is not already set. So an
@@ -188,6 +207,7 @@ def launch_setup(context, *args, **kwargs):
         flat_footprint_broadcaster_node,
         GroupAction([watchdog_launch], scoped=True),
         GroupAction([health_check_launch], scoped=True),
+        GroupAction([point_cloud_compress_launch], scoped=True),
     ]
 
 
