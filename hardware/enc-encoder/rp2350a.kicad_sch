@@ -10077,7 +10077,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Value" "RST"
+		(property "Value" "RUN"
 			(at 108.966 99.06 0)
 			(hide yes)
 			(show_name no)
