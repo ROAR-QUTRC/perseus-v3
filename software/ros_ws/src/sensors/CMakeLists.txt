@@ -116,10 +116,6 @@ ament_target_dependencies(dust_filter rclcpp)
 
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
 
-add_executable(filter_node src/dead_zone_filter/filter_node.cpp)
-ament_target_dependencies(filter_node rclcpp sensor_msgs)
-install(TARGETS filter_node DESTINATION lib/${PROJECT_NAME})
-
 # Install launch
 install(
   DIRECTORY launch config
