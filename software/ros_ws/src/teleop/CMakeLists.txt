@@ -84,10 +84,6 @@ install(
   PROGRAMS ${PROJECT_NAME}/script/teleop_keyboard.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME teleop_keyboard)
-install(
-  PROGRAMS ${PROJECT_NAME}/script/xbox_controller.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME xbox_controller)
 
 # INSTALL (ROS)
 install(
