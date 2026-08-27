@@ -60,5 +60,3 @@ These files are scattered throughout the codebase because it makes more organisa
 Most of the maintenance required to keep the devenv environment running smoothly is periodically running `devenv gc` to delete unused builds and save disk space. Running `devenv update` to update the lock file should only be done by someone with a good understanding of the whole repository, as it may potentially break dependencies.
 
 ## Profiles
-
-
