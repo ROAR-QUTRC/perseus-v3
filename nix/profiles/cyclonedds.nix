@@ -48,7 +48,14 @@ in
       echo    "           Add an entry for $(hostname) to nix/profiles/hostnames.nix."
     else
       echo    "  interface: $dds_iface ($dds_origin)"
-      echo    "  peers:     $(grep -c '<Peer ' ${ddsConfig}) enabled"
+      # List the addresses rather than count them: a bare count invites reading the
+      # commented-out entries as live, which is the opposite of useful when you are
+      # standing in the field wondering why a machine is not showing up. Peers commented
+      # out on their own line are excluded; one wrapped in a multi-line comment would
+      # still slip through, and none are written that way.
+      dds_peers=$(grep '<Peer ' ${ddsConfig} | grep -v '<!--' \
+        | sed -n 's/.*address="\([^"]*\)".*/\1/p' | tr '\n' ' ')
+      echo    "  peers:     $dds_peers"
     fi
   '';
 }
