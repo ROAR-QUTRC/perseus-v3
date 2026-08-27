@@ -135,8 +135,8 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: ros
       # Collect garbage from nix2ros so it doesn't get pushed to cache by the build-env job
-      - name: Garbage collect
-        run: nix-collect-garbage -d
+      # - name: Garbage collect
+      #   run: nix-collect-garbage -d
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
       # `test` will build the environment and run all tests
