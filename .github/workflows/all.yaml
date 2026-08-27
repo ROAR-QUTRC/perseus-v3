@@ -102,7 +102,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       # Configure read only caches, will write to cachix below
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@v17
         with:
           name: roar
           extraPullNames: ros
@@ -115,6 +115,9 @@ jobs:
         name: Commit and push changes
         with:
           commit_message: ${{ needs.global-vars.outputs.package-msg }}
+      # Collect garbage from nix2ros so it doesn't get pushed to cache by the build-env job
+      - name: Garbage collect
+        run: nix-collect-garbage
   build-env:
     name: Build environment
     needs: [global-vars, changes, package]
@@ -128,7 +131,7 @@ jobs:
       - uses: cachix/install-nix-action@v31
       # Configure the roar cachix and use the ros cachix as an upstream substitutor
       # The devenv cache is automatically as well when devenv is installed
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@v17
         if: needs.global-vars.outputs.has-cachix-secret == 'true'
         with:
           name: roar
