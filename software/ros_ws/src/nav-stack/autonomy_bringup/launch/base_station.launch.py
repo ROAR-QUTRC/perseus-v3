@@ -20,6 +20,8 @@ Arguments:
                   in this repo, false runs rviz2 directly on a machine with working drivers
     decompress    run the Draco decoders; false when the rover is sending raw clouds, or
                   when another process on this machine already decodes them
+    mesh          reconstruct a surface from the decoded map cloud, published as a marker
+                  for RViz. Off by default; see the comment on the node below for the cost
 """
 
 from launch import LaunchDescription
@@ -41,6 +43,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_nixgl = LaunchConfiguration("use_nixgl")
     decompress = LaunchConfiguration("decompress")
+    mesh = LaunchConfiguration("mesh")
 
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -139,14 +142,76 @@ def generate_launch_description():
         condition=IfCondition(decompress),
     )
 
+    mesh_arg = DeclareLaunchArgument(
+        "mesh",
+        default_value="false",
+        description="Reconstruct a surface mesh from the decoded map cloud and publish it "
+        "as a TRIANGLE_LIST marker for RViz. Needs decompress:=true. NOT YET WORKING -- see "
+        "the comment on the node below.",
+    )
+
+    # ImMesh's incremental mesher, without the LiDAR odometry it normally comes with -- the
+    # rover already does that, and the mesher only ever needed a world-frame cloud plus the
+    # pose it was seen from.
+    #
+    # It runs here rather than on the rover on purpose. A meshed surface is roughly an order
+    # of magnitude larger on the wire than the cloud it is built from, because a
+    # TRIANGLE_LIST carries three float64 vertices per triangle with no index buffer. Built
+    # at the base station it never crosses the radio link at all: the rover sends the same
+    # compressed cloud it already sends, and the marker goes straight to RViz on this
+    # machine.
+    #
+    # The input is the decoded map, so this only does anything with decompress:=true. The
+    # node forwards only points it has not already meshed -- the map arrives whole every
+    # time -- and takes the viewpoint from /Odometry, which it needs because an accumulated
+    # map has no vantage point of its own and the mesher uses one to orient each triangle.
+    #
+    # NOT YET WORKING, and off by default for that reason. It builds, subscribes, and the
+    # incremental filtering does its job -- 17k new points on the first map, a few hundred
+    # after -- but ImMesh's meshing thread then dies in Triangle_manager::get_triangle_center,
+    # dereferencing a point id its triangle still refers to and the point store no longer
+    # holds. That is upstream code, reached by a usage it was not written for: it assumes a
+    # monotonically growing store fed one scan at a time from a moving viewpoint, and an
+    # accumulated map re-fed whole every few seconds is neither. Feeding the per-scan cloud
+    # (/livox/lidar/downsampled/decompressed plus the odometry pose) is the shape it expects
+    # and the likelier fix; guarding the id lookups inside ImMesh is the other.
+    mesh_node = Node(
+        package="immesh_ros2",
+        executable="immesh_node",
+        name="immesh",
+        output="screen",
+        parameters=[
+            {
+                "cloud_topic": "/Laser_map/downsampled/decompressed",
+                "odom_topic": "/Odometry",
+                "mesh_topic": "/mesh",
+                "map_frame": "odom",
+                # Coarser than the rover's map resolution: the cloud arriving here has
+                # already been voxel downsampled once before Draco, so asking for finer
+                # detail than that only costs triangles without adding surface.
+                "meshing_voxel_size": 0.4,
+                "minimum_point_distance": 0.15,
+                "new_point_resolution": 0.15,
+                "min_new_points": 100,
+                "max_threads": 4,
+                "mesh_publish_interval_s": 5.0,
+                "ply_path": "",
+                "use_sim_time": use_sim_time,
+            }
+        ],
+        condition=IfCondition(mesh),
+    )
+
     return LaunchDescription(
         [
             rviz_config_arg,
             use_sim_time_arg,
             use_nixgl_arg,
             decompress_arg,
+            mesh_arg,
             rviz_nixgl,
             rviz_plain,
             decompress_launch,
+            mesh_node,
         ]
     )

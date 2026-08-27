@@ -28,6 +28,8 @@
   <!-- imu_processors components and point_cloud_compress.launch.py, both brought up by
        localisation.launch.py -->
   <depend>sensors</depend>
+  <!-- base-station meshing, launched by base_station.launch.py with mesh:=true -->
+  <depend>immesh_ros2</depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
 
