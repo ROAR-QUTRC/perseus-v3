@@ -16,6 +16,7 @@
   rosbag2-storage,
   sensor-msgs,
   std-msgs,
+  std-srvs,
   tbb,
   tf2,
   tf2-ros,
@@ -48,6 +49,8 @@ buildRosPackage {
     rosbag2-storage
     sensor-msgs
     std-msgs
+    # /map_save is a std_srvs/Trigger
+    std-srvs
     tbb
     tf2
     # the wrapper reads lidar_frame -> base_frame from TF and broadcasts the optional

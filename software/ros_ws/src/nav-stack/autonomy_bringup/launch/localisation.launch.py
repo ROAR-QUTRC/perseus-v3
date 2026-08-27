@@ -22,11 +22,13 @@ Start order does not matter. Both backends withhold /Odometry until the LiDAR fr
 base_link lookup resolves in TF, so until robot_state_publisher is up the EKF runs on the
 IMU alone.
 
-Map saving differs between the two. fast_lio handles it internally via the pcd_save block
-of livox_mid360.yaml -- periodically, on shutdown, and on demand via /map_save. BIEVR-LIO
-has no equivalent: it keeps a voxel-image map rather than an accumulated cloud, publishes
-no /Laser_map, and writes nothing. So `lio:=bievr` also leaves the /Laser_map half of the
-point cloud link with no input, and produces no map file.
+Both backends publish /Laser_map and save a map on /map_save, so the point cloud link and
+map saving work either way -- but they build that map differently, and it shows. FAST-LIO
+accumulates registered scans, so /Laser_map is every point it ever kept and grows without
+bound. BIEVR-LIO keeps one height image per voxel and reprojects it on request, so its map
+is deduplicated, capped by map.max_size, and costs a walk over the whole map each time it
+is published rather than a growing buffer each scan. Hence publish.map_interval_s in
+bievr_mid360.yaml: seconds between publishes, not per scan.
 
 Both configs are tuned for the real robot, and both backends take sim:=true against
 Gazebo, which publishes a differently shaped cloud. What changes and why is in
@@ -158,7 +160,13 @@ def bievr_actions(rviz, use_sim_time, is_sim):
             output="screen",
             arguments=config_args,
             parameters=[{"use_sim_time": use_sim_time}],
-            remappings=[("/bievr_lio/odom", "/Odometry")],
+            remappings=[
+                ("/bievr_lio/odom", "/Odometry"),
+                # Same reasoning as the odometry remap: /Laser_map is what the Draco
+                # compressor below and the base station already subscribe to, so the map
+                # arrives under the name FAST-LIO would have published it under.
+                ("/bievr_lio/map", "/Laser_map"),
+            ],
         ),
         Node(
             package="rviz2",
@@ -264,9 +272,8 @@ def launch_setup(context, *args, **kwargs):
     # FAST-LIO's /Laser_map, then Draco encodes both for the base station. Its two inputs
     # are exactly what this stack consumes and produces, so it comes up with them; the
     # base station runs sensors/point_cloud_decompress.launch.py against the Draco topics.
-    # Under lio:=bievr the /Laser_map stream has no publisher -- BIEVR-LIO keeps a voxel
-    # image map and never emits an accumulated cloud -- so that half simply stays idle and
-    # only the live Livox scan crosses the link.
+    # Both backends feed the /Laser_map half: FAST-LIO publishes it directly, BIEVR-LIO
+    # publishes /bievr_lio/map on publish.map_interval_s and is remapped onto it above.
     point_cloud_compress_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(

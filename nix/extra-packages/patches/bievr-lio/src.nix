@@ -7,7 +7,8 @@
 # base.odom_in_base / origin_at_base / heading_at_base, publish.tf / tf_lidar), plus
 # lidar.allow_untimed for simulated clouds, calibration.from_tf so the LiDAR-IMU extrinsic
 # can come out of the robot description, configurable subscription QoS and bounded
-# synchronizer queues.
+# synchronizer queues, and map publishing (publish.map_interval_s) plus a map_save
+# service, neither of which upstream has at all.
 #
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
@@ -18,6 +19,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "209f542836dcc10e6f6c9fd135263f521d4baab6"; # feat/configurable-frames
-  hash = "sha256-GdBF27R6za9GNpPDBjqZjFxPf376KF/qEDP1cg8ut58=";
+  rev = "8a9742c3fb84adef065b14a32c9086dfb74ee0b3"; # feat/configurable-frames
+  hash = "sha256-V88SPS4ZvCd1TdpZpU+ewucPsZclOBj0tNI48JNVzq0=";
 }

@@ -117,6 +117,28 @@ publish:
   tf: false
   # Would fight the URDF, which already parents livox_frame under base_link.
   tf_lidar: false
+  # The accumulated map, on /bievr_lio/map, which localisation.launch.py remaps onto
+  # /Laser_map so the base-station Draco link gets the same topic it gets from FAST-LIO.
+  #
+  # Measured against the simulator at map sizes up to ~60k points: publishing every second
+  # cost less than the run-to-run variation in the filter's own CPU, so the export itself is
+  # below the noise floor and 5 s is not a number the CPU forced. It is set here because the
+  # base station has no use for a faster map, and because the cost has NOT been measured at
+  # a full map -- extraction is linear in observed pixels, and 400k voxels is a couple of
+  # hundred times the map that measurement covered. Watch `ros2 topic hz /Odometry` on the
+  # first long drive; 0 disables the publish and leaves /map_save on demand.
+  map_interval_s: 5.0
+  # Halves the map resolution to 10 cm, quartering the point count. This is about message
+  # size, not CPU: measured across stride 1 to 4 the extraction cost barely moved, because
+  # the per-voxel walk dominates the per-pixel emit. It matters because a full 400k-voxel
+  # map at stride 1 would be on the order of 10M points -- over 100 MB per message, which is
+  # the part that actually does not fit down the link. The base station renders this and the
+  # compressor voxel downsamples it again anyway. Drop to 1 for a map you intend to keep.
+  map_stride: 2
+  # Where /map_save writes. The counterpart of map_file_path in livox_mid360.yaml, and like
+  # FAST-LIO's pcd_save_en: false, saving is on demand only -- nothing is written unless the
+  # service is called.
+  map_path: "~/maps/bievr_map.pcd"
 debug:
   # Every one of these serialises a point cloud on the Jetson's CPU, competing with the
   # filter itself. /bievr_lio/points/registered is published unconditionally; this only
