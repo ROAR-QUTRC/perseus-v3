@@ -7,7 +7,7 @@ on:
   merge_group: # run when pr enters the merge queue
   workflow_dispatch: # run manually
 permissions:
-  contents: read # only read as we must commit to write
+  contents: read # only read as write is specified for jobs as necessary
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # defines a concurrentcy group key
   cancel-in-progress: true # only allow one job with this group key at a time
@@ -95,12 +95,20 @@ jobs:
     if: ${{ !cancelled() && (needs.changes.outputs.skip-package != 'true') && (needs.changes.outputs.packages == 'true') && (needs.global-vars.outputs.can-push-commits == 'true') }}
     needs: [global-vars, changes]
     runs-on: ubuntu-latest
+    permissions:
+      # Needed to commit to the repo
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
+      # Configure read only caches, will write to cachix below
+      - uses: cachix/cachix-action@v16
+        with:
+          name: roar
+          extraPullNames: ros
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
-      # scripts are available from the devenv environment with no profiles
+      # Scripts are available from the devenv environment with no profiles
       - name: Generate ROS2 packages
         run: devenv shell generate-ros-pkgs --no-commit
       - uses: stefanzweifel/git-auto-commit-action@v7
@@ -109,7 +117,7 @@ jobs:
           commit_message: ${{ needs.global-vars.outputs.package-msg }}
   build-env:
     name: Build environment
-    needs: [global-vars, changes]
+    needs: [global-vars, changes, package]
     # Build for x86 and arm
     strategy:
       matrix:
