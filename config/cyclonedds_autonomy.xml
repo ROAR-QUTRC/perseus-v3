@@ -2,8 +2,26 @@
   <Domain>
     <General>
       <!-- Avoid broadcasting data to all client  -->
-      <AllowMulticast>false</AllowMulticast> 
-      <NetworkInterfaceAddress>eth0</NetworkInterfaceAddress>
+      <AllowMulticast>false</AllowMulticast>
+
+      <!--
+        Which interface to bind to. Cyclone 0.10 takes exactly one name: there is no
+        wildcard, and listing several as fallbacks fails as a whole if any single one of
+        them is absent. A name that does not resolve is fatal rather than degraded -- the
+        daemon reports "No network interface selected" and every rmw_create_node call
+        fails, so nodes do not start at all.
+
+        The name therefore has to be right per device, and is supplied by ROAR_DDS_IFACE,
+        which Cyclone expands itself. The rover PCs take the eth0 default; any machine
+        that differs sets the variable from its hostname profile in
+        nix/profiles/hostnames.nix.
+
+        NetworkInterfaceAddress used to spell this and still parses, but 0.10 reports it
+        as a deprecated element and rewrites it to the form below.
+      -->
+      <Interfaces>
+        <NetworkInterface name="${ROAR_DDS_IFACE:-eth0}"/>
+      </Interfaces>
     </General>
 
     <Discovery>
@@ -18,14 +36,14 @@
 
 
          <!-- Base Station -->
-         <!-- Kelvin's Machine -->
-        <!-- <Peer address="192.168.2.13"/>  -->
+         <!-- Kelvin's Machine, wifi (wlp18s0) -- currently the live one -->
+        <Peer address="192.168.2.13"/>
          <!-- Luca's Machine -->
         <!-- <Peer address="192.168.2.14"/> -->
          <!-- Dan's Machine -->
         <!-- <Peer address="192.168.2.50"/> -->
-        <!-- Kelvin's eth0 -->
-        <Peer address="192.168.2.21"/>
+        <!-- Kelvin's eth0, only present when docked -->
+        <!-- <Peer address="192.168.2.21"/> -->
         <!-- Shaans -->
         <!-- <Peer address="192.168.2.140"/> -->
       </Peers>
