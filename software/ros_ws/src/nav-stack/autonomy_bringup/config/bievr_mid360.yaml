@@ -1,0 +1,117 @@
+# BIEVR-LIO on the real Perseus: Livox MID-360 on a Jetson.
+#
+# The alternative to livox_mid360.yaml, selected with `lio:=bievr` on
+# localisation.launch.py. It fills the same slot -- LiDAR-inertial odometry on /Odometry for
+# the EKF to fuse -- so the two are tuned to produce the same thing, and the comments below
+# call out where the two algorithms make the same setting mean different things.
+#
+# Unlike FAST-LIO this is not a ROS parameter file: bievr_lio_ros2 parses plain YAML with
+# yaml-cpp and takes the *path* on its command line, so there is no /**: ros__parameters
+# wrapper and nothing here is visible to `ros2 param`. Upstream splits it across
+# config/params.yaml plus a config/sensor_configs/<robot>.yaml; both are merged per leaf
+# key, so a single file carrying both halves is equivalent and is what the launch file
+# passes as --params_file.
+topics:
+  # The Livox driver's own topics, same as FAST-LIO reads. The IMU is the bias-corrected
+  # stream from the imu_bias_container in localisation.launch.py.
+  pointcloud: "/livox/lidar"
+  imu: "/livox/imu/corrected"
+  # Best-effort, which is compatible with the driver whether it publishes reliable or not.
+  # A sample is only useful while it is current: a lost scan costs one update, a late scan
+  # drags the estimate behind reality. Set true only if the cloud starts crossing a network.
+  qos_reliable: false
+  pointcloud_queue_depth: 20
+  # A full second at the MID-360's 200 Hz IMU rate. The sensor-data default of 5 is 25 ms,
+  # short enough that any stall in the callback thread costs samples de-skewing needs.
+  imu_queue_depth: 200
+# MID-360 datasheet: the LiDAR origin expressed in IMU coordinates. Identical to
+# mapping.extrinsic_T / extrinsic_R in livox_mid360.yaml -- same convention, same numbers.
+calibration: # T_IMU_LIDAR (LiDAR -> IMU)
+  translation: [-0.011, -0.02329, 0.04412]
+  rotation: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+lidar:
+  # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind; same 0.5 m,
+  # and the same caveat: it is a sphere, so raising it blinds the robot in every direction
+  # at that radius.
+  min_range_m: 0.5
+  # Real MID-360 range (~70 m at high reflectivity, ~40 m at 10%).
+  max_range_m: 70
+  # Must match the URDF link name: it is the source frame of the lidar -> base lookup that
+  # the three `base` switches below need.
+  frame: "livox_frame"
+map:
+  # The world-fixed parent of the odometry and the published clouds.
+  frame: "odom"
+  # BIEVR-LIO keeps an image per voxel rather than a point tree, so these are not the same
+  # dial as FAST-LIO's filter_size_map. pixel_size_m is the resolution *within* a voxel
+  # image; voxel_size_m is the voxel grid itself.
+  pixel_size_m: 0.05
+  voxel_size_m: 0.5
+  normal_tolerance_deg: 3
+  smooth: true
+  weighted: true
+  # Bounds memory on a Jetson sharing RAM with the rest of the stack. This is a voxel count,
+  # not a metric extent, so it replaces both cube_side_length and the ikd-Tree trimming that
+  # FAST-LIO uses; 1.5M voxels at 0.5 m is a large area for a rover.
+  max_size: 1500000
+preprocess:
+  # The strongest accuracy dial and the most expensive one, the counterpart of FAST-LIO's
+  # filter_size_surf. Kept at the same 0.12 m so the two backends spend comparable time per
+  # scan on the Jetson. Give this back first if odometry cannot keep up with its input.
+  downsample_resolution_m: 0.12
+  informed_sampling: true
+optimization:
+  huber_delta: 0.1
+imu:
+  window_s: 10
+  # Seconds of stationary data used to estimate the biases and level the world frame. The
+  # robot must be still for this long at startup, exactly as FAST-LIO's gravity_align_en
+  # requires.
+  t_init: 0.2
+  # -1 autodetects whether the accelerometer reports g or m/s^2 from the magnitude of that
+  # window. The Livox IMU reports g, and the bias remover upstream does not rescale it, so
+  # autodetection is what makes the units come out right; pin it to 1 if a future driver
+  # change ever makes the detection ambiguous.
+  normalized: -1.0
+  # The IMU inside the Livox, which is what the filter actually estimates. Deliberately not
+  # base_link: that pose is the IMU's, offset and rotated by the mast mounting, which
+  # base.odom_in_base composes properly rather than mislabelling.
+  frame: "livox_imu_frame"
+base:
+  frame: "base_link"
+  # Report the base pose on the odometry topic so the EKF can fuse it with no transform
+  # between the message's child frame and base_link. Same role as FAST-LIO's
+  # publish.odom_in_base_en, and ekf_config.yaml's odom0 assumes it either way.
+  odom_in_base: true
+  # Put the world origin on base_link rather than on the IMU up the mast, so the ground
+  # plane is near z = 0 instead of z = -0.65 for everything downstream. Position only.
+  origin_at_base: true
+  # And the world heading. Initialisation levels the world frame from the accelerometer,
+  # which fixes roll and pitch only -- yaw is unobservable to an accelerometer -- so the
+  # world frame otherwise inherits the IMU's startup yaw. The IMU sits inside the Livox,
+  # which laser_joint mounts a quarter turn round, so base_link would come up exactly 90
+  # degrees off odom and yank the EKF (which starts at identity) on the first message.
+  # This is the same fix as FAST-LIO's common.heading_at_base_en.
+  heading_at_base: true
+publish:
+  # No TF from the LIO: the EKF owns odom -> base_link, and two publishers on one edge make
+  # lookups depend on message arrival order.
+  tf: false
+  # Would fight the URDF, which already parents livox_frame under base_link.
+  tf_lidar: false
+debug:
+  # Every one of these serialises a point cloud on the Jetson's CPU, competing with the
+  # filter itself. /bievr_lio/points/registered is published unconditionally; this only
+  # controls the extra fine/coarse/effective/undistorted debug clouds.
+  publish_all_clouds: false
+  timing: false
+  log: false
+  # The live status print redraws the terminal on every scan, which is noise in a launch
+  # log and costs a write per frame.
+  dashboard: false
+  trajectory_path: ""
+# 0 means "all cores" here, which is NOT what FAST-LIO's max_threads: 0 means (that one
+# leaves a core free). Everything heavy in this pipeline runs inside TBB, so on a Jetson
+# sharing the board with Nav2 and perception, set this to one or two fewer than the core
+# count if the rest of the stack starts missing its deadlines.
+max_num_threads: 0

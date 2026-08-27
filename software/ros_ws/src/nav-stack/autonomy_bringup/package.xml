@@ -15,7 +15,11 @@
   <depend>navigation2</depend>
   <depend>xacro</depend>
   <depend>robot_localization</depend>
+  <!-- The two LiDAR-inertial odometry backends localisation.launch.py selects between
+       with lio:=fast_lio (default) or lio:=bievr. Both are exec dependencies only, but
+       kept as <depend> to match the rest of this file. -->
   <depend>fast-lio</depend>
+  <depend>bievr_lio_ros2</depend>
   <depend>watchdog</depend>
   <depend>footprint_broadcaster</depend>
   <depend>global_traversability</depend>

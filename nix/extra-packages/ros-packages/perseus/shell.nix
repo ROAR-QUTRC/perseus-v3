@@ -34,6 +34,7 @@ pkgs.mkShell {
           ament-lint-auto
           ament-lint-common
           backward-ros
+          bievr-lio-ros2
           builtin-interfaces
           compressed-depth-image-transport
           compressed-image-transport

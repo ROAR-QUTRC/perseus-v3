@@ -5,6 +5,7 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
+  bievr-lio-ros2,
   fast-lio,
   footprint-broadcaster,
   global-traversability,
@@ -30,6 +31,7 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
+    bievr-lio-ros2
     fast-lio
     footprint-broadcaster
     global-traversability
