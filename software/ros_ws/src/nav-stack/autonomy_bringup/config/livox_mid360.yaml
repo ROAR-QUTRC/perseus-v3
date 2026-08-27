@@ -112,7 +112,11 @@
       # observable unless the robot rotates a lot, so estimating it online adds a nuisance
       # parameter for nothing.
       extrinsic_est_en: false
-      # MID-360 datasheet: the LiDAR origin expressed in IMU coordinates.
+      # MID-360 datasheet: the LiDAR origin expressed in IMU coordinates. The same offset
+      # is stated on livox_imu_joint in description/urdf/sensor_mount.urdf.xacro, negated,
+      # because that joint runs the other way (the IMU in LiDAR coordinates). The URDF is
+      # the one both should agree with; this copy exists because FAST-LIO cannot read the
+      # extrinsic from TF the way bievr_mid360.yaml's calibration.from_tf does.
       extrinsic_T: [-0.011, -0.02329, 0.04412]
       extrinsic_R: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
     publish:

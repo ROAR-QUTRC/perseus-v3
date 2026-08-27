@@ -108,6 +108,32 @@
       <origin xyz="${-0.038} 0.0 0.064" rpy="${0.0} 0.0 ${-pi/2}"/>
     </joint>
 
+    <!--
+      The IMU inside the Livox housing. A pure frame: no visual, no collision, no inertial,
+      because nothing about the robot's mass or appearance depends on it and Gazebo has no
+      use for it either (the simulated IMU in sensors.urdf.xacro is attached to livox_frame,
+      which is 4.4 cm away, and that is irrelevant against a noise-free simulated sensor).
+
+      It exists so the LiDAR-IMU extrinsic has one home. The MID-360 datasheet puts the IMU
+      at (11.0, 23.29, -44.12) mm from the LiDAR origin, in LiDAR coordinates, with no
+      rotation between them. That number was previously written out twice, as
+      mapping.extrinsic_T in autonomy_bringup/config/livox_mid360.yaml and again as
+      calibration.translation in bievr_mid360.yaml, with nothing checking the two against
+      each other. Stating it here instead lets BIEVR-LIO read it back out of TF
+      (calibration.from_tf), and makes common.body_frame in the FAST-LIO config name a link
+      that actually exists.
+
+      Note the sign. Both LIO configs express the extrinsic the other way round, as the
+      LiDAR origin in IMU coordinates, so they carry the negation of these numbers.
+    -->
+    <link name="${prefix}livox_imu_frame"/>
+
+    <joint name="${prefix}livox_imu_joint" type="fixed">
+      <parent link="${prefix}livox_frame"/>
+      <child link="${prefix}livox_imu_frame"/>
+      <origin xyz="0.011 0.02329 ${-0.04412}" rpy="0.0 0.0 0.0"/>
+    </joint>
+
     <!-- RealSense D455, on the front face of the mast, looking straight ahead -->
     <xacro:sensor_d455 parent="${prefix}sensor_mount" name="camera" use_nominal_extrinsics="true">
       <origin xyz="0.035 0.0 0.006" rpy="0.0 0.0 0.0"/>

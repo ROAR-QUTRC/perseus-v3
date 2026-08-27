@@ -24,11 +24,18 @@ topics:
   # A full second at the MID-360's 200 Hz IMU rate. The sensor-data default of 5 is 25 ms,
   # short enough that any stall in the callback thread costs samples de-skewing needs.
   imu_queue_depth: 200
-# MID-360 datasheet: the LiDAR origin expressed in IMU coordinates. Identical to
-# mapping.extrinsic_T / extrinsic_R in livox_mid360.yaml -- same convention, same numbers.
-calibration: # T_IMU_LIDAR (LiDAR -> IMU)
-  translation: [-0.011, -0.02329, 0.04412]
-  rotation: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+calibration:
+  # Read the LiDAR -> IMU extrinsic from TF at startup, as imu.frame -> lidar.frame, rather
+  # than restating it here. The MID-360 datasheet offset lives on the livox_imu_joint in
+  # description/urdf/sensor_mount.urdf.xacro, which is where a physical property of the
+  # sensor belongs; livox_mid360.yaml still carries its own copy as mapping.extrinsic_T
+  # because FAST-LIO cannot do this, and the URDF is the one both should agree with.
+  #
+  # This makes the robot description a hard dependency of odometry -- but it already was:
+  # base.origin_at_base below cannot place the world frame without it either, so nothing new
+  # has to come up first. Set it back to explicit translation / rotation vectors for a bag
+  # replay, which has no live TF tree to read.
+  from_tf: true
 lidar:
   # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind; same 0.5 m,
   # and the same caveat: it is a sphere, so raising it blinds the robot in every direction
