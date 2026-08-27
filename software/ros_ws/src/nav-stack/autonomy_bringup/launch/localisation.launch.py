@@ -28,10 +28,12 @@ has no equivalent: it keeps a voxel-image map rather than an accumulated cloud, 
 no /Laser_map, and writes nothing. So `lio:=bievr` also leaves the /Laser_map half of the
 point cloud link with no input, and produces no map file.
 
-The config is tuned for the real robot. Pass sim:=true against Gazebo, which publishes a
-differently shaped cloud -- see sim_overrides() for exactly what changes and why. Only
-fast_lio can be driven that way: BIEVR-LIO requires a per-point time field (t/time/
-timestamp) that the Gazebo sensor does not emit, and rejects every cloud without one.
+Both configs are tuned for the real robot, and both backends take sim:=true against
+Gazebo, which publishes a differently shaped cloud. What changes and why is in
+sim_overrides() for fast_lio and in config/bievr_mid360_sim.yaml for bievr. The shape of
+the answer differs because the backends do: FAST-LIO takes one parameter file, so its
+overrides are applied to a rewritten copy of it, while BIEVR-LIO already layers two configs
+and merges them per key, so its overrides are just a second file.
 """
 
 import os
@@ -122,35 +124,39 @@ def fast_lio_actions(rviz, use_sim_time, is_sim):
     return [GroupAction([fast_lio_launch], scoped=True)]
 
 
-def bievr_actions(rviz, use_sim_time):
+def bievr_actions(rviz, use_sim_time, is_sim):
     """The BIEVR-LIO backend: the node directly, rather than its own launch file.
 
-    Nothing has to be rewritten, so there is no temp-file dance -- but there is also no
-    launch file worth including. bievr_lio_ros2's own takes two config paths (upstream
-    splits the settings across a params file and a per-sensor file) and hardcodes its RViz
-    config; config/bievr_mid360.yaml carries both halves, which the loader merges per leaf
-    key exactly the same way, so one --params_file is equivalent and clearer.
+    There is no temp-file dance here, and no sim_overrides() either. BIEVR-LIO takes two
+    config paths and merges them per leaf key, so the simulator's differences go in a
+    second file that wins on the handful of keys it sets -- see bievr_mid360_sim.yaml.
+    That is also the only reason not to include bievr_lio_ros2's own launch file: it takes
+    the same two paths but resolves them inside its own share directory, and hardcodes its
+    RViz config.
 
-    The config is a plain YAML file parsed by the node itself, not a ROS parameter file, so
-    it goes on the command line. use_sim_time is a genuine ROS parameter and stays one.
+    Neither file is a ROS parameter file -- the node parses them itself with yaml-cpp -- so
+    they go on the command line. use_sim_time is a genuine ROS parameter and stays one.
 
     The remap is what makes the two backends interchangeable: BIEVR-LIO namespaces
     everything it publishes under /bievr_lio, and ekf_config.yaml's odom0 wants /Odometry.
     """
+
+    def config(name):
+        return os.path.join(
+            get_package_share_directory("autonomy_bringup"), "config", name
+        )
+
+    config_args = ["--params_file", config("bievr_mid360.yaml")]
+    if is_sim:
+        config_args += ["--sensor_config_file", config("bievr_mid360_sim.yaml")]
+
     return [
         Node(
             package="bievr_lio_ros2",
             executable="process_topics",
             name="bievr_lio",
             output="screen",
-            arguments=[
-                "--params_file",
-                os.path.join(
-                    get_package_share_directory("autonomy_bringup"),
-                    "config",
-                    "bievr_mid360.yaml",
-                ),
-            ],
+            arguments=config_args,
             parameters=[{"use_sim_time": use_sim_time}],
             remappings=[("/bievr_lio/odom", "/Odometry")],
         ),
@@ -186,22 +192,10 @@ def launch_setup(context, *args, **kwargs):
 
     # An unknown value never reaches here: DeclareLaunchArgument takes LIO_BACKENDS as its
     # choices and rejects anything else before this function runs.
-    if lio == "bievr" and is_sim:
-        # Refused rather than warned about, because the failure is silent otherwise: the
-        # node comes up, logs one "no recognized time field" line and then sits there
-        # publishing nothing, which looks like a TF or a topic problem rather than a
-        # backend that cannot read this cloud at all.
-        raise RuntimeError(
-            "lio:=bievr does not work with sim:=true. BIEVR-LIO needs a per-point time "
-            "field (t/time/timestamp) to de-skew a scan and rejects any cloud without "
-            "one; the Gazebo sensor publishes x,y,z,intensity,ring and no time at all. "
-            "Use lio:=fast_lio against the simulator."
-        )
-
     lio_actions = (
         fast_lio_actions(rviz, use_sim_time, is_sim)
         if lio == "fast_lio"
-        else bievr_actions(rviz, use_sim_time)
+        else bievr_actions(rviz, use_sim_time, is_sim)
     )
 
     # Reused rather than duplicated, so the EKF node and its parameters are defined once.
@@ -315,8 +309,7 @@ def generate_launch_description():
         choices=list(LIO_BACKENDS),
         description="Which LiDAR-inertial odometry backend produces /Odometry. "
         "fast_lio is FAST-LIO 2 with config/livox_mid360.yaml; bievr is BIEVR-LIO with "
-        "config/bievr_mid360.yaml. Everything downstream is identical either way. "
-        "bievr is incompatible with sim:=true.",
+        "config/bievr_mid360.yaml. Everything downstream is identical either way.",
     )
 
     declare_sim = DeclareLaunchArgument(

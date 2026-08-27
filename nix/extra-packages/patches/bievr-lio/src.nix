@@ -5,7 +5,8 @@
 # Fork of ethz-asl/BIEVR-LIO. It carries the TF frame names, TF-publishing switches and
 # base-relative pose options turned into config keys (lidar.frame, base.frame,
 # base.odom_in_base / origin_at_base / heading_at_base, publish.tf / tf_lidar), plus
-# configurable subscription QoS and bounded synchronizer queues.
+# lidar.allow_untimed for simulated clouds, configurable subscription QoS and bounded
+# synchronizer queues.
 #
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
@@ -16,6 +17,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "fa213f75f0fb9597c2cac558b8e2c345d2d04343"; # feat/configurable-frames
-  hash = "sha256-7/WZvhinbdKa3nKLnzmyatuQqgcAkX+6q2uHekOI7y4=";
+  rev = "2b6d89dd3f82da83c5598d02d47e8238168c975e"; # feat/configurable-frames
+  hash = "sha256-Ufio84HyumZnGmB39e240iM90euov4bWdzkjMeryI1c=";
 }
