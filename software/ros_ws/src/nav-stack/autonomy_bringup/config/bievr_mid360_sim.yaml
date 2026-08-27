@@ -2,12 +2,15 @@
 #
 # A separate file rather than a rewritten copy, because BIEVR-LIO already layers two configs
 # and merges them per leaf key -- localisation.launch.py passes the real-robot file as
-# --params_file and this one as --sensor_config_file, so the keys below win and every key
-# not mentioned here keeps its real-robot value. That is also why there is no counterpart to
-# FAST-LIO's sim_overrides(): the layering does the same job without a temp file.
+# --params_file and this one as --sensor_config_file when sim:=true, so the keys below win
+# and every key not mentioned here keeps its real-robot value. That is also why there is no
+# counterpart to FAST-LIO's sim_overrides(): the layering does the same job without a temp
+# file.
 #
-# The sensor being modelled is the gpu_lidar and imu in description/urdf/sensors.urdf.xacro,
-# not a MID-360. Where they disagree, this file follows the URDF.
+# The sensor being modelled is the gpu_lidar and imu in perseus_simulation's
+# perseus_description/urdf/sensors.urdf.xacro -- the simulator is a separate workspace, and
+# this repo's own description/urdf/sensors.urdf.xacro is NOT what Gazebo runs. Where the two
+# disagree, this file follows the simulator.
 lidar:
   # The reason this file has to exist. The gz bridge publishes x, y, z, intensity, ring and
   # no per-point time field, so without this every cloud is rejected and the node comes up
@@ -18,10 +21,19 @@ lidar:
   # The <range><max> of the simulated sensor, against ~70 m for the real MID-360. Points
   # beyond it never appear, so this only saves the filter from carrying a range it will
   # never see.
-  max_range_m: 30
-imu:
-  # The simulated IMU runs at 10 Hz (<update_rate> on lidar_imu), against 200 Hz on the real
-  # MID-360. 0.2 s of it is two samples to estimate the biases and level the world frame
-  # from; 0.5 s gives the initialiser something to average. The robot still has to be
-  # stationary for that long at startup.
-  t_init: 0.5
+  max_range_m: 40
+calibration:
+  # The real robot reads this from TF, as livox_imu_frame -> livox_frame. Two reasons that
+  # cannot work here, and they point the same way:
+  #
+  #   1. The simulator's robot_state_publisher runs perseus_simulation's own
+  #      perseus_description, which has no livox_imu_frame link. from_tf would sit waiting
+  #      for a transform that never arrives, and with it the whole pipeline.
+  #   2. It would be wrong even if the link existed. The simulated IMU is attached to
+  #      livox_frame with no offset, so in Gazebo the IMU really is at the LiDAR origin --
+  #      the 4.4 cm datasheet offset the real sensor has simply is not modelled.
+  #
+  # So: stated explicitly, and identity, which is what the simulated sensor actually is.
+  from_tf: false
+  translation: [0.0, 0.0, 0.0]
+  rotation: [1., 0., 0., 0., 1., 0., 0., 0., 1.]

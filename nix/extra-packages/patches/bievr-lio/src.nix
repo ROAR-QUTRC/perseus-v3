@@ -18,6 +18,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "0cd2b053fb5f5418ecc6d9414f9cf206ff5993c3"; # feat/configurable-frames
-  hash = "sha256-gGS4L0NGrEG+rhawPlcS+xsWPzYwGjDQaamjFBFx7eo=";
+  rev = "209f542836dcc10e6f6c9fd135263f521d4baab6"; # feat/configurable-frames
+  hash = "sha256-GdBF27R6za9GNpPDBjqZjFxPf376KF/qEDP1cg8ut58=";
 }
