@@ -55,8 +55,8 @@ jobs:
       skip-package: ${{ steps.previous-package.outputs.skip }}
     needs: global-vars
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: .github/filters.yaml
@@ -97,6 +97,25 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      # Configure cachix using roar as the primary cache with devenv (automatically done by devenv) and ros as extra upstream caches
+      - uses: cachix/cachix-action@v16
+        if: needs.global-vars.outputs.has-cachix-secret == 'true'
+        with:
+          name: roar
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: ros
+      - name: Install devenv.sh
+        run: nix profile add nixpkgs#devenv
+      # `test` will build the environment and run all tests
+      - name: Build and test environment
+        run: devenv --profile cicd test
+  debug:
+    name: Debug
+    needs: [global-vars, changes]
+    runs-on: ubuntu-latest
+    steps:
       - name: print global variables
         run: |
           echo "format_msg=${{ needs.global-vars.outputs.format_msg }}"
@@ -113,18 +132,3 @@ jobs:
           echo "packages=${{ needs.changes.outputs.packages }}"
           echo "skip-format=${{ needs.changes.outputs.skip-format }}"
           echo "skip-package=${{ needs.changes.outputs.skip-package }}"
-      - uses: actions/checkout@v5
-      - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
-        if: needs.global-vars.outputs.has-cachix-secret == 'true'
-        with:
-          name: roar
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          extraPullNames: devenv,ros
-      - name: Install devenv.sh
-        run: |
-          nix profile add nixpkgs#devenv
-          devenv --version
-      - name: Build and test environment
-        run: |
-          devenv --profile cicd test
