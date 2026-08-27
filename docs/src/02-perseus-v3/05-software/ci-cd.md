@@ -36,3 +36,9 @@ The typical workflow looks something like this:
 [^cicd-profile]: This profile inherits from all the others, so it builds everything.
 
 If you're curious about any specific workflow, they're all well commented.
+
+## Maintenance
+
+Maintenance required involves ensuring that the actions used are up to date. A very common warning returned by actions is `Node XX is being deprecated.` which is commonly fixed by incrementing the version number of the action.
+
+The `cicd` devenv profile must be update to extend new profiles to ensure that they are built and cached during CI/CD.
