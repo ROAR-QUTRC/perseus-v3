@@ -108,16 +108,13 @@ jobs:
           extraPullNames: ros
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
-      # Scripts are available from the devenv environment with no profiles
-      - name: Generate ROS2 packages
+      - name: Generate packages
+        # Don't automatically commit for commit message consistency, see comment above in 'changes' job
         run: devenv shell generate-ros-pkgs --no-commit
       - uses: stefanzweifel/git-auto-commit-action@v7
         name: Commit and push changes
         with:
           commit_message: ${{ needs.global-vars.outputs.package-msg }}
-      # Collect garbage from nix2ros so it doesn't get pushed to cache by the build-env job
-      - name: Garbage collect
-        run: nix-collect-garbage
   build-env:
     name: Build environment
     needs: [global-vars, changes, package]
@@ -137,6 +134,9 @@ jobs:
           name: roar
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: ros
+      # Collect garbage from nix2ros so it doesn't get pushed to cache by the build-env job
+      - name: Garbage collect
+        run: nix-collect-garbage -d
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
       # `test` will build the environment and run all tests
