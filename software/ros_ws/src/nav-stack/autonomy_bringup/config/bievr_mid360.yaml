@@ -71,7 +71,7 @@ map:
   # surface-only map, that is far more than a rover covers in a run.
   #
   # Raise it on a workstation, where the arithmetic above is the only limit that matters.
-  max_size: 400000
+  max_size: 600000
 preprocess:
   # The strongest accuracy dial and the most expensive one, the counterpart of FAST-LIO's
   # filter_size_surf. Kept at the same 0.12 m so the two backends spend comparable time per
