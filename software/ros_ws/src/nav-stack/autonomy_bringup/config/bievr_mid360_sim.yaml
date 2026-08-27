@@ -22,18 +22,17 @@ lidar:
   # beyond it never appear, so this only saves the filter from carrying a range it will
   # never see.
   max_range_m: 40
-calibration:
-  # The real robot reads this from TF, as livox_imu_frame -> livox_frame. Two reasons that
-  # cannot work here, and they point the same way:
-  #
-  #   1. The simulator's robot_state_publisher runs perseus_simulation's own
-  #      perseus_description, which has no livox_imu_frame link. from_tf would sit waiting
-  #      for a transform that never arrives, and with it the whole pipeline.
-  #   2. It would be wrong even if the link existed. The simulated IMU is attached to
-  #      livox_frame with no offset, so in Gazebo the IMU really is at the LiDAR origin --
-  #      the 4.4 cm datasheet offset the real sensor has simply is not modelled.
-  #
-  # So: stated explicitly, and identity, which is what the simulated sensor actually is.
-  from_tf: false
-  translation: [0.0, 0.0, 0.0]
-  rotation: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+# calibration is deliberately absent: the simulator now models the LiDAR-IMU offset the
+# same way the robot does. perseus_simulation's perseus_description carries the same
+# livox_imu_joint as this repo's description package, and its Gazebo imu sensor is attached
+# to livox_imu_frame rather than sitting on livox_frame, so bievr_mid360.yaml's
+# calibration.from_tf resolves here to the same extrinsic it resolves to on the robot.
+#
+# If that ever stops being true -- an older perseus_simulation checkout, say -- the symptom
+# is the node holding at "Waiting for the livox_imu_frame -> livox_frame transform" and
+# publishing nothing. The fix is to state it here explicitly instead:
+#
+#   calibration:
+#     from_tf: false
+#     translation: [0.0, 0.0, 0.0]      # identity: the sim IMU used to sit on livox_frame
+#     rotation: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
