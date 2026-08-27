@@ -12,16 +12,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # defines a concurrentcy group key
   cancel-in-progress: true # only allow one job with this group key at a time
 jobs:
+  # Define global variables used by other jobs
   global-vars:
     name: Setup global variables
     runs-on: ubuntu-latest
     outputs:
+      # Define messages used when committing changes from actions
       format_msg: ${{ steps.export-vars.outputs.format_msg }}
       package_msg: ${{ steps.export-vars.outputs.package_msg }}
+      # Only want to deploy docs from the main branch
       is-main: ${{ (github.repository == 'ROAR-QUTRC/perseus-v2') && (github.ref == 'refs/heads/main') }}
+      # Only want to push commits if the workflow is triggered by a push or manual dispatch
+      can-push-commits: ${{ (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
+      # Auth secrets
       has-cachix-secret: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
       has-repo-secret: ${{ secrets.REPO_DEPLOY_KEY != '' }}
-      can-push-commits: ${{ (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
     steps:
       - name: Export Nix config
         id: export-vars
@@ -30,9 +35,63 @@ jobs:
             echo "format_msg=chore: Format and lint"
             echo "package_msg=chore: Update Nix packaging"
           } >> "$GITHUB_OUTPUT"
+          {
+            echo "format_msg=chore: Format and lint"
+            echo "package_msg=chore: Update Nix packaging"
+          } >> "$GITHUB_OUTPUT"
+  # get the file changes to filter other jobs
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      # Manual overrides most of the following filters
+      manual: ${{ github.event_name == 'workflow_dispatch'}}
+      software: ${{ steps.filter.outputs.software }}
+      docs: ${{ steps.filter.outputs.docs }}
+      # Regenerate ros2 packages
+      packages: ${{ steps.filter.outputs.packages }}
+      # Determined based on the last commit message, see below
+      skip-format: ${{ steps.previous-format.outputs.skip }}
+      skip-package: ${{ steps.previous-package.outputs.skip }}
+    needs: global-vars
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: .github/filters.yaml
+      - name: Check for previous formatting
+        id: previous-format
+        # WARNING: The commit message check is fragile and may break if the commit 
+        # message changes, hence it's determined by the global-vars job.
+        # We can skip the format job if the last message was a format *or* 
+        # package message, since package will always run after format
+        run: |
+          case "$(git log -1 --pretty=format:%B)" in
+            "${{ needs.global-vars.outputs.package_msg }}"|"${{ needs.global-vars.outputs.format_msg }}")
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Format job will be skipped since the last commit was a format or package commit"
+              ;;
+            *)
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              echo "Format job will run"
+              ;;
+          esac
+      - name: Check for previous packaging
+        id: previous-package
+        # same thing as the format check job
+        run: |
+          if [ "$(git log -1 --pretty=format:%B)" = "${{ needs.global-vars.outputs.package_msg }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Package job will be skipped since the last commit was a package commit"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Package job will run"
+          fi;
   build-env:
     name: Build environment
-    needs: global-vars
+    needs: [global-vars, changes]
+    # Build for x86 and arm
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm]
@@ -46,6 +105,14 @@ jobs:
           echo "has-cachix-secret=${{ needs.global-vars.outputs.has-cachix-secret }}"
           echo "has-repo-secret=${{ needs.global-vars.outputs.has-repo-secret }}"
           echo "can-push-commits=${{ needs.global-vars.outputs.can-push-commits }}"
+      - name: print changed files
+        run: |
+          echo "manual=${{ needs.changes.outputs.manual }}"
+          echo "software=${{ needs.changes.outputs.software }}"
+          echo "docs=${{ needs.changes.outputs.docs }}"
+          echo "packages=${{ needs.changes.outputs.packages }}"
+          echo "skip-format=${{ needs.changes.outputs.skip-format }}"
+          echo "skip-package=${{ needs.changes.outputs.skip-package }}"
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
