@@ -18,11 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       # Define messages used when committing changes from actions
-      format_msg: ${{ steps.export-vars.outputs.format_msg }}
-      package_msg: ${{ steps.export-vars.outputs.package_msg }}
+      format-msg: ${{ steps.export-vars.outputs.format-msg }}
+      package-msg: ${{ steps.export-vars.outputs.package-msg }}
       # Only want to deploy docs from the main branch
       is-main: ${{ (github.repository == 'ROAR-QUTRC/perseus-v2') && (github.ref == 'refs/heads/main') }}
-      # Only want to push commits if the workflow is triggered by a push or manual dispatch
+      # We don't want to run commit actions on pull request workflows (ie, after the merge commit),
+      # only on push and manual dispatch, so all commit+push steps are filtered by the event name
       can-push-commits: ${{ (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
       # Auth secrets
       has-cachix-secret: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
@@ -32,12 +33,12 @@ jobs:
         id: export-vars
         run: |
           {
-            echo "format_msg=chore: Format and lint"
-            echo "package_msg=chore: Update Nix packaging"
+            echo "format-msg=chore: Format and lint"
+            echo "package-msg=chore: Update Nix packaging"
           } >> "$GITHUB_OUTPUT"
           {
-            echo "format_msg=chore: Format and lint"
-            echo "package_msg=chore: Update Nix packaging"
+            echo "format-msg=chore: Format and lint"
+            echo "package-msg=chore: Update Nix packaging"
           } >> "$GITHUB_OUTPUT"
   # get the file changes to filter other jobs
   changes:
@@ -62,13 +63,13 @@ jobs:
           filters: .github/filters.yaml
       - name: Check for previous formatting
         id: previous-format
-        # WARNING: The commit message check is fragile and may break if the commit 
+        # WARNING: The commit message check is fragile and may break if the commit
         # message changes, hence it's determined by the global-vars job.
-        # We can skip the format job if the last message was a format *or* 
+        # We can skip the format job if the last message was a format *or*
         # package message, since package will always run after format
         run: |
           case "$(git log -1 --pretty=format:%B)" in
-            "${{ needs.global-vars.outputs.package_msg }}"|"${{ needs.global-vars.outputs.format_msg }}")
+            "${{ needs.global-vars.outputs.package-msg }}"|"${{ needs.global-vars.outputs.format-msg }}")
               echo "skip=true" >> "$GITHUB_OUTPUT"
               echo "Format job will be skipped since the last commit was a format or package commit"
               ;;
@@ -81,13 +82,31 @@ jobs:
         id: previous-package
         # same thing as the format check job
         run: |
-          if [ "$(git log -1 --pretty=format:%B)" = "${{ needs.global-vars.outputs.package_msg }}" ]; then
+          if [ "$(git log -1 --pretty=format:%B)" = "${{ needs.global-vars.outputs.package-msg }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "Package job will be skipped since the last commit was a package commit"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "Package job will run"
           fi;
+  # Regenerate ROS2 Nix packages using `ros2nix` if any of the `package.xml` files have changed
+  package:
+    name: Generate ROS2 Nix packages
+    if: ${{ !cancelled() && (needs.changes.outputs.skip-package != 'true') && (needs.changes.outputs.packages == 'true') && (needs.global-vars.outputs.can-push-commits == 'true') }}
+    needs: [global-vars, changes]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - name: Install devenv.sh
+        run: nix profile add nixpkgs#devenv
+      # scripts are available from the devenv environment with no profiles
+      - name: Generate ROS2 packages
+        run: devenv shell generate-ros-pkgs --no-commit
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        name: Commit and push changes
+        with:
+          commit_message: ${{ needs.global-vars.outputs.package-msg }}
   build-env:
     name: Build environment
     needs: [global-vars, changes]
@@ -99,7 +118,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
-      # Configure cachix using roar as the primary cache with devenv (automatically done by devenv) and ros as extra upstream caches
+      # Configure the roar cachix and use the ros cachix as an upstream substitutor
+      # The devenv cache is automatically as well when devenv is installed
       - uses: cachix/cachix-action@v16
         if: needs.global-vars.outputs.has-cachix-secret == 'true'
         with:
@@ -118,8 +138,8 @@ jobs:
     steps:
       - name: print global variables
         run: |
-          echo "format_msg=${{ needs.global-vars.outputs.format_msg }}"
-          echo "package_msg=${{ needs.global-vars.outputs.package_msg }}"
+          echo "format-msg=${{ needs.global-vars.outputs.format-msg }}"
+          echo "package-msg=${{ needs.global-vars.outputs.package-msg }}"
           echo "is-main=${{ needs.global-vars.outputs.is-main }}"
           echo "has-cachix-secret=${{ needs.global-vars.outputs.has-cachix-secret }}"
           echo "has-repo-secret=${{ needs.global-vars.outputs.has-repo-secret }}"
