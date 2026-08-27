@@ -1,0 +1,268 @@
+# Perseus Teleoperation
+
+This guide covers teleoperation of Perseus using a keyboard or Xbox controller. Teleoperation enables remote control of Perseus's movement. Operation of payloads (bucket, arms) is not covered in this guide.
+
+## Prerequisites
+
+The following conditions must be met before beginning:
+
+- The laptop runs a Linux distribution with the latest code from the perseus-v2 Github repository:
+  ```console
+  git checkout main
+  git pull
+  ```
+- Required fonts are installed for rendering the Orin's zsh shell with the [`powerlevel10k`](https://github.com/romkatv/powerlevel10k) theme (available in /perseus-v2/fonts). You will likely have to set the font to be your terminal's default (it'll come up as `MesloLGS NF`), though you may need to restart your terminal for the font to be available after installation.
+- Xbox controller (if used) is paired with the laptop
+- Perseus has sufficient battery charge
+
+## Summary
+
+1. Power on Perseus
+2. Establish network availability
+3. Connect laptop to network
+4. Verify network connection
+5. Access Perseus system
+6. Manually confirm date/time
+7. Launch Perseus software
+8. Launch control software
+9. Operate Perseus safely
+
+### Perseus Power-up
+
+1. Verify the E-stop is in the "up" (de-latched) position. Rotation may be necessary to unlatch if previously pressed.
+2. Connect the battery's XT90 connector to the power meter.
+
+### Network Setup
+
+The Unifi UX is currently housed inside Perseus. Confirm that the power and network cables are connected to the Unifi UX. Once Perseus is powered on, the Unifi UX boot process should start automatically and take approximately 3 minutes. A complete boot is indicated when the screen displays a connected device counter instead of a progress bar and wifi devices can see the SSID "QUTRC-ROAR".
+
+:::{warning}
+The Unifi UX requires specific power specifications via its USB-C port. Use the onboard DC-DC power adaptor and avoid using externally grounded power sources.
+:::
+
+To enable Internet access, connect the Unifi UX's WAN port (marked with a globe symbol) to an Internet-enabled network via ethernet.
+
+### Network Connection
+
+Connect the laptop to the "QUTRC-ROAR" WiFi network using the provided credentials (ask in Discord).
+
+### Network Verification
+
+Perseus should automatically connect to the QUTRC-ROAR network. Verify the connection using one of these methods:
+
+- Check the Unifi console for connected devices
+- Use arp-scan on the laptop to list devices with allocated IP addresses:
+  ```console
+  sudo arp-scan --localnet
+  ```
+
+#### Network Troubleshooting
+
+1. Physical Connectivity
+   - Confirm Unifi UX is powered and fully booted (screen shows device count)
+   - Verify power LED indicators are lit
+   - Check E-Stop position as it affects system power
+
+2. Laptop Connectivity
+   - Verify connection to "QUTRC-ROAR" network
+   - Check signal strength (maintain line of sight with Unifi UX if possible)
+   - Confirm IP address allocation using `ip addr`
+
+3. Perseus Connectivity
+
+   ```console
+   # Verify Perseus visibility
+   ping big-brain.local
+
+   # Alternative: network device scan
+   sudo arp-scan --localnet | grep -i nvidia
+   ```
+
+### System Access
+
+Access Perseus via SSH from the laptop:
+
+```console
+ssh qutrc@big-brain.local
+```
+
+:::{info}
+You must use [`zellij`](https://zellij.dev/) on rover compute units when running multiple commands to prevent the need for multiple ssh connections.
+:::
+
+### Manually confirm the date/time
+
+The Perseus compute modules (Orin, Pi5 etc) require appropriate date/time information. As they do not have a realtime backup clock source it is prudent to manually set the correct date/time after start up.
+
+If the Unifi UX has access to the Internet then it is possible to sync the time with
+
+```console
+sudo chronyd -q
+```
+
+### Perseus Software Launch
+
+Execute the following command on Perseus:
+
+```console
+nix run .#perseus
+```
+
+You can run the bucket nodes at the same time using:
+
+```console
+nix run .#perseus -- payload:=bucket
+```
+
+:::{warning}
+Requires Internet access to complete this command, unless all necessary files have been previously downloaded to this specific device.
+:::
+
+### Control Software Launch
+
+Launch the appropriate control software on the laptop based on the desired control method.
+
+#### Keyboard Control
+
+```console
+cd perseus-v2
+nix run .#ros2 -- run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+Note: Control messages are only sent when the terminal has focus and receives keystrokes ({keys}`k` to stop).
+
+#### Generic Controller
+
+:::{note}
+Make sure that the Xbox controller connects to your laptop!  
+Sometimes you may need to re-pair, even if you've paired to it before.
+:::
+
+To run the controller there are certain things to understand before that happens.
+
+The launch file accepts the following parameters:
+
+| Argument     | Default   | Description                                                                                 |
+| ------------ | --------- | ------------------------------------------------------------------------------------------- |
+| `type`       | `xbox`    | Controller type. Options: `xbox`, `8bitdo`, `logitech`.                                     |
+| `wireless`   | `true`    | Connection type. Set `true` for wireless, `false` for wired.                                |
+| `dual_stick` | `false`   | Use dual-stick driving for Xbox controllers (left stick forward/back, right stick turning). |
+| `config`     | _(empty)_ | Path to a custom YAML config file. If provided, this overrides both `type` and `wireless`.  |
+
+::: {note}
+The logitech controller config file has been configured for a logitech wired F310, and the 8bitdo controller config file has been configured for an 8BitDo Ultimate 2C controller. These same configuration files might not work for other models.
+:::
+
+Some example runs:
+
+Default: Xbox controller, wireless
+
+```console
+nix run .#generic_controller
+```
+
+Xbox controller, wired
+
+```console
+nix run .#generic_controller -- type:=xbox wireless:=false
+```
+
+8BitDo controller, wireless
+
+```console
+nix run .#generic_controller -- type:=8bitdo wireless:=true
+```
+
+Logitech controller, wired
+
+```console
+nix run .#generic_controller -- type:=logitech wireless:=false
+```
+
+Xbox controller, dual-stick driving (wireless)
+
+```console
+nix run .#generic_controller -- dual_stick:=true
+```
+
+Xbox controller, dual-stick driving (wired)
+
+```console
+nix run .#generic_controller -- dual_stick:=true wireless:=false
+```
+
+Use a custom config file
+
+```console
+# Absolute path
+nix run .#generic_controller -- config:=/absolute/path/to/my_controller.yaml
+
+# Alternative: Relative path (from current working directory)
+nix run .#generic_controller -- config:=./relative/path/to/my_controller.yaml
+```
+
+#### Dual-Stick Driving Mode
+
+By default, the Xbox controller uses a single-stick layout where the left stick controls both forward/backward movement and turning, while the right stick controls bucket actuators (lift and tilt).
+
+The `dual_stick` option enables an alternative layout common in games and teleoperation:
+
+- **Left stick Y-axis**: Forward / backward
+- **Right stick X-axis**: Turning
+- **Bucket controls** are remapped to buttons since the right stick is used for driving:
+
+  **Wireless:**
+
+  | Control            | Button |
+  | ------------------ | ------ |
+  | Bucket lift (up)   | LB     |
+  | Bucket lift (down) | RB     |
+  | Bucket tilt (up)   | Y      |
+  | Bucket tilt (down) | A      |
+
+  **Wired:**
+
+  | Control            | Button |
+  | ------------------ | ------ |
+  | Bucket lift (up)   | Y      |
+  | Bucket lift (down) | A      |
+  | Bucket tilt (up)   | X      |
+  | Bucket tilt (down) | B      |
+
+All other controls (triggers for enable/turbo, jaws, rotate, magnet) remain unchanged.
+
+:::{note}
+The `dual_stick` parameter only affects Xbox controllers. It is ignored for `8bitdo` and `logitech` controller types.
+:::
+
+### Safe Operation
+
+#### Safety Protocol
+
+Before operating Perseus:
+
+1. Ensure all bystanders:
+   - Are aware of Perseus's operation
+   - Know the E-Stop button location
+   - Understand they should press the E-Stop if they observe:
+     - Collision risks
+     - Unsafe behaviour
+     - Control issues
+     - Any hazardous situations
+
+The E-Stop, a red mushroom-shaped button on Perseus's top, immediately cuts all power when pressed.
+
+:::{warning}
+E-Stop activation causes immediate stopping. While this may cause abrupt deceleration, safety concerns always warrant E-Stop activation.
+:::
+
+#### Initial Testing
+
+For Xbox controller input, the triggers act as dead man's switches.
+The right trigger is for low-speed movement, and the left trigger is for high-speed movement (double the rate of low-speed by default).
+
+Test Perseus's movement systematically:
+
+1. Begin with slow speeds (right trigger only)
+2. Test forward and backward motion separately from turning
+3. Verify movement matches expected directions

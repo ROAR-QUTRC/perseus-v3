@@ -40,5 +40,8 @@
       };
     };
 
+    docs.module = import ./profiles/docs.nix {
+      inherit pkgs;
+    };
   };
 }
