@@ -57,10 +57,21 @@ map:
   normal_tolerance_deg: 3
   smooth: true
   weighted: true
-  # Bounds memory on a Jetson sharing RAM with the rest of the stack. This is a voxel count,
-  # not a metric extent, so it replaces both cube_side_length and the ikd-Tree trimming that
-  # FAST-LIO uses; 1.5M voxels at 0.5 m is a large area for a rover.
-  max_size: 1500000
+  # A voxel count, not a metric extent, so it replaces both cube_side_length and the
+  # ikd-Tree trimming FAST-LIO uses. Voxels past this are evicted least-recently-used first,
+  # so the map degrades by forgetting where the robot has not been lately rather than by
+  # failing.
+  #
+  # Size it by memory, not by area. Each observed voxel carries three float images of
+  # (voxel_size / pixel_size)^2 pixels -- bump, smoothed and weights -- so at 0.5 m and 5 cm
+  # that is 3 x 10 x 10 x 4 = 1200 bytes, plus about 470 bytes of transforms and moments and
+  # the hash/LRU node: call it 1.8 kB per voxel. Upstream's 1.5M would therefore reach about
+  # 2.6 GB once the map filled, which is not survivable on a Jetson sharing RAM with Nav2
+  # and perception. 400k is roughly 0.7 GB and still a large area: at 0.5 m voxels, a
+  # surface-only map, that is far more than a rover covers in a run.
+  #
+  # Raise it on a workstation, where the arithmetic above is the only limit that matters.
+  max_size: 400000
 preprocess:
   # The strongest accuracy dial and the most expensive one, the counterpart of FAST-LIO's
   # filter_size_surf. Kept at the same 0.12 m so the two backends spend comparable time per
@@ -117,8 +128,17 @@ debug:
   # log and costs a write per frame.
   dashboard: false
   trajectory_path: ""
-# 0 means "all cores" here, which is NOT what FAST-LIO's max_threads: 0 means (that one
-# leaves a core free). Everything heavy in this pipeline runs inside TBB, so on a Jetson
-# sharing the board with Nav2 and perception, set this to one or two fewer than the core
-# count if the rest of the stack starts missing its deadlines.
-max_num_threads: 0
+# Pinned rather than left at 0, which means "all cores" here (NOT what FAST-LIO's
+# max_threads: 0 means -- that one leaves a core free).
+#
+# 0 is actively worse than a small number, not just greedier. TBB starts a worker per core
+# and they spin-wait between frames, so the process burned 0.47-0.61 cores on a 28-thread
+# desktop; pinned to a single core it burned 0.30 and published /Odometry at the same rate.
+# The extra was spin, not work. On a Jetson that spin competes with Nav2 for cores the
+# filter is not using anyway.
+#
+# 3 leaves headroom on a 6-core board and is well above what the measurement says is needed:
+# the whole pipeline held 10 Hz on one 3.9 GHz core with a 23k-point scan, which is the
+# point rate the real MID-360 produces. Raise it if `ros2 topic hz /Odometry` falls below
+# the LiDAR rate.
+max_num_threads: 3
