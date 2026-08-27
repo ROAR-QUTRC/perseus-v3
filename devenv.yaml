@@ -42,7 +42,6 @@ inputs:
         follows: treefmt-nix
 allow_unfree: true
 imports:
-  - ./nix/scripts.nix
   - ./nix/treefmt.nix
   - ./nix/profiles.nix
   - ./nix/machines/default.nix
