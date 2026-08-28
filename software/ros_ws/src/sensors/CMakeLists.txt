@@ -41,14 +41,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS
-    rclcpp
-    rclcpp_components
-    sensor_msgs
-    geometry_msgs
-    nav_msgs
-    visualization_msgs
-    pcl_conversions)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp rclcpp_components sensor_msgs
+                                 geometry_msgs nav_msgs)
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
 
@@ -141,17 +135,10 @@ install(TARGETS voxel_downsampler DESTINATION lib/${PROJECT_NAME})
 # Runs wherever the cloud lands -- in practice the base station -- because a
 # mesh is about ten times the bytes of the cloud it comes from and is better not
 # sent over a radio link.
-find_package(PCL REQUIRED COMPONENTS common features search surface)
-
-add_executable(cloud_mesher src/cloud_mesher/cloud_mesher.cpp)
-ament_target_dependencies(cloud_mesher PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
-target_include_directories(cloud_mesher PUBLIC ${PCL_INCLUDE_DIRS})
-target_link_libraries(cloud_mesher PUBLIC ${PCL_LIBRARIES})
-# PCL's headers are not -Wall -Wextra -Wpedantic clean and this package builds
-# with -Werror.
-target_compile_options(cloud_mesher PRIVATE -Wno-error)
-
-install(TARGETS cloud_mesher DESTINATION lib/${PROJECT_NAME})
+#
+# In a subdirectory because find_package(PCL) has directory-scoped side effects;
+# see the comment there.
+add_subdirectory(src/cloud_mesher)
 
 # Install launch
 install(

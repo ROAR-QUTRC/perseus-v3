@@ -248,7 +248,7 @@ private:
       }
       bool in_range = true;
       for (const auto idx : polygon.vertices) {
-        in_range = in_range && idx < n_vertices;
+        in_range = in_range && static_cast<size_t>(idx) < n_vertices;
       }
       if (!in_range) {
         continue;
