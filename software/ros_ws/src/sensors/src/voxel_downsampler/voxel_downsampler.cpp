@@ -67,6 +67,12 @@ void VoxelDownsampler::_load_parameters(std::string &input_topic_out,
   input_topic_out = this->declare_parameter("input_topic", DEFAULT_INPUT_TOPIC);
   output_topic_out =
       this->declare_parameter("output_topic", DEFAULT_OUTPUT_TOPIC);
+  // Position and intensity survive merging points; per-return metadata does
+  // not. Set this to an empty list to carry every field the input has, at the
+  // cost of the Draco encoder (see the comment where the output layout is
+  // built).
+  _keep_fields = this->declare_parameter<std::vector<std::string>>(
+      "keep_fields", std::vector<std::string>{"x", "y", "z", "intensity"});
   _voxel_size_m = this->declare_parameter("voxel_size_m", DEFAULT_VOXEL_SIZE_M);
 
   // A non-positive voxel size would make the grid coordinate computation divide
@@ -99,15 +105,34 @@ void VoxelDownsampler::_point_cloud_callback(
       std::min(static_cast<std::size_t>(msg->width) * msg->height,
                msg->data.size() / point_step);
 
+  // The output carries only the fields that still mean something once points
+  // have been merged, which by default is position and intensity. A Livox cloud
+  // also arrives with tag, line and a float64 timestamp; those describe one
+  // specific return, and the point published here stands for several, so
+  // keeping them would be stating something untrue about the survivor.
+  //
+  // It is also what lets the cloud be compressed. Draco encodes a point cloud
+  // as integer attributes or quantized floats, and the quantization the
+  // transport exposes covers float32 attribute classes only -- a float64 field
+  // is neither, so the encoder rejects the whole cloud with "Invalid encoding
+  // method" and the Draco topic never publishes. Dropping the field also takes
+  // point_step from 26 bytes to 16 before Draco even runs.
+  const std::vector<sensor_msgs::msg::PointField> out_fields =
+      _select_output_fields(*msg);
+  std::size_t out_step = 0;
+  for (const auto &field : out_fields) {
+    out_step += _field_size(field);
+  }
+
   sensor_msgs::msg::PointCloud2 downsampled;
   downsampled.header = msg->header;
-  downsampled.fields = msg->fields;
+  downsampled.fields = out_fields;
   downsampled.is_bigendian = msg->is_bigendian;
-  downsampled.point_step = msg->point_step;
+  downsampled.point_step = static_cast<uint32_t>(out_step);
   downsampled.height = 1;
   // Every point drops out of at most one voxel, so the input size is a safe
   // upper bound and one allocation covers the whole callback.
-  downsampled.data.reserve(point_count * point_step);
+  downsampled.data.reserve(point_count * out_step);
 
   std::unordered_set<int64_t> seen_voxels;
   seen_voxels.reserve(point_count);
@@ -131,17 +156,21 @@ void VoxelDownsampler::_point_cloud_callback(
       continue;
     }
 
-    const auto point_begin = msg->data.begin() + byte_offset;
-    downsampled.data.insert(downsampled.data.end(), point_begin,
-                            point_begin + point_step);
+    // Copied field by field rather than as one run of bytes, since the output
+    // layout is a subset of the input's and is packed without its padding.
+    for (const auto &field : out_fields) {
+      const std::size_t size = _field_size(field);
+      const std::size_t src = byte_offset + _source_offsets.at(field.name);
+      downsampled.data.insert(downsampled.data.end(), msg->data.begin() + src,
+                              msg->data.begin() + src + size);
+    }
   }
 
   if (downsampled.data.empty()) {
     return;
   }
 
-  downsampled.width =
-      static_cast<uint32_t>(downsampled.data.size() / point_step);
+  downsampled.width = static_cast<uint32_t>(downsampled.data.size() / out_step);
   downsampled.row_step = static_cast<uint32_t>(downsampled.data.size());
   // Non-finite points were skipped above, so what's left is all valid.
   downsampled.is_dense = true;
@@ -194,6 +223,94 @@ int64_t VoxelDownsampler::_voxel_key(int32_t vx, int32_t vy, int32_t vz) {
       (static_cast<int64_t>(vz) + VOXEL_KEY_AXIS_OFFSET) & VOXEL_KEY_AXIS_MASK;
   return x_component | (y_component << VOXEL_KEY_BITS_PER_AXIS) |
          (z_component << (2 * VOXEL_KEY_BITS_PER_AXIS));
+}
+
+std::size_t
+VoxelDownsampler::_field_size(const sensor_msgs::msg::PointField &field) {
+  using PF = sensor_msgs::msg::PointField;
+  std::size_t width = 0;
+  switch (field.datatype) {
+  case PF::INT8:
+  case PF::UINT8:
+    width = 1;
+    break;
+  case PF::INT16:
+  case PF::UINT16:
+    width = 2;
+    break;
+  case PF::INT32:
+  case PF::UINT32:
+  case PF::FLOAT32:
+    width = 4;
+    break;
+  case PF::FLOAT64:
+    width = 8;
+    break;
+  default:
+    width = 0;
+    break;
+  }
+  return width * std::max<std::size_t>(1, field.count);
+}
+
+std::vector<sensor_msgs::msg::PointField>
+VoxelDownsampler::_select_output_fields(
+    const sensor_msgs::msg::PointCloud2 &msg) {
+  // The layout is fixed for a given publisher, so this is rebuilt only when the
+  // input actually changes shape rather than on every cloud.
+  const bool unchanged =
+      _cached_input_fields.size() == msg.fields.size() &&
+      std::equal(_cached_input_fields.begin(), _cached_input_fields.end(),
+                 msg.fields.begin(),
+                 [](const sensor_msgs::msg::PointField &a,
+                    const sensor_msgs::msg::PointField &b) {
+                   return a.name == b.name && a.offset == b.offset &&
+                          a.datatype == b.datatype && a.count == b.count;
+                 });
+  if (unchanged) {
+    return _cached_output_fields;
+  }
+
+  std::vector<sensor_msgs::msg::PointField> out;
+  _source_offsets.clear();
+  std::size_t offset = 0;
+  // Driven by _keep_fields rather than by the input, so the output order is the
+  // configured one whatever order the driver happens to publish in.
+  const std::vector<std::string> wanted = _keep_fields.empty() ? [&] {
+    std::vector<std::string> all;
+    for (const auto &f : msg.fields) {
+      all.push_back(f.name);
+    }
+    return all;
+  }()
+                                                               : _keep_fields;
+  for (const auto &name : wanted) {
+    for (const auto &field : msg.fields) {
+      if (field.name != name) {
+        continue;
+      }
+      const std::size_t size = _field_size(field);
+      if (size == 0) {
+        break;
+      }
+      sensor_msgs::msg::PointField copy = field;
+      copy.offset = static_cast<uint32_t>(offset);
+      out.push_back(copy);
+      _source_offsets[name] = field.offset;
+      offset += size;
+      break;
+    }
+  }
+
+  if (out.size() < wanted.size()) {
+    RCLCPP_INFO(
+        this->get_logger(),
+        "Publishing %zu of the %zu requested fields; the input carries %zu.",
+        out.size(), wanted.size(), msg.fields.size());
+  }
+  _cached_input_fields = msg.fields;
+  _cached_output_fields = out;
+  return out;
 }
 
 } // namespace sensors

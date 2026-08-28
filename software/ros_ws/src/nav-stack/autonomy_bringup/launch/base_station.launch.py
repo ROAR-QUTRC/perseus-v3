@@ -145,7 +145,7 @@ def generate_launch_description():
 
     mesh_arg = DeclareLaunchArgument(
         "mesh",
-        default_value="false",
+        default_value="true",
         description="Reconstruct a surface mesh from the decoded map cloud and publish it "
         "as a TRIANGLE_LIST marker on /mesh. Needs decompress:=true.",
     )

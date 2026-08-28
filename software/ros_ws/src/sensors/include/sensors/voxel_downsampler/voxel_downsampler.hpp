@@ -9,6 +9,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace sensors {
 /// @brief ROS 2 node that republishes a point cloud keeping at most one point
@@ -62,6 +64,16 @@ private:
   static std::optional<position_offsets_t>
   _resolve_position_offsets(const sensor_msgs::msg::PointCloud2 &msg);
 
+  /// @brief Bytes one field occupies, from its datatype and count.
+  static std::size_t _field_size(const sensor_msgs::msg::PointField &field);
+
+  /// @brief The output layout: the fields named by the keep_fields parameter
+  /// that the input actually has, repacked from offset zero with no padding.
+  /// Also records where each one sits in the input, in _source_offsets, for the
+  /// copy.
+  std::vector<sensor_msgs::msg::PointField>
+  _select_output_fields(const sensor_msgs::msg::PointCloud2 &msg);
+
   /// @brief Packs a voxel's integer coordinates into a single hashable key.
   /// @param vx Voxel coordinate along x, in units of the voxel size.
   /// @param vy Voxel coordinate along y, in units of the voxel size.
@@ -69,6 +81,19 @@ private:
   static int64_t _voxel_key(int32_t vx, int32_t vy, int32_t vz);
 
   double _voxel_size_m{DEFAULT_VOXEL_SIZE_M};
+
+  /// @brief Field names to carry through, in order. Anything else the input has
+  /// is dropped. Empty keeps every field, which is the escape hatch for a
+  /// consumer that genuinely wants the per-return metadata and is not going
+  /// through Draco.
+  std::vector<std::string> _keep_fields;
+  /// @brief Where each kept field sits in the *input* point, rebuilt whenever
+  /// the input layout changes.
+  std::unordered_map<std::string, std::size_t> _source_offsets;
+  /// @brief The layout _source_offsets was built for, so it is only rebuilt on
+  /// a change.
+  std::vector<sensor_msgs::msg::PointField> _cached_input_fields;
+  std::vector<sensor_msgs::msg::PointField> _cached_output_fields;
 
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr
       _point_cloud_subscription;
