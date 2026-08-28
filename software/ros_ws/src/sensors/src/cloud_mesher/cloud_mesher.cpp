@@ -24,7 +24,14 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/kdtree.h>
+// The impl header, not just the declaration, and deliberately: including it
+// instantiates GreedyProjectionTriangulation here instead of pulling it from
+// libpcl_surface. That library links VTK, and VTK brings a whole GUI stack --
+// libGL, Qt's harfbuzz/icu/pcre2, libnuma -- that this node never touches and
+// would otherwise have to be present at load time. The class is a template, so
+// there is nothing in the library it actually needs.
 #include <pcl/surface/gp3.h>
+#include <pcl/surface/impl/gp3.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <chrono>

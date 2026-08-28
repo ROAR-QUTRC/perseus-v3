@@ -17,26 +17,26 @@ list(APPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES /usr/include)
 
 find_package(pcl_conversions REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(PCL REQUIRED COMPONENTS common features kdtree search surface)
+# No `surface` component: gp3 is instantiated from its impl header instead,
+# which keeps VTK -- and the GUI stack behind it -- out of this binary entirely.
+find_package(PCL REQUIRED COMPONENTS common features kdtree search)
 
 add_executable(cloud_mesher cloud_mesher.cpp)
 ament_target_dependencies(cloud_mesher PUBLIC rclcpp sensor_msgs
-                          visualization_msgs pcl_conversions)
+                          visualization_msgs)
+# pcl_conversions by include path only, not through ament_target_dependencies.
+# Its ament export carries the whole of PCL -- io and visualization included,
+# and so VTK -- while the header itself is templates and inline functions with
+# nothing to link against.
+target_include_directories(cloud_mesher SYSTEM
+                           PUBLIC ${pcl_conversions_INCLUDE_DIRS})
 target_include_directories(cloud_mesher SYSTEM PUBLIC ${PCL_INCLUDE_DIRS})
 # The component libraries actually used, not the aggregate ${PCL_LIBRARIES}:
 # that resolves to every PCL module and their dependencies, VTK included, and
 # VTK then wants libnl and libva at link time for rendering code nothing here
 # calls.
 target_link_libraries(cloud_mesher PUBLIC pcl_common pcl_features pcl_kdtree
-                                          pcl_search pcl_surface)
-# libpcl_surface links VTK, and VTK needs libnl and libva. Nothing here calls
-# any of it -- those belong to VTK's rendering code -- but the linker still
-# tries to resolve them, and in a colcon build they are not on the link path.
-# --allow-shlib-undefined leaves symbols belonging to a transitive shared
-# library alone; the loader resolves them through VTK's own rpath at runtime.
-# Symbols this node actually references are still checked.
-target_link_options(cloud_mesher PRIVATE -Wl,--allow-shlib-undefined)
-
+                                          pcl_search)
 # PCL's headers are not -Wall -Wextra -Wpedantic clean and this package builds
 # with -Werror. Scoped to this target so everything else keeps its warnings
 # fatal.
