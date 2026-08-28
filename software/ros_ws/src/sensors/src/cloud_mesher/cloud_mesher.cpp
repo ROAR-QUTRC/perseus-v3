@@ -35,7 +35,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <chrono>
+#include <map>
 #include <memory>
+#include <mutex>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <string>
@@ -66,6 +69,8 @@ public:
     cloud_topic_ = declare_parameter<std::string>(
         "cloud_topic", "/Laser_map/downsampled/decompressed");
     mesh_topic_ = declare_parameter<std::string>("mesh_topic", "mesh");
+    // Only used to orient normals; nothing else here needs the pose.
+    odom_topic_ = declare_parameter<std::string>("odom_topic", "/Odometry");
     // Empty means "whatever frame the cloud arrived in", which is almost always
     // right.
     frame_id_ = declare_parameter<std::string>("frame_id", "");
@@ -101,6 +106,9 @@ public:
         std::bind(&CloudMesher::onCloud, this, std::placeholders::_1));
     // Latched: the mesh is large and slow to change, and a viewer that connects
     // between updates should not have to wait for the next one.
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+        odom_topic_, rclcpp::QoS(rclcpp::KeepLast(10)),
+        std::bind(&CloudMesher::onOdom, this, std::placeholders::_1));
     pub_ = create_publisher<visualization_msgs::msg::Marker>(
         mesh_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
 
@@ -136,6 +144,13 @@ private:
     normal_estimation.setInputCloud(thinned);
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setKSearch(normal_k_);
+    // Which side of the surface a normal points at is decided by the viewpoint,
+    // and PCL defaults it to the origin. Across a traverse that is an arbitrary
+    // spot: normals on the far side of it point into the surface, neighbouring
+    // normals then disagree by more than max_surface_angle_deg, and greedy
+    // projection refuses to connect them -- which is where the holes came from.
+    const Eigen::Vector3f viewpoint = viewpointFor(*thinned);
+    normal_estimation.setViewPoint(viewpoint.x(), viewpoint.y(), viewpoint.z());
     normal_estimation.compute(*normals);
 
     pcl::PointCloud<pcl::PointNormal>::Ptr with_normals(
@@ -163,39 +178,122 @@ private:
     const double elapsed = std::chrono::duration<double>(
                                std::chrono::steady_clock::now() - started)
                                .count();
-    RCLCPP_INFO(get_logger(),
-                "%zu points -> %zu after thinning -> %zu triangles in %.2f s",
-                raw_points, thinned->points.size(), mesh.polygons.size(),
-                elapsed);
+    // Coverage, not just a triangle count: a point that ends up in no triangle
+    // is a hole, and holes are the thing worth reporting. Greedy projection
+    // leaves them where the neighbourhood is too sparse for search_radius, or
+    // where normals disagree by more than max_surface_angle_deg -- those two
+    // are what to reach for.
+    std::vector<bool> used(thinned->points.size(), false);
+    size_t used_count = 0;
+    for (const auto &polygon : mesh.polygons) {
+      for (const auto idx : polygon.vertices) {
+        if (static_cast<size_t>(idx) < used.size() && !used[idx]) {
+          used[idx] = true;
+          ++used_count;
+        }
+      }
+    }
+    const double coverage =
+        thinned->points.empty()
+            ? 0.0
+            : 100.0 * static_cast<double>(used_count) / thinned->points.size();
+    RCLCPP_INFO(
+        get_logger(),
+        "%zu points -> %zu after thinning -> %zu triangles covering %.1f%% "
+        "of them, in %.2f s",
+        raw_points, thinned->points.size(), mesh.polygons.size(), coverage,
+        elapsed);
   }
 
-  /// Merge points closer together than leaf_size, by keeping one per grid cell.
-  /// Done by hand rather than with pcl::VoxelGrid because the grid's centroid
-  /// averaging drags points off the surface at edges, and one representative
-  /// point is all this needs.
+  /// Where to orient normals from: the robot if its odometry is known,
+  /// otherwise a point high above the cloud. The fallback is not arbitrary -- a
+  /// LiDAR map is mostly ground seen from above, so "up" orients the bulk of it
+  /// correctly, where the origin is only right for whatever happens to surround
+  /// it.
+  Eigen::Vector3f
+  viewpointFor(const pcl::PointCloud<pcl::PointXYZ> &cloud) const {
+    {
+      std::lock_guard<std::mutex> lock(pose_mutex_);
+      if (have_pose_) {
+        return pose_;
+      }
+    }
+    Eigen::Vector3f centroid = Eigen::Vector3f::Zero();
+    float z_max = std::numeric_limits<float>::lowest();
+    for (const auto &p : cloud.points) {
+      centroid += Eigen::Vector3f(p.x, p.y, p.z);
+      z_max = std::max(z_max, p.z);
+    }
+    centroid /= static_cast<float>(std::max<size_t>(1, cloud.points.size()));
+    centroid.z() = z_max + 10.0f;
+    return centroid;
+  }
+
+  void onOdom(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(pose_mutex_);
+    pose_ = Eigen::Vector3f(static_cast<float>(msg->pose.pose.position.x),
+                            static_cast<float>(msg->pose.pose.position.y),
+                            static_cast<float>(msg->pose.pose.position.z));
+    have_pose_ = true;
+  }
+
+  /// Reduce the cloud to one point per leaf_size cell, as the cell's centroid.
+  ///
+  /// Both halves of that matter, and the first version got both wrong. Keeping
+  /// the first point seen in a cell makes the result depend on the order the
+  /// cloud arrived in, and that order is not stable: BIEVR's map is a hash map
+  /// whose erase swaps the last element into the freed slot, so every voxel it
+  /// evicts reshuffles points that did not change. The representative of a cell
+  /// then moved every frame, its normal moved with it, and the triangulation
+  /// flickered over ground that was standing still.
+  ///
+  /// A centroid does not care what order the points arrived in. Emitting in
+  /// sorted cell order then makes the output itself deterministic, which
+  /// matters because greedy projection walks its input in order and produces a
+  /// different mesh from a different permutation of the same points.
   pcl::PointCloud<pcl::PointXYZ>::Ptr
   thin(const pcl::PointCloud<pcl::PointXYZ>::Ptr &in) const {
     if (leaf_size_ <= 0.0) {
       return in;
     }
-    pcl::PointCloud<pcl::PointXYZ>::Ptr out(new pcl::PointCloud<pcl::PointXYZ>);
-    out->points.reserve(in->points.size());
+    struct Cell {
+      double x = 0.0, y = 0.0, z = 0.0;
+      int count = 0;
+    };
+    // Ordered rather than hashed: iterating it gives the sorted cell order
+    // directly, and at tens of thousands of cells the difference does not show.
+    std::map<int64_t, Cell> cells;
     const double inv = 1.0 / leaf_size_;
-    std::unordered_set<int64_t> seen;
-    seen.reserve(in->points.size() * 2);
     for (const auto &p : in->points) {
       if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) {
         continue;
       }
       // Three 21-bit cell indices packed into one integer: a map is nowhere
-      // near 2^21 cells across in any axis, and one key hashes faster than a
-      // tuple.
-      const int64_t gx = static_cast<int64_t>(std::floor(p.x * inv)) & 0x1FFFFF;
-      const int64_t gy = static_cast<int64_t>(std::floor(p.y * inv)) & 0x1FFFFF;
-      const int64_t gz = static_cast<int64_t>(std::floor(p.z * inv)) & 0x1FFFFF;
-      if (seen.insert((gx << 42) | (gy << 21) | gz).second) {
-        out->points.push_back(p);
-      }
+      // near 2^21 cells across in any axis, and one key sorts and hashes faster
+      // than a tuple. Biased by half the range so negative coordinates keep
+      // their order.
+      const int64_t gx =
+          (static_cast<int64_t>(std::floor(p.x * inv)) + (1 << 20)) & 0x1FFFFF;
+      const int64_t gy =
+          (static_cast<int64_t>(std::floor(p.y * inv)) + (1 << 20)) & 0x1FFFFF;
+      const int64_t gz =
+          (static_cast<int64_t>(std::floor(p.z * inv)) + (1 << 20)) & 0x1FFFFF;
+      Cell &c = cells[(gx << 42) | (gy << 21) | gz];
+      c.x += p.x;
+      c.y += p.y;
+      c.z += p.z;
+      ++c.count;
+    }
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr out(new pcl::PointCloud<pcl::PointXYZ>);
+    out->points.reserve(cells.size());
+    for (const auto &entry : cells) {
+      const Cell &c = entry.second;
+      pcl::PointXYZ q;
+      q.x = static_cast<float>(c.x / c.count);
+      q.y = static_cast<float>(c.y / c.count);
+      q.z = static_cast<float>(c.z / c.count);
+      out->points.push_back(q);
     }
     out->width = out->points.size();
     out->height = 1;
@@ -279,7 +377,7 @@ private:
     (void)points;
   }
 
-  std::string cloud_topic_, mesh_topic_, frame_id_;
+  std::string cloud_topic_, mesh_topic_, odom_topic_, frame_id_;
   double leaf_size_ = 0.15;
   int normal_k_ = 20;
   double search_radius_ = 0.6;
@@ -291,7 +389,12 @@ private:
   bool normal_consistency_ = false;
   bool colour_by_height_ = true;
 
+  mutable std::mutex pose_mutex_;
+  Eigen::Vector3f pose_ = Eigen::Vector3f::Zero();
+  bool have_pose_ = false;
+
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pub_;
 };
 

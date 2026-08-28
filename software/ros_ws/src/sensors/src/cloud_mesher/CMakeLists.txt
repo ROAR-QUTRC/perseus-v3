@@ -23,7 +23,7 @@ find_package(PCL REQUIRED COMPONENTS common features kdtree search)
 
 add_executable(cloud_mesher cloud_mesher.cpp)
 ament_target_dependencies(cloud_mesher PUBLIC rclcpp sensor_msgs
-                          visualization_msgs)
+                          visualization_msgs nav_msgs)
 # pcl_conversions by include path only, not through ament_target_dependencies.
 # Its ament export carries the whole of PCL -- io and visualization included,
 # and so VTK -- while the header itself is templates and inline functions with
