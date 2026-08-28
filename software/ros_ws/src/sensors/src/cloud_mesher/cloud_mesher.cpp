@@ -81,6 +81,10 @@ public:
     // Neighbours used to estimate each normal. Too few and the normals are
     // noisy, too many and thin structure gets smoothed into the ground.
     normal_k_ = declare_parameter<int>("normal_k", 20);
+    // Threads for normal estimation, the one parallel stage. 0 means "as many
+    // as there are cores", which is OpenMP's default and rarely what a robot
+    // wants.
+    num_threads_ = declare_parameter<int>("num_threads", 4);
     // The furthest apart two points may be and still be joined. This is what
     // decides whether a gap is a hole or gets bridged; scale it with leaf_size.
     search_radius_ = declare_parameter<double>("search_radius", 0.6);
@@ -144,6 +148,15 @@ private:
     normal_estimation.setInputCloud(thinned);
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setKSearch(normal_k_);
+    // Pinned rather than left to OpenMP, which starts one thread per core -- 28
+    // on a workstation, and every core of a Jetson. Normal estimation is the
+    // parallel part and the only reason a mesh takes a fraction of a second
+    // instead of a second, but it does not need the whole machine to do it, and
+    // the burst competes with everything else on the board. 0 hands the
+    // decision back to OpenMP.
+    if (num_threads_ > 0) {
+      normal_estimation.setNumberOfThreads(num_threads_);
+    }
     // Which side of the surface a normal points at is decided by the viewpoint,
     // and PCL defaults it to the origin. Across a traverse that is an arbitrary
     // spot: normals on the far side of it point into the surface, neighbouring
@@ -380,6 +393,7 @@ private:
   std::string cloud_topic_, mesh_topic_, odom_topic_, frame_id_;
   double leaf_size_ = 0.15;
   int normal_k_ = 20;
+  int num_threads_ = 4;
   double search_radius_ = 0.6;
   double mu_ = 2.5;
   int max_nearest_neighbours_ = 100;

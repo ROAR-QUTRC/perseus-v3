@@ -181,6 +181,11 @@ def generate_launch_description():
                 "search_radius": 0.6,
                 "normal_k": 20,
                 "max_surface_angle_deg": 45.0,
+                # Normal estimation is the parallel stage, and OpenMP would otherwise take
+                # every core on the machine for the fraction of a second it runs. Four is
+                # ample: a mesh costs about a core-second of work whatever it is spread
+                # across, and at one map every five seconds that is a fifth of a core.
+                "num_threads": 4,
                 "colour_by_height": True,
                 "use_sim_time": use_sim_time,
             }

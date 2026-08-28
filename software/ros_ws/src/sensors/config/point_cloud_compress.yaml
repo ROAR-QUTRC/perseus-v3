@@ -27,7 +27,7 @@ livox_voxel_downsampler:
 laser_map_voxel_downsampler:
   ros__parameters:
     # The accumulated map is far denser than a single scan, so it is thinned harder.
-    voxel_size_m: 0.3
+    voxel_size_m: 0.15
 livox_draco_encoder:
   ros__parameters:
     quantization_bits: 12
