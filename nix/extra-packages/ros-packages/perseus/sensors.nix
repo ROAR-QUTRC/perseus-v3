@@ -9,6 +9,8 @@
   draco-point-cloud-transport,
   geometry-msgs,
   nav-msgs,
+  pcl,
+  pcl-conversions,
   point-cloud-transport,
   rclcpp,
   rclcpp-components,
@@ -16,6 +18,7 @@
   realsense2-description,
   rplidar-ros,
   sensor-msgs,
+  visualization-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-sensors";
@@ -32,6 +35,9 @@ buildRosPackage rec {
     draco-point-cloud-transport
     geometry-msgs
     nav-msgs
+    # cloud_mesher: PCL surface reconstruction plus the marker it publishes
+    pcl
+    pcl-conversions
     point-cloud-transport
     rclcpp
     rclcpp-components
@@ -39,6 +45,7 @@ buildRosPackage rec {
     realsense2-description
     rplidar-ros
     sensor-msgs
+    visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 

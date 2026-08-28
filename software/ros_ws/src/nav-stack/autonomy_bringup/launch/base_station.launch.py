@@ -21,7 +21,8 @@ Arguments:
     decompress    run the Draco decoders; false when the rover is sending raw clouds, or
                   when another process on this machine already decodes them
     mesh          reconstruct a surface from the decoded map cloud, published as a marker
-                  for RViz. Off by default; see the comment on the node below for the cost
+                  on /mesh for RViz. Off by default: it is only useful once the rover has
+                  mapped something, and it costs a fraction of a second per update
 """
 
 from launch import LaunchDescription
@@ -146,56 +147,41 @@ def generate_launch_description():
         "mesh",
         default_value="false",
         description="Reconstruct a surface mesh from the decoded map cloud and publish it "
-        "as a TRIANGLE_LIST marker for RViz. Needs decompress:=true. NOT YET WORKING -- see "
-        "the comment on the node below.",
+        "as a TRIANGLE_LIST marker on /mesh. Needs decompress:=true.",
     )
 
-    # ImMesh's incremental mesher, without the LiDAR odometry it normally comes with -- the
-    # rover already does that, and the mesher only ever needed a world-frame cloud plus the
-    # pose it was seen from.
+    # Reconstructs a surface from the decoded map cloud, so the map can be looked at as
+    # terrain rather than as points.
     #
-    # It runs here rather than on the rover on purpose. A meshed surface is roughly an order
-    # of magnitude larger on the wire than the cloud it is built from, because a
-    # TRIANGLE_LIST carries three float64 vertices per triangle with no index buffer. Built
-    # at the base station it never crosses the radio link at all: the rover sends the same
-    # compressed cloud it already sends, and the marker goes straight to RViz on this
-    # machine.
+    # It runs here rather than on the rover on purpose. A mesh is far larger on the wire
+    # than the cloud it is built from -- a TRIANGLE_LIST marker carries three float64
+    # vertices per triangle with no index buffer, roughly ten times the bytes -- so building
+    # it at this end means the rover keeps sending the compressed cloud it already sends and
+    # the mesh never touches the radio link.
     #
-    # The input is the decoded map, so this only does anything with decompress:=true. The
-    # node forwards only points it has not already meshed -- the map arrives whole every
-    # time -- and takes the viewpoint from /Odometry, which it needs because an accumulated
-    # map has no vantage point of its own and the mesher uses one to orient each triangle.
+    # Greedy projection triangulation, which connects neighbouring points and leaves gaps as
+    # holes. That suits a LiDAR map: it is a thin shell with nothing behind it, and a
+    # watertight method would invent ground across every unscanned gap.
     #
-    # NOT YET WORKING, and off by default for that reason. It builds, subscribes, and the
-    # incremental filtering does its job -- 17k new points on the first map, a few hundred
-    # after -- but ImMesh's meshing thread then dies in Triangle_manager::get_triangle_center,
-    # dereferencing a point id its triangle still refers to and the point store no longer
-    # holds. That is upstream code, reached by a usage it was not written for: it assumes a
-    # monotonically growing store fed one scan at a time from a moving viewpoint, and an
-    # accumulated map re-fed whole every few seconds is neither. Feeding the per-scan cloud
-    # (/livox/lidar/downsampled/decompressed plus the odometry pose) is the shape it expects
-    # and the likelier fix; guarding the id lookups inside ImMesh is the other.
+    # The input is the decoded map, so this needs decompress:=true.
     mesh_node = Node(
-        package="immesh_ros2",
-        executable="immesh_node",
-        name="immesh",
+        package="sensors",
+        executable="cloud_mesher",
+        name="cloud_mesher",
         output="screen",
         parameters=[
             {
                 "cloud_topic": "/Laser_map/downsampled/decompressed",
-                "odom_topic": "/Odometry",
                 "mesh_topic": "/mesh",
-                "map_frame": "odom",
-                # Coarser than the rover's map resolution: the cloud arriving here has
-                # already been voxel downsampled once before Draco, so asking for finer
-                # detail than that only costs triangles without adding surface.
-                "meshing_voxel_size": 0.4,
-                "minimum_point_distance": 0.15,
-                "new_point_resolution": 0.15,
-                "min_new_points": 100,
-                "max_threads": 4,
-                "mesh_publish_interval_s": 5.0,
-                "ply_path": "",
+                # The cloud arriving here has already been voxel downsampled once on the
+                # rover, so this mostly bounds the triangulation cost rather than throwing
+                # away detail. search_radius has to stay comfortably above it or points end
+                # up too far apart to connect and nothing is produced.
+                "leaf_size": 0.15,
+                "search_radius": 0.6,
+                "normal_k": 20,
+                "max_surface_angle_deg": 45.0,
+                "colour_by_height": True,
                 "use_sim_time": use_sim_time,
             }
         ],

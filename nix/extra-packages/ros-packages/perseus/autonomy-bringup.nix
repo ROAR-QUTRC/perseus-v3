@@ -10,7 +10,6 @@
   footprint-broadcaster,
   global-traversability,
   health-check,
-  immesh-ros2,
   navigation2,
   rclcpp,
   robot-localization,
@@ -37,7 +36,6 @@ buildRosPackage rec {
     footprint-broadcaster
     global-traversability
     health-check
-    immesh-ros2
     navigation2
     rclcpp
     robot-localization
