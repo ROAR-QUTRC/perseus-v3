@@ -1,9 +1,10 @@
 # BIEVR-LIO on the real Perseus: Livox MID-360 on a Jetson.
 #
-# The alternative to livox_mid360.yaml, selected with `lio:=bievr` on
-# localisation.launch.py. It fills the same slot -- LiDAR-inertial odometry on /Odometry for
-# the EKF to fuse -- so the two are tuned to produce the same thing, and the comments below
-# call out where the two algorithms make the same setting mean different things.
+# The default backend for localisation.launch.py; `lio:=fast_lio` selects
+# livox_mid360.yaml instead. The two fill the same slot -- LiDAR-inertial odometry on
+# /Odometry for the EKF to fuse -- so they are tuned to produce the same thing, and the
+# comments below call out where the two algorithms make the same setting mean different
+# things.
 #
 # Unlike FAST-LIO this is not a ROS parameter file: bievr_lio_ros2 parses plain YAML with
 # yaml-cpp and takes the *path* on its command line, so there is no /**: ros__parameters

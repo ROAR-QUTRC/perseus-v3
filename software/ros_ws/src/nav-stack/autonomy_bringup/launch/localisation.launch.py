@@ -6,9 +6,9 @@ Three pieces, and the split matters:
   1. A LiDAR-inertial odometry backend, chosen with `lio:=`. Either one reads the raw Livox
      cloud off /livox/lidar, publishes /Odometry as odom -> base_link, and broadcasts no TF
      of its own:
-       fast_lio (default)  FAST-LIO 2, configured by config/livox_mid360.yaml.
-       bievr               BIEVR-LIO, configured by config/bievr_mid360.yaml, with its
+       bievr (default)     BIEVR-LIO, configured by config/bievr_mid360.yaml, with its
                            /bievr_lio/odom remapped onto /Odometry.
+       fast_lio            FAST-LIO 2, configured by config/livox_mid360.yaml.
      Everything downstream sees the same topic and the same frames either way, so the two
      are interchangeable from here on and the rest of this file does not branch on them.
   2. ekf.launch.py runs robot_localization from config/ekf_config.yaml, fusing that pose
@@ -312,11 +312,11 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     declare_lio = DeclareLaunchArgument(
         "lio",
-        default_value="fast_lio",
+        default_value="bievr",
         choices=list(LIO_BACKENDS),
         description="Which LiDAR-inertial odometry backend produces /Odometry. "
-        "fast_lio is FAST-LIO 2 with config/livox_mid360.yaml; bievr is BIEVR-LIO with "
-        "config/bievr_mid360.yaml. Everything downstream is identical either way.",
+        "bievr is BIEVR-LIO with config/bievr_mid360.yaml; fast_lio is FAST-LIO 2 with "
+        "config/livox_mid360.yaml. Everything downstream is identical either way.",
     )
 
     declare_sim = DeclareLaunchArgument(
