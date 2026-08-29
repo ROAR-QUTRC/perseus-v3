@@ -11,13 +11,50 @@ global_traversability:
     neighbourhood_radius_m: 0.3
     min_plane_fit_points: 4
     # Height a point must clear a cell's ground estimate by to count as an overhead return,
-    # rather than ground-return noise, when computing clearance.
+    # rather than ground-return noise, when computing clearance. Do not raise this much:
+    # boulder cells report a minimum clearance of 0.06, so 0.05 is already close to the
+    # returns that detect them.
     ground_margin_m: 0.05
     # Cells with fewer points than this are border/unknown rather than mapped ground.
-    min_points_per_cell: 3
-    # Obstacle thresholds
-    max_height_diff_m: 0.05
+    #
+    # This is the parameter that decides whether rocks are seen at all, and 3 was too high.
+    # _compute_obstacle() skips border cells outright, and with treat_unknown_as_obstacle
+    # false they come out as FREE space -- so a sparsely-sampled rock is not merely missed,
+    # it is actively published as drivable. Measured against the seven 30-40 cm boulders in
+    # the Lunabotics sim world, of the 49 cells (7x7 at 0.1 m) around each boulder:
+    #
+    #     min_points_per_cell    border cells    obstacle cells per boulder
+    #     3                      33 - 46         2, 3, 12, 4, 2, 2, 2
+    #     2                       1 -  8         4, 6, 17, 7, 4, 6, 6
+    #     1                       1 -  8         4, 5, 17, 8, 6, 4, 6
+    #
+    # 2 and 1 perform the same and neither adds a single false positive, so 2 keeps a
+    # two-point minimum as cheap protection against one stray return on the real MID-360.
+    min_points_per_cell: 2
+    # Obstacle thresholds. Measured on the mapped arena, boulder cells vs open ground:
+    #
+    #     layer         boulders        open ground     verdict
+    #     clearance     0.06 - 0.08     none at all     the detector that actually works
+    #     height_diff   0.14 - 0.28     0.00 - 0.04     clean separation
+    #     roughness     0.042 - 0.078   0.003 - 0.015   separates, but see below
+    #     steepness     6.3 - 17.1 deg  0 - 13.5 deg    overlaps; useless for rocks here
+    #
+    # height_diff was 0.05, which is one centimetre above the highest value open ground
+    # produces -- no margin for a noisier cell. Sweeping it 0.05 -> 0.15 changes neither
+    # detection nor false positives (clearance flags those cells first), so 0.10 is free
+    # headroom rather than a behaviour change. Do NOT raise it past 0.13: the quietest
+    # boulder reads 0.14.
+    max_height_diff_m: 0.10
+    # Keep at 30. Open ground in this arena already reaches 13.5 deg, so tightening this
+    # towards the boulders' 6.3-17.1 deg range buys nothing and starts flagging flat regolith.
     max_slope_deg: 30.0
+    # Leave at 0.08. It looks loose next to the boulders' 0.042-0.078, but tightening it is
+    # the single worst thing you can do here -- false-positive cells inside the arena, at
+    # otherwise unchanged settings:
+    #
+    #     0.080 -> 1     0.040 -> 22     0.030 -> 74     0.025 -> 125
+    #
+    # and detection stays at 7/7 throughout, so every one of those is pure loss.
     max_roughness_m: 0.08
     min_clearance_m: 0.6
     # Unmapped cells are treated as obstacles: safer default for a vehicle that cannot verify
