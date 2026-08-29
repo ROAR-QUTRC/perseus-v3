@@ -73,8 +73,11 @@ ArenaServer::ArenaServer() : Node("arena_server") {
 }
 
 void ArenaServer::_load_zones() {
-  const auto names =
-      declare_parameter<std::vector<std::string>>("zone_names", {});
+  // The default is spelled out rather than left as {}: with a bare initialiser
+  // list the compiler picks the ParameterDescriptor overload instead, which
+  // declares the parameter with no default at all and throws rather than
+  // returning empty if the layout file ever omits zone_names.
+  const auto names = declare_parameter("zone_names", std::vector<std::string>{});
   for (const auto &name : names) {
     Zone z;
     z.name = name;
@@ -95,7 +98,7 @@ void ArenaServer::_load_zones() {
 }
 
 void ArenaServer::_load_markers() {
-  const auto ids = declare_parameter<std::vector<int64_t>>("fiducials.ids", {});
+  const auto ids = declare_parameter("fiducials.ids", std::vector<int64_t>{});
   for (const auto id64 : ids) {
     const int id = static_cast<int>(id64);
     const std::string key = "marker_" + std::to_string(id);
