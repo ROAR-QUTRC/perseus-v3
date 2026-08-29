@@ -139,6 +139,7 @@ private:
   std::unique_ptr<tf2_ros::TransformBroadcaster> _tf_broadcaster;
 
   rclcpp::TimerBase::SharedPtr _broadcast_timer;
+  rclcpp::TimerBase::SharedPtr _zones_timer;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _zones_pub;
   rclcpp::Service<interfaces::srv::LocaliseInArena>::SharedPtr _localise_srv;
   rclcpp::Subscription<interfaces::msg::DetectionArray>::SharedPtr

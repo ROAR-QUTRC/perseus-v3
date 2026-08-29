@@ -43,12 +43,28 @@ ArenaServer::ArenaServer() : Node("arena_server") {
     _seed_from_initial_pose();
   }
 
-  // Latched so an RViz joining later gets the zones immediately rather than
-  // waiting for a redraw that never comes - they are published once.
+  // Transient local so a correctly-configured subscriber joining late gets the
+  // zones immediately. That is not enough on its own: RViz's MarkerArray display
+  // defaults to VOLATILE durability, and a volatile subscriber never receives a
+  // message published before it connected - so with a publish-once latched topic
+  // the zones simply never appear, which is what happened. Measured against the
+  // running node: a VOLATILE subscriber got nothing, a TRANSIENT_LOCAL one got
+  // all 10 markers.
+  //
+  // Hence the periodic republish below as well. Ten markers at 1 Hz is nothing,
+  // and it means the display works without anyone having to know to change its
+  // QoS. Set zone_republish_hz to 0 to publish once only.
   const auto latched = rclcpp::QoS(1).transient_local();
   _zones_pub = create_publisher<visualization_msgs::msg::MarkerArray>(_zones_topic,
                                                                      latched);
   _publish_zone_markers();
+
+  const double zones_hz = declare_parameter<double>("zone_republish_hz", 1.0);
+  if (zones_hz > 0.0) {
+    _zones_timer = create_wall_timer(
+        std::chrono::duration<double>(1.0 / zones_hz),
+        [this]() { _publish_zone_markers(); });
+  }
 
   // The service blocks waiting for camera frames, so it needs its own reentrant
   // group: on the default group it would block the executor and the very
@@ -233,8 +249,11 @@ void ArenaServer::_publish_zone_markers() {
   }
 
   _zones_pub->publish(array);
-  RCLCPP_INFO(get_logger(), "published %zu zone markers on %s (latched)",
-              array.markers.size(), _zones_topic.c_str());
+  // Logged once: this is on a repeating timer, so INFO every cycle would be noise.
+  RCLCPP_INFO_ONCE(get_logger(),
+                   "publishing %zu zone markers on %s (transient local, "
+                   "republished so volatile subscribers such as RViz see them)",
+                   array.markers.size(), _zones_topic.c_str());
 }
 
 std::string ArenaServer::_check_spacing(

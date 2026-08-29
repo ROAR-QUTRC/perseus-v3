@@ -160,3 +160,8 @@ arena_server:
     zone_line_width_m: 0.03
     # Labels are useful when first checking the layout and clutter afterwards.
     zone_labels: true
+    # The topic is transient local, but RViz's MarkerArray display subscribes
+    # VOLATILE by default and so never sees a message published before it
+    # connected. Republishing covers that without anyone having to change the
+    # display's QoS. 0 publishes once only.
+    zone_republish_hz: 1.0
