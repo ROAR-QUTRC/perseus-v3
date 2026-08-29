@@ -77,8 +77,6 @@ rec {
       forceReleaseDomainId = true;
 
       postShellHook = ''
-        # use CycloneDDS ROS middleware
-        export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
         # enable coloured ros2 launch output
         export RCUTILS_COLORIZED_OUTPUT=1
         # fix locale issues
