@@ -66,15 +66,24 @@ public:
 
 private:
   /// @brief Default marker side length, in metres.
-  static constexpr double DEFAULT_MARKER_LENGTH_M = 0.35;
+  ///
+  /// This is the printed marker square, not the plate carrying it. The
+  /// Lunabotics rail fiducials are a 0.238 m marker on a 0.35 m plate, the
+  /// remainder being the quiet zone; using the plate size scales recovered
+  /// translations by 1.47.
+  static constexpr double DEFAULT_MARKER_LENGTH_M = 0.238;
   /// @brief Default minimum marker bounding box area, in square pixels.
   ///
   /// Detections smaller than this are discarded, as their pose estimates are
   /// unreliable.
   static constexpr double DEFAULT_MIN_BOUNDING_BOX_AREA_PX = 100.0;
   /// @brief Default predefined OpenCV ArUco dictionary ID
-  /// (cv::aruco::DICT_4X4_100).
-  static constexpr int32_t DEFAULT_DICTIONARY_ID = 1;
+  /// (cv::aruco::DICT_6X6_100).
+  ///
+  /// 6x6 over 4x4 on margin: the minimum inter-marker Hamming distance across
+  /// the dictionary, counting all four rotations, is 3 for DICT_4X4_100 and 12
+  /// for DICT_6X6_100. Range does not bind at Lunabotics working distances.
+  static constexpr int32_t DEFAULT_DICTIONARY_ID = 9;
 
   /// @brief Default frame the camera publishes its images in.
   static inline const std::string DEFAULT_CAMERA_FRAME =

@@ -1,7 +1,17 @@
 aruco_detector:
   ros__parameters:
-    marker_length: 0.35
-    dictionary_id: 1 # 4x4: 50=0, 100=1, 250=2, 1000=3 | 5x5: 50=4, 100=5, 250=6, 1000=7 | 6x6: 50=8, 100=9, 250=10, 1000=11
+    # The printed marker SQUARE, not the plate it sits on. The Lunabotics rail
+    # fiducials are a 0.238 m marker centred on a 0.35 m plate; the remainder is
+    # the white quiet zone the detector needs to find the contour. Using the
+    # plate size here scales every recovered translation by 0.35/0.238 = 1.47.
+    marker_length: 0.238
+    # 6x6 over the 4x4 families on measured margin: minimum inter-marker Hamming
+    # distance over the whole dictionary, all four rotations, is 3 for
+    # DICT_4X4_100 against 12 for DICT_6X6_100. The usual reason to keep 4x4 is
+    # detection range, which does not bind here - the starting zone is 2.25 m
+    # deep, and at that far edge a 0.238 m marker is 56 px wide on the D455,
+    # i.e. 7 px per cell for 6x6 against a ~3-4 px/cell floor.
+    dictionary_id: 9 # 4x4: 50=0, 100=1, 250=2, 1000=3 | 5x5: 50=4, 100=5, 250=6, 1000=7 | 6x6: 50=8, 100=9, 250=10, 1000=11
     camera_frame: camera_color_optical_frame
     input_img: /camera/camera/color/image_raw
     publish_tf: true
