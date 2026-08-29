@@ -28,8 +28,11 @@ ArenaServer::ArenaServer() : Node("arena_server") {
       declare_parameter<double>("fiducials.spacing_tolerance_m", 0.05);
 
   _zones_topic = declare_parameter<std::string>("zones_topic", "/arena/zones");
-  _zone_marker_height_m = declare_parameter<double>("zone_marker_height_m", 0.05);
-  _zone_line_width_m = declare_parameter<double>("zone_line_width_m", 0.03);
+  _zone_wall_base_m = declare_parameter<double>("zone_wall_base_m", -0.15);
+  _zone_wall_height_m = declare_parameter<double>("zone_wall_height_m", 0.75);
+  _zone_wall_thickness_m =
+      declare_parameter<double>("zone_wall_thickness_m", 0.04);
+  _zone_wall_alpha = declare_parameter<double>("zone_wall_alpha", 0.35);
   _zone_labels = declare_parameter<bool>("zone_labels", true);
 
   _load_zones();
@@ -194,54 +197,68 @@ void ArenaServer::_publish_zone_markers() {
       {"target_berm_area", {0.85f, 0.05f, 0.05f}}};
 
   for (const auto &z : _zones) {
-    visualization_msgs::msg::Marker outline;
-    outline.header.frame_id = _map_frame;
-    outline.header.stamp = now();
-    outline.ns = "arena_zones";
-    outline.id = id++;
-    outline.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    outline.action = visualization_msgs::msg::Marker::ADD;
-    outline.scale.x = _zone_line_width_m;
-    outline.pose.orientation.w = 1.0;
-
     const auto it = colours.find(z.name);
     const auto rgb =
         it != colours.end() ? it->second : std::array<float, 3>{0.8f, 0.8f, 0.8f};
-    outline.color.r = rgb[0];
-    outline.color.g = rgb[1];
-    outline.color.b = rgb[2];
-    outline.color.a = 0.9f;
 
     const double hx = z.width * 0.5, hy = z.height * 0.5;
-    const double zh = _zone_marker_height_m;
-    // Closed rectangle: five points so the last edge is drawn.
-    const double corners[5][2] = {{z.x - hx, z.y - hy},
-                                  {z.x + hx, z.y - hy},
-                                  {z.x + hx, z.y + hy},
-                                  {z.x - hx, z.y + hy},
-                                  {z.x - hx, z.y - hy}};
-    for (const auto &c : corners) {
-      geometry_msgs::msg::Point p;
-      p.x = c[0];
-      p.y = c[1];
-      p.z = zh;
-      outline.points.push_back(p);
+    const double t = _zone_wall_thickness_m;
+    const double h = _zone_wall_height_m;
+    const double cz = _zone_wall_base_m + h * 0.5;
+
+    // Four upright slabs rather than a flat outline on the ground. A LINE_STRIP
+    // at grade disappears the moment a 3D terrain mesh is displayed over it -
+    // it is coplanar with the thing hiding it. Walls stand above the mesh, and
+    // the alpha lets you see the arena through them.
+    //
+    // Each edge is a thin CUBE. The along-edge dimension carries + t so the
+    // corners meet instead of leaving four notches.
+    const double edges[4][5] = {
+        // cx, cy, size_x, size_y
+        {z.x, z.y - hy, 2.0 * hx + t, t, 0},
+        {z.x, z.y + hy, 2.0 * hx + t, t, 0},
+        {z.x - hx, z.y, t, 2.0 * hy + t, 0},
+        {z.x + hx, z.y, t, 2.0 * hy + t, 0}};
+
+    for (const auto &e : edges) {
+      visualization_msgs::msg::Marker wall;
+      wall.header.frame_id = _map_frame;
+      wall.header.stamp = now();
+      wall.ns = "arena_zones";
+      wall.id = id++;
+      wall.type = visualization_msgs::msg::Marker::CUBE;
+      wall.action = visualization_msgs::msg::Marker::ADD;
+      wall.pose.position.x = e[0];
+      wall.pose.position.y = e[1];
+      wall.pose.position.z = cz;
+      wall.pose.orientation.w = 1.0;
+      wall.scale.x = e[2];
+      wall.scale.y = e[3];
+      wall.scale.z = h;
+      wall.color.r = rgb[0];
+      wall.color.g = rgb[1];
+      wall.color.b = rgb[2];
+      wall.color.a = static_cast<float>(_zone_wall_alpha);
+      array.markers.push_back(wall);
     }
-    array.markers.push_back(outline);
 
     if (_zone_labels) {
       visualization_msgs::msg::Marker label;
-      label.header = outline.header;
+      label.header.frame_id = _map_frame;
+      label.header.stamp = now();
       label.ns = "arena_zone_labels";
       label.id = id++;
       label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
       label.action = visualization_msgs::msg::Marker::ADD;
       label.pose.position.x = z.x;
       label.pose.position.y = z.y;
-      label.pose.position.z = zh + 0.25;
+      // Above the walls, so the text is not lost inside a translucent slab.
+      label.pose.position.z = _zone_wall_base_m + h + 0.25;
       label.pose.orientation.w = 1.0;
-      label.scale.z = 0.20;
-      label.color = outline.color;
+      label.scale.z = 0.22;
+      label.color.r = rgb[0];
+      label.color.g = rgb[1];
+      label.color.b = rgb[2];
       label.color.a = 1.0f;
       label.text = z.name;
       array.markers.push_back(label);

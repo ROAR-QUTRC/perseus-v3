@@ -153,11 +153,18 @@ arena_server:
     # because it is transient-local you get the zones immediately on connecting
     # rather than waiting for a redraw.
     #
-    # They are drawn at this height above grade so they sit on the regolith
-    # rather than z=0 exactly, which z-fights with the ground in RViz.
+    # Zones are drawn as translucent upright walls, not as outlines on the
+    # ground. A flat outline at grade vanishes the moment a 3D terrain mesh is
+    # displayed over it, being coplanar with the thing hiding it; walls stand
+    # clear of the mesh and the alpha lets you see the arena through them.
+    #
+    # The base sits slightly below grade so the walls are not cut off where the
+    # regolith rises - the sim's bed has about 0.3 m of relief centred on z = 0.
     zones_topic: "/arena/zones"
-    zone_marker_height_m: 0.05
-    zone_line_width_m: 0.03
+    zone_wall_base_m: -0.15
+    zone_wall_height_m: 0.75
+    zone_wall_thickness_m: 0.04
+    zone_wall_alpha: 0.35
     # Labels are useful when first checking the layout and clutter afterwards.
     zone_labels: true
     # The topic is transient local, but RViz's MarkerArray display subscribes

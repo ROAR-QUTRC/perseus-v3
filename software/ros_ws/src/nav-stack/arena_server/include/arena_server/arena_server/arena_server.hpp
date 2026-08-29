@@ -121,8 +121,10 @@ private:
 
   // RViz
   std::string _zones_topic;
-  double _zone_marker_height_m{0.05};
-  double _zone_line_width_m{0.03};
+  double _zone_wall_base_m{-0.15};
+  double _zone_wall_height_m{0.75};
+  double _zone_wall_thickness_m{0.04};
+  double _zone_wall_alpha{0.35};
   bool _zone_labels{true};
 
   // State
