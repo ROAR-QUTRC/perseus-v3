@@ -6,8 +6,10 @@
   backward-ros,
   compressed-depth-image-transport,
   compressed-image-transport,
+  draco-point-cloud-transport,
   geometry-msgs,
   nav-msgs,
+  point-cloud-transport,
   rclcpp,
   rclcpp-components,
   realsense2-camera,
@@ -27,8 +29,10 @@ buildRosPackage rec {
     backward-ros
     compressed-depth-image-transport
     compressed-image-transport
+    draco-point-cloud-transport
     geometry-msgs
     nav-msgs
+    point-cloud-transport
     rclcpp
     rclcpp-components
     realsense2-camera
