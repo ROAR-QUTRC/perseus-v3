@@ -1,0 +1,162 @@
+# Arena layout for the 2026 NASA International Lunabotics Championship.
+#
+# Every coordinate here is in the ARENA frame, which is the guidebook's Origin
+# Point: the centre of the front (south) arena wall, +X east, +Y north, Z up at
+# grade. arena_server publishes that frame as map -> odom, so once a fix exists
+# these numbers are directly usable as navigation goals.
+#
+# PROVISIONAL. Guidebook section 3.1 says the layout images are "placeholders
+# from the prior two-team arena configuration and will be updated when the final
+# International Championship arena layout is released", and section 5.7 says the
+# same of the fiducial rail. The prose also disagrees with Figure 2 on arena size
+# - "~10 m long and ~10 m wide" against a dimensioned 9.14 x 8.10 m bed. This
+# file exists so that when v2 lands there is one place to re-measure into.
+arena_server:
+  ros__parameters:
+
+    # Frames. map is the arena frame above; the node estimates and broadcasts
+    # map -> odom and never touches odom -> base_link, which the EKF owns.
+    map_frame: "map"
+    odom_frame: "odom"
+    base_frame: "base_link"
+
+    # Where the rover is in the arena at startup, before any fiducial fix.
+    #
+    # This seeds map -> odom so the zone layout is usable immediately and callers
+    # can plan without first calling /arena/localise. It is an assumption, not a
+    # measurement: the guidebook (5.4.4) says the starting position and direction
+    # are "randomly selected immediately before the competition attempt", so on
+    # competition day this will be wrong and a fiducial fix has to correct it.
+    # The default is the centre of the starting zone facing north into the arena,
+    # which is also where perseus_simulation spawns the rover.
+    initial_pose:
+      x: -1.125
+      y: 1.125
+      yaw: 1.5708
+
+    # Publish the seeded transform straight away rather than waiting for a fix.
+    # Turn this off if you would rather have no map frame at all than a wrong
+    # one - a stale map -> odom is worse than none when the error is unbounded.
+    publish_initial_pose: true
+
+    # Rate at which map -> odom is rebroadcast. The transform only changes when a
+    # fix is accepted; this is just keeping it fresh in the tf buffer.
+    broadcast_rate_hz: 20.0
+
+    # ─── Zones ────────────────────────────────────────────────────────────────
+    # Each is a centre (x, y) plus a size (width along X, height along Y). Named
+    # in zone_names so the node knows what to declare; a zone missing from this
+    # list is not loaded even if its block is present below.
+    zone_names:
+      - "starting_zone"
+      - "excavation_zone"
+      - "obstacle_zone"
+      - "construction_zone"
+      - "target_berm_area"
+
+    # 2.25 m square against the front wall, offset west of the Origin Point.
+    # That asymmetry is what tells you which way you are facing on first
+    # acquisition, so it matters more than its size suggests.
+    starting_zone:
+      x: -1.125
+      y: 1.125
+      width: 2.25
+      height: 2.25
+
+    # Full arena width, Y 0 to 3.00. Overlaps the starting zone: guidebook 5.4.6
+    # allows excavating "from anywhere within the excavation zone (including the
+    # starting zone)".
+    excavation_zone:
+      x: 0.0
+      y: 1.50
+      width: 9.14
+      height: 3.00
+
+    # Full arena width, Y 3.00 to 8.10. The one zone where contact costs points:
+    # 30 per rock touched or crater crossed, up to 90 (6.2.4/6.2.5). Rocks may be
+    # moved and craters filled in the excavation zone, but never here.
+    obstacle_zone:
+      x: 0.0
+      y: 5.55
+      width: 9.14
+      height: 5.10
+
+    # North-east corner, 2.05 x 3.41 m.
+    construction_zone:
+      x: 3.545
+      y: 6.395
+      width: 2.05
+      height: 3.41
+
+    # The scoring target, centred inside the construction zone. Only berm volume
+    # inside this box counts (5.2.2).
+    #
+    # Note the guidebook contradicts itself on the size: Figure 2's legend and
+    # its scaled drawing both give 2.2 x 0.9 m, while the 5.2 text says
+    # 1.5 x 0.9 m. The drawing is used here since it is dimensioned; change
+    # height to 1.5 if the judges confirm otherwise.
+    target_berm_area:
+      x: 3.56
+      y: 6.40
+      width: 0.90
+      height: 2.20
+
+    # ─── Fiducials ────────────────────────────────────────────────────────────
+    # Team-supplied ArUco markers on the arena's 80/20 rail, mirroring
+    # perseus_simulation's lunabotics_fiducials model. Positions are marker
+    # centres in the arena frame.
+    fiducials:
+      # Only these IDs are trusted. Anything else detected is discarded, which is
+      # the first line of defence against a false detection moving the map frame.
+      ids: [67, 68, 69]
+      # The printed marker SQUARE, not the plate. 0.238 m on a 0.35 m plate; the
+      # remainder is the quiet zone. Must match vision/aruco_detector's
+      # marker_length or the two disagree about scale by 1.47x.
+      marker_length_m: 0.238
+      # Uniform rail spacing. Two visible markers must agree with this to be
+      # believed - the cheapest guard there is, and impossible with one marker.
+      spacing_m: 0.4625
+      # How far a measured separation may deviate before the fix is rejected.
+      # Rendered detections at the far edge of the starting zone came in about
+      # 11-13 mm over, so 0.05 accepts real geometry and rejects nonsense.
+      spacing_tolerance_m: 0.05
+
+    marker_67:
+      x: -1.7125
+      y: 0.028
+      z: 0.40
+    marker_68:
+      x: -1.2500
+      y: 0.028
+      z: 0.40
+    marker_69:
+      x: -0.7875
+      y: 0.028
+      z: 0.40
+
+    # ─── Localisation service ─────────────────────────────────────────────────
+    # The camera is lazy in simulation, so nothing renders between requests. The
+    # node subscribes on demand and waits this long for frames to appear.
+    default_localise_timeout_s: 2.0
+    detections_topic: "/vision/aruco/detections"
+    # Candidate fixes from individual markers must agree within these before any
+    # of them is accepted. Single-marker pose is occasionally catastrophic -
+    # measured up to 9.4 degrees of yaw error while looking perfectly confident -
+    # so agreement between markers, not confidence from one, is what qualifies a
+    # fix.
+    agreement_position_m: 0.25
+    agreement_yaw_deg: 5.0
+
+    # ─── RViz display ─────────────────────────────────────────────────────────
+    # Zone outlines are published once, latched, on zones_topic as a MarkerArray
+    # in the map frame. Add a MarkerArray display in RViz pointed at that topic;
+    # because it is transient-local you get the zones immediately on connecting
+    # rather than waiting for a redraw.
+    #
+    # They are drawn at this height above grade so they sit on the regolith
+    # rather than z=0 exactly, which z-fights with the ground in RViz.
+    zones_topic: "/arena/zones"
+    zone_marker_height_m: 0.05
+    zone_line_width_m: 0.03
+    # Labels are useful when first checking the layout and clutter afterwards.
+    zone_labels: true
