@@ -25,5 +25,8 @@
         ]
       )
     }:$LD_LIBRARY_PATH"
+
+    # use Zenoh ROS middleware
+    export RMW_IMPLEMENTATION=rmw_zenoh_cpp
   '';
 }
