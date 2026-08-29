@@ -1,0 +1,9 @@
+<library path="hardware">
+  <class name="hardware/VescSystemHardware"
+         type="hardware::VescSystemHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware interface for VESC motor controllers
+    </description>
+  </class>
+</library>

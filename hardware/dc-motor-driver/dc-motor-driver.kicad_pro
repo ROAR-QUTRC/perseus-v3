@@ -39,9 +39,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.6,
-          "height": 2.1,
-          "width": 1.0
+          "drill": 1.4,
+          "height": 2.2,
+          "width": 2.2
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -52,8 +52,8 @@
         "zones": {
           "border_display_style": 2,
           "border_hatch_pitch": 0.5,
-          "corner_radius": 1.1,
-          "corner_smoothing": 2,
+          "corner_radius": 0.5,
+          "corner_smoothing": 1,
           "fill_mode": 0,
           "hatch_gap": 1.5,
           "hatch_orientation": 0.0,
@@ -287,7 +287,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": "V1R1"
+      "sch_revision": "V2R1"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -548,7 +548,8 @@
       "PMIC, Motor Drivers",
       "Manufacturer Connectors",
       "Project_PCB",
-      "Semiconductor_Diodes"
+      "Semiconductor_Diodes",
+      "54-00274"
     ]
   },
   "meta": {
@@ -592,7 +593,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "../../../Downloads/ENC_V1R1.step",
       "svg": "",
       "vrml": ""
     },
@@ -708,6 +709,30 @@
           "label": "Exclude from Board",
           "name": "${EXCLUDE_FROM_BOARD}",
           "show": false
+        },
+        {
+          "group_by": false,
+          "label": "MANUFACTURER",
+          "name": "MANUFACTURER",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "MAXIMUM_PACKAGE_HEIGHT",
+          "name": "MAXIMUM_PACKAGE_HEIGHT",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "PARTREV",
+          "name": "PARTREV",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "STANDARD",
+          "name": "STANDARD",
+          "show": false
         }
       ],
       "filter_string": "",
@@ -766,7 +791,7 @@
         "uuid": "fc286157-4263-4a46-ad05-98b3354aa28a"
       }
     ],
-    "used_designators": "C25-26,#PWR69-76,D1-2,R16-21,J10-11,U7-8",
+    "used_designators": "FID1-3,C25-26,D1-2,#PWR68-77,R16-21,J1,J4,J10-11,J14-20,U7-8",
     "variants": []
   },
   "sheets": [
@@ -808,7 +833,7 @@
     ]
   ],
   "text_variables": {
-    "DRAWN_BY": "James Nichol, Maurice Blake",
+    "DRAWN_BY": "Zeph Hardie, Maurice Blake, James Nichol",
     "PROJECT": "Perseus Rover",
     "SUBSYSTEM": "Excavation & Construction"
   },

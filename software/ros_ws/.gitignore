@@ -1,2 +1,12 @@
 # This not in the main gitignore since the web ui needs a lib folder
 lib/
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml

@@ -1,0 +1,136 @@
+/**:
+  ros__parameters:
+    # FAST-LIO on the real Perseus: Livox MID-360 on a Jetson.
+    #
+    # Sized for the Jetson rather than a workstation. Two things drive that: the real MID-360
+    # emits ~200k points/s (~20k per scan, roughly 2.7x what the Gazebo sensor produces), and a
+    # Jetson core is several times slower than a desktop one. So the voxel sizes here are
+    # deliberately coarser and the iteration count lower than in livox_mid360_sim.yaml.
+    # Measure on the board (`ps -o pcpu,rss` plus `ros2 topic hz /Odometry`) and give back
+    # filter_size_surf first if /Odometry cannot keep up with its input.
+    #
+    # See livox_mid360_sim.yaml for the simulation values; several settings must differ between
+    # the two and are called out below.
+
+    # No feature extraction on FAST-LIO2: it registers raw points against the map instead, and
+    # the along-scan-line logic assumes dense ordered rings that a non-repetitive Livox pattern
+    # does not provide. mid360_handler ignores this flag anyway.
+    feature_extract_enable: false
+    # Inert with lidar_type 4: mid360_handler never reads it, so decimation has to come from
+    # filter_size_surf below. Left at the upstream value so it is not mistaken for a live dial.
+    point_filter_num: 3
+    # 3 rather than the sim's 4. Each iteration re-runs the nearest-neighbour search over every
+    # downsampled point, so this multiplies the dominant cost directly.
+    max_iteration: 3
+    # 0 sizes the residual loop to the machine, leaving one core for Nav2, perception and the
+    # driver. Upstream compiled this loop out entirely on ARM, so it ran single-threaded on the
+    # Jetson no matter how many cores the board had; that is fixed, and this is what makes
+    # FAST-LIO fit here at all.
+    max_threads: 0
+    # 0.15 rather than the sim's 0.1. This is the strongest accuracy dial and also the most
+    # expensive: halving it roughly multiplies the surviving point count, and with 2.7x more
+    # incoming points than the sim there is far less headroom to spend.
+    filter_size_surf: 0.15
+    # Kept near filter_size_surf: a map coarser than the scans caps how precisely a scan can be
+    # matched, which would undo the setting above.
+    filter_size_map: 0.3
+    # Smaller than the sim's 500 to bound memory on a Jetson sharing RAM with the rest of the
+    # stack. Must stay well above 3 * mapping.det_range (210 m here) or the cube slides on
+    # every scan and thrashes the ikd-Tree.
+    cube_side_length: 300.0
+    runtime_pos_log_enable: false
+    map_file_path: "~/maps/scan.pcd"
+    common:
+      # The Livox driver's own topics. The sim config reads /livox/lidar_filtered instead,
+      # because the simulated sensor emits NaN and Inf that need stripping first.
+      lid_topic: "/livox/lidar"
+      imu_topic: "/livox/imu/corrected"
+      # TF frames FAST-LIO publishes. These were hardcoded upstream and rewritten by
+      # patches/fast_lio/frame_id_fix.patch; the fork reads them as parameters instead.
+      #
+      # FAST-LIO broadcasts no TF at all (see the publish block): the EKF owns odom -> base_link
+      # and FAST-LIO only reports /Odometry as odom -> base_link for it to fuse.
+      map_frame: "odom" # world-fixed parent of /Odometry, /path and the global clouds
+      # The IMU inside the Livox, which is what the filter actually estimates. Deliberately not
+      # base_link: that pose is the IMU's, offset and rotated by the mast mounting, which
+      # publish.odom_in_base_en composes properly rather than mislabelling.
+      body_frame: "livox_imu_frame"
+      # Must match the URDF link name: it is the source frame of the lid_frame -> base_frame
+      # lookup that odom_in_base_en and origin_at_base_en both compose with.
+      lid_frame: "livox_frame"
+      base_frame: "base_link"
+      # Level the world frame at startup from the averaged accelerometer. Required with the
+      # Livox pitched 45 deg nose-down (lidar_angle in perseus.urdf.xacro): without it the world
+      # frame inherits that tilt, so a level robot reports a 45 deg pitch and level travel is
+      # split between the world x and z axes. Needs the robot stationary at startup.
+      gravity_align_en: true
+      # Put the world origin on base_link rather than on the IMU up the mast, so the ground
+      # plane is near z = 0 instead of z = -0.65 for everything downstream.
+      origin_at_base_en: true
+      # The MID-360's LiDAR and IMU share one clock, so leave this off.
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+    preprocess:
+      # 1 = Livox CustomMsg, 2 = Velodyne, 3 = Ouster, 4 = Livox MID360 PointCloud2.
+      # 4 is correct for the real driver, which emits reflectivity/tag/line. The sim config uses
+      # 2, because Gazebo publishes ring instead of line and type 4 would read the scan-line
+      # index as 0 for every point, wrecking the per-point timestamps.
+      lidar_type: 4
+      # A MID-360 has 4 scan lines. The sim's 32 is its vertical sample count, not a real sensor
+      # property. Do not set this below the real line count: the handler indexes per-line state
+      # arrays with it.
+      scan_line: 4
+      # Minimum range (m); points closer are dropped. Rejects returns off the robot itself.
+      # Raise if the bucket enters the field of view -- but note it is a sphere, so it blinds the
+      # robot in every direction at that radius.
+      blind: 0.5
+      timestamp_unit: 3 # ns, as the driver publishes
+      scan_rate: 10 # MID-360 frame rate; drives the per-point time reconstruction
+    mapping:
+      acc_cov: 0.1
+      gyr_cov: 0.1
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      fov_degree: 360.0 # read into HALF_FOV_COS and then never used; dead in FAST-LIO 2
+      # Real MID-360 range (~70 m at high reflectivity, ~40 m at 10%). Only used as the margin
+      # deciding when the local map cube slides. cube_side_length must exceed 3 * this.
+      det_range: 70.0
+      # false for Livox: the factory extrinsic below is accurate, and it is only weakly
+      # observable unless the robot rotates a lot, so estimating it online adds a nuisance
+      # parameter for nothing.
+      extrinsic_est_en: false
+      # MID-360 datasheet: the LiDAR origin expressed in IMU coordinates.
+      extrinsic_T: [-0.011, -0.02329, 0.04412]
+      extrinsic_R: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+    publish:
+      # Output trimmed to what is actually consumed. Every one of these serialises a point cloud
+      # on the Jetson's CPU, competing with the filter itself.
+      path_en: false # grows without bound and only useful for visualisation
+      effect_map_en: false # debug view of the points that matched
+      # Must stay true: pcd_save writes the buffer that only publish_map() fills, so turning
+      # this off silently makes /map_save write an empty file.
+      map_en: true
+      scan_publish_en: true # /cloud_registered, the per-scan world cloud
+      dense_publish_en: false # publish the downsampled scan rather than full density
+      # false: /cloud_registered_body has no subscriber, and with tf_en false its frame is not
+      # even in TF. It is also full density regardless of dense_publish_en, so it was the
+      # heaviest cloud the node published.
+      scan_bodyframe_pub_en: false
+      # No TF from FAST-LIO: the EKF owns odom -> base_link, and two publishers on one edge make
+      # lookups depend on message arrival order.
+      tf_en: false
+      tf_lidar_en: false # would fight the URDF, which already parents livox_frame under base_link
+      tf_base_en: false
+      # Report the base pose on /Odometry so the EKF can fuse it with no transform between the
+      # message's child frame and base_link.
+      odom_in_base_en: true
+    pcd_save:
+      pcd_save_en: true
+      interval: -1 # dead in this branch; the frame-count chunking is commented out upstream
+      # 60 s rather than the sim's 30: each save serialises the whole accumulated map, and the
+      # map never shrinks, so the write gets slower as the run goes on.
+      save_interval_sec: 60.0
+      # false, and it matters: true writes a full timestamped snapshot on every save, so disk
+      # use grows with the square of run time. A single sim session produced 310 files and
+      # 3.8 GB that way.
+      keep_history: false
