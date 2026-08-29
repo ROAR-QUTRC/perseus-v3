@@ -15,6 +15,11 @@ Three pieces, and the split matters:
      exists in the URDF, deliberately -- a static base_link -> base_footprint from
      robot_state_publisher would give the frame a second parent and TF would reject it.
 
+Two monitors ride along with them, both watching what this stack produces rather than
+adding to it: the mobility watchdog, which compares commanded velocity against the EKF
+output to catch sustained wheel slip, and the health monitor, which reports the rate and
+staleness of the topics above on /health_check/health.
+
 Start order does not matter. fast_lio withholds /Odometry until lid_frame -> base_frame
 resolves in TF, so until robot_state_publisher is up the EKF runs on the IMU alone.
 
@@ -33,6 +38,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    GroupAction,
     IncludeLaunchDescription,
     OpaqueFunction,
 )
@@ -47,7 +53,7 @@ def sim_overrides(params):
     """Adjust the real-robot parameters for Gazebo's point cloud, in place.
 
     Gazebo publishes x,y,z,intensity,ring. The real Livox driver publishes
-    reflectivity,tag,line. lidar_type selects which of those layouts FAST-LIO deserialises
+    x,y,z,intensity,tag,line,timestamp. lidar_type selects which of those layouts FAST-LIO deserialises
     into, so against the sim, type 4 finds no `line` field and reads the scan-line index as 0
     for every point -- collapsing all points onto one line and wrecking the per-point
     timestamps that motion compensation depends on. Type 2 reads `ring`, which the sim does
@@ -158,11 +164,37 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    # Measures the rate, bandwidth and staleness of the topics this stack consumes and
+    # produces -- the raw and corrected IMU, the Livox cloud, /Odometry, /odom and
+    # /odometry/filtered are most of its default watch list -- so it comes up with them.
+    # It takes no use_sim_time: rate and staleness are measured against arrival in real
+    # time, which is what a stalled publisher shows up in regardless of the clock the
+    # rest of the stack is on.
+    health_check_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("health_check"), "launch", "health_check.launch.py"]
+            )
+        )
+    )
+
+    # Every include is scoped, and it is not optional. IncludeLaunchDescription sets its
+    # launch_arguments into the *enclosing* context with no push/pop of its own, and
+    # DeclareLaunchArgument only applies a default when the name is not already set. So an
+    # argument one include sets is inherited by every include after it, and the inheriting
+    # launch file cannot tell that happened.
+    #
+    # fast_lio makes that concrete: it takes an argument called `config_file`, which is
+    # generic enough that health_check takes one by the same name. Unscoped, the health
+    # monitor was handed fast_lio's rewritten temp filename as its parameter file and came
+    # up with an empty watch list -- silently, since a missing watch list is a warning and
+    # not an error. Scoping confines each include's arguments to the include that set them.
     return [
-        fast_lio_launch,
-        ekf_launch,
+        GroupAction([fast_lio_launch], scoped=True),
+        GroupAction([ekf_launch], scoped=True),
         flat_footprint_broadcaster_node,
-        watchdog_launch,
+        GroupAction([watchdog_launch], scoped=True),
+        GroupAction([health_check_launch], scoped=True),
     ]
 
 

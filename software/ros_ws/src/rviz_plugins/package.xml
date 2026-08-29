@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rviz_plugins</name>
+  <version>0.0.1</version>
+  <description>RViz panels and displays for the rover's custom messages</description>
+  <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>interfaces</depend>
+  <depend>rviz_common</depend>
+  <depend>pluginlib</depend>
+  <depend>image_transport</depend>
+  <depend>sensor_msgs</depend>
+  <!-- Transport plugins the panel can select. They are loaded into RViz's own
+       process, so they have to be present here rather than only on the
+       publishing side. -->
+  <exec_depend>compressed_image_transport</exec_depend>
+  <exec_depend>ffmpeg_image_transport</exec_depend>
+  <depend>qtbase5-dev</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

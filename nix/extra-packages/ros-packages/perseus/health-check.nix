@@ -5,23 +5,15 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
-  fast-lio,
-  footprint-broadcaster,
-  global-traversability,
-  health-check,
-  navigation2,
+  interfaces,
   rclcpp,
-  robot-localization,
-  rviz-plugins,
-  slam-toolbox,
-  watchdog,
-  xacro,
+  std-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-autonomy-bringup";
+  pname = "ros-jazzy-health-check";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/nav-stack/autonomy_bringup;
+  src = ./../../../../software/ros_ws/src/nav-stack/health_check;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -30,22 +22,14 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    fast-lio
-    footprint-broadcaster
-    global-traversability
-    health-check
-    navigation2
+    interfaces
     rclcpp
-    robot-localization
-    rviz-plugins
-    slam-toolbox
-    watchdog
-    xacro
+    std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "ROAR autonomy_bringup software control stack";
+    description = "Topic rate and staleness monitoring for the sensing and estimation stack";
     license = with lib.licenses; [ mit ];
   };
 }

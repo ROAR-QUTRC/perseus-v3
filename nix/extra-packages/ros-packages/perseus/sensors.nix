@@ -4,8 +4,6 @@
   buildRosPackage,
   ament-cmake,
   backward-ros,
-  compressed-depth-image-transport,
-  compressed-image-transport,
   geometry-msgs,
   nav-msgs,
   rclcpp,
@@ -25,8 +23,6 @@ buildRosPackage rec {
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
     backward-ros
-    compressed-depth-image-transport
-    compressed-image-transport
     geometry-msgs
     nav-msgs
     rclcpp

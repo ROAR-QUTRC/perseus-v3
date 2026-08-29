@@ -3,35 +3,23 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  ament-index-cpp,
   ament-lint-auto,
   ament-lint-common,
-  builtin-interfaces,
   compressed-image-transport,
-  cv-bridge,
   ffmpeg-image-transport,
-  geometry-msgs,
   image-transport,
   interfaces,
-  onnxruntime,
-  opencv,
-  rcl-interfaces,
+  pluginlib,
+  qt5,
   rclcpp,
-  rclcpp-components,
+  rviz-common,
   sensor-msgs,
-  sensors,
-  std-msgs,
-  tf2,
-  tf2-geometry-msgs,
-  tf2-ros,
-  v4l2-camera,
-  visualization-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-vision";
-  version = "1.0.0";
+  pname = "ros-jazzy-rviz-plugins";
+  version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/vision;
+  src = ./../../../../software/ros_ws/src/rviz_plugins;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -40,32 +28,20 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    ament-index-cpp
-    builtin-interfaces
     compressed-image-transport
-    cv-bridge
     ffmpeg-image-transport
-    geometry-msgs
     image-transport
     interfaces
-    onnxruntime
-    opencv
-    rcl-interfaces
+    pluginlib
+    qt5.qtbase
     rclcpp
-    rclcpp-components
+    rviz-common
     sensor-msgs
-    sensors
-    std-msgs
-    tf2
-    tf2-geometry-msgs
-    tf2-ros
-    v4l2-camera
-    visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "A package to do vision/detection tasks of Perseus";
+    description = "RViz panels and displays for the rover's custom messages";
     license = with lib.licenses; [ mit ];
   };
 }

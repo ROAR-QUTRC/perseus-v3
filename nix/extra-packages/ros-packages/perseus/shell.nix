@@ -35,17 +35,18 @@ pkgs.mkShell {
           ament-lint-common
           backward-ros
           builtin-interfaces
-          compressed-depth-image-transport
           compressed-image-transport
           controller-manager
           cv-bridge
           diff-drive-controller
           fast-lio
+          ffmpeg-image-transport
           geometry-msgs
           grid-map-core
           hardware-interface
           hi-can
           hi-can-raw
+          image-transport
           joint-state-broadcaster
           joint-state-publisher-gui
           joy
@@ -57,6 +58,7 @@ pkgs.mkShell {
           opencv
           pcl-conversions
           pluginlib
+          qt5.qtbase
           rcl-interfaces
           rclcpp
           rclcpp-components
@@ -71,6 +73,7 @@ pkgs.mkShell {
           rosidl-default-generators
           rosidl-default-runtime
           rplidar-ros
+          rviz-common
           rviz2
           sensor-msgs
           slam-toolbox

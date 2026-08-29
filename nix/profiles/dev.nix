@@ -28,6 +28,30 @@ in
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
     ${ros_ws.env.shellHook}
 
+    # Put the workspace's *dev* environment ahead of the workspace itself on PATH.
+    #
+    # buildROSWorkspace produces two environments: the workspace, which holds prebuilt
+    # copies of every package including the ones being developed, and the dev
+    # environment, which excludes those and carries only their dependencies. The hook
+    # above already puts the dev environment first on AMENT_PREFIX_PATH, but PATH is left
+    # alone, so ros2, python3 and xacro resolve to the workspace's copies -- and those are
+    # wrapped to strip and re-prepend the workspace onto AMENT_PREFIX_PATH:
+    #
+    #   AMENT_PREFIX_PATH='/nix/store/...-workspace'$AMENT_PREFIX_PATH
+    #
+    # which undoes the hook from inside every process. The effect is that a package built
+    # locally with colcon can never win over its prebuilt copy: xacro's $(find pkg),
+    # pluginlib and CMake's find_package all silently resolve to the prebuilt one.
+    #
+    # Taking the binaries from the dev environment instead means their wrappers prepend
+    # an environment that does not contain the workspace's own packages, so the colcon
+    # install/ tree takes priority. The workspace stays on PATH behind it, since it
+    # supplies mk-workspace-shell-setup and the non-ROS closure the dev environment omits.
+    #
+    # This belongs to the dev profile only: prod builds every package with nix, so there
+    # is no colcon install/ tree for it to prefer.
+    export PATH="$ROS_WORKSPACE_ENV_PATH/bin:$PATH"
+
     echo -e "\e[38;5;208m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
     echo -e "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";
