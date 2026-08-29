@@ -98,6 +98,27 @@ ekf_filter_node:
     # (imu0_*_rejection_threshold above) tighten until real measurements are rejected.
     # vyaw matters most here -- it is one of the three states imu0 actually fuses.
     #
+    # The velocity terms are deliberately LARGER than the position terms they sit under.
+    # Nothing in this filter measures velocity: odom0 contributes pose only, imu0 contributes
+    # angular rates only, and the wheel /odom is not fused (it slips too much on LHS-2E to be
+    # worth having). Velocity is therefore only correctable through its cross-covariance with
+    # position, and if vx is declared more certain than x -- as it was, 0.05 against 0.1 --
+    # an arriving pose update is absorbed almost entirely by position while velocity keeps its
+    # stale value. The filter then extrapolates forward again on that same velocity, so a hard
+    # stop produces a sawtooth at the pose source's rate.
+    #
+    # Measured on the Lunabotics world, driving 0.9 m/s then commanding a hard stop, as
+    # peak-to-peak x excursion once stationary:
+    #
+    #     /Odometry (LIO, the input)   0.2 - 1.1 cm
+    #     /odometry/filtered, vx=0.05  3.8 - 17.1 cm
+    #     /odometry/filtered, vx=1.0   1.3 -  5.6 cm
+    #
+    # A/B'd against a second ekf_node on identical inputs with publish_tf off. This is a
+    # mitigation, not a cure: a 10 Hz pose-only source driving a 30 Hz output will always
+    # extrapolate between corrections. predict_to_current_time: false is the other lever and
+    # is untested.
+    #
     # Values are decimal rather than 1e-3 notation on purpose: `1e-3` is not a valid YAML 1.1
     # float, so rcl accepts it via strtod but PyYAML reads it as a string. This repo already
     # yaml.safe_load()s a config in localisation.launch.py, so that trap is worth avoiding.
@@ -107,12 +128,12 @@ ekf_filter_node:
       0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # roll
       0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # pitch
       0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # yaw
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vx
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vy
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vx
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vy
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vz
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, # vroll
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, # vpitch
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.02, 0.0, 0.0, 0.0, # vyaw
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, # vyaw
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.08, 0.0, 0.0, # ax
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, # ay
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, # az
