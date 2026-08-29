@@ -1,6 +1,10 @@
 """Launch arena_server with the arena layout.
 
-The layout lives in config/arena_layout.yaml rather than in this file so the
+Lives in autonomy_bringup rather than in arena_server so that the layout sits
+with the other stack configs -- ekf_config, navigation, bievr -- and the node
+package stays just the node. localisation.launch.py includes this.
+
+The layout is in config/arena_layout.yaml rather than inline here so the
 simulation and the autonomy stack can read the same numbers. Guidebook sections
 3.1 and 5.7 both say the arena layout is provisional, so expect to re-measure
 into that one file rather than hunting constants through the code.
@@ -23,7 +27,7 @@ def generate_launch_description():
                 "layout",
                 default_value=PathJoinSubstitution(
                     [
-                        FindPackageShare("arena_server"),
+                        FindPackageShare("autonomy_bringup"),
                         "config",
                         "arena_layout.yaml",
                     ]

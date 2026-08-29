@@ -241,6 +241,30 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
     )
 
+    # Owns the arena frame: seeds map -> odom from its initial_pose parameter so the
+    # zone layout is usable straight away, and refines it when /arena/localise is
+    # called against the rail fiducials. Brought up with localisation because it
+    # completes the frame chain -- the EKF gives odom -> base_link, this gives
+    # map -> odom, and nav2 needs a global frame to plan in.
+    #
+    # It does not localise continuously and nothing here calls the service: the
+    # camera is lazy, so between requests it renders nothing and costs nothing.
+    # Whatever drives the acquisition behaviour is expected to call it.
+    arena_server_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("autonomy_bringup"),
+                    "launch",
+                    "arena_server.launch.py",
+                ]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
     # Watches /odometry/filtered against /cmd_vel_out for wheel slip, so it belongs
     # wherever the EKF that produces /odometry/filtered is brought up.
     watchdog_launch = IncludeLaunchDescription(
@@ -303,6 +327,7 @@ def launch_setup(context, *args, **kwargs):
     return lio_actions + [
         GroupAction([ekf_launch], scoped=True),
         flat_footprint_broadcaster_node,
+        GroupAction([arena_server_launch], scoped=True),
         GroupAction([watchdog_launch], scoped=True),
         GroupAction([health_check_launch], scoped=True),
         GroupAction([point_cloud_compress_launch], scoped=True),

@@ -69,7 +69,10 @@ ament_target_dependencies(arena_server PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 # INSTALL (ROS)
 install(TARGETS arena_server DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include/)
-install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
+
+# No config/ or launch/ here on purpose: the arena layout and the launch file
+# live in autonomy_bringup, alongside the other stack configs, so this package
+# is just the node.
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

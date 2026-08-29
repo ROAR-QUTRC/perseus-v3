@@ -22,6 +22,7 @@
   <depend>bievr_lio_ros2</depend>
   <depend>watchdog</depend>
   <depend>footprint_broadcaster</depend>
+  <depend>arena_server</depend>
   <depend>global_traversability</depend>
   <!-- health_monitor, launched alongside localisation -->
   <depend>health_check</depend>
