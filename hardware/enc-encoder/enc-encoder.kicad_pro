@@ -631,7 +631,7 @@
     "last_paths": {
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "../../../Documents/enc_encoder/gerber/",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
