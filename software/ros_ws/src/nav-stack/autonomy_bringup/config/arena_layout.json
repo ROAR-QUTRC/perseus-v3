@@ -47,7 +47,9 @@
       "y": 1.125,
       "width": 2.25,
       "height": 2.25,
-      "color": [0.10, 0.70, 0.20]
+      "color": [0.10, 0.70, 0.20],
+      "_edges_comment": "South side is the front wall; the other three are interior.",
+      "edges": ["N", "E", "W"]
     },
     {
       "name": "excavation_zone",
@@ -56,7 +58,9 @@
       "y": 1.50,
       "width": 9.14,
       "height": 3.00,
-      "color": [0.55, 0.55, 0.55]
+      "color": [0.55, 0.55, 0.55],
+      "_edges_comment": "Spans the whole bed, so three of its four sides are arena walls. Only the boundary with the obstacle zone at Y = 3.00 says anything.",
+      "edges": ["N"]
     },
     {
       "name": "obstacle_zone",
@@ -65,7 +69,9 @@
       "y": 5.55,
       "width": 9.14,
       "height": 5.10,
-      "color": [0.20, 0.45, 0.85]
+      "color": [0.20, 0.45, 0.85],
+      "_edges_comment": "Also spans the bed. Its only interior boundary is Y = 3.00, which the excavation zone already draws, so it draws none of its own.",
+      "edges": []
     },
     {
       "name": "construction_zone",
@@ -73,7 +79,9 @@
       "y": 6.395,
       "width": 2.05,
       "height": 3.41,
-      "color": [0.95, 0.55, 0.05]
+      "color": [0.95, 0.55, 0.05],
+      "_edges_comment": "North and east sides are arena walls; west and south are interior.",
+      "edges": ["S", "W"]
     },
     {
       "name": "target_berm_area",
@@ -82,7 +90,9 @@
       "y": 6.40,
       "width": 0.90,
       "height": 2.20,
-      "color": [0.85, 0.05, 0.05]
+      "color": [0.85, 0.05, 0.05],
+      "_edges_comment": "Wholly interior, so all four sides are drawn.",
+      "edges": ["N", "S", "E", "W"]
     }
   ],
 

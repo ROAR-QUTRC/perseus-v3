@@ -25,6 +25,19 @@ Zone read_zone(const nlohmann::json &j, const std::string &fallback_name) {
   if (j.contains("color") && j["color"].is_array() && j["color"].size() == 3) {
     for (size_t i = 0; i < 3; ++i) z.color[i] = j["color"][i].get<float>();
   }
+  // Absent means all four, which is correct for a zone touching no wall. An
+  // empty list is meaningful and distinct: draw nothing, for a zone whose only
+  // boundary is already drawn by its neighbour.
+  if (j.contains("edges") && j["edges"].is_array()) {
+    z.draw_north = z.draw_south = z.draw_east = z.draw_west = false;
+    for (const auto &e : j["edges"]) {
+      const std::string s = e.get<std::string>();
+      if (s == "N" || s == "north") z.draw_north = true;
+      else if (s == "S" || s == "south") z.draw_south = true;
+      else if (s == "E" || s == "east") z.draw_east = true;
+      else if (s == "W" || s == "west") z.draw_west = true;
+    }
+  }
   return z;
 }
 

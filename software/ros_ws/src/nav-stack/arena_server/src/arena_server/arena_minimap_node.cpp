@@ -95,11 +95,14 @@ private:
     for (const auto &z : _layout.zones) {
       const double hx = z.width * 0.5, hy = z.height * 0.5;
       const double t = _zone_thickness, h = _zone_height;
-      const double edges[4][4] = {{z.x, z.y - hy, 2.0 * hx + t, t},
-                                  {z.x, z.y + hy, 2.0 * hx + t, t},
-                                  {z.x - hx, z.y, t, 2.0 * hy + t},
-                                  {z.x + hx, z.y, t, 2.0 * hy + t}};
+      // Interior edges only; anything coinciding with an arena wall is skipped.
+      struct Edge { double cx, cy, sx, sy; bool draw; };
+      const Edge edges[4] = {{z.x, z.y - hy, 2.0 * hx + t, t, z.draw_south},
+                             {z.x, z.y + hy, 2.0 * hx + t, t, z.draw_north},
+                             {z.x - hx, z.y, t, 2.0 * hy + t, z.draw_west},
+                             {z.x + hx, z.y, t, 2.0 * hy + t, z.draw_east}};
       for (const auto &e : edges) {
+        if (!e.draw) continue;
         visualization_msgs::msg::Marker m;
         m.header.frame_id = _layout.frame;
         m.header.stamp = now();
@@ -107,12 +110,12 @@ private:
         m.id = id++;
         m.type = visualization_msgs::msg::Marker::CUBE;
         m.action = visualization_msgs::msg::Marker::ADD;
-        m.pose.position.x = e[0];
-        m.pose.position.y = e[1];
+        m.pose.position.x = e.cx;
+        m.pose.position.y = e.cy;
         m.pose.position.z = h * 0.5;
         m.pose.orientation.w = 1.0;
-        m.scale.x = e[2];
-        m.scale.y = e[3];
+        m.scale.x = e.sx;
+        m.scale.y = e.sy;
         m.scale.z = h;
         m.color.r = z.color[0];
         m.color.g = z.color[1];
@@ -120,7 +123,7 @@ private:
         m.color.a = static_cast<float>(_zone_alpha);
         array.markers.push_back(m);
       }
-      if (_labels) {
+      if (_labels && z.has_edges()) {
         visualization_msgs::msg::Marker l;
         l.header.frame_id = _layout.frame;
         l.header.stamp = now();

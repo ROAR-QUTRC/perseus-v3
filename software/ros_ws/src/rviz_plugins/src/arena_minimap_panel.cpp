@@ -99,21 +99,31 @@ void ArenaMinimapCanvas::paintEvent(QPaintEvent * /*event*/) {
                    static_cast<int>(z.color[1] * 255),
                    static_cast<int>(z.color[2] * 255));
 
-    // Filled faintly and outlined solidly: zones overlap - the excavation zone
+    // Filled faintly, edges drawn solidly. Zones overlap - the excavation zone
     // contains the starting zone, the construction zone contains the berm - so
     // a heavy fill would bury whichever is drawn first.
     QColor fill = c;
     fill.setAlpha(38);
     p.fillRect(r, fill);
-    p.setPen(QPen(c, 1.6));
-    p.drawRect(r);
 
-    p.setPen(QPen(c.lighter(140), 1.0));
-    QFont f = p.font();
-    f.setPointSizeF(7.5);
-    p.setFont(f);
-    p.drawText(r.adjusted(3, 2, -3, -2), Qt::AlignLeft | Qt::AlignTop,
-               QString::fromStdString(z.name));
+    // Individual edges rather than drawRect, so edges coinciding with an arena
+    // wall can be omitted. Drawing every zone closed would trace the arena
+    // perimeter, which is a priori wall geometry on screen - see the note on
+    // Zone::draw_north. Only zone-to-zone boundaries are informative anyway.
+    p.setPen(QPen(c, 1.6));
+    if (z.draw_north) p.drawLine(r.topLeft(), r.topRight());
+    if (z.draw_south) p.drawLine(r.bottomLeft(), r.bottomRight());
+    if (z.draw_west) p.drawLine(r.topLeft(), r.bottomLeft());
+    if (z.draw_east) p.drawLine(r.topRight(), r.bottomRight());
+
+    if (z.has_edges()) {
+      p.setPen(QPen(c.lighter(140), 1.0));
+      QFont f = p.font();
+      f.setPointSizeF(7.5);
+      p.setFont(f);
+      p.drawText(r.adjusted(3, 2, -3, -2), Qt::AlignLeft | Qt::AlignTop,
+                 QString::fromStdString(z.name));
+    }
   }
 
   if (!_have_pose) {

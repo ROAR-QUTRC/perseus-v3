@@ -215,14 +215,18 @@ void ArenaServer::_publish_zone_markers() {
     //
     // Each edge is a thin CUBE. The along-edge dimension carries + t so the
     // corners meet instead of leaving four notches.
-    const double edges[4][5] = {
-        // cx, cy, size_x, size_y
-        {z.x, z.y - hy, 2.0 * hx + t, t, 0},
-        {z.x, z.y + hy, 2.0 * hx + t, t, 0},
-        {z.x - hx, z.y, t, 2.0 * hy + t, 0},
-        {z.x + hx, z.y, t, 2.0 * hy + t, 0}};
+    // Only the edges the layout marks as interior. Edges that coincide with an
+    // arena wall are skipped, so nothing here renders the arena perimeter -
+    // see the note on Zone::draw_north in arena_layout.hpp.
+    struct Edge { double cx, cy, sx, sy; bool draw; };
+    const Edge edges[4] = {
+        {z.x, z.y - hy, 2.0 * hx + t, t, z.draw_south},
+        {z.x, z.y + hy, 2.0 * hx + t, t, z.draw_north},
+        {z.x - hx, z.y, t, 2.0 * hy + t, z.draw_west},
+        {z.x + hx, z.y, t, 2.0 * hy + t, z.draw_east}};
 
     for (const auto &e : edges) {
+      if (!e.draw) continue;
       visualization_msgs::msg::Marker wall;
       wall.header.frame_id = _map_frame;
       wall.header.stamp = now();
@@ -230,12 +234,12 @@ void ArenaServer::_publish_zone_markers() {
       wall.id = id++;
       wall.type = visualization_msgs::msg::Marker::CUBE;
       wall.action = visualization_msgs::msg::Marker::ADD;
-      wall.pose.position.x = e[0];
-      wall.pose.position.y = e[1];
+      wall.pose.position.x = e.cx;
+      wall.pose.position.y = e.cy;
       wall.pose.position.z = cz;
       wall.pose.orientation.w = 1.0;
-      wall.scale.x = e[2];
-      wall.scale.y = e[3];
+      wall.scale.x = e.sx;
+      wall.scale.y = e.sy;
       wall.scale.z = h;
       wall.color.r = rgb[0];
       wall.color.g = rgb[1];
@@ -244,7 +248,7 @@ void ArenaServer::_publish_zone_markers() {
       array.markers.push_back(wall);
     }
 
-    if (_zone_labels) {
+    if (_zone_labels && z.has_edges()) {
       visualization_msgs::msg::Marker label;
       label.header.frame_id = _map_frame;
       label.header.stamp = now();

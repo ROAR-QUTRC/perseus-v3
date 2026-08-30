@@ -18,6 +18,27 @@ struct Zone {
   double width{0.0};
   double height{0.0};
   std::array<float, 3> color{0.8f, 0.8f, 0.8f};
+
+  /// @brief Which edges to draw, from the JSON's optional "edges" list.
+  ///
+  /// Exists so nothing renders the arena perimeter. The excavation and obstacle
+  /// zones together tile the whole bed and the construction zone's north and
+  /// east sides are walls, so drawing every zone as a closed rectangle draws
+  /// the arena outline - which is a priori wall geometry put on screen, exactly
+  /// what guidebook 5.6.3 is about and what 5.6.4 makes you defend.
+  ///
+  /// Only the edges that separate one zone from another are informative anyway;
+  /// the rest merely restate where the walls are. Absent from the JSON means
+  /// all four, which is right for a zone that touches no wall.
+  bool draw_north{true};
+  bool draw_south{true};
+  bool draw_east{true};
+  bool draw_west{true};
+
+  /// @brief True if any edge is drawn at all.
+  bool has_edges() const {
+    return draw_north || draw_south || draw_east || draw_west;
+  }
 };
 
 /// @brief A fiducial marker's surveyed centre in the arena frame.
