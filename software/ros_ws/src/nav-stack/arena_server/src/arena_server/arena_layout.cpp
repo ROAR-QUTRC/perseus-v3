@@ -49,8 +49,6 @@ bool ArenaLayout::load(const std::string &path, ArenaLayout &layout,
   try {
     layout.frame = j.value("frame", std::string{"map"});
 
-    if (j.contains("bed")) layout.bed = read_zone(j["bed"], "bed");
-
     layout.zones.clear();
     for (const auto &zj : j.at("zones")) {
       const Zone z = read_zone(zj, "unnamed");

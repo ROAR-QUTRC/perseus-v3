@@ -41,7 +41,10 @@ struct Marker {
 /// summary at startup so a mismatch is at least visible in the logs.
 struct ArenaLayout {
   std::string frame{"map"};
-  Zone bed;
+  // Deliberately no arena/bed extent field. Guidebook 5.6.3 bars a priori wall
+  // information - "known dimensions and location relative to the operational
+  // area" is its own example - and 5.6.4 makes you prove you do not use it. See
+  // the note at the top of arena_layout.json.
   std::vector<Zone> zones;
   std::map<int, Marker> markers;
   double marker_length_m{0.238};

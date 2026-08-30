@@ -22,13 +22,22 @@
 
   "frame": "map",
 
-  "bed": {
-    "_comment": "Regolith bed extent, used by the minimap to size its view.",
-    "x": 0.0,
-    "y": 4.05,
-    "width": 9.14,
-    "height": 8.10
-  },
+  "_no_bed_comment": [
+    "There is deliberately no arena or wall extent in this file.",
+    "",
+    "Guidebook 5.6.3 allows the walls to be used as detected features but not",
+    "with 'a priori information about the walls (e.g., known dimensions and",
+    "location relative to the operational area of the arena)'. A field stating",
+    "the bed is 9.14 x 8.10 m is exactly that, and 5.6.4 requires proving to the",
+    "autonomy judges that the program does not misuse wall information - so it",
+    "is not worth carrying a field that invites the question, particularly one",
+    "nothing read.",
+    "",
+    "The zones below do span the arena, but they are mission geometry: you",
+    "cannot excavate in the excavation zone or dump in the construction zone",
+    "without knowing where they are. Nothing localises from them - arena_server",
+    "fixes its pose from the rail fiducials alone and never looks at a wall."
+  ],
 
   "zones": [
     {
