@@ -30,6 +30,10 @@ Panels:
   - Class: rviz_plugins/TopicHealthPanel
     Name: Topic Health
     Topic: /health_check/health
+  - Class: rviz_plugins/ArenaMinimapPanel
+    Name: Arena Minimap
+    Topic: /arena/robot_pose
+    LayoutPath: ""
 Visualization Manager:
   Class: ""
   Displays:
