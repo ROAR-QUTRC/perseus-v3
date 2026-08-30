@@ -42,6 +42,7 @@ private:
       _parameter_groups;
 
   rclcpp::TimerBase::SharedPtr _packet_timeout_timer;
-  rclcpp::Publisher<interfaces::msg::RcbPowerStatus>::SharedPtr _packet_publisher;
+  rclcpp::Publisher<interfaces::msg::RcbPowerStatus>::SharedPtr
+      _packet_publisher;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _packet_subscriber;
 };

@@ -42,7 +42,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS
-    ament_cmake rosidl_default_generators geometry_msgs sensor_msgs std_msgs)
+    backward_ros ament_cmake rosidl_default_generators geometry_msgs
+    sensor_msgs std_msgs)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)

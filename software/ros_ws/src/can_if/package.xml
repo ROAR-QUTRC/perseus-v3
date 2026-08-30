@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>backward_ros</depend>
   <depend>hi_can_raw</depend>
   <depend>sensor_msgs</depend>
   <depend>nlohmann-json-dev</depend>
