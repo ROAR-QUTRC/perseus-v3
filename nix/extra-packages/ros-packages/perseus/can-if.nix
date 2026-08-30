@@ -3,6 +3,7 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  backward-ros,
   hi-can-raw,
   interfaces,
   nlohmann_json,
@@ -18,6 +19,7 @@ buildRosPackage rec {
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
+    backward-ros
     hi-can-raw
     interfaces
     nlohmann_json
