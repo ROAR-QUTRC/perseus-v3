@@ -143,12 +143,19 @@ def generate_launch_description():
         condition=IfCondition(decompress),
     )
 
+    # Off by default: the intended base-station display is the RViz panel
+    # (rviz_plugins/ArenaMinimapPanel), which draws the same layout as a 2D
+    # overhead minimap with a heading arrow, and needs no topic at all beyond
+    # the pose. This node publishes the same zones as 3D MarkerArrays into the
+    # main view instead, which is useful only if you want them alongside the
+    # mesh rather than in their own panel.
     minimap_arg = DeclareLaunchArgument(
         "minimap",
-        default_value="true",
+        default_value="false",
         description=(
-            "Draw the arena zones and rover pose from the local layout JSON. "
-            "Cheap: no map data crosses the link, only a pose topic."
+            "Publish the arena zones as 3D markers in the main view. The RViz "
+            "ArenaMinimapPanel is the usual display and needs neither this node "
+            "nor its topics."
         ),
     )
     minimap = LaunchConfiguration("minimap")

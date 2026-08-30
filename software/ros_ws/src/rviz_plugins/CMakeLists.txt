@@ -42,7 +42,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp interfaces rviz_common pluginlib)
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+    rclcpp
+    interfaces
+    rviz_common
+    pluginlib
+    geometry_msgs
+    ament_index_cpp
+    arena_server)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
@@ -66,8 +73,12 @@ include_directories(include)
 #
 # The target name has to match the <library path> in plugin_description.xml,
 # which is how pluginlib finds the shared object at runtime.
-add_library(rviz_plugins SHARED src/topic_health_panel.cpp
-                                include/rviz_plugins/topic_health_panel.hpp)
+add_library(
+  rviz_plugins SHARED
+  src/topic_health_panel.cpp
+  include/rviz_plugins/topic_health_panel.hpp
+  src/arena_minimap_panel.cpp
+  include/rviz_plugins/arena_minimap_panel.hpp)
 
 target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

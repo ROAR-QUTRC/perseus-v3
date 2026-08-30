@@ -65,27 +65,44 @@ include_directories(include)
 # nlohmann_json to devenv.nix and a find_package here rather than hunting the
 # missing include.
 
-# COMPILE (Executables)
+# COMPILE
 #
-# arena_layout.cpp is shared: the robot-side server and the base-station minimap
-# read the same JSON through the same parser, so the two cannot drift in how
-# they interpret it.
-add_executable(arena_server src/arena_server/arena_layout.cpp
-                            src/arena_server/arena_server.cpp
+# The JSON reader is a library, not just a shared source file, because there are
+# now three consumers: the robot-side server, the base-station marker node, and
+# the RViz minimap panel in rviz_plugins. Exporting it is what keeps "one parser"
+# true across package boundaries - a second implementation in the panel would be
+# free to disagree about the layout, silently.
+add_library(arena_layout SHARED src/arena_server/arena_layout.cpp)
+target_include_directories(
+  arena_layout PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                      $<INSTALL_INTERFACE:include>)
+
+add_executable(arena_server src/arena_server/arena_server.cpp
                             src/arena_server/arena_server_node.cpp)
 target_include_directories(arena_server
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(arena_server PUBLIC arena_layout)
 ament_target_dependencies(arena_server PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
-add_executable(arena_minimap src/arena_server/arena_layout.cpp
-                             src/arena_server/arena_minimap_node.cpp)
+add_executable(arena_minimap src/arena_server/arena_minimap_node.cpp)
 target_include_directories(arena_minimap
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(arena_minimap PUBLIC arena_layout)
 ament_target_dependencies(arena_minimap PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 # INSTALL (ROS)
 install(TARGETS arena_server arena_minimap DESTINATION lib/${PROJECT_NAME})
+install(
+  TARGETS arena_layout
+  EXPORT export_arena_layout
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
 install(DIRECTORY include/ DESTINATION include/)
+
+ament_export_targets(export_arena_layout HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_libraries(arena_layout)
 
 # No config/ or launch/ here on purpose: the arena layout and the launch file
 # live in autonomy_bringup, alongside the other stack configs, so this package
