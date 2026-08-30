@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "Arena layout for the 2026 NASA International Lunabotics Championship.",
+    "",
+    "Single source of truth, read by BOTH ends: arena_server on the robot and",
+    "arena_minimap on the base station. That is the point of the file - the base",
+    "station draws the arena from its own local copy instead of having the robot",
+    "stream a map or mesh over the link. Only the robot pose crosses the network,",
+    "which is one small message rather than a costmap.",
+    "",
+    "Coordinates are in the ARENA frame: the guidebook Origin Point, at the centre",
+    "of the front (south) wall, +X east, +Y north, Z up at grade.",
+    "",
+    "PROVISIONAL. Guidebook 3.1 calls the layout images placeholders from the prior",
+    "two-team configuration, and 5.7 says the same of the fiducial rail. The prose",
+    "also disagrees with Figure 2 on arena size - '~10 m long and ~10 m wide'",
+    "against a dimensioned 9.14 x 8.10 m bed. Re-measure into this one file.",
+    "",
+    "If both ends do not read the SAME file, the base station will draw an arena",
+    "the robot is not navigating in, and nothing will report an error."
+  ],
+
+  "frame": "map",
+
+  "bed": {
+    "_comment": "Regolith bed extent, used by the minimap to size its view.",
+    "x": 0.0,
+    "y": 4.05,
+    "width": 9.14,
+    "height": 8.10
+  },
+
+  "zones": [
+    {
+      "name": "starting_zone",
+      "_comment": "2.25 m square against the front wall, offset west of the Origin Point. That asymmetry is what tells you which way you are facing on first acquisition.",
+      "x": -1.125,
+      "y": 1.125,
+      "width": 2.25,
+      "height": 2.25,
+      "color": [0.10, 0.70, 0.20]
+    },
+    {
+      "name": "excavation_zone",
+      "_comment": "Overlaps the starting zone: 5.4.6 allows excavating from anywhere within it, including the starting zone.",
+      "x": 0.0,
+      "y": 1.50,
+      "width": 9.14,
+      "height": 3.00,
+      "color": [0.55, 0.55, 0.55]
+    },
+    {
+      "name": "obstacle_zone",
+      "_comment": "The only zone where contact costs points: 30 per rock touched or crater crossed, up to 90 (6.2.4, 6.2.5). Rocks may be moved and craters filled in the excavation zone, never here.",
+      "x": 0.0,
+      "y": 5.55,
+      "width": 9.14,
+      "height": 5.10,
+      "color": [0.20, 0.45, 0.85]
+    },
+    {
+      "name": "construction_zone",
+      "x": 3.545,
+      "y": 6.395,
+      "width": 2.05,
+      "height": 3.41,
+      "color": [0.95, 0.55, 0.05]
+    },
+    {
+      "name": "target_berm_area",
+      "_comment": "The scoring target. Only berm volume inside this box counts (5.2.2). Figure 2's legend and its scaled drawing both give 2.2 x 0.9 m while the 5.2 text says 1.5 x 0.9 m; the drawing is used here because it is dimensioned.",
+      "x": 3.56,
+      "y": 6.40,
+      "width": 0.90,
+      "height": 2.20,
+      "color": [0.85, 0.05, 0.05]
+    }
+  ],
+
+  "fiducials": {
+    "_comment": "Team-supplied ArUco markers on the arena's 80/20 rail, mirroring perseus_simulation's lunabotics_fiducials. marker_length_m is the printed SQUARE, not the plate: 0.238 m on a 0.35 m plate, the rest being quiet zone. It must match vision/aruco_detector's marker_length or the two disagree about scale by 1.47x.",
+    "dictionary_id": 9,
+    "marker_length_m": 0.238,
+    "spacing_m": 0.4625,
+    "spacing_tolerance_m": 0.05,
+    "markers": [
+      { "id": 67, "x": -1.7125, "y": 0.028, "z": 0.40 },
+      { "id": 68, "x": -1.2500, "y": 0.028, "z": 0.40 },
+      { "id": 69, "x": -0.7875, "y": 0.028, "z": 0.40 }
+    ]
+  }
+}

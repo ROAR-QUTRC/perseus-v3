@@ -43,96 +43,16 @@ arena_server:
     # fix is accepted; this is just keeping it fresh in the tf buffer.
     broadcast_rate_hz: 20.0
 
-    # ─── Zones ────────────────────────────────────────────────────────────────
-    # Each is a centre (x, y) plus a size (width along X, height along Y). Named
-    # in zone_names so the node knows what to declare; a zone missing from this
-    # list is not loaded even if its block is present below.
-    zone_names:
-      - "starting_zone"
-      - "excavation_zone"
-      - "obstacle_zone"
-      - "construction_zone"
-      - "target_berm_area"
-
-    # 2.25 m square against the front wall, offset west of the Origin Point.
-    # That asymmetry is what tells you which way you are facing on first
-    # acquisition, so it matters more than its size suggests.
-    starting_zone:
-      x: -1.125
-      y: 1.125
-      width: 2.25
-      height: 2.25
-
-    # Full arena width, Y 0 to 3.00. Overlaps the starting zone: guidebook 5.4.6
-    # allows excavating "from anywhere within the excavation zone (including the
-    # starting zone)".
-    excavation_zone:
-      x: 0.0
-      y: 1.50
-      width: 9.14
-      height: 3.00
-
-    # Full arena width, Y 3.00 to 8.10. The one zone where contact costs points:
-    # 30 per rock touched or crater crossed, up to 90 (6.2.4/6.2.5). Rocks may be
-    # moved and craters filled in the excavation zone, but never here.
-    obstacle_zone:
-      x: 0.0
-      y: 5.55
-      width: 9.14
-      height: 5.10
-
-    # North-east corner, 2.05 x 3.41 m.
-    construction_zone:
-      x: 3.545
-      y: 6.395
-      width: 2.05
-      height: 3.41
-
-    # The scoring target, centred inside the construction zone. Only berm volume
-    # inside this box counts (5.2.2).
+    # ─── Layout ───────────────────────────────────────────────────────────────
+    # Zones and fiducial positions live in arena_layout.json, not here, so the
+    # base station's minimap can read byte-for-byte the same file. Nothing about
+    # the arena is duplicated in this YAML; what stays here is node behaviour.
     #
-    # Note the guidebook contradicts itself on the size: Figure 2's legend and
-    # its scaled drawing both give 2.2 x 0.9 m, while the 5.2 text says
-    # 1.5 x 0.9 m. The drawing is used here since it is dimensioned; change
-    # height to 1.5 if the judges confirm otherwise.
-    target_berm_area:
-      x: 3.56
-      y: 6.40
-      width: 0.90
-      height: 2.20
-
-    # ─── Fiducials ────────────────────────────────────────────────────────────
-    # Team-supplied ArUco markers on the arena's 80/20 rail, mirroring
-    # perseus_simulation's lunabotics_fiducials model. Positions are marker
-    # centres in the arena frame.
-    fiducials:
-      # Only these IDs are trusted. Anything else detected is discarded, which is
-      # the first line of defence against a false detection moving the map frame.
-      ids: [67, 68, 69]
-      # The printed marker SQUARE, not the plate. 0.238 m on a 0.35 m plate; the
-      # remainder is the quiet zone. Must match vision/aruco_detector's
-      # marker_length or the two disagree about scale by 1.47x.
-      marker_length_m: 0.238
-      # Uniform rail spacing. Two visible markers must agree with this to be
-      # believed - the cheapest guard there is, and impossible with one marker.
-      spacing_m: 0.4625
-      # How far a measured separation may deviate before the fix is rejected.
-      # Rendered detections at the far edge of the starting zone came in about
-      # 11-13 mm over, so 0.05 accepts real geometry and rejects nonsense.
-      spacing_tolerance_m: 0.05
-
-    marker_67:
-      x: -1.7125
-      y: 0.028
-      z: 0.40
-    marker_68:
-      x: -1.2500
-      y: 0.028
-      z: 0.40
-    marker_69:
-      x: -0.7875
-      y: 0.028
-      z: 0.40
+    # layout_file is deliberately NOT set here: the launch file resolves it
+    # through FindPackageShare and passes it as an override, because a path
+    # hard-coded in a config is wrong the moment the workspace moves. The node
+    # refuses to start without it rather than falling back to a built-in layout,
+    # since a silently-wrong arena is worse than no arena.
 
     # ─── Localisation service ─────────────────────────────────────────────────
     # The camera is lazy in simulation, so nothing renders between requests. The

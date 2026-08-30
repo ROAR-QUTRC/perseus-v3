@@ -57,17 +57,34 @@ endforeach()
 
 include_directories(include)
 
-# COMPILE (Executables)
-add_executable(arena_server src/arena_server/arena_server.cpp
-                            src/arena_server/arena_server_node.cpp)
+# nlohmann/json is header-only and already on the include path in this
+# environment, so there is deliberately no find_package for it: there is no
+# nlohmann entry on CMAKE_PREFIX_PATH here, so find_package(nlohmann_json) fails
+# even though the header compiles. That works but is implicit -- if this ever
+# builds somewhere the header is not on the default include path, add
+# nlohmann_json to devenv.nix and a find_package here rather than hunting the
+# missing include.
 
+# COMPILE (Executables)
+#
+# arena_layout.cpp is shared: the robot-side server and the base-station minimap
+# read the same JSON through the same parser, so the two cannot drift in how
+# they interpret it.
+add_executable(arena_server src/arena_server/arena_layout.cpp
+                            src/arena_server/arena_server.cpp
+                            src/arena_server/arena_server_node.cpp)
 target_include_directories(arena_server
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
 ament_target_dependencies(arena_server PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
+add_executable(arena_minimap src/arena_server/arena_layout.cpp
+                             src/arena_server/arena_minimap_node.cpp)
+target_include_directories(arena_minimap
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(arena_minimap PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
 # INSTALL (ROS)
-install(TARGETS arena_server DESTINATION lib/${PROJECT_NAME})
+install(TARGETS arena_server arena_minimap DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include/)
 
 # No config/ or launch/ here on purpose: the arena layout and the launch file

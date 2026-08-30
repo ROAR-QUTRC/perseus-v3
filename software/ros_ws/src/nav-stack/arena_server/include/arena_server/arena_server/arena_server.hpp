@@ -19,6 +19,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include "arena_server/arena_server/arena_layout.hpp"
 #include "interfaces/msg/detection_array.hpp"
 #include "interfaces/srv/localise_in_arena.hpp"
 
@@ -39,27 +40,9 @@ public:
   ArenaServer();
 
 private:
-  /// @brief A named rectangle in the arena frame, centre plus size.
-  struct Zone {
-    std::string name;
-    double x{0.0};
-    double y{0.0};
-    double width{0.0};
-    double height{0.0};
-  };
 
-  /// @brief A fiducial marker's surveyed centre in the arena frame.
-  struct Marker {
-    int id{0};
-    double x{0.0};
-    double y{0.0};
-    double z{0.0};
-  };
-
-  /// @brief Reads zone_names and the per-zone blocks into _zones.
-  void _load_zones();
-  /// @brief Reads fiducials.ids and the per-marker blocks into _markers.
-  void _load_markers();
+  /// @brief Publishes the rover's pose in the arena frame for the base station.
+  void _publish_robot_pose();
   /// @brief Seeds map -> odom from initial_pose so the layout works immediately.
   void _seed_from_initial_pose();
   /// @brief Rebroadcasts the current map -> odom.
@@ -107,13 +90,9 @@ private:
   std::string _odom_frame;
   std::string _base_frame;
 
-  // Layout
-  std::vector<Zone> _zones;
-  std::map<int, Marker> _markers;
-
-  // Fiducial checks
-  double _spacing_m{0.4625};
-  double _spacing_tolerance_m{0.05};
+  // Layout, loaded from arena_layout.json rather than from ROS parameters, so
+  // the base station's minimap can read exactly the same file.
+  ArenaLayout _layout;
 
   // Localisation
   std::string _detections_topic;
@@ -142,6 +121,8 @@ private:
 
   rclcpp::TimerBase::SharedPtr _broadcast_timer;
   rclcpp::TimerBase::SharedPtr _zones_timer;
+  rclcpp::TimerBase::SharedPtr _pose_timer;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _pose_pub;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _zones_pub;
   rclcpp::Service<interfaces::srv::LocaliseInArena>::SharedPtr _localise_srv;
   rclcpp::Subscription<interfaces::msg::DetectionArray>::SharedPtr

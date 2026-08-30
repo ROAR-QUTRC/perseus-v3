@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /TF1/Frames1
         - /RobotModel1/Description Topic1
         - /Livox Cloud1/Topic1
@@ -11,6 +12,7 @@ Panels:
         - /Footprint1/Topic1
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
+        - /Arena Zones1/Topic1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 461
   - Class: rviz_common/Selection
@@ -112,6 +114,8 @@ Visualization Manager:
           Value: true
         livox_imu_frame:
           Value: true
+        map:
+          Value: true
         odom:
           Value: true
         rear_left_motor:
@@ -132,54 +136,55 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        odom:
-          base_footprint:
-            {}
-          base_link:
-            chassis:
-              flange_bearing:
-                differential_bar:
-                  {}
-              left_rocker:
-                front_left_motor:
-                  front_left_wheel:
+        map:
+          odom:
+            base_footprint:
+              {}
+            base_link:
+              chassis:
+                flange_bearing:
+                  differential_bar:
                     {}
-                rear_left_motor:
-                  rear_left_wheel:
-                    {}
-              right_rocker:
-                front_right_motor:
-                  front_right_wheel:
-                    {}
-                rear_right_motor:
-                  rear_right_wheel:
-                    {}
-              sensor_mount:
-                camera_bottom_screw_frame:
-                  camera_link:
-                    camera_accel_frame:
-                      camera_accel_optical_frame:
-                        {}
-                    camera_color_frame:
-                      camera_color_optical_frame:
-                        {}
-                    camera_depth_frame:
-                      camera_depth_optical_frame:
-                        {}
-                    camera_gyro_frame:
-                      camera_gyro_optical_frame:
-                        camera_imu_optical_frame:
-                          {}
-                    camera_infra1_frame:
-                      camera_infra1_optical_frame:
-                        {}
-                    camera_infra2_frame:
-                      camera_infra2_optical_frame:
-                        {}
-                livox_base:
-                  livox_frame:
-                    livox_imu_frame:
+                left_rocker:
+                  front_left_motor:
+                    front_left_wheel:
                       {}
+                  rear_left_motor:
+                    rear_left_wheel:
+                      {}
+                right_rocker:
+                  front_right_motor:
+                    front_right_wheel:
+                      {}
+                  rear_right_motor:
+                    rear_right_wheel:
+                      {}
+                sensor_mount:
+                  camera_bottom_screw_frame:
+                    camera_link:
+                      camera_accel_frame:
+                        camera_accel_optical_frame:
+                          {}
+                      camera_color_frame:
+                        camera_color_optical_frame:
+                          {}
+                      camera_depth_frame:
+                        camera_depth_optical_frame:
+                          {}
+                      camera_gyro_frame:
+                        camera_gyro_optical_frame:
+                          camera_imu_optical_frame:
+                            {}
+                      camera_infra1_frame:
+                        camera_infra1_optical_frame:
+                          {}
+                      camera_infra2_frame:
+                        camera_infra2_optical_frame:
+                          {}
+                  livox_base:
+                    livox_frame:
+                      livox_imu_frame:
+                        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -513,7 +518,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Obstacle Map
       Topic:
         Depth: 5
@@ -529,7 +534,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /layers/obstacle_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
       Max Value: 1
@@ -544,10 +549,23 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /camera/camera/color/image_raw
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Arena Zones
+      Namespaces:
+        arena_zone_labels: true
+        arena_zones: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /arena/zones
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:

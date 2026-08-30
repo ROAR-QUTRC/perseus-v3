@@ -23,9 +23,6 @@ ArenaServer::ArenaServer() : Node("arena_server") {
   _detections_topic = declare_parameter<std::string>(
       "detections_topic", "/vision/aruco/detections");
   _default_timeout_s = declare_parameter<double>("default_localise_timeout_s", 2.0);
-  _spacing_m = declare_parameter<double>("fiducials.spacing_m", 0.4625);
-  _spacing_tolerance_m =
-      declare_parameter<double>("fiducials.spacing_tolerance_m", 0.05);
 
   _zones_topic = declare_parameter<std::string>("zones_topic", "/arena/zones");
   _zone_wall_base_m = declare_parameter<double>("zone_wall_base_m", -0.15);
@@ -35,8 +32,20 @@ ArenaServer::ArenaServer() : Node("arena_server") {
   _zone_wall_alpha = declare_parameter<double>("zone_wall_alpha", 0.35);
   _zone_labels = declare_parameter<bool>("zone_labels", true);
 
-  _load_zones();
-  _load_markers();
+  // The layout is JSON, not ROS parameters, so the base station's minimap can
+  // read byte-for-byte the same file. Both ends log summary() at startup: the
+  // failure this guards against is the two reading different copies, which
+  // otherwise shows up as a base station drawing an arena the robot is not in,
+  // with nothing reporting an error.
+  const auto layout_file = declare_parameter<std::string>("layout_file", "");
+  std::string layout_error;
+  if (!ArenaLayout::load(layout_file, _layout, layout_error)) {
+    RCLCPP_FATAL(get_logger(), "cannot load arena layout: %s",
+                 layout_error.c_str());
+    throw std::runtime_error("arena layout: " + layout_error);
+  }
+  RCLCPP_INFO(get_logger(), "layout from %s", layout_file.c_str());
+  RCLCPP_INFO(get_logger(), "layout is %s", _layout.summary().c_str());
 
   _tf_buffer = std::make_unique<tf2_ros::Buffer>(get_clock());
   _tf_listener = std::make_shared<tf2_ros::TransformListener>(*_tf_buffer);
@@ -80,6 +89,20 @@ ArenaServer::ArenaServer() : Node("arena_server") {
                 std::placeholders::_2),
       rclcpp::ServicesQoS(), _service_group);
 
+  // The one thing that has to cross the network. The base station draws the
+  // arena from its own copy of the JSON, so this small pose is all it needs -
+  // no costmap, no mesh, no map server. Kept deliberately low rate for the same
+  // reason; a minimap does not need 20 Hz.
+  _pose_pub = create_publisher<geometry_msgs::msg::PoseStamped>(
+      declare_parameter<std::string>("robot_pose_topic", "/arena/robot_pose"),
+      rclcpp::QoS(5));
+  const double pose_hz = declare_parameter<double>("robot_pose_rate_hz", 5.0);
+  if (pose_hz > 0.0) {
+    _pose_timer = create_wall_timer(std::chrono::duration<double>(1.0 / pose_hz),
+                                    std::bind(&ArenaServer::_publish_robot_pose,
+                                              this));
+  }
+
   const double rate = declare_parameter<double>("broadcast_rate_hz", 20.0);
   _broadcast_timer = create_wall_timer(
       std::chrono::duration<double>(1.0 / std::max(1.0, rate)),
@@ -87,49 +110,8 @@ ArenaServer::ArenaServer() : Node("arena_server") {
 
   RCLCPP_INFO(get_logger(),
               "arena_server up: %zu zones, %zu markers, publishing %s -> %s",
-              _zones.size(), _markers.size(), _map_frame.c_str(),
+              _layout.zones.size(), _layout.markers.size(), _map_frame.c_str(),
               _odom_frame.c_str());
-}
-
-void ArenaServer::_load_zones() {
-  // The default is spelled out rather than left as {}: with a bare initialiser
-  // list the compiler picks the ParameterDescriptor overload instead, which
-  // declares the parameter with no default at all and throws rather than
-  // returning empty if the layout file ever omits zone_names.
-  const auto names = declare_parameter("zone_names", std::vector<std::string>{});
-  for (const auto &name : names) {
-    Zone z;
-    z.name = name;
-    z.x = declare_parameter<double>(name + ".x", 0.0);
-    z.y = declare_parameter<double>(name + ".y", 0.0);
-    z.width = declare_parameter<double>(name + ".width", 0.0);
-    z.height = declare_parameter<double>(name + ".height", 0.0);
-    if (z.width <= 0.0 || z.height <= 0.0) {
-      RCLCPP_WARN(get_logger(),
-                  "zone '%s' has non-positive size (%.3f x %.3f); skipping",
-                  name.c_str(), z.width, z.height);
-      continue;
-    }
-    RCLCPP_INFO(get_logger(), "zone '%s': centre (%.3f, %.3f) size %.2f x %.2f",
-                z.name.c_str(), z.x, z.y, z.width, z.height);
-    _zones.push_back(z);
-  }
-}
-
-void ArenaServer::_load_markers() {
-  const auto ids = declare_parameter("fiducials.ids", std::vector<int64_t>{});
-  for (const auto id64 : ids) {
-    const int id = static_cast<int>(id64);
-    const std::string key = "marker_" + std::to_string(id);
-    Marker m;
-    m.id = id;
-    m.x = declare_parameter<double>(key + ".x", 0.0);
-    m.y = declare_parameter<double>(key + ".y", 0.0);
-    m.z = declare_parameter<double>(key + ".z", 0.0);
-    _markers[id] = m;
-    RCLCPP_INFO(get_logger(), "marker %d at (%.4f, %.4f, %.3f)", id, m.x, m.y,
-                m.z);
-  }
 }
 
 void ArenaServer::_seed_from_initial_pose() {
@@ -176,6 +158,37 @@ void ArenaServer::_seed_from_initial_pose() {
               x, y, yaw);
 }
 
+void ArenaServer::_publish_robot_pose() {
+  if (!_have_transform) return;
+  geometry_msgs::msg::TransformStamped odom_base;
+  try {
+    odom_base = _tf_buffer->lookupTransform(_odom_frame, _base_frame,
+                                            tf2::TimePointZero,
+                                            tf2::durationFromSec(0.05));
+  } catch (const tf2::TransformException &) {
+    // Nothing publishing odom -> base_link yet. Silent on purpose: this runs on
+    // a timer, and warning every cycle before the EKF is up is pure noise.
+    return;
+  }
+
+  const double yaw = tf2::getYaw(_map_odom.transform.rotation);
+  const double c = std::cos(yaw), s = std::sin(yaw);
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = _map_frame;
+  pose.header.stamp = now();
+  pose.pose.position.x = _map_odom.transform.translation.x +
+                         c * odom_base.transform.translation.x -
+                         s * odom_base.transform.translation.y;
+  pose.pose.position.y = _map_odom.transform.translation.y +
+                         s * odom_base.transform.translation.x +
+                         c * odom_base.transform.translation.y;
+  pose.pose.position.z = 0.0;
+  tf2::Quaternion q;
+  q.setRPY(0.0, 0.0, yaw + tf2::getYaw(odom_base.transform.rotation));
+  pose.pose.orientation = tf2::toMsg(q);
+  _pose_pub->publish(pose);
+}
+
 void ArenaServer::_broadcast() {
   if (!_have_transform) return;
   _map_odom.header.stamp = now();
@@ -187,19 +200,8 @@ void ArenaServer::_publish_zone_markers() {
   visualization_msgs::msg::MarkerArray array;
   int id = 0;
 
-  // One colour per zone, matching the sim's lunabotics_zones outlines so the two
-  // views agree at a glance.
-  const std::map<std::string, std::array<float, 3>> colours = {
-      {"starting_zone", {0.10f, 0.70f, 0.20f}},
-      {"excavation_zone", {0.55f, 0.55f, 0.55f}},
-      {"obstacle_zone", {0.20f, 0.45f, 0.85f}},
-      {"construction_zone", {0.95f, 0.55f, 0.05f}},
-      {"target_berm_area", {0.85f, 0.05f, 0.05f}}};
-
-  for (const auto &z : _zones) {
-    const auto it = colours.find(z.name);
-    const auto rgb =
-        it != colours.end() ? it->second : std::array<float, 3>{0.8f, 0.8f, 0.8f};
+  for (const auto &z : _layout.zones) {
+    const auto &rgb = z.color;
 
     const double hx = z.width * 0.5, hy = z.height * 0.5;
     const double t = _zone_wall_thickness_m;
@@ -278,14 +280,14 @@ std::string ArenaServer::_check_spacing(
     const std::vector<std::array<double, 2>> &observed) const {
   for (size_t i = 0; i < ids.size(); ++i) {
     for (size_t j = i + 1; j < ids.size(); ++j) {
-      const auto a = _markers.find(ids[i]);
-      const auto b = _markers.find(ids[j]);
-      if (a == _markers.end() || b == _markers.end()) continue;
+      const auto a = _layout.markers.find(ids[i]);
+      const auto b = _layout.markers.find(ids[j]);
+      if (a == _layout.markers.end() || b == _layout.markers.end()) continue;
       const double expected = std::hypot(a->second.x - b->second.x,
                                          a->second.y - b->second.y);
       const double measured = std::hypot(observed[i][0] - observed[j][0],
                                          observed[i][1] - observed[j][1]);
-      if (std::fabs(measured - expected) > _spacing_tolerance_m) {
+      if (std::fabs(measured - expected) > _layout.spacing_tolerance_m) {
         return "markers " + std::to_string(ids[i]) + " and " +
                std::to_string(ids[j]) + " are " + std::to_string(measured) +
                " m apart but should be " + std::to_string(expected) +
@@ -379,7 +381,7 @@ ArenaServer::_await_detections(const rclcpp::Duration &timeout) {
         // Count how many of the markers in this frame we have surveyed.
         size_t known = 0;
         for (const auto &d : _latest_detections->detections) {
-          if (d.has_pose && _markers.count(d.id)) ++known;
+          if (d.has_pose && _layout.markers.count(d.id)) ++known;
         }
         if (known >= 2) {
           found = _latest_detections;
@@ -436,8 +438,8 @@ void ArenaServer::_on_localise(
   std::vector<std::array<double, 2>> observed, surveyed;
   for (const auto &d : detections->detections) {
     if (!d.has_pose) continue;
-    const auto known = _markers.find(d.id);
-    if (known == _markers.end()) continue;  // whitelist: ignore stray ids
+    const auto known = _layout.markers.find(d.id);
+    if (known == _layout.markers.end()) continue;  // whitelist: ignore stray ids
 
     geometry_msgs::msg::PoseStamped in, out;
     in.header = detections->header;

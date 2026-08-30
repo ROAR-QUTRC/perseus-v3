@@ -143,6 +143,16 @@ def generate_launch_description():
         condition=IfCondition(decompress),
     )
 
+    minimap_arg = DeclareLaunchArgument(
+        "minimap",
+        default_value="true",
+        description=(
+            "Draw the arena zones and rover pose from the local layout JSON. "
+            "Cheap: no map data crosses the link, only a pose topic."
+        ),
+    )
+    minimap = LaunchConfiguration("minimap")
+
     mesh_arg = DeclareLaunchArgument(
         "mesh",
         default_value="true",
@@ -193,9 +203,28 @@ def generate_launch_description():
         condition=IfCondition(mesh),
     )
 
+    # Draws the arena outline and the rover from a local copy of
+    # arena_layout.json, so the base station gets a map without the robot
+    # streaming one. The only thing over the link is /arena/robot_pose, which is
+    # a PoseStamped at a few Hz -- next to the mesh above, free.
+    minimap_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("autonomy_bringup"),
+                    "launch",
+                    "arena_minimap.launch.py",
+                ]
+            )
+        ),
+        launch_arguments={"use_sim_time": use_sim_time}.items(),
+        condition=IfCondition(minimap),
+    )
+
     return LaunchDescription(
         [
             rviz_config_arg,
+            minimap_arg,
             use_sim_time_arg,
             use_nixgl_arg,
             decompress_arg,
@@ -204,5 +233,6 @@ def generate_launch_description():
             rviz_plain,
             decompress_launch,
             mesh_node,
+            minimap_launch,
         ]
     )

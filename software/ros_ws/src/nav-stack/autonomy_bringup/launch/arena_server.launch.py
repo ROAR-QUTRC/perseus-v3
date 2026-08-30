@@ -19,6 +19,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     layout = LaunchConfiguration("layout")
+    layout_json = LaunchConfiguration("layout_json")
     use_sim_time = LaunchConfiguration("use_sim_time")
 
     return LaunchDescription(
@@ -35,6 +36,17 @@ def generate_launch_description():
                 description="Arena zone and fiducial layout to load",
             ),
             DeclareLaunchArgument(
+                "layout_json",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("autonomy_bringup"),
+                        "config",
+                        "arena_layout.json",
+                    ]
+                ),
+                description="Arena geometry, shared with the base station minimap",
+            ),
+            DeclareLaunchArgument(
                 "use_sim_time",
                 default_value="true",
                 description="If true, use the simulated clock",
@@ -44,7 +56,18 @@ def generate_launch_description():
                 executable="arena_server",
                 name="arena_server",
                 output="screen",
-                parameters=[layout, {"use_sim_time": use_sim_time}],
+                parameters=[
+                    layout,
+                    {
+                        # Resolved here rather than written into the YAML: a path
+                        # baked into a config is wrong as soon as the workspace
+                        # moves. The base station's minimap resolves the same
+                        # file the same way, which is what keeps the two ends
+                        # drawing the same arena.
+                        "layout_file": layout_json,
+                        "use_sim_time": use_sim_time,
+                    },
+                ],
             ),
         ]
     )
