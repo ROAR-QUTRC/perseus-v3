@@ -79,22 +79,19 @@
             {
                 const auto& raw_data = packet.get_data();
 
-                parameters::legacy::power::control::power_bus::status_t data;
-                data.deserialize_data(raw_data);
-
-                auto message = std_msgs::msg::String();
-                nlohmann::json bus_data = {{"name", name},
-                                           {"current", data.current},
-                                           {"voltage", data.voltage},
-                                           {"status", static_cast<int>(data.status)}};
-
-                message.data = bus_data.dump();
-
-                this->_packet_publisher->publish(message);
-                return;
-            }
-        }
+      parameters::legacy::power::control::power_bus::status_t data;
+      data.deserialize_data(raw_data);
+      
+      auto msg = interfaces::msg::RcbPowerStatus();
+      msg.name = name;
+      msg.current = static_cast<float>(data.current);
+      msg.voltage = static_cast<float>(data.voltage);
+      msg.status = static_cast<uint8_t>(data.status);
+      this->_packet_publisher->publish(msg);
+      return;
     }
+  }
+}
 
     void RcbDriver::_ros_to_can(std_msgs::msg::String::UniquePtr msg)
     {
