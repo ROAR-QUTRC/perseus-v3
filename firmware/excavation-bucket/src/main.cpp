@@ -18,7 +18,6 @@ static constexpr pin_pair_t DRIVER_3_PINS{GPIO_NUM_38, GPIO_NUM_37};
 static constexpr pin_pair_t DRIVER_4_PINS{GPIO_NUM_45, GPIO_NUM_48};
 static constexpr pin_pair_t DRIVER_5_PINS{GPIO_NUM_47, GPIO_NUM_21};
 static constexpr pin_pair_t DRIVER_6_PINS{GPIO_NUM_14, GPIO_NUM_13};
-static constexpr gpio_num_t MAGNET_PIN = bsp::A9;
 
 static constexpr gpio_num_t BANK_1_CURRENT_LIMIT = GPIO_NUM_40;
 static constexpr gpio_num_t BANK_2_CURRENT_LIMIT = bsp::A10;
@@ -27,7 +26,6 @@ static constexpr gpio_num_t BANK_3_CURRENT_LIMIT = GPIO_NUM_12;
 static constexpr gpio_num_t BANK_1_CURRENT_SENSE = bsp::A1;
 static constexpr gpio_num_t BANK_2_CURRENT_SENSE = bsp::A3;
 static constexpr gpio_num_t BANK_3_CURRENT_SENSE = bsp::A5;
-static constexpr gpio_num_t MAGNET_CURRENT_SENSE = bsp::A7;
 
 static constexpr gpio_num_t BANK_1_FAULT = bsp::A2;
 static constexpr gpio_num_t BANK_2_FAULT = bsp::A4;
@@ -75,9 +73,6 @@ void setup()
     motor_bank_3.emplace(DRIVER_5_PINS, DRIVER_6_PINS, BANK_3_CURRENT_LIMIT,
                          BANK_3_CURRENT_SENSE, BANK_3_FAULT);
 
-    pinMode(MAGNET_PIN, OUTPUT);
-    digitalWrite(MAGNET_PIN, LOW);
-
     auto& interface = TwaiInterface::get_instance(
         std::make_pair(bsp::CAN_TX_PIN, bsp::CAN_RX_PIN), 0,
         filter_t{
@@ -101,8 +96,6 @@ void setup()
 
     for (const auto& group : actuator_groups)
         register_motor_bank(group, static_cast<uint8_t>(actuator_parameter::SPEED));
-    register_motor_bank(group::MAGNET,
-                        static_cast<uint8_t>(magnet_parameter::ROTATE_SPEED));
 
     using namespace parameters::excavation::bucket::controller;
     packet_manager->set_transmission_config(
@@ -260,9 +253,6 @@ void set_motor_speed(const excavation::bucket::controller::group& group,
         break;
     case group::JAWS_RIGHT:
         motor_bank_2->set_speed_b(speed);
-        break;
-    case group::MAGNET:
-        motor_bank_3->set_speed_b(speed);
         break;
     default:
         break;
