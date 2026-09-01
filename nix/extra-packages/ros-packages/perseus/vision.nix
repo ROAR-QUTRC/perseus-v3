@@ -9,9 +9,9 @@
   builtin-interfaces,
   cv-bridge,
   geometry-msgs,
+  interfaces,
   onnxruntime,
   opencv,
-  interfaces,
   rcl-interfaces,
   rclcpp,
   rclcpp-components,
@@ -40,9 +40,9 @@ buildRosPackage rec {
     builtin-interfaces
     cv-bridge
     geometry-msgs
+    interfaces
     onnxruntime
     opencv
-    interfaces
     rcl-interfaces
     rclcpp
     rclcpp-components

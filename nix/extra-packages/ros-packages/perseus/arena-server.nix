@@ -3,22 +3,21 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  ament-index-cpp,
   ament-lint-auto,
   ament-lint-common,
-  arena-server,
   geometry-msgs,
   interfaces,
-  pluginlib,
-  qt5,
   rclcpp,
-  rviz-common,
+  tf2,
+  tf2-geometry-msgs,
+  tf2-ros,
+  visualization-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-rviz-plugins";
+  pname = "ros-jazzy-arena-server";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/rviz_plugins;
+  src = ./../../../../software/ros_ws/src/nav-stack/arena_server;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -27,19 +26,18 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    ament-index-cpp
-    arena-server
     geometry-msgs
     interfaces
-    pluginlib
-    qt5.qtbase
     rclcpp
-    rviz-common
+    tf2
+    tf2-geometry-msgs
+    tf2-ros
+    visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "RViz panels and displays for the rover's custom messages";
+    description = "Owns the Lunabotics arena layout and estimates map -&gt; odom from the rail fiducials";
     license = with lib.licenses; [ mit ];
   };
 }

@@ -6,8 +6,8 @@
   ament-lint-auto,
   ament-lint-common,
   geometry-msgs,
-  nav-msgs,
   interfaces,
+  nav-msgs,
   rclcpp,
 }:
 buildRosPackage rec {
@@ -24,8 +24,8 @@ buildRosPackage rec {
   ];
   propagatedBuildInputs = [
     geometry-msgs
-    nav-msgs
     interfaces
+    nav-msgs
     rclcpp
   ];
   nativeBuildInputs = [ ament-cmake ];

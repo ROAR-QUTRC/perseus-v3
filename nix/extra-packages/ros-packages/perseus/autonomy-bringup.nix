@@ -5,6 +5,7 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
+  arena-server,
   bievr-lio-ros2,
   fast-lio,
   footprint-broadcaster,
@@ -14,6 +15,7 @@
   rclcpp,
   robot-localization,
   rviz-plugins,
+  sensors,
   slam-toolbox,
   watchdog,
   xacro,
@@ -31,6 +33,7 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
+    arena-server
     bievr-lio-ros2
     fast-lio
     footprint-broadcaster
@@ -40,6 +43,7 @@ buildRosPackage rec {
     rclcpp
     robot-localization
     rviz-plugins
+    sensors
     slam-toolbox
     watchdog
     xacro

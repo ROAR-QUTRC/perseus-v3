@@ -57,10 +57,11 @@ pkgs.mkShell {
           nlohmann_json
           onnxruntime
           opencv
+          pcl
           pcl-conversions
           pluginlib
-          qt5.qtbase
           point-cloud-transport
+          qt5.qtbase
           rcl-interfaces
           rclcpp
           rclcpp-components
