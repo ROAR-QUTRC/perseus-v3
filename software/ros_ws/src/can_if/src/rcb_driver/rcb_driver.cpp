@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
-// add msg for power status output
 #include "interfaces/msg/rcb_power_status.hpp"
 RcbDriver::RcbDriver(const rclcpp::NodeOptions &options)
     : Node("rcb_driver", options) {
