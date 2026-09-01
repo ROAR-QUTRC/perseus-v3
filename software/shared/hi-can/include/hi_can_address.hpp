@@ -417,7 +417,6 @@ namespace hi_can
                         JAWS_BOTH = 0x0a,
                         JAWS_LEFT = 0x0b,
                         JAWS_RIGHT = 0x0c,
-                        MAGNET = 0x0d,
                     };
                     enum class bank_parameter
                     {
@@ -428,12 +427,6 @@ namespace hi_can
                     {
                         SPEED = 0x00,
                         POSITION = 0x01,
-                    };
-                    enum class magnet_parameter
-                    {
-                        ROTATE_SPEED = 0x00,
-                        ROTATE_POSITION = 0x01,
-                        MAGNET_ENABLE = 0x03,
                     };
                 }  // namespace controller
             }  // namespace bucket
