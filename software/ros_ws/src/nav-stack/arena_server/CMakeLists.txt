@@ -44,7 +44,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     tf2
     tf2_ros
     tf2_geometry_msgs
-    interfaces)
+    interfaces
+    nlohmann_json)
 
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
@@ -57,14 +58,6 @@ endforeach()
 
 include_directories(include)
 
-# nlohmann/json is header-only and already on the include path in this
-# environment, so there is deliberately no find_package for it: there is no
-# nlohmann entry on CMAKE_PREFIX_PATH here, so find_package(nlohmann_json) fails
-# even though the header compiles. That works but is implicit -- if this ever
-# builds somewhere the header is not on the default include path, add
-# nlohmann_json to devenv.nix and a find_package here rather than hunting the
-# missing include.
-
 # COMPILE
 #
 # The JSON reader is a library, not just a shared source file, because there are
@@ -76,6 +69,10 @@ add_library(arena_layout SHARED src/arena_server/arena_layout.cpp)
 target_include_directories(
   arena_layout PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                       $<INSTALL_INTERFACE:include>)
+# nlohmann/json is used only inside arena_layout.cpp, never in the installed
+# headers, so it stays PRIVATE and consumers of the exported target do not have
+# to find it themselves.
+target_link_libraries(arena_layout PRIVATE nlohmann_json::nlohmann_json)
 
 add_executable(arena_server src/arena_server/arena_server.cpp
                             src/arena_server/arena_server_node.cpp)

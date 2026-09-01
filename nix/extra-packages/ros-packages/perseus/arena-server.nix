@@ -7,6 +7,7 @@
   ament-lint-common,
   geometry-msgs,
   interfaces,
+  nlohmann_json,
   rclcpp,
   tf2,
   tf2-geometry-msgs,
@@ -28,6 +29,7 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     geometry-msgs
     interfaces
+    nlohmann_json
     rclcpp
     tf2
     tf2-geometry-msgs
