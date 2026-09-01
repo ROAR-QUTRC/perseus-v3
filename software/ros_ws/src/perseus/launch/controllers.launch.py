@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 
-from launch.actions import RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
     PathJoinSubstitution,
@@ -12,26 +12,35 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
-def generate_launch_description():
-    # ARGUMENTS
-    use_sim_time = LaunchConfiguration("use_sim_time", default=False)
-    launch_controller_manager = LaunchConfiguration(
-        "launch_controller_manager", default="true"
-    )
+def launch_setup(context, *args, **kwargs):
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    launch_controller_manager = LaunchConfiguration("launch_controller_manager")
     use_sim_time_param = {"use_sim_time": use_sim_time}
 
-    arguments = []
+    # Resolved here rather than passed as a condition because it changes the
+    # SHAPE of the launch (an extra spawner, and a different chain of event
+    # handlers), not just whether one node runs.
+    use_wheel_pid = IfCondition(LaunchConfiguration("use_wheel_pid")).evaluate(context)
 
     # CONFIG + DATA FILES
     controller_config = PathJoinSubstitution(
         [FindPackageShare("perseus"), "config", "perseus_controllers.yaml"]
     )
+    # Overlay, so it must come after the base file for its overrides to win.
+    wheel_pid_config = PathJoinSubstitution(
+        [FindPackageShare("perseus"), "config", "wheel_pid_chaining.yaml"]
+    )
+
+    controller_parameters = [controller_config]
+    if use_wheel_pid:
+        controller_parameters.append(wheel_pid_config)
+    controller_parameters.append(use_sim_time_param)
 
     # NODES
     controller_manager = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[controller_config, use_sim_time_param],
+        parameters=controller_parameters,
         output="both",  # output to both screen and log file
         remappings=[],
         condition=IfCondition(launch_controller_manager),
@@ -54,6 +63,17 @@ def generate_launch_description():
         ],
         parameters=[use_sim_time_param],
     )
+    # The following half of the chain. It has to be active before the diff drive
+    # controller starts, because that is what claims its reference interfaces
+    # and switches it from standalone into chained mode.
+    wheel_pid_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "wheel_pid_controller",
+        ],
+        parameters=[use_sim_time_param],
+    )
 
     # NOTE: There was a comment in one of the ROS2 Control examples
     # about launching the controllers *after* the controller manager
@@ -62,23 +82,59 @@ def generate_launch_description():
     nodes = [
         controller_manager,
         joint_state_broadcaster_spawner,
-        # base_controller_spawner,
     ]
 
     # EVENT HANDLERS
-    handlers = [
-        # RegisterEventHandler(
-        #     event_handler=OnProcessExit(
-        #         # target_action=gz_spawn_entity,  # after gz spawn or after CM launch
-        #         target_action=controller_manager,  # after gz spawn or after CM launch
-        #         on_exit=[joint_state_broadcaster_spawner],
-        #     )
-        # ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=joint_state_broadcaster_spawner,
-                on_exit=[base_controller_spawner],
-            )
+    if use_wheel_pid:
+        handlers = [
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=joint_state_broadcaster_spawner,
+                    on_exit=[wheel_pid_spawner],
+                )
+            ),
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=wheel_pid_spawner,
+                    on_exit=[base_controller_spawner],
+                )
+            ),
+        ]
+    else:
+        handlers = [
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=joint_state_broadcaster_spawner,
+                    on_exit=[base_controller_spawner],
+                )
+            ),
+        ]
+
+    return nodes + handlers
+
+
+def generate_launch_description():
+    # ARGUMENTS
+    arguments = [
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="False",
+            description="Use time provided by simulation",
+        ),
+        DeclareLaunchArgument(
+            "launch_controller_manager",
+            default_value="true",
+            description="Launch the controller manager (off when something else owns it, eg Gazebo)",
+        ),
+        DeclareLaunchArgument(
+            "use_wheel_pid",
+            default_value="false",
+            description=(
+                "Chain a per-wheel velocity PID between the diff drive controller "
+                "and the hardware, to push through low-speed stall. See "
+                "config/wheel_pid_chaining.yaml"
+            ),
         ),
     ]
-    return LaunchDescription(arguments + nodes + handlers)
+
+    return LaunchDescription(arguments + [OpaqueFunction(function=launch_setup)])

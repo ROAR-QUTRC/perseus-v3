@@ -23,6 +23,8 @@ def generate_launch_description():
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
     hardware_plugin = LaunchConfiguration("hardware_plugin")
     can_bus = LaunchConfiguration("can_bus")
+    use_wheel_pid = LaunchConfiguration("use_wheel_pid")
+    min_command_erpm = LaunchConfiguration("min_command_erpm")
 
     arguments = [
         DeclareLaunchArgument(
@@ -55,6 +57,26 @@ def generate_launch_description():
             default_value="",
             description="Which payload to boot up with the rover",
         ),
+        # The two low-speed stall mitigations, both off by default so the rover
+        # behaves exactly as before unless one is asked for. They are
+        # independent, so they can be enabled separately to tell them apart.
+        DeclareLaunchArgument(
+            "use_wheel_pid",
+            default_value="false",
+            description=(
+                "Chain a per-wheel velocity PID between the diff drive controller "
+                "and the hardware. See perseus/config/wheel_pid_chaining.yaml"
+            ),
+        ),
+        DeclareLaunchArgument(
+            "min_command_erpm",
+            default_value="0",
+            description=(
+                "Raise non-zero ESC speed commands below this ERPM up to it. "
+                "0 disables. A blunter alternative to use_wheel_pid: it gets the "
+                "wheel moving but the actual speed no longer matches the command"
+            ),
+        ),
     ]
 
     # IMPORTED LAUNCH FILES
@@ -81,6 +103,7 @@ def generate_launch_description():
                 "use_sim_time": use_sim_time,
                 "hardware_plugin": final_hardware_plugin,
                 "can_bus": can_bus,
+                "min_command_erpm": min_command_erpm,
             }.items(),
         )
         return [rsp_launch]
@@ -99,6 +122,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
+            "use_wheel_pid": use_wheel_pid,
         }.items(),
     )
     twist_mux_launch = IncludeLaunchDescription(

@@ -67,6 +67,31 @@ VescSystemHardware::on_init(const HardwareComponentInterfaceParams &params) {
     _real_temperatures.emplace_back(25);
   }
 
+  // Optional: absent or 0 leaves the command path untouched.
+  if (const auto param =
+          params.hardware_info.hardware_parameters.find("min_command_erpm");
+      param != params.hardware_info.hardware_parameters.end()) {
+    try {
+      _min_command_erpm = std::stod(param->second);
+    } catch (const std::exception &e) {
+      RCLCPP_FATAL(get_logger(),
+                   "Failed to parse 'min_command_erpm' ('%s'): %s",
+                   param->second.c_str(), e.what());
+      return CallbackReturn::ERROR;
+    }
+    if (_min_command_erpm < 0) {
+      RCLCPP_FATAL(get_logger(),
+                   "'min_command_erpm' cannot be negative (got %f)",
+                   _min_command_erpm);
+      return CallbackReturn::ERROR;
+    }
+    if (_min_command_erpm > 0)
+      RCLCPP_INFO(
+          get_logger(),
+          "Raising non-zero speed commands below %.0f ERPM to that floor",
+          _min_command_erpm);
+  }
+
   _last_transmit_error = get_clock()->now();
 
   return CallbackReturn::SUCCESS;
@@ -235,12 +260,18 @@ return_type VescSystemHardware::write(const rclcpp::Time &,
     double revs_per_second = radians_per_second / (2 * std::numbers::pi);
     double wheel_RPM = revs_per_second * 60.0;
     double motor_RPM = wheel_RPM * GEARBOX_RATIO;
+    double erpm = motor_RPM * ERPM_DIVISOR;
 
-    motor_RPM =
-        std::clamp(motor_RPM * ERPM_DIVISOR, static_cast<double>(INT32_MIN),
-                   static_cast<double>(INT32_MAX));
+    // Trade an exact wheel speed for one the ESC can actually turn - see
+    // _min_command_erpm. Zero is left alone so a stop is still a stop.
+    if (_min_command_erpm > 0 && erpm != 0 &&
+        std::abs(erpm) < _min_command_erpm)
+      erpm = std::copysign(_min_command_erpm, erpm);
+
+    erpm = std::clamp(erpm, static_cast<double>(INT32_MIN),
+                      static_cast<double>(INT32_MAX));
     _parameter_groups[i].get_set_rpm().value =
-        static_cast<int32_t>(std::round(motor_RPM));
+        static_cast<int32_t>(std::round(erpm));
   }
 
   try {
