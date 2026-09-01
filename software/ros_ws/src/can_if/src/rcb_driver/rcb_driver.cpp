@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
+#include "interfaces/msg/rcb_power_status.hpp"
 RcbDriver::RcbDriver(const rclcpp::NodeOptions &options)
     : Node("rcb_driver", options) {
   using namespace hi_can;
@@ -30,7 +31,7 @@ RcbDriver::RcbDriver(const rclcpp::NodeOptions &options)
   }
 
   _packet_publisher =
-      this->create_publisher<std_msgs::msg::String>("can_to_ros", 10);
+      this->create_publisher<interfaces::msg::RcbPowerStatus>("can_to_ros", 10);
   _packet_timeout_timer = this->create_wall_timer(
       PACKET_TIMEOUT, std::bind(&RcbDriver::_call_receive, this));
   _packet_subscriber = this->create_subscription<std_msgs::msg::String>(
@@ -67,16 +68,13 @@ void RcbDriver::_can_to_ros(const hi_can::Packet &packet) {
 
       parameters::legacy::power::control::power_bus::status_t data;
       data.deserialize_data(raw_data);
-
-      auto message = std_msgs::msg::String();
-      nlohmann::json bus_data = {{"name", name},
-                                 {"current", data.current},
-                                 {"voltage", data.voltage},
-                                 {"status", static_cast<int>(data.status)}};
-
-      message.data = bus_data.dump();
-
-      this->_packet_publisher->publish(message);
+      
+      auto msg = interfaces::msg::RcbPowerStatus();
+      msg.name = name;
+      msg.current = static_cast<float>(data.current);
+      msg.voltage = static_cast<float>(data.voltage);
+      msg.status = static_cast<uint8_t>(data.status);
+      this->_packet_publisher->publish(msg);
       return;
     }
   }
