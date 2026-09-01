@@ -52,9 +52,9 @@ struct Marker {
 /// @brief The arena as both ends understand it.
 ///
 /// Deliberately one file read by the robot and the base station alike. The base
-/// station draws the arena from its own copy rather than having the robot stream
-/// a map or a mesh over the link, so the only thing crossing the network is the
-/// robot pose.
+/// station draws the arena from its own copy rather than having the robot
+/// stream a map or a mesh over the link, so the only thing crossing the network
+/// is the robot pose.
 ///
 /// The obvious failure mode is the two ends reading DIFFERENT copies: the base
 /// station then draws an arena the robot is not navigating in and nothing

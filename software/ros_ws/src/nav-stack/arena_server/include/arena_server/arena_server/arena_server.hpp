@@ -27,9 +27,9 @@ namespace arena_server {
 
 /// @brief Serves the arena layout and estimates where the rover is inside it.
 ///
-/// The node owns one transform, map -> odom, where map is the guidebook's Origin
-/// Point frame: centre of the front arena wall, +X east, +Y north. It never
-/// touches odom -> base_link, which the EKF owns.
+/// The node owns one transform, map -> odom, where map is the guidebook's
+/// Origin Point frame: centre of the front arena wall, +X east, +Y north. It
+/// never touches odom -> base_link, which the EKF owns.
 ///
 /// The transform is seeded from the initial_pose parameter so the layout is
 /// usable from startup, and refined only when /arena/localise is called. It is
@@ -40,10 +40,10 @@ public:
   ArenaServer();
 
 private:
-
   /// @brief Publishes the rover's pose in the arena frame for the base station.
   void _publish_robot_pose();
-  /// @brief Seeds map -> odom from initial_pose so the layout works immediately.
+  /// @brief Seeds map -> odom from initial_pose so the layout works
+  /// immediately.
   void _seed_from_initial_pose();
   /// @brief Rebroadcasts the current map -> odom.
   void _broadcast();
@@ -56,7 +56,8 @@ private:
       std::shared_ptr<interfaces::srv::LocaliseInArena::Response> response);
 
   /// @brief Waits for a detection message carrying at least two known markers.
-  /// @param timeout How long to wait for the lazy camera pipeline to produce one.
+  /// @param timeout How long to wait for the lazy camera pipeline to produce
+  /// one.
   /// @return The message, or nullptr if none arrived in time.
   interfaces::msg::DetectionArray::ConstSharedPtr
   _await_detections(const rclcpp::Duration &timeout);
@@ -65,9 +66,10 @@ private:
   ///
   /// Solves the 2D rigid transform (yaw and translation) that best aligns the
   /// observed marker centres to their surveyed ones. Deliberately uses marker
-  /// POSITIONS only and never their orientations: a single ArUco's orientation is
-  /// unreliable at these ranges, and using positions sidesteps every marker-frame
-  /// convention question, which is where silent 180 degree errors come from.
+  /// POSITIONS only and never their orientations: a single ArUco's orientation
+  /// is unreliable at these ranges, and using positions sidesteps every
+  /// marker-frame convention question, which is where silent 180 degree errors
+  /// come from.
   ///
   /// @param observed Marker centres in the odom frame.
   /// @param surveyed The same markers' centres in the arena frame, same order.
@@ -79,7 +81,8 @@ private:
                         geometry_msgs::msg::TransformStamped &transform,
                         double &residual_m) const;
 
-  /// @brief Checks observed marker separations against the surveyed rail spacing.
+  /// @brief Checks observed marker separations against the surveyed rail
+  /// spacing.
   /// @return Empty on success, else why the geometry was rejected.
   std::string
   _check_spacing(const std::vector<int> &ids,

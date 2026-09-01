@@ -69,9 +69,9 @@ include_directories(include)
 #
 # The JSON reader is a library, not just a shared source file, because there are
 # now three consumers: the robot-side server, the base-station marker node, and
-# the RViz minimap panel in rviz_plugins. Exporting it is what keeps "one parser"
-# true across package boundaries - a second implementation in the panel would be
-# free to disagree about the layout, silently.
+# the RViz minimap panel in rviz_plugins. Exporting it is what keeps "one
+# parser" true across package boundaries - a second implementation in the panel
+# would be free to disagree about the layout, silently.
 add_library(arena_layout SHARED src/arena_server/arena_layout.cpp)
 target_include_directories(
   arena_layout PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

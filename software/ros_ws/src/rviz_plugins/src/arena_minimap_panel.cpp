@@ -32,7 +32,8 @@ ArenaMinimapCanvas::ArenaMinimapCanvas(QWidget *parent) : QWidget(parent) {
 void ArenaMinimapCanvas::set_layout(const arena_server::ArenaLayout &layout) {
   _layout = layout;
   _have_layout = !layout.zones.empty();
-  if (!_have_layout) return;
+  if (!_have_layout)
+    return;
 
   _min_x = _min_y = std::numeric_limits<double>::max();
   _max_x = _max_y = std::numeric_limits<double>::lowest();
@@ -67,12 +68,12 @@ void ArenaMinimapCanvas::clear_pose() {
 QPointF ArenaMinimapCanvas::_to_pixels(double x, double y) const {
   const double span_x = _max_x - _min_x;
   const double span_y = _max_y - _min_y;
-  if (span_x <= 0.0 || span_y <= 0.0) return {0.0, 0.0};
+  if (span_x <= 0.0 || span_y <= 0.0)
+    return {0.0, 0.0};
 
   // One scale for both axes so the arena keeps its shape; the smaller of the
   // two fits, and the surplus becomes centring offset.
-  const double scale =
-      std::min(width() / span_x, height() / span_y);
+  const double scale = std::min(width() / span_x, height() / span_y);
   const double ox = (width() - span_x * scale) * 0.5;
   const double oy = (height() - span_y * scale) * 0.5;
 
@@ -111,10 +112,14 @@ void ArenaMinimapCanvas::paintEvent(QPaintEvent * /*event*/) {
     // perimeter, which is a priori wall geometry on screen - see the note on
     // Zone::draw_north. Only zone-to-zone boundaries are informative anyway.
     p.setPen(QPen(c, 1.6));
-    if (z.draw_north) p.drawLine(r.topLeft(), r.topRight());
-    if (z.draw_south) p.drawLine(r.bottomLeft(), r.bottomRight());
-    if (z.draw_west) p.drawLine(r.topLeft(), r.bottomLeft());
-    if (z.draw_east) p.drawLine(r.topRight(), r.bottomRight());
+    if (z.draw_north)
+      p.drawLine(r.topLeft(), r.topRight());
+    if (z.draw_south)
+      p.drawLine(r.bottomLeft(), r.bottomRight());
+    if (z.draw_west)
+      p.drawLine(r.topLeft(), r.bottomLeft());
+    if (z.draw_east)
+      p.drawLine(r.topRight(), r.bottomRight());
 
     if (z.has_edges()) {
       p.setPen(QPen(c.lighter(140), 1.0));
@@ -136,9 +141,8 @@ void ArenaMinimapCanvas::paintEvent(QPaintEvent * /*event*/) {
   // Rover as an arrow, so heading is visible at a glance - the reason to have a
   // minimap at all rather than a coordinate readout.
   const auto &q = _pose.orientation;
-  const double yaw =
-      std::atan2(2.0 * (q.w * q.z + q.x * q.y),
-                 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+  const double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y),
+                                1.0 - 2.0 * (q.y * q.y + q.z * q.z));
   const double cy = std::cos(yaw), sy = std::sin(yaw);
   const double px = _pose.position.x, py = _pose.position.y;
 
@@ -183,7 +187,8 @@ ArenaMinimapPanel::ArenaMinimapPanel(QWidget *parent)
 }
 
 std::string ArenaMinimapPanel::_resolve_layout_path() const {
-  if (!_layout_path.isEmpty()) return _layout_path.toStdString();
+  if (!_layout_path.isEmpty())
+    return _layout_path.toStdString();
   // Defaults to the copy the robot reads, so out of the box both ends agree.
   try {
     return ament_index_cpp::get_package_share_directory("autonomy_bringup") +
@@ -202,14 +207,16 @@ void ArenaMinimapPanel::onInitialize() {
   if (!arena_server::ArenaLayout::load(path, layout, error)) {
     // Reported in the panel, not just the log: an operator looking at an empty
     // minimap needs to see why without going to a terminal.
-    _status->setText(QString("layout failed: %1").arg(QString::fromStdString(error)));
+    _status->setText(
+        QString("layout failed: %1").arg(QString::fromStdString(error)));
     _status->setStyleSheet("color: #d66; font-size: 10px;");
     RCLCPP_ERROR(_node->get_logger(), "arena minimap: %s", error.c_str());
   } else {
     _canvas->set_layout(layout);
     // Same summary arena_server logs, so a mismatch between the two ends is
     // visible by comparing one line in each log.
-    RCLCPP_INFO(_node->get_logger(), "arena minimap layout from %s", path.c_str());
+    RCLCPP_INFO(_node->get_logger(), "arena minimap layout from %s",
+                path.c_str());
     RCLCPP_INFO(_node->get_logger(), "arena minimap layout is %s",
                 layout.summary().c_str());
     _status->setText(QString("%1 zones from %2")

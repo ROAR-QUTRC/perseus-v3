@@ -21,9 +21,9 @@ namespace arena_server {
 /// copy; the only thing that crosses the link is /arena/robot_pose, one small
 /// PoseStamped at a few Hz. No costmap, no mesh, no map server.
 ///
-/// It deliberately does not subscribe to TF either. Reconstructing the pose from
-/// map -> odom -> base_link would mean streaming both, and would put the base
-/// station's display at the mercy of TF timing over a lossy WiFi link. One
+/// It deliberately does not subscribe to TF either. Reconstructing the pose
+/// from map -> odom -> base_link would mean streaming both, and would put the
+/// base station's display at the mercy of TF timing over a lossy WiFi link. One
 /// absolute pose in the arena frame is all a minimap needs.
 class ArenaMinimap : public rclcpp::Node {
 public:
@@ -48,7 +48,8 @@ public:
 
     const auto latched = rclcpp::QoS(1).transient_local();
     _zones_pub = create_publisher<visualization_msgs::msg::MarkerArray>(
-        declare_parameter<std::string>("zones_topic", "/minimap/zones"), latched);
+        declare_parameter<std::string>("zones_topic", "/minimap/zones"),
+        latched);
     _robot_pub = create_publisher<visualization_msgs::msg::MarkerArray>(
         declare_parameter<std::string>("robot_topic", "/minimap/robot"),
         rclcpp::QoS(5));
@@ -69,9 +70,9 @@ public:
     // redrawing whether or not poses arrive, which is the only way "stale" can
     // ever be displayed.
     const double robot_hz = declare_parameter<double>("robot_redraw_hz", 5.0);
-    _robot_timer = create_wall_timer(
-        std::chrono::duration<double>(1.0 / robot_hz),
-        [this]() { _publish_robot(); });
+    _robot_timer =
+        create_wall_timer(std::chrono::duration<double>(1.0 / robot_hz),
+                          [this]() { _publish_robot(); });
 
     // Same reasoning as arena_server: the topic is transient local, but RViz's
     // MarkerArray display subscribes VOLATILE and so never sees a message
@@ -96,13 +97,17 @@ private:
       const double hx = z.width * 0.5, hy = z.height * 0.5;
       const double t = _zone_thickness, h = _zone_height;
       // Interior edges only; anything coinciding with an arena wall is skipped.
-      struct Edge { double cx, cy, sx, sy; bool draw; };
+      struct Edge {
+        double cx, cy, sx, sy;
+        bool draw;
+      };
       const Edge edges[4] = {{z.x, z.y - hy, 2.0 * hx + t, t, z.draw_south},
                              {z.x, z.y + hy, 2.0 * hx + t, t, z.draw_north},
                              {z.x - hx, z.y, t, 2.0 * hy + t, z.draw_west},
                              {z.x + hx, z.y, t, 2.0 * hy + t, z.draw_east}};
       for (const auto &e : edges) {
-        if (!e.draw) continue;
+        if (!e.draw)
+          continue;
         visualization_msgs::msg::Marker m;
         m.header.frame_id = _layout.frame;
         m.header.stamp = now();
@@ -150,7 +155,8 @@ private:
   }
 
   void _publish_robot() {
-    if (!_last_pose) return;
+    if (!_last_pose)
+      return;
     visualization_msgs::msg::MarkerArray array;
 
     visualization_msgs::msg::Marker body;
@@ -167,8 +173,7 @@ private:
     // Stale poses are drawn grey rather than hidden. On a lossy link "the rover
     // is somewhere it was 10 seconds ago" is useful; a marker that silently
     // vanishes tells the operator nothing about why.
-    const bool stale =
-        (now() - _last_pose_time).seconds() > _pose_timeout_s;
+    const bool stale = (now() - _last_pose_time).seconds() > _pose_timeout_s;
     body.color.r = stale ? 0.55f : 0.10f;
     body.color.g = stale ? 0.55f : 0.85f;
     body.color.b = stale ? 0.55f : 0.95f;

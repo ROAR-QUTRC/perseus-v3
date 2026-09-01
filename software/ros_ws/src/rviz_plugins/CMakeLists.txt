@@ -75,10 +75,8 @@ include_directories(include)
 # which is how pluginlib finds the shared object at runtime.
 add_library(
   rviz_plugins SHARED
-  src/topic_health_panel.cpp
-  include/rviz_plugins/topic_health_panel.hpp
-  src/arena_minimap_panel.cpp
-  include/rviz_plugins/arena_minimap_panel.hpp)
+  src/topic_health_panel.cpp include/rviz_plugins/topic_health_panel.hpp
+  src/arena_minimap_panel.cpp include/rviz_plugins/arena_minimap_panel.hpp)
 
 target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

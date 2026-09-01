@@ -18,7 +18,8 @@
 
 namespace rviz_plugins {
 
-/// @brief The 2D canvas. Split from the panel so paintEvent stays self-contained.
+/// @brief The 2D canvas. Split from the panel so paintEvent stays
+/// self-contained.
 class ArenaMinimapCanvas : public QWidget {
   Q_OBJECT
 
@@ -110,7 +111,8 @@ private:
   QTimer *_refresh_timer{nullptr};
 
   rclcpp::Node::SharedPtr _node;
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr _subscription;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
+      _subscription;
 
   std::mutex _message_mutex;
   geometry_msgs::msg::PoseStamped::ConstSharedPtr _latest_pose;

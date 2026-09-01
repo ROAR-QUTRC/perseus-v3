@@ -22,7 +22,8 @@ ArenaServer::ArenaServer() : Node("arena_server") {
 
   _detections_topic = declare_parameter<std::string>(
       "detections_topic", "/vision/aruco/detections");
-  _default_timeout_s = declare_parameter<double>("default_localise_timeout_s", 2.0);
+  _default_timeout_s =
+      declare_parameter<double>("default_localise_timeout_s", 2.0);
 
   _zones_topic = declare_parameter<std::string>("zones_topic", "/arena/zones");
   _zone_wall_base_m = declare_parameter<double>("zone_wall_base_m", -0.15);
@@ -56,33 +57,32 @@ ArenaServer::ArenaServer() : Node("arena_server") {
   }
 
   // Transient local so a correctly-configured subscriber joining late gets the
-  // zones immediately. That is not enough on its own: RViz's MarkerArray display
-  // defaults to VOLATILE durability, and a volatile subscriber never receives a
-  // message published before it connected - so with a publish-once latched topic
-  // the zones simply never appear, which is what happened. Measured against the
-  // running node: a VOLATILE subscriber got nothing, a TRANSIENT_LOCAL one got
-  // all 10 markers.
+  // zones immediately. That is not enough on its own: RViz's MarkerArray
+  // display defaults to VOLATILE durability, and a volatile subscriber never
+  // receives a message published before it connected - so with a publish-once
+  // latched topic the zones simply never appear, which is what happened.
+  // Measured against the running node: a VOLATILE subscriber got nothing, a
+  // TRANSIENT_LOCAL one got all 10 markers.
   //
   // Hence the periodic republish below as well. Ten markers at 1 Hz is nothing,
   // and it means the display works without anyone having to know to change its
   // QoS. Set zone_republish_hz to 0 to publish once only.
   const auto latched = rclcpp::QoS(1).transient_local();
-  _zones_pub = create_publisher<visualization_msgs::msg::MarkerArray>(_zones_topic,
-                                                                     latched);
+  _zones_pub = create_publisher<visualization_msgs::msg::MarkerArray>(
+      _zones_topic, latched);
   _publish_zone_markers();
 
   const double zones_hz = declare_parameter<double>("zone_republish_hz", 1.0);
   if (zones_hz > 0.0) {
-    _zones_timer = create_wall_timer(
-        std::chrono::duration<double>(1.0 / zones_hz),
-        [this]() { _publish_zone_markers(); });
+    _zones_timer =
+        create_wall_timer(std::chrono::duration<double>(1.0 / zones_hz),
+                          [this]() { _publish_zone_markers(); });
   }
 
   // The service blocks waiting for camera frames, so it needs its own reentrant
   // group: on the default group it would block the executor and the very
   // subscription it is waiting on would never be serviced.
-  _service_group =
-      create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+  _service_group = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
   _localise_srv = create_service<interfaces::srv::LocaliseInArena>(
       "/arena/localise",
       std::bind(&ArenaServer::_on_localise, this, std::placeholders::_1,
@@ -98,9 +98,9 @@ ArenaServer::ArenaServer() : Node("arena_server") {
       rclcpp::QoS(5));
   const double pose_hz = declare_parameter<double>("robot_pose_rate_hz", 5.0);
   if (pose_hz > 0.0) {
-    _pose_timer = create_wall_timer(std::chrono::duration<double>(1.0 / pose_hz),
-                                    std::bind(&ArenaServer::_publish_robot_pose,
-                                              this));
+    _pose_timer =
+        create_wall_timer(std::chrono::duration<double>(1.0 / pose_hz),
+                          std::bind(&ArenaServer::_publish_robot_pose, this));
   }
 
   const double rate = declare_parameter<double>("broadcast_rate_hz", 20.0);
@@ -126,7 +126,8 @@ void ArenaServer::_seed_from_initial_pose() {
   double ox = 0.0, oy = 0.0, oyaw = 0.0;
   try {
     const auto odom_base = _tf_buffer->lookupTransform(
-        _odom_frame, _base_frame, tf2::TimePointZero, tf2::durationFromSec(0.5));
+        _odom_frame, _base_frame, tf2::TimePointZero,
+        tf2::durationFromSec(0.5));
     ox = odom_base.transform.translation.x;
     oy = odom_base.transform.translation.y;
     oyaw = tf2::getYaw(odom_base.transform.rotation);
@@ -159,7 +160,8 @@ void ArenaServer::_seed_from_initial_pose() {
 }
 
 void ArenaServer::_publish_robot_pose() {
-  if (!_have_transform) return;
+  if (!_have_transform)
+    return;
   geometry_msgs::msg::TransformStamped odom_base;
   try {
     odom_base = _tf_buffer->lookupTransform(_odom_frame, _base_frame,
@@ -190,11 +192,11 @@ void ArenaServer::_publish_robot_pose() {
 }
 
 void ArenaServer::_broadcast() {
-  if (!_have_transform) return;
+  if (!_have_transform)
+    return;
   _map_odom.header.stamp = now();
   _tf_broadcaster->sendTransform(_map_odom);
 }
-
 
 void ArenaServer::_publish_zone_markers() {
   visualization_msgs::msg::MarkerArray array;
@@ -218,15 +220,18 @@ void ArenaServer::_publish_zone_markers() {
     // Only the edges the layout marks as interior. Edges that coincide with an
     // arena wall are skipped, so nothing here renders the arena perimeter -
     // see the note on Zone::draw_north in arena_layout.hpp.
-    struct Edge { double cx, cy, sx, sy; bool draw; };
-    const Edge edges[4] = {
-        {z.x, z.y - hy, 2.0 * hx + t, t, z.draw_south},
-        {z.x, z.y + hy, 2.0 * hx + t, t, z.draw_north},
-        {z.x - hx, z.y, t, 2.0 * hy + t, z.draw_west},
-        {z.x + hx, z.y, t, 2.0 * hy + t, z.draw_east}};
+    struct Edge {
+      double cx, cy, sx, sy;
+      bool draw;
+    };
+    const Edge edges[4] = {{z.x, z.y - hy, 2.0 * hx + t, t, z.draw_south},
+                           {z.x, z.y + hy, 2.0 * hx + t, t, z.draw_north},
+                           {z.x - hx, z.y, t, 2.0 * hy + t, z.draw_west},
+                           {z.x + hx, z.y, t, 2.0 * hy + t, z.draw_east}};
 
     for (const auto &e : edges) {
-      if (!e.draw) continue;
+      if (!e.draw)
+        continue;
       visualization_msgs::msg::Marker wall;
       wall.header.frame_id = _map_frame;
       wall.header.stamp = now();
@@ -272,7 +277,8 @@ void ArenaServer::_publish_zone_markers() {
   }
 
   _zones_pub->publish(array);
-  // Logged once: this is on a repeating timer, so INFO every cycle would be noise.
+  // Logged once: this is on a repeating timer, so INFO every cycle would be
+  // noise.
   RCLCPP_INFO_ONCE(get_logger(),
                    "publishing %zu zone markers on %s (transient local, "
                    "republished so volatile subscribers such as RViz see them)",
@@ -286,9 +292,10 @@ std::string ArenaServer::_check_spacing(
     for (size_t j = i + 1; j < ids.size(); ++j) {
       const auto a = _layout.markers.find(ids[i]);
       const auto b = _layout.markers.find(ids[j]);
-      if (a == _layout.markers.end() || b == _layout.markers.end()) continue;
-      const double expected = std::hypot(a->second.x - b->second.x,
-                                         a->second.y - b->second.y);
+      if (a == _layout.markers.end() || b == _layout.markers.end())
+        continue;
+      const double expected =
+          std::hypot(a->second.x - b->second.x, a->second.y - b->second.y);
       const double measured = std::hypot(observed[i][0] - observed[j][0],
                                          observed[i][1] - observed[j][1]);
       if (std::fabs(measured - expected) > _layout.spacing_tolerance_m) {
@@ -309,7 +316,8 @@ bool ArenaServer::_fit_map_to_odom(
   // Two points is the minimum that resolves yaw. One would fix translation only
   // and leave the arena free to rotate about it, which is exactly the failure
   // that makes a single-marker fix untrustworthy.
-  if (observed.size() < 2 || observed.size() != surveyed.size()) return false;
+  if (observed.size() < 2 || observed.size() != surveyed.size())
+    return false;
 
   const size_t n = observed.size();
   double ocx = 0.0, ocy = 0.0, scx = 0.0, scy = 0.0;
@@ -340,7 +348,8 @@ bool ArenaServer::_fit_map_to_odom(
     const double ox = observed[i][0] - ocx, oy = observed[i][1] - ocy;
     const double px = c * ox - s * oy + scx;
     const double py = s * ox + c * oy + scy;
-    sum_sq += std::pow(px - surveyed[i][0], 2) + std::pow(py - surveyed[i][1], 2);
+    sum_sq +=
+        std::pow(px - surveyed[i][0], 2) + std::pow(py - surveyed[i][1], 2);
   }
   residual_m = std::sqrt(sum_sq / static_cast<double>(n));
 
@@ -354,7 +363,6 @@ bool ArenaServer::_fit_map_to_odom(
   transform.transform.rotation = tf2::toMsg(q);
   return true;
 }
-
 
 interfaces::msg::DetectionArray::ConstSharedPtr
 ArenaServer::_await_detections(const rclcpp::Duration &timeout) {
@@ -385,7 +393,8 @@ ArenaServer::_await_detections(const rclcpp::Duration &timeout) {
         // Count how many of the markers in this frame we have surveyed.
         size_t known = 0;
         for (const auto &d : _latest_detections->detections) {
-          if (d.has_pose && _layout.markers.count(d.id)) ++known;
+          if (d.has_pose && _layout.markers.count(d.id))
+            ++known;
         }
         if (known >= 2) {
           found = _latest_detections;
@@ -416,7 +425,8 @@ void ArenaServer::_on_localise(
         std::to_string(timeout_s) +
         " s. Two are required: one marker fixes translation but leaves the "
         "arena free to rotate about it. Note the rail is only visible from the "
-        "back of the starting zone - closer than ~0.8 m the markers fall out of "
+        "back of the starting zone - closer than ~0.8 m the markers fall out "
+        "of "
         "the camera's view entirely.";
     RCLCPP_WARN(get_logger(), "%s", response->message.c_str());
     return;
@@ -426,10 +436,9 @@ void ArenaServer::_on_localise(
   // fit is against a frame that does not move with the robot.
   geometry_msgs::msg::TransformStamped odom_cam;
   try {
-    odom_cam = _tf_buffer->lookupTransform(_odom_frame,
-                                           detections->header.frame_id,
-                                           detections->header.stamp,
-                                           tf2::durationFromSec(0.3));
+    odom_cam = _tf_buffer->lookupTransform(
+        _odom_frame, detections->header.frame_id, detections->header.stamp,
+        tf2::durationFromSec(0.3));
   } catch (const tf2::TransformException &e) {
     response->message = std::string("cannot transform ") +
                         detections->header.frame_id + " -> " + _odom_frame +
@@ -441,9 +450,11 @@ void ArenaServer::_on_localise(
   std::vector<int> ids;
   std::vector<std::array<double, 2>> observed, surveyed;
   for (const auto &d : detections->detections) {
-    if (!d.has_pose) continue;
+    if (!d.has_pose)
+      continue;
     const auto known = _layout.markers.find(d.id);
-    if (known == _layout.markers.end()) continue;  // whitelist: ignore stray ids
+    if (known == _layout.markers.end())
+      continue; // whitelist: ignore stray ids
 
     geometry_msgs::msg::PoseStamped in, out;
     in.header = detections->header;
@@ -485,7 +496,8 @@ void ArenaServer::_on_localise(
   // Report where the rover now is, which is what the caller actually asked for.
   try {
     const auto odom_base = _tf_buffer->lookupTransform(
-        _odom_frame, _base_frame, tf2::TimePointZero, tf2::durationFromSec(0.3));
+        _odom_frame, _base_frame, tf2::TimePointZero,
+        tf2::durationFromSec(0.3));
     const double yaw = tf2::getYaw(fitted.transform.rotation);
     const double c = std::cos(yaw), s = std::sin(yaw);
     response->pose.header.frame_id = _map_frame;
@@ -500,8 +512,8 @@ void ArenaServer::_on_localise(
     q.setRPY(0.0, 0.0, yaw + tf2::getYaw(odom_base.transform.rotation));
     response->pose.pose.orientation = tf2::toMsg(q);
   } catch (const tf2::TransformException &e) {
-    response->message = std::string("fix accepted but ") + _odom_frame + " -> " +
-                        _base_frame + " is unavailable: " + e.what();
+    response->message = std::string("fix accepted but ") + _odom_frame +
+                        " -> " + _base_frame + " is unavailable: " + e.what();
     RCLCPP_WARN(get_logger(), "%s", response->message.c_str());
     return;
   }

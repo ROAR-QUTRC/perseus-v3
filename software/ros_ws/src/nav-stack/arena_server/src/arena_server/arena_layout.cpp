@@ -23,7 +23,8 @@ Zone read_zone(const nlohmann::json &j, const std::string &fallback_name) {
   z.width = j.at("width").get<double>();
   z.height = j.at("height").get<double>();
   if (j.contains("color") && j["color"].is_array() && j["color"].size() == 3) {
-    for (size_t i = 0; i < 3; ++i) z.color[i] = j["color"][i].get<float>();
+    for (size_t i = 0; i < 3; ++i)
+      z.color[i] = j["color"][i].get<float>();
   }
   // Absent means all four, which is correct for a zone touching no wall. An
   // empty list is meaningful and distinct: draw nothing, for a zone whose only
@@ -32,10 +33,14 @@ Zone read_zone(const nlohmann::json &j, const std::string &fallback_name) {
     z.draw_north = z.draw_south = z.draw_east = z.draw_west = false;
     for (const auto &e : j["edges"]) {
       const std::string s = e.get<std::string>();
-      if (s == "N" || s == "north") z.draw_north = true;
-      else if (s == "S" || s == "south") z.draw_south = true;
-      else if (s == "E" || s == "east") z.draw_east = true;
-      else if (s == "W" || s == "west") z.draw_west = true;
+      if (s == "N" || s == "north")
+        z.draw_north = true;
+      else if (s == "S" || s == "south")
+        z.draw_south = true;
+      else if (s == "E" || s == "east")
+        z.draw_east = true;
+      else if (s == "W" || s == "west")
+        z.draw_west = true;
     }
   }
   return z;
@@ -111,14 +116,16 @@ std::string ArenaLayout::summary() const {
   os.precision(3);
   os << zones.size() << " zones [";
   for (size_t i = 0; i < zones.size(); ++i) {
-    if (i) os << " ";
+    if (i)
+      os << " ";
     os << zones[i].name << "(" << zones[i].x << "," << zones[i].y << ","
        << zones[i].width << "x" << zones[i].height << ")";
   }
   os << "] " << markers.size() << " markers [";
   bool first = true;
   for (const auto &[id, m] : markers) {
-    if (!first) os << " ";
+    if (!first)
+      os << " ";
     first = false;
     os << id << "(" << m.x << "," << m.y << ")";
   }
