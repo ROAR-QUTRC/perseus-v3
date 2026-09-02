@@ -1,0 +1,149 @@
+# Overlay on perseus_controllers.yaml, loaded after it when
+# controllers.launch.py is given use_wheel_pid:=true. Anything set here wins;
+# everything else keeps the base file's value.
+#
+# WHAT THIS IS FOR
+#
+# At low commanded speed the wheels stall under load: they turn freely with the
+# rover jacked up, and stop as soon as it is on the ground. The command reaches
+# the ESC and the ESC acts on it, so this is not a command-side dead band -- it
+# is sensorless FOC failing to make torque near zero speed against the scrub
+# friction of four wheels a side.
+#
+# This inserts a per-wheel velocity PID between the diff drive controller and
+# the hardware, as a ros2_control chain:
+#
+#   diff_drive_base_controller  ->  wheel_pid_controller  ->  VescSystemHardware
+#          (preceding)                  (following)
+#
+# When a wheel stalls the integrator winds the ESC's speed setpoint up until it
+# breaks loose, then unwinds. Average wheel speed therefore still tracks the
+# command, which a fixed floor (hardware min_command_erpm) does not manage.
+#
+# It only helps if the VESC's own speed PID is NOT already saturating current
+# when stalled. If it is, this loop is stacked behind a saturated inner loop and
+# can do nothing but wind up. Check the per-wheel current on
+# /dynamic_joint_states, stalled versus lifted, before trusting the result.
+controller_manager:
+  ros__parameters:
+    wheel_pid_controller:
+      type: pid_controller/PidController
+diff_drive_base_controller:
+  ros__parameters:
+    # Repointed from the joints themselves onto wheel_pid_controller's exported
+    # reference interfaces, which is what makes this a chain: the names below
+    # get "/velocity" appended and must match
+    # "<controller name>/<dof name>/<interface>" exactly, or the controller
+    # manager refuses to claim them and the spawner fails.
+    left_wheel_names:
+      - wheel_pid_controller/front_left_wheel_joint
+      - wheel_pid_controller/rear_left_wheel_joint
+    right_wheel_names:
+      - wheel_pid_controller/front_right_wheel_joint
+      - wheel_pid_controller/rear_right_wheel_joint
+    # Odometry has to switch from integrating wheel POSITION to integrating
+    # wheel VELOCITY, because those same repointed names are also used for the
+    # state interfaces and a chainable controller only re-exports the interfaces
+    # named in reference_and_state_interfaces below -- velocity, here. There is
+    # no position to read through the chain.
+    #
+    # The values are the real measured wheel velocities (the PID copies its
+    # measured state into its exported state interfaces every cycle), one
+    # control period stale, because the preceding controller runs first. At
+    # 50 Hz that is 20 ms.
+    #
+    # /odom is not fused by the EKF (see autonomy_bringup/config/ekf_config.yaml)
+    # so this does not move the localisation estimate either way.
+    position_feedback: false
+wheel_pid_controller:
+  ros__parameters:
+    # The real joints. The exported reference/state interfaces get the
+    # controller's own name prefixed automatically, which is where the
+    # "wheel_pid_controller/..." names above come from.
+    dof_names:
+      - front_left_wheel_joint
+      - front_right_wheel_joint
+      - rear_left_wheel_joint
+      - rear_right_wheel_joint
+    # What it writes to the hardware, and what it reads back and re-exports.
+    command_interface: velocity
+    reference_and_state_interfaces:
+      - velocity
+    # Without this the output would be PID(error) alone, so holding a steady
+    # speed would need a standing error to sustain it. With feedforward_gain 1.0
+    # the reference passes straight through and the PID only ever adds a
+    # correction on top -- so with a well-tracking wheel this chain is
+    # transparent and the rover drives exactly as it does without it.
+    enable_feedforward: true
+    gains:
+      # Same gains on all four wheels; they are the same motor and gearbox.
+      #
+      # Sizing, in wheel rad/s (max is 1.7 / 0.147 = 11.6 rad/s):
+      #   p 0.5  - a stalled wheel commanded 0.34 rad/s contributes +0.17,
+      #            which is deliberately not enough on its own. The integral is
+      #            what is meant to do the work here.
+      #   i 3.0  - winds at 3x error per second, so a stalled wheel reaches the
+      #            i_clamp ceiling in roughly half a second.
+      #   d 0.0  - the velocity signal comes off a tachometer and is noisy;
+      #            derivative on it buys nothing here.
+      #
+      # i_clamp is THE safety knob. It caps how much extra speed the integrator
+      # can demand, and therefore how hard the wheel lurches when it finally
+      # breaks free -- through a 40:1 gearbox with backlash. 1.5 rad/s is about
+      # 0.22 m/s at the tyre. Raise it if the wheel never breaks loose; do that
+      # with the rover on the ground and a hand on the e-stop.
+      #
+      # u_clamp is the outer bound on the whole output and is set at the
+      # drivetrain's real ceiling, so it only ever catches a runaway.
+      #
+      # activate_state_publisher gives /wheel_pid_controller/controller_state:
+      # reference, feedback, error and output per wheel. That is how you see
+      # whether the integrator is winding up and whether the wheel breaks free.
+      #
+      # Written out per wheel rather than with a YAML anchor because
+      # rcl_yaml_param_parser does not handle aliases -- keep the four blocks in
+      # step by hand.
+      front_left_wheel_joint:
+        p: 0.5
+        i: 3.0
+        d: 0.0
+        feedforward_gain: 1.0
+        antiwindup: true
+        i_clamp_max: 1.5
+        i_clamp_min: -1.5
+        u_clamp_max: 12.0
+        u_clamp_min: -12.0
+        activate_state_publisher: true
+      front_right_wheel_joint:
+        p: 0.5
+        i: 3.0
+        d: 0.0
+        feedforward_gain: 1.0
+        antiwindup: true
+        i_clamp_max: 1.5
+        i_clamp_min: -1.5
+        u_clamp_max: 12.0
+        u_clamp_min: -12.0
+        activate_state_publisher: true
+      rear_left_wheel_joint:
+        p: 0.5
+        i: 3.0
+        d: 0.0
+        feedforward_gain: 1.0
+        antiwindup: true
+        i_clamp_max: 1.5
+        i_clamp_min: -1.5
+        u_clamp_max: 12.0
+        u_clamp_min: -12.0
+        activate_state_publisher: true
+      rear_right_wheel_joint:
+        p: 0.5
+        i: 3.0
+        d: 0.0
+        feedforward_gain: 1.0
+        antiwindup: true
+        i_clamp_max: 1.5
+        i_clamp_min: -1.5
+        u_clamp_max: 12.0
+        u_clamp_min: -12.0
+        activate_state_publisher: true

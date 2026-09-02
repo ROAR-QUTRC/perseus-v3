@@ -16,6 +16,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default=False)
     hardware_plugin = LaunchConfiguration("hardware_plugin")
     can_bus = LaunchConfiguration("can_bus", default="")
+    min_command_erpm = LaunchConfiguration("min_command_erpm", default="0")
 
     # XACRO FILES
     robot_description_xacro = PathJoinSubstitution(
@@ -33,6 +34,8 @@ def generate_launch_description():
                 hardware_plugin,
                 " can_bus:=",
                 can_bus,
+                " min_command_erpm:=",
+                min_command_erpm,
             ]
         ),
         value_type=str,

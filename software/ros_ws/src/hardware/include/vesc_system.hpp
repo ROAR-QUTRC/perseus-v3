@@ -51,6 +51,12 @@ private:
   /// build up a massive transmit queue when the bus comes online again
   rclcpp::Time _last_transmit_error;
 
+  /// @brief Smallest ERPM magnitude worth commanding, or 0 to disable
+  /// @details Below a certain speed the ESC cannot produce useful torque, so a
+  /// small command heats the motor without turning the wheel. Non-zero commands
+  /// under this are raised to it; an exact zero stays an exact zero.
+  double _min_command_erpm = 0.0;
+
   std::vector<hi_can::parameters::drive::vesc::VescParameterGroup>
       _parameter_groups;
   std::vector<unsigned long> _vesc_ids;

@@ -59,6 +59,7 @@ pkgs.mkShell {
           opencv
           pcl
           pcl-conversions
+          pid-controller
           pluginlib
           point-cloud-transport
           qt5.qtbase

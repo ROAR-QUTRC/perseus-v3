@@ -19,6 +19,9 @@
   <exec_depend>diff_drive_controller</exec_depend>
   <exec_depend>mecanum_drive_controller</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
+  <!-- optional wheel velocity PID chained under the diff drive controller,
+       enabled with use_wheel_pid:=true -->
+  <exec_depend>pid_controller</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros2controlcli</exec_depend>
 
