@@ -28,7 +28,8 @@ GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions &options)
     : rclcpp::Node("global_traversability", options),
       _map({"elevation_min", "elevation_max", "point_count", "height_diff",
             "steepness", "roughness", "ridge", "ridge_bump", "ridge_pothole",
-            "clearance", "border", "obstacle", "inflation", "cost"}) {
+            "depression", "clearance", "border", "obstacle", "inflation",
+            "cost"}) {
   _load_parameters();
 
   _pointcloud_subscription =
@@ -57,8 +58,8 @@ GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions &options)
       {"height_diff", 0.0, 1.0, nullptr},   {"roughness", 0.0, 0.3, nullptr},
       {"steepness", 0.0, 90.0, nullptr},    {"ridge_bump", 0.0, 0.5, nullptr},
       {"ridge_pothole", 0.0, 0.5, nullptr}, {"clearance", 0.0, 2.0, nullptr},
-      {"border", 0.0, 1.0, nullptr},        {"obstacle", 0.0, 1.0, nullptr},
-      {"inflation", 0.0, 99.0, nullptr},
+      {"depression", 0.0, 0.5, nullptr},    {"border", 0.0, 1.0, nullptr},
+      {"obstacle", 0.0, 1.0, nullptr},      {"inflation", 0.0, 99.0, nullptr},
   };
   for (const auto &spec : layer_specs) {
     _layer_publishers.push_back(
@@ -94,6 +95,12 @@ void GlobalTraversability::_load_parameters() {
       this->declare_parameter("max_height_diff_m", DEFAULT_MAX_HEIGHT_DIFF_M);
   _max_slope_deg =
       this->declare_parameter("max_slope_deg", DEFAULT_MAX_SLOPE_DEG);
+  _depression_radius_m = this->declare_parameter("depression_radius_m",
+                                                 DEFAULT_DEPRESSION_RADIUS_M);
+  _max_depression_m =
+      this->declare_parameter("max_depression_m", DEFAULT_MAX_DEPRESSION_M);
+  _max_plane_fit_ratio = this->declare_parameter("max_plane_fit_ratio",
+                                                 DEFAULT_MAX_PLANE_FIT_RATIO);
   _max_roughness_m =
       this->declare_parameter("max_roughness_m", DEFAULT_MAX_ROUGHNESS_M);
   _min_clearance_m =
@@ -167,11 +174,13 @@ void GlobalTraversability::_update_costmap() {
   _map["ridge"].setConstant(NaN);
   _map["ridge_bump"].setConstant(NaN);
   _map["ridge_pothole"].setConstant(NaN);
+  _map["depression"].setConstant(NaN);
 
   _accumulate_elevation(cloud);
   _compute_clearance(cloud);
   _map["height_diff"] = _map["elevation_max"] - _map["elevation_min"];
   _compute_local_terrain_features();
+  _compute_depression();
   _compute_border();
   _compute_obstacle();
   _compute_inflation();
@@ -311,6 +320,26 @@ void GlobalTraversability::_compute_local_terrain_features() {
     const Eigen::Vector3d normal = solver.eigenvectors().col(0);
     const double residual_variance = std::max(0.0, solver.eigenvalues()(0));
 
+    // Reject a plane the points do not actually determine.
+    //
+    // Enough points is not the same as enough spread. Far from the sensor a
+    // neighbourhood catches only a thin smear of returns at grazing incidence,
+    // and a plane through a nearly collinear set is free to tilt about that
+    // line -- the normal comes out steep and arbitrary. Measured against the
+    // simulator's DEM, that was 14% of genuinely flat cells reporting above
+    // max_slope_deg, all of it beyond about 5 m.
+    //
+    // The eigenvalues say when it has happened. The smallest is the variance
+    // off the plane, the middle one the smaller of the two spreads within it;
+    // on real ground the first is far smaller than the second, and on a
+    // collinear smear they converge. Cells that fail stay NaN, which is honest:
+    // the data did not support an answer.
+    const double in_plane_variance = solver.eigenvalues()(1);
+    if (in_plane_variance <= 0.0 ||
+        residual_variance > _max_plane_fit_ratio * in_plane_variance) {
+      continue;
+    }
+
     steepness(row, col) = static_cast<float>(
         deg_from_rad(std::acos(std::min(1.0, std::abs(normal.z())))));
     roughness(row, col) = static_cast<float>(std::sqrt(residual_variance));
@@ -322,6 +351,77 @@ void GlobalTraversability::_compute_local_terrain_features() {
     // directly: see the layer_specs comment in the constructor for why.
     ridge_bump(row, col) = std::max(0.0f, ridge_value);
     ridge_pothole(row, col) = std::max(0.0f, -ridge_value);
+  }
+}
+
+void GlobalTraversability::_compute_depression() {
+  // How far each cell sits below the ground around it, judged over a
+  // neighbourhood far wider than the plane fit's.
+  //
+  // This exists because the plane-fit layers are blind to a crater by
+  // construction. They look 0.3 m out, and a crater metres across is flat at
+  // that scale -- only its rim has slope. Against the simulator's DEM a 1.2 m
+  // window found 4.6 cm of dip where a 3 m window found 16.4 cm of the same
+  // hole.
+  //
+  // The reference level is a masked mean over a disc, taken with a summed-area
+  // table so the cost does not grow with the radius. A median would resist the
+  // hole pulling its own reference down, but costs a sort per cell; with the
+  // radius well above the hazard size the hole is a small part of the window
+  // and the mean holds up.
+  const Eigen::MatrixXf &elevation = _map["elevation_min"];
+  Eigen::MatrixXf &depression = _map["depression"];
+
+  const int rows = _map.getSize()(0);
+  const int cols = _map.getSize()(1);
+  const int radius =
+      std::max(1, static_cast<int>(
+                      std::round(_depression_radius_m / _map.getResolution())));
+
+  // Summed-area tables of elevation and of the valid-cell count, both padded by
+  // one so the four-corner lookup needs no bounds checks.
+  Eigen::MatrixXd sum = Eigen::MatrixXd::Zero(rows + 1, cols + 1);
+  Eigen::MatrixXd count = Eigen::MatrixXd::Zero(rows + 1, cols + 1);
+  for (int row = 0; row < rows; ++row) {
+    for (int col = 0; col < cols; ++col) {
+      const float z = elevation(row, col);
+      const bool valid = !std::isnan(z);
+      sum(row + 1, col + 1) = (valid ? static_cast<double>(z) : 0.0) +
+                              sum(row, col + 1) + sum(row + 1, col) -
+                              sum(row, col);
+      count(row + 1, col + 1) = (valid ? 1.0 : 0.0) + count(row, col + 1) +
+                                count(row + 1, col) - count(row, col);
+    }
+  }
+
+  // Enough of the window has to be mapped for its mean to mean anything: a cell
+  // on the edge of what has been seen would otherwise be compared against a
+  // sliver.
+  const double window_cells = std::pow(2.0 * radius + 1.0, 2.0);
+  const double min_valid = 0.25 * window_cells;
+
+  for (int row = 0; row < rows; ++row) {
+    const int r0 = std::max(0, row - radius);
+    const int r1 = std::min(rows - 1, row + radius);
+    for (int col = 0; col < cols; ++col) {
+      const float center = elevation(row, col);
+      if (std::isnan(center)) {
+        continue;
+      }
+      const int c0 = std::max(0, col - radius);
+      const int c1 = std::min(cols - 1, col + radius);
+      const double n = count(r1 + 1, c1 + 1) - count(r0, c1 + 1) -
+                       count(r1 + 1, c0) + count(r0, c0);
+      if (n < min_valid) {
+        continue;
+      }
+      const double total =
+          sum(r1 + 1, c1 + 1) - sum(r0, c1 + 1) - sum(r1 + 1, c0) + sum(r0, c0);
+      // Positive means below the surroundings, which is the direction that
+      // matters.
+      depression(row, col) =
+          static_cast<float>(total / n - static_cast<double>(center));
+    }
   }
 }
 
@@ -338,6 +438,7 @@ void GlobalTraversability::_compute_obstacle() {
   const Eigen::MatrixXf &steepness = _map["steepness"];
   const Eigen::MatrixXf &roughness = _map["roughness"];
   const Eigen::MatrixXf &clearance = _map["clearance"];
+  const Eigen::MatrixXf &depression = _map["depression"];
   const Eigen::MatrixXf &border = _map["border"];
   Eigen::MatrixXf &obstacle = _map["obstacle"];
 
@@ -345,6 +446,7 @@ void GlobalTraversability::_compute_obstacle() {
   const float max_slope = static_cast<float>(_max_slope_deg);
   const float max_roughness = static_cast<float>(_max_roughness_m);
   const float min_clearance = static_cast<float>(_min_clearance_m);
+  const float max_depression = static_cast<float>(_max_depression_m);
 
   const int rows = _map.getSize()(0);
   const int cols = _map.getSize()(1);
@@ -359,13 +461,17 @@ void GlobalTraversability::_compute_obstacle() {
       const float steepness_value = steepness(row, col);
       const float roughness_value = roughness(row, col);
       const float clearance_value = clearance(row, col);
+      const float depression_value = depression(row, col);
 
       const bool is_obstacle =
           (!std::isnan(height_diff_value) &&
            height_diff_value > max_height_diff) ||
           (!std::isnan(steepness_value) && steepness_value > max_slope) ||
           (!std::isnan(roughness_value) && roughness_value > max_roughness) ||
-          (!std::isnan(clearance_value) && clearance_value < min_clearance);
+          (!std::isnan(clearance_value) && clearance_value < min_clearance) ||
+          // A hole the rover would drive into. Judged on depth rather than
+          // slope, because a crater's floor and its surroundings are both flat.
+          (!std::isnan(depression_value) && depression_value > max_depression);
 
       obstacle(row, col) = is_obstacle ? 1.0f : 0.0f;
     }

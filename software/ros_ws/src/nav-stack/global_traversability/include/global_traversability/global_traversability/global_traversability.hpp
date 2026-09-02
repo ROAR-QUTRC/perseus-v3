@@ -86,6 +86,18 @@ private:
   static constexpr double DEFAULT_MAX_HEIGHT_DIFF_M = 0.15;
   /// @brief Default local slope, above which a cell is an obstacle, in degrees.
   static constexpr double DEFAULT_MAX_SLOPE_DEG = 30.0;
+  /// @brief Radius of the neighbourhood a cell's depth is judged against. Has
+  /// to be comfortably larger than the hazards being looked for: a crater is
+  /// locally flat, so judged over the plane-fit neighbourhood it looks like
+  /// ordinary ground.
+  static constexpr double DEFAULT_DEPRESSION_RADIUS_M = 1.5;
+  /// @brief How far a cell may sit below that neighbourhood before it counts as
+  /// a hole.
+  static constexpr double DEFAULT_MAX_DEPRESSION_M = 0.10;
+  /// @brief Largest off-plane variance, as a fraction of the smaller in-plane
+  /// variance, for a plane fit to be believed. See the check in
+  /// _compute_local_terrain_features.
+  static constexpr double DEFAULT_MAX_PLANE_FIT_RATIO = 0.15;
   /// @brief Default local plane-fit residual, above which a cell is an
   /// obstacle, in metres.
   static constexpr double DEFAULT_MAX_ROUGHNESS_M = 0.08;
@@ -141,6 +153,12 @@ private:
   void _compute_local_terrain_features();
 
   /// @brief Marks cells with too few points as border/unknown.
+  /// @brief Fills the depression layer: how far each cell sits below the
+  /// median-ish elevation of a much wider neighbourhood. This is the measure
+  /// that separates a crater from flat ground; the plane-fit layers cannot,
+  /// because a crater floor is flat.
+  void _compute_depression();
+
   void _compute_border();
 
   /// @brief Combines height_diff, steepness, roughness, clearance and border
@@ -204,6 +222,9 @@ private:
 
   double _max_height_diff_m{DEFAULT_MAX_HEIGHT_DIFF_M};
   double _max_slope_deg{DEFAULT_MAX_SLOPE_DEG};
+  double _depression_radius_m{DEFAULT_DEPRESSION_RADIUS_M};
+  double _max_depression_m{DEFAULT_MAX_DEPRESSION_M};
+  double _max_plane_fit_ratio{DEFAULT_MAX_PLANE_FIT_RATIO};
   double _max_roughness_m{DEFAULT_MAX_ROUGHNESS_M};
   double _min_clearance_m{DEFAULT_MIN_CLEARANCE_M};
   bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
