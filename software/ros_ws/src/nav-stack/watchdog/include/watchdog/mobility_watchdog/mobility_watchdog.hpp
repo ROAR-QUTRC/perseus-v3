@@ -58,6 +58,13 @@ private:
   /// @brief Default age beyond which a cached command is treated as stale, in
   /// seconds.
   static constexpr double DEFAULT_COMMAND_TIMEOUT_S = 0.5;
+  /// @brief Default minimum gap between published status messages, in seconds.
+  ///
+  /// The odometry that drives this node arrives at 30 Hz, which is far more
+  /// often than an operator display or a supervising planner needs a slip
+  /// verdict. Throttling here rather than downstream keeps the traffic off a
+  /// link that is already carrying point clouds.
+  static constexpr double DEFAULT_PUBLISH_PERIOD_S = 0.5;
 
   /// @brief Declares every parameter, copying non-topic values into the
   /// matching
@@ -83,6 +90,24 @@ private:
   /// @param now Time to measure the command's age against.
   bool _is_cached_command_fresh(const rclcpp::Time &now) const;
 
+  /// @brief Whether the publish period has elapsed since the last message.
+  /// @param now Time to measure the last publish against.
+  /// @return True on the first call, when throttling is disabled, or once
+  ///         _publish_period_s has passed.
+  bool _should_publish(const rclcpp::Time &now) const;
+
+  /// @brief Builds a status message from the current monitor state and
+  ///        publishes it.
+  /// @param odometry Odometry message being reported on. Its header is reused,
+  ///        so the stamp identifies the measurement rather than the publish.
+  void _publish_status(const nav_msgs::msg::Odometry &odometry) const;
+
+  /// @brief One channel's slip ratio expressed as the percentage of the
+  ///        commanded motion that was actually achieved.
+  /// @param monitor Channel to read.
+  /// @return 0..100 while the channel is evaluating, or -1 when it is not.
+  static double _efficiency_percent(const SlipChannelMonitor &monitor);
+
   SlipChannelMonitor _linear_monitor{SlipChannelMonitor::config_t{
       .min_commanded_magnitude = DEFAULT_MIN_LINEAR_SPEED_MPS,
       .slip_ratio_threshold = DEFAULT_SLIP_RATIO_THRESHOLD,
@@ -100,6 +125,13 @@ private:
   geometry_msgs::msg::Twist _latest_cmd_vel;
   rclcpp::Time _latest_cmd_vel_stamp;
   bool _has_cmd_vel{false};
+
+  double _publish_period_s{DEFAULT_PUBLISH_PERIOD_S};
+  rclcpp::Time _last_publish_stamp;
+  bool _has_published{false};
+  /// @brief Slip verdict as of the last published message, so a change in it
+  /// can be recognised and sent without waiting out the publish period.
+  bool _was_slipping{false};
 
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr
       _cmd_vel_subscription;

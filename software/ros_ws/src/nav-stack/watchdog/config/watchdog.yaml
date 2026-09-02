@@ -18,3 +18,8 @@ mobility_watchdog:
     # A cached command older than this is treated as commanding zero, so the watchdog goes
     # idle rather than comparing odometry against a stale command from a released control.
     command_timeout_s: 0.5
+    # Minimum gap between published status messages. The slip window still updates on every
+    # odometry sample (30 Hz from the EKF), so this throttles the reporting only, not the
+    # detection. A change in the slip verdict is published immediately regardless, so an alarm
+    # is never held back by this. 0 publishes on every odometry sample.
+    publish_period_s: 0.5
