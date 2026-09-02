@@ -17,4 +17,14 @@
       map, costmap or mesh from the robot - only /arena/robot_pose.
     </description>
   </class>
+  <class
+    name="rviz_plugins/MobilityEfficiencyPanel"
+    type="rviz_plugins::MobilityEfficiencyPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Linear and angular mobility efficiency from the mobility watchdog, as two
+      bars coloured red through amber to green, with amber landing on the slip
+      threshold. Greys a channel that has nothing commanded to measure.
+    </description>
+  </class>
 </library>
