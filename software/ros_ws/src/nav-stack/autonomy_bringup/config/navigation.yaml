@@ -63,5 +63,5 @@ global_traversability:
     # Inflation (mirrors nav2 InflationLayer's own robot_radius/inflation_radius/
     # cost_scaling_factor semantics)
     robot_radius_m: 0.3
-    inflation_radius_m: 0.6
+    inflation_radius_m: 0.45
     cost_scaling_factor: 3.0

@@ -129,13 +129,23 @@ publish:
   # hundred times the map that measurement covered. Watch `ros2 topic hz /Odometry` on the
   # first long drive; 0 disables the publish and leaves /map_save on demand.
   map_interval_s: 5.0
-  # Halves the map resolution to 10 cm, quartering the point count. This is about message
-  # size, not CPU: measured across stride 1 to 4 the extraction cost barely moved, because
-  # the per-voxel walk dominates the per-pixel emit. It matters because a full 400k-voxel
-  # map at stride 1 would be on the order of 10M points -- over 100 MB per message, which is
-  # the part that actually does not fit down the link. The base station renders this and the
-  # compressor voxel downsamples it again anyway. Drop to 1 for a map you intend to keep.
-  map_stride: 2
+  # Emit every map pixel (5 cm spacing). This is about message size, not CPU: measured across
+  # stride 1 to 4 the extraction cost barely moved, because the per-voxel walk dominates the
+  # per-pixel emit. It was 2, and 2 is wrong for anything downstream that grids the map:
+  # stride 2 spaces the points at 10 cm, exactly global_traversability's resolution_m, so its
+  # cells averaged 1.05 points each and 74% of them fell below min_points_per_cell and were
+  # published as unknown. Measured on the sim arena, 13998 points over a 114x117 cell grid:
+  #
+  #     stride    points    pt/cell    costmap cells with >= 2 pts
+  #     2          14.0k       1.05                         25.6%
+  #     1          56.0k       4.20                        ~59.6%   (= every observed cell)
+  #
+  # The cost is 4x the message: a full 400k-voxel map at stride 1 is on the order of 10M
+  # points, over 100 MB. That is a link problem, not a rover one -- global_traversability
+  # subscribes to /Laser_map on the host, and the downlink copy is voxel downsampled and
+  # Draco compressed first. Raise it back to 2 only if the on-host publish itself starts to
+  # hurt, and drop resolution_m in navigation.yaml to match if you do.
+  map_stride: 1
   # Where /map_save writes. The counterpart of map_file_path in livox_mid360.yaml, and like
   # FAST-LIO's pcd_save_en: false, saving is on demand only -- nothing is written unless the
   # service is called.
