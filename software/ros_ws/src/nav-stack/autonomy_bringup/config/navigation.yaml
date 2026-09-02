@@ -9,21 +9,7 @@ global_traversability:
     update_period_s: 5.0
     # Local plane fit (steepness/roughness/ridge)
     neighbourhood_radius_m: 0.3
-    # 8, not 4. Four points define a plane only in the sense that the algebra succeeds.
-    min_plane_fit_points: 8
-    # The half of that fix that actually catches it: enough points is not the same as
-    # enough spread. Far from the sensor a 0.3 m neighbourhood catches a thin smear of
-    # returns at grazing incidence, and a plane through a nearly collinear set is free to
-    # tilt about that line -- the normal comes out steep and arbitrary. A fit is now
-    # rejected when the variance off the plane exceeds this fraction of the smaller
-    # variance within it, and the cell stays unknown instead.
-    #
-    # This is where "open ground reaches 13.5 deg" in the table below comes from. Compared
-    # against the simulator's DEM, 14% of genuinely flat cells were reporting above
-    # max_slope_deg, all of it beyond about 5 m from the sensor; within 4 m the layer
-    # tracks the true slope to under a degree. Once those cells drop out, steepness may
-    # separate boulders after all -- worth re-measuring that table.
-    max_plane_fit_ratio: 0.15
+    min_plane_fit_points: 4
     # Height a point must clear a cell's ground estimate by to count as an overhead return,
     # rather than ground-return noise, when computing clearance. Do not raise this much:
     # boulder cells report a minimum clearance of 0.06, so 0.05 is already close to the
@@ -45,34 +31,6 @@ global_traversability:
     # 2 and 1 perform the same and neither adds a single false positive, so 2 keeps a
     # two-point minimum as cheap protection against one stray return on the real MID-360.
     min_points_per_cell: 2
-    # Craters, which none of the layers above can see.
-    #
-    # They all judge a cell against neighbourhood_radius_m of its surroundings, and
-    # anything wider than that is flat at their scale: a crater's floor reads like ordinary
-    # ground, and only its rim carries slope. Measured against the simulator's DEM, the
-    # crater at world (2.9, 4.4) is 16 cm deep, its rim reads 9.0 deg against a true 9.7,
-    # and every obstacle threshold stays clear -- because 9 deg of slope genuinely is
-    # traversable. The hole was invisible to the costmap.
-    #
-    # depression_radius_m is the neighbourhood a cell's depth is judged against. It has to be
-    # comfortably wider than the holes being looked for, or the hole drags down its own
-    # reference level and measures shallower than it is. Swept against that 16.4 cm crater:
-    #
-    #     radius   measured depth   crater cells flagged   open ground   all cells
-    #     1.5 m        0.105 m              18.3%              0.3%         5.5%
-    #     2.5 m        0.130 m              25.7%              1.0%         6.7%
-    #     3.5 m        0.150 m              29.7%              2.2%         5.2%
-    #
-    # 2.5 is roughly 1.5x the crater's own width, which is the point where the window is
-    # mostly the ground around the hole rather than the hole. Going wider keeps improving
-    # the depth estimate but starts calling genuine slopes holes, which is what the rising
-    # open-ground column is.
-    depression_radius_m: 2.5
-    # How far below its surroundings a cell may sit before it is an obstacle. Under the
-    # crater, above the few centimetres of undulation this regolith surface has. Swept at
-    # 2.5 m radius: 0.10 flags 25.7% of crater cells against 1.0% of open ground; 0.08 buys
-    # 6 more points of crater and quadruples the false positives; 0.06 is worse again.
-    max_depression_m: 0.10
     # Obstacle thresholds. Measured on the mapped arena, boulder cells vs open ground:
     #
     #     layer         boulders        open ground     verdict
