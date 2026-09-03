@@ -75,9 +75,20 @@ map:
   max_size: 600000
 preprocess:
   # The strongest accuracy dial and the most expensive one, the counterpart of FAST-LIO's
-  # filter_size_surf. Kept at the same 0.12 m so the two backends spend comparable time per
-  # scan on the Jetson. Give this back first if odometry cannot keep up with its input.
-  downsample_resolution_m: 0.12
+  # filter_size_surf. Give this back first if odometry cannot keep up with its input.
+  #
+  # Was 0.12, chosen only so the two backends spend comparable time per scan on the Jetson
+  # -- parity with FAST-LIO, not a measurement of what BIEVR-LIO needs. 0.10 is upstream's
+  # own default (BIEVR-LIO/config/params.yaml) and is here to fight pose jitter: coarser
+  # downsampling leaves fewer residuals in the solve, and the Lunabotics arena is close to
+  # the worst case for that -- a flat sand floor and low walls give little to constrain the
+  # horizontal plane with, so thinning the returns costs more here than it would indoors.
+  #
+  # Points on a surface go as (1/res)^2, so this is about 1.4x the per-scan work. The
+  # measurement in max_num_threads below had the whole pipeline holding 10 Hz on one core,
+  # and there are 3, so there should be headroom -- but that was measured at 0.12. Watch
+  # `ros2 topic hz /Odometry` against the 10 Hz LiDAR rate and put this back if it sags.
+  downsample_resolution_m: 0.10
   informed_sampling: true
 optimization:
   huber_delta: 0.1
