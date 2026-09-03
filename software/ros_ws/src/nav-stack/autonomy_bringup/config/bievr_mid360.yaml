@@ -41,7 +41,7 @@ lidar:
   # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind; same 0.5 m,
   # and the same caveat: it is a sphere, so raising it blinds the robot in every direction
   # at that radius.
-  min_range_m: 0.5
+  min_range_m: 1.5
   # Real MID-360 range (~70 m at high reflectivity, ~40 m at 10%).
   max_range_m: 70
   # Must match the URDF link name: it is the source frame of the lidar -> base lookup that

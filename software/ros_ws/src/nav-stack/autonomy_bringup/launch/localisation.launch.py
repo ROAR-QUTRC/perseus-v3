@@ -388,23 +388,29 @@ def generate_launch_description():
                         "use_odom": True,
                         "use_cmd_vel": False,
                         # EWMA time constant is roughly 1/alpha samples at
-                        # estimator_rate_hz, so 0.01 at 100 Hz was ~1 s. That is far
-                        # faster than a gyro bias actually drifts (minutes, with
-                        # temperature) and it makes the estimate chase real motion
-                        # whenever the stationary gate is briefly wrong.
+                        # estimator_rate_hz: 0.01 at 100 Hz was ~1 s, 0.001 is ~10 s.
+                        # A gyro bias drifts over minutes (with temperature), so a
+                        # 1 s window mostly measures gyro noise; averaging longer cuts
+                        # the estimator's own variance at no real cost in tracking.
                         #
-                        # It is wrong more often on this rover than the gate assumes.
-                        # With use_cmd_vel False and mode AND, `stationary` reduces to
-                        # "wheel /odom reads below odom_threshold" -- and the wheels
-                        # report zero both when they are slipping in place on LHS-2E and
-                        # when they are stalled under a low-speed command (see
-                        # perseus/config/wheel_pid_chaining.yaml). In either case the
-                        # chassis can still be rotating or settling on the rockers, the
-                        # gyro sees that rotation, and at ~1 s it lands in the bias
-                        # within a second and is then subtracted from the real signal.
+                        # This was changed on the theory that the stationary gate --
+                        # which with use_cmd_vel False and mode AND reduces to "wheel
+                        # /odom reads below odom_threshold" -- would be fooled while the
+                        # wheels slip or stall, letting real rotation land in the bias.
+                        # Measured on the rover, that does NOT happen. Peak-to-peak
+                        # movement of /livox/gyro_bias z:
                         #
-                        # 0.001 is ~10 s: still well inside a drive, but slow enough that
-                        # a second or two of false-stationary barely moves it.
+                        #     stationary, 30 s      0.000052 rad/s   mean -0.011472
+                        #     driving, 40 s         0.000061 rad/s   mean -0.011453
+                        #
+                        # i.e. the gate holds and the accumulator stays frozen through a
+                        # drive. BIEVR-LIO's own residual estimate on
+                        # /bievr_lio/bias/gyro agrees, sitting at -3e-5 rad/s, so the
+                        # correction is not fighting the filter's internal one either.
+                        #
+                        # Both values are therefore fine in practice. 0.001 is kept as
+                        # the better-conditioned of the two, not as a fix for anything
+                        # observed.
                         "accumulator_alpha": 0.001,
                         "stationary_mode": "AND",  # OR / AND
                         "imu_in_topic": "/livox/imu",
