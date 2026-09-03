@@ -21,13 +21,26 @@
 #   89658 B with it true -- no compression at all against 4.35x. The live scan went from 1.99x
 #   to 6.73x. The cost is that non-position fields become lossy, which is why it is set per
 #   stream rather than assumed; see the note on each stream below.
+#
+# height_filter_enabled/height_filter_frame/max_height_m -- before voxelizing, each downsampler
+#   drops points whose z, transformed into height_filter_frame, exceeds max_height_m. Odom
+#   rather than a body frame, so the cutoff stays a fixed height off the ground the robot
+#   started on regardless of chassis pitch/roll or the 45-degree Livox tilt. The default
+#   2.725 m is the highest TF frame on the robot (livox_frame, ~0.725 m above base_link) plus
+#   a 2 m clearance margin -- points above that are neither detected nor transmitted.
 livox_voxel_downsampler:
   ros__parameters:
     voxel_size_m: 0.2
+    height_filter_enabled: true
+    height_filter_frame: "odom"
+    max_height_m: 2.725
 laser_map_voxel_downsampler:
   ros__parameters:
     # The accumulated map is far denser than a single scan, so it is thinned harder.
     voxel_size_m: 0.15
+    height_filter_enabled: true
+    height_filter_frame: "odom"
+    max_height_m: 2.725
 livox_draco_encoder:
   ros__parameters:
     quantization_bits: 12

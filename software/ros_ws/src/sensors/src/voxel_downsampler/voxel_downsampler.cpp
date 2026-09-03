@@ -7,7 +7,10 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
+#include <tf2/exceptions.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <unordered_set>
 
 namespace sensors {
@@ -57,9 +60,15 @@ VoxelDownsampler::VoxelDownsampler(const rclcpp::NodeOptions &options)
   _publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>(
       output_topic, QOS_DEPTH);
 
+  _tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  _tf_listener = std::make_shared<tf2_ros::TransformListener>(*_tf_buffer);
+
   RCLCPP_INFO(this->get_logger(),
-              "Voxel downsampler: %s -> %s (voxel size %.3f m)",
-              input_topic.c_str(), output_topic.c_str(), _voxel_size_m);
+              "Voxel downsampler: %s -> %s (voxel size %.3f m, height filter "
+              "%s at %.3f m in %s)",
+              input_topic.c_str(), output_topic.c_str(), _voxel_size_m,
+              _height_filter_enabled ? "enabled" : "disabled", _max_height_m,
+              _height_filter_frame.c_str());
 }
 
 void VoxelDownsampler::_load_parameters(std::string &input_topic_out,
@@ -85,6 +94,19 @@ void VoxelDownsampler::_load_parameters(std::string &input_topic_out,
                 _voxel_size_m, DEFAULT_VOXEL_SIZE_M);
     _voxel_size_m = DEFAULT_VOXEL_SIZE_M;
   }
+
+  // Everything above max_height_m, measured in height_filter_frame, is dropped
+  // before it reaches the voxel grid -- the highest frame on the robot
+  // (livox_frame, the tilted Livox mount) plus a clearance margin above it, so
+  // that mast/antenna returns and anything further overhead are neither
+  // detected nor transmitted. Measured in odom rather than in the cloud's own
+  // (possibly tilted) sensor frame so the cutoff is a fixed height off the
+  // ground the robot started on.
+  _height_filter_enabled =
+      this->declare_parameter("height_filter_enabled", true);
+  _height_filter_frame = this->declare_parameter("height_filter_frame",
+                                                 DEFAULT_HEIGHT_FILTER_FRAME);
+  _max_height_m = this->declare_parameter("max_height_m", DEFAULT_MAX_HEIGHT_M);
 }
 
 void VoxelDownsampler::_point_cloud_callback(
@@ -97,6 +119,9 @@ void VoxelDownsampler::_point_cloud_callback(
     return;
   }
   const position_offsets_t offsets = resolved.value();
+
+  const std::optional<tf2::Transform> height_filter_transform =
+      _resolve_height_filter_transform(msg->header.frame_id);
 
   // Trust data.size() over width*height: a cloud that declares more points than
   // it carries would otherwise walk off the end of the buffer.
@@ -147,6 +172,14 @@ void VoxelDownsampler::_point_cloud_callback(
     std::memcpy(&z, &msg->data[byte_offset + offsets.z], sizeof(float));
     if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) {
       continue;
+    }
+
+    if (height_filter_transform.has_value()) {
+      const tf2::Vector3 point_in_filter_frame =
+          height_filter_transform.value() * tf2::Vector3(x, y, z);
+      if (point_in_filter_frame.z() > _max_height_m) {
+        continue;
+      }
     }
 
     const int32_t vx = static_cast<int32_t>(std::floor(x / _voxel_size_m));
@@ -212,6 +245,34 @@ VoxelDownsampler::_resolve_position_offsets(
   }
 
   return offsets;
+}
+
+std::optional<tf2::Transform>
+VoxelDownsampler::_resolve_height_filter_transform(
+    const std::string &cloud_frame_id) {
+  if (!_height_filter_enabled) {
+    return std::nullopt;
+  }
+
+  // Looked up fresh per cloud rather than cached: cheap relative to the
+  // downsampling work below, and it keeps this correct across a TF frame
+  // rename or listener restart without a node restart.
+  geometry_msgs::msg::TransformStamped transform_stamped;
+  try {
+    transform_stamped = _tf_buffer->lookupTransform(
+        _height_filter_frame, cloud_frame_id, tf2::TimePointZero);
+  } catch (const tf2::TransformException &ex) {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                         "Height filter: could not look up %s -> %s (%s); "
+                         "publishing this cloud unfiltered by height.",
+                         cloud_frame_id.c_str(), _height_filter_frame.c_str(),
+                         ex.what());
+    return std::nullopt;
+  }
+
+  tf2::Transform transform;
+  tf2::fromMsg(transform_stamped.transform, transform);
+  return transform;
 }
 
 int64_t VoxelDownsampler::_voxel_key(int32_t vx, int32_t vy, int32_t vz) {
