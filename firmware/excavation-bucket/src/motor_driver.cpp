@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 
-#include <format>
 #include <stdexcept>
 
 static constexpr uint8_t PWM_BITS = 12;
