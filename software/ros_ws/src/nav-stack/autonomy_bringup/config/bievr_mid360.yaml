@@ -225,4 +225,4 @@ debug:
 # the whole pipeline held 10 Hz on one 3.9 GHz core with a 23k-point scan, which is the
 # point rate the real MID-360 produces. Raise it if `ros2 topic hz /Odometry` falls below
 # the LiDAR rate.
-max_num_threads: 3
+max_num_threads: 4
