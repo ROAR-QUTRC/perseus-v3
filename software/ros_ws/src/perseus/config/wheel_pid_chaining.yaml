@@ -82,16 +82,43 @@ wheel_pid_controller:
       #   p 0.5  - a stalled wheel commanded 0.34 rad/s contributes +0.17,
       #            which is deliberately not enough on its own. The integral is
       #            what is meant to do the work here.
-      #   i 3.0  - winds at 3x error per second, so a stalled wheel reaches the
-      #            i_clamp ceiling in roughly half a second.
+      #   i 1.5  - winds at 1.5x error per second, so a wheel stalled against a
+      #            0.3 rad/s command reaches the i_clamp ceiling in about 0.2 s.
       #   d 0.0  - the velocity signal comes off a tachometer and is noisy;
       #            derivative on it buys nothing here.
       #
-      # i_clamp is THE safety knob. It caps how much extra speed the integrator
-      # can demand, and therefore how hard the wheel lurches when it finally
-      # breaks free -- through a 40:1 gearbox with backlash. 1.5 rad/s is about
-      # 0.22 m/s at the tyre. Raise it if the wheel never breaks loose; do that
-      # with the rover on the ground and a hand on the e-stop.
+      # i_clamp is THE safety knob, and 0.3 is chosen from recorded data rather
+      # than picked. It was 1.5, which is 5-10x more than the chain has ever
+      # productively used and which caused the rover to creep when told to stop.
+      #
+      # Once reference and feedback are both zero the error is exactly zero, so
+      # a pure integrator holds whatever it accumulated during the stop and
+      # never unwinds -- nothing in pid_controller's antiwindup options bleeds
+      # it, because they only act when the OUTPUT saturates and it does not.
+      # Whatever is parked there is a standing command to the ESCs.
+      #
+      # Integrator term recovered from three bags as
+      # I = output - reference - p*(reference - feedback):
+      #
+      #                       |I| doing low-speed work   |I| parked   parked > ESC floor
+      #   10:16:38 (clean)    median 0.148  p99 0.295    max 0.369    0.1%
+      #   10:31:15 (slip)     median 0.788  p90 1.500    max 1.500    5.0%
+      #   2026-09-03          median 0.136  p99 0.473    max 1.500    0.7%
+      #
+      # The clean run never needed more than 0.369 and usually used 0.15-0.22.
+      # The slippy run saturated the 1.5 clamp and the wheels still did not
+      # track -- that authority bought nothing and left the residual that made
+      # it creep at ~0.35 rad/s (about 5 cm/s at the tyre) while commanded stop.
+      #
+      # 0.3 sits below the ESCs' ~0.34 rad/s (900 ERPM) minimum turn speed, so a
+      # parked integrator is PHYSICALLY unable to move the rover however it
+      # wound up, and it still covers the p99 of what the working run used.
+      # Raise it only with the rover on the ground and a hand on the e-stop, and
+      # re-check the parked figure above afterwards.
+      #
+      # i was 3.0. Halved because the clamp is now five times tighter: 1.5 still
+      # reaches it in ~0.2 s at a 0.3 rad/s error, which is inside the sub-second
+      # window a stall needs, while accumulating less during a slip transient.
       #
       # u_clamp is the outer bound on the whole output and is set at the
       # drivetrain's real ceiling, so it only ever catches a runaway.
@@ -105,45 +132,45 @@ wheel_pid_controller:
       # step by hand.
       front_left_wheel_joint:
         p: 0.5
-        i: 3.0
+        i: 1.5
         d: 0.0
         feedforward_gain: 1.0
         antiwindup: true
-        i_clamp_max: 1.5
-        i_clamp_min: -1.5
+        i_clamp_max: 0.3
+        i_clamp_min: -0.3
         u_clamp_max: 12.0
         u_clamp_min: -12.0
         activate_state_publisher: true
       front_right_wheel_joint:
         p: 0.5
-        i: 3.0
+        i: 1.5
         d: 0.0
         feedforward_gain: 1.0
         antiwindup: true
-        i_clamp_max: 1.5
-        i_clamp_min: -1.5
+        i_clamp_max: 0.3
+        i_clamp_min: -0.3
         u_clamp_max: 12.0
         u_clamp_min: -12.0
         activate_state_publisher: true
       rear_left_wheel_joint:
         p: 0.5
-        i: 3.0
+        i: 1.5
         d: 0.0
         feedforward_gain: 1.0
         antiwindup: true
-        i_clamp_max: 1.5
-        i_clamp_min: -1.5
+        i_clamp_max: 0.3
+        i_clamp_min: -0.3
         u_clamp_max: 12.0
         u_clamp_min: -12.0
         activate_state_publisher: true
       rear_right_wheel_joint:
         p: 0.5
-        i: 3.0
+        i: 1.5
         d: 0.0
         feedforward_gain: 1.0
         antiwindup: true
-        i_clamp_max: 1.5
-        i_clamp_min: -1.5
+        i_clamp_max: 0.3
+        i_clamp_min: -0.3
         u_clamp_max: 12.0
         u_clamp_min: -12.0
         activate_state_publisher: true
