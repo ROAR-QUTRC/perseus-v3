@@ -13,7 +13,7 @@ Panels:
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
       Splitter Ratio: 0.5833333134651184
-    Tree Height: 140
+    Tree Height: 190
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -22,8 +22,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_common/Views
-    Expanded:
-      - /Current View1
+    Expanded: ~
     Name: Views
     Splitter Ratio: 0.5
   - Class: rviz_plugins/TopicHealthPanel
@@ -65,8 +64,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_footprint:
-          Value: true
         base_link:
           Value: true
         camera_accel_frame:
@@ -107,11 +104,7 @@ Visualization Manager:
           Value: true
         front_left_motor:
           Value: true
-        front_left_wheel:
-          Value: true
         front_right_motor:
-          Value: true
-        front_right_wheel:
           Value: true
         left_rocker:
           Value: true
@@ -121,17 +114,9 @@ Visualization Manager:
           Value: true
         livox_imu_frame:
           Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
         rear_left_motor:
           Value: true
-        rear_left_wheel:
-          Value: true
         rear_right_motor:
-          Value: true
-        rear_right_wheel:
           Value: true
         right_rocker:
           Value: true
@@ -143,55 +128,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          odom:
-            base_footprint:
-              {}
-            base_link:
-              chassis:
-                flange_bearing:
-                  differential_bar:
-                    {}
-                left_rocker:
-                  front_left_motor:
-                    front_left_wheel:
-                      {}
-                  rear_left_motor:
-                    rear_left_wheel:
-                      {}
-                right_rocker:
-                  front_right_motor:
-                    front_right_wheel:
-                      {}
-                  rear_right_motor:
-                    rear_right_wheel:
-                      {}
-                sensor_mount:
-                  camera_bottom_screw_frame:
-                    camera_link:
-                      camera_accel_frame:
-                        camera_accel_optical_frame:
-                          {}
-                      camera_color_frame:
-                        camera_color_optical_frame:
-                          {}
-                      camera_depth_frame:
-                        camera_depth_optical_frame:
-                          {}
-                      camera_gyro_frame:
-                        camera_gyro_optical_frame:
-                          camera_imu_optical_frame:
-                            {}
-                      camera_infra1_frame:
-                        camera_infra1_optical_frame:
-                          {}
-                      camera_infra2_frame:
-                        camera_infra2_optical_frame:
-                          {}
-                  livox_base:
-                    livox_frame:
-                      livox_imu_frame:
-                        {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -212,10 +149,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_footprint:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         base_link:
           Alpha: 1
           Show Axes: false
@@ -325,7 +258,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         livox_frame:
           Alpha: 1
           Show Axes: false
@@ -364,7 +296,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -437,7 +368,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 1.2999999523162842
+        Max Value: 0.5
         Min Value: -0.4000000059604645
         Value: false
       Axis: Z
@@ -446,7 +377,7 @@ Visualization Manager:
       Color: 4; 196; 172
       Color Transformer: AxisColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 0
@@ -457,7 +388,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.05000000074505806
-      Style: Flat Squares
+      Style: Boxes
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -466,7 +397,7 @@ Visualization Manager:
         Value: /Laser_map/downsampled/decompressed
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz_default_plugins/Odometry
       Covariance:
@@ -507,10 +438,10 @@ Visualization Manager:
         Value: /odometry/filtered
       Value: true
     - Class: rviz_default_plugins/Marker
-      Enabled: true
+      Enabled: false
       Name: Global Mesh Map
       Namespaces:
-        cloud_mesher: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -518,7 +449,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /mesh
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Binary representation: false
       Binary threshold: 100
@@ -560,14 +491,46 @@ Visualization Manager:
       Enabled: true
       Name: Arena Zones
       Namespaces:
-        arena_zone_labels: true
-        arena_zones: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /arena/zones
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /Laser_map
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -649,7 +612,7 @@ Window Geometry:
   Hide Right Dock: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000006fb000000100044006900730070006c006100790073010000003f000000cc000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000111000001210000008800fffffffb0000001a004100720065006e00610020004d0069006e0069006d006100700100000238000001320000010a00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000370000000640000006400ffffff000000010000014700000395fc0200000002fb0000001800460072006f006e0074002000430061006d006500720061010000003f000001040000001700fffffffb0000000a0056006900650077007301000001490000028b000000a900ffffff000004d70000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000005fb000000100044006900730070006c006100790073010000003f000000fe000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000143000001690000008800fffffffb0000000a0056006900650077007301000002b200000122000000a900ffffff000000010000014700000395fc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000001260000001700fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000016b000001590000006400fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000002ca0000010a0000010a00ffffff000004d70000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:

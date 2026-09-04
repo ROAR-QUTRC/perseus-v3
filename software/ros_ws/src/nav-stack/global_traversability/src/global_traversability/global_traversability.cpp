@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace global_traversability {
@@ -96,6 +97,8 @@ void GlobalTraversability::_load_parameters() {
       this->declare_parameter("max_slope_deg", DEFAULT_MAX_SLOPE_DEG);
   _max_roughness_m =
       this->declare_parameter("max_roughness_m", DEFAULT_MAX_ROUGHNESS_M);
+  _min_obstacle_cells =
+      this->declare_parameter("min_obstacle_cells", DEFAULT_MIN_OBSTACLE_CELLS);
   _min_clearance_m =
       this->declare_parameter("min_clearance_m", DEFAULT_MIN_CLEARANCE_M);
   _treat_unknown_as_obstacle = this->declare_parameter(
@@ -368,6 +371,64 @@ void GlobalTraversability::_compute_obstacle() {
           (!std::isnan(clearance_value) && clearance_value < min_clearance);
 
       obstacle(row, col) = is_obstacle ? 1.0f : 0.0f;
+    }
+  }
+
+  _prune_small_obstacles();
+}
+
+void GlobalTraversability::_prune_small_obstacles() {
+  if (_min_obstacle_cells <= 1) {
+    return;
+  }
+
+  Eigen::MatrixXf &obstacle = _map["obstacle"];
+  const int rows = _map.getSize()(0);
+  const int cols = _map.getSize()(1);
+
+  // 8-connected flood fill. Diagonals count as connected because a boulder
+  // sampled sparsely can leave a cell touching its neighbour only at a corner,
+  // and splitting it in two would be the filter working against itself.
+  Eigen::MatrixXi visited = Eigen::MatrixXi::Zero(rows, cols);
+  std::vector<std::pair<int, int>> component;
+  std::vector<std::pair<int, int>> stack;
+
+  for (int row = 0; row < rows; ++row) {
+    for (int col = 0; col < cols; ++col) {
+      if (visited(row, col) != 0 || obstacle(row, col) <= 0.5f) {
+        continue;
+      }
+
+      component.clear();
+      stack.assign(1, {row, col});
+      visited(row, col) = 1;
+
+      while (!stack.empty()) {
+        const auto [r, c] = stack.back();
+        stack.pop_back();
+        component.emplace_back(r, c);
+
+        for (int dr = -1; dr <= 1; ++dr) {
+          for (int dc = -1; dc <= 1; ++dc) {
+            const int nr = r + dr;
+            const int nc = c + dc;
+            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {
+              continue;
+            }
+            if (visited(nr, nc) != 0 || obstacle(nr, nc) <= 0.5f) {
+              continue;
+            }
+            visited(nr, nc) = 1;
+            stack.emplace_back(nr, nc);
+          }
+        }
+      }
+
+      if (component.size() < static_cast<std::size_t>(_min_obstacle_cells)) {
+        for (const auto &[r, c] : component) {
+          obstacle(r, c) = 0.0f;
+        }
+      }
     }
   }
 }

@@ -97,6 +97,17 @@ private:
   /// for a
   ///        vehicle that cannot verify unmapped ground) rather than as
   ///        free/unknown space.
+  /// @brief Smallest run of connected obstacle cells that is published as an
+  /// obstacle; anything smaller is erased. 1 disables the filter.
+  /// @details A morphological opening on the obstacle layer. A 30-40 cm boulder
+  /// covers 9-16 cells at 0.1 m resolution, so a one- or two-cell blob is not a
+  /// rock -- it is a cell that crept over max_height_diff_m because the map is
+  /// vertically inconsistent with itself where two passes overlap. Those are
+  /// expensive out of proportion to their size: inflation_radius_m turns a
+  /// single spurious cell into a 0.45 m disc of no-go in the middle of
+  /// otherwise drivable ground.
+  static constexpr int DEFAULT_MIN_OBSTACLE_CELLS = 1;
+
   static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = true;
 
   /// @brief Default robot radius used as the inscribed (always-lethal)
@@ -147,6 +158,8 @@ private:
   /// into a binary
   ///        obstacle layer.
   void _compute_obstacle();
+  /// @brief Erase obstacle blobs smaller than _min_obstacle_cells, in place.
+  void _prune_small_obstacles();
 
   /// @brief Runs a two-pass chamfer distance transform off the obstacle layer
   /// and turns the
@@ -206,6 +219,7 @@ private:
   double _max_slope_deg{DEFAULT_MAX_SLOPE_DEG};
   double _max_roughness_m{DEFAULT_MAX_ROUGHNESS_M};
   double _min_clearance_m{DEFAULT_MIN_CLEARANCE_M};
+  int _min_obstacle_cells{DEFAULT_MIN_OBSTACLE_CELLS};
   bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
 
   double _robot_radius_m{DEFAULT_ROBOT_RADIUS_M};

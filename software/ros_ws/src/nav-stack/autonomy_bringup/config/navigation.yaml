@@ -56,6 +56,37 @@ global_traversability:
     #
     # and detection stays at 7/7 throughout, so every one of those is pure loss.
     max_roughness_m: 0.08
+    # Smallest run of connected obstacle cells that is published; smaller blobs
+    # are erased (8-connected, so a corner touch still counts). 1 disables it.
+    #
+    # This is a filter on a symptom, and the symptom is that the map is
+    # vertically inconsistent with itself: BIEVR-LIO's z wanders, so two passes
+    # over the same ground write it at different heights and a cell straddling
+    # them clears max_height_diff_m without there being anything there. Measured
+    # z spread per quarter of a run: 0.30 m before huber_delta was tuned, 0.115 m
+    # after -- still above the 0.10 m threshold, hence the residue this catches.
+    #
+    # 4 because a 30-40 cm boulder covers 9-16 cells at resolution_m 0.1, so it
+    # cannot erase one. Measured by replaying rosbag2_1970_01_01-10_31_15's
+    # /Laser_map through this node:
+    #
+    #     min_obstacle_cells    obstacle cells    removed
+    #     1 (off)                         4034          -
+    #     4                               3672    362  (9.0%)
+    #     12                              3301    733 (18.2%)
+    #
+    # The cells it removes had a median height spread of 0.144-0.152 m, i.e.
+    # marginal ones just over the threshold rather than anything solid. They cost
+    # more than their count suggests: inflation_radius_m below turns each one
+    # into a 0.45 m disc of no-go in otherwise drivable ground.
+    #
+    # Do not raise this much without checking the boulders are still seen -- 12
+    # is already approaching the size of a real rock.
+    #
+    # The bigger lever is upstream: huber_delta 0.1 -> 0.01 in bievr_mid360.yaml
+    # took flagged cells from 2361 to 816 on identical LiDAR input, 65% against
+    # this filter's 9%.
+    min_obstacle_cells: 4
     min_clearance_m: 0.6
     # Unmapped cells are treated as obstacles: safer default for a vehicle that cannot verify
     # unmapped ground ahead of time.
