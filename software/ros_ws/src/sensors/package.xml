@@ -15,6 +15,10 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <!-- voxel_downsampler: height-filters the cloud into odom before downsampling -->
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
   <!-- cloud_mesher: the marker it publishes, and the PCL surface reconstruction behind it -->
   <depend>visualization_msgs</depend>
   <depend>pcl_conversions</depend>
