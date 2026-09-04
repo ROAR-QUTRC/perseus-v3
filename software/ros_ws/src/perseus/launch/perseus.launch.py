@@ -24,6 +24,7 @@ def generate_launch_description():
     hardware_plugin = LaunchConfiguration("hardware_plugin")
     can_bus = LaunchConfiguration("can_bus")
     use_wheel_pid = LaunchConfiguration("use_wheel_pid")
+    safe_speed = LaunchConfiguration("safe_speed")
     min_command_erpm = LaunchConfiguration("min_command_erpm")
 
     arguments = [
@@ -60,6 +61,15 @@ def generate_launch_description():
         # The two low-speed stall mitigations, both off by default so the rover
         # behaves exactly as before unless one is asked for. They are
         # independent, so they can be enabled separately to tell them apart.
+        DeclareLaunchArgument(
+            "safe_speed",
+            default_value="true",
+            description=(
+                "Reduced-speed mode: caps the rover at 0.8 m/s and 0.4 rad/s. "
+                "Enforced in the diff drive controller, so it binds the joystick, "
+                "the web UI and nav2 alike. See perseus/config/safe_speed.yaml"
+            ),
+        ),
         DeclareLaunchArgument(
             "use_wheel_pid",
             default_value="true",
@@ -123,6 +133,7 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "use_wheel_pid": use_wheel_pid,
+            "safe_speed": safe_speed,
         }.items(),
     )
     twist_mux_launch = IncludeLaunchDescription(
