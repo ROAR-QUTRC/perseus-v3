@@ -35,17 +35,18 @@ pkgs.mkShell {
           ament-lint-common
           backward-ros
           builtin-interfaces
-          compressed-depth-image-transport
           compressed-image-transport
           controller-manager
           cv-bridge
           diff-drive-controller
           fast-lio
+          ffmpeg-image-transport
           geometry-msgs
           grid-map-core
           hardware-interface
           hi-can
           hi-can-raw
+          image-transport
           joint-state-broadcaster
           joint-state-publisher-gui
           joy

@@ -7,8 +7,11 @@
   ament-lint-auto,
   ament-lint-common,
   builtin-interfaces,
+  compressed-image-transport,
   cv-bridge,
+  ffmpeg-image-transport,
   geometry-msgs,
+  image-transport,
   onnxruntime,
   opencv,
   interfaces,
@@ -16,6 +19,7 @@
   rclcpp,
   rclcpp-components,
   sensor-msgs,
+  sensors,
   std-msgs,
   tf2,
   tf2-geometry-msgs,
@@ -38,8 +42,11 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     ament-index-cpp
     builtin-interfaces
+    compressed-image-transport
     cv-bridge
+    ffmpeg-image-transport
     geometry-msgs
+    image-transport
     onnxruntime
     opencv
     interfaces
@@ -47,6 +54,7 @@ buildRosPackage rec {
     rclcpp
     rclcpp-components
     sensor-msgs
+    sensors
     std-msgs
     tf2
     tf2-geometry-msgs
