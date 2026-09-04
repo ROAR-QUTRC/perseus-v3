@@ -31,11 +31,6 @@
 					description: 'Multiplier for jaws speed',
 					value: '-0.1'
 				},
-				rotate: {
-					type: 'number',
-					description: 'Multiplier for rotate speed',
-					value: '0.5'
-				}
 			}
 		}
 	});
@@ -62,7 +57,6 @@
 		lift: { parent: null, active: false, value: 0 },
 		tilt: { parent: null, active: false, value: 0 },
 		jaws: { parent: null, active: false, value: 0 },
-		rotate: { parent: null, active: false, value: 0 }
 	});
 
 	// ROS2 connection management
@@ -98,16 +92,13 @@
 			deadBand(handles.jaws.value, DEADBAND_PERCENT) *
 				Number(settings.groups.general.jaws.value) *
 				Number(settings.groups.general.masterSpeedMultiplier.value),
-			deadBand(handles.rotate.value, DEADBAND_PERCENT) *
-				Number(settings.groups.general.rotate.value) *
-				Number(settings.groups.general.masterSpeedMultiplier.value)
 		];
 
 		const message: ActuatorsMessageType = {
 			header: {}, // Leaving this empty forces ROS bridge to fill in the timestamp.
 			position: [],
 			velocity: velocities,
-			normalized: [magnet ? 1 : 0]
+			normalized: []
 		};
 
 		topic.publish(message);
@@ -267,8 +258,5 @@
 				</div>
 			{/each}
 		</div>
-		<Button class="w-fit self-center" onclick={() => (magnet = !magnet)}
-			>Turn magnet {magnet ? 'off' : 'on'}</Button
-		>
 	</div>
 {/if}

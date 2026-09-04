@@ -114,11 +114,6 @@ def main():
                             and "ACTUATOR" in parameters_for_groups
                         ):
                             group.update(parameters_for_groups["ACTUATOR"])
-                        # Handle Magnet shorthand
-                        elif (
-                            group_prefix == "MAGN" and "MAGNET" in parameters_for_groups
-                        ):
-                            group.update(parameters_for_groups["MAGNET"])
 
                 system[system_id][subsystem_id][device_id].update(groups)
         elif " SUBSYSTEM_ID" in token:

@@ -20,10 +20,6 @@ GenericController::GenericController(const rclcpp::NodeOptions& options)
         std::make_pair(TILT_BASE_NAME, AxisParser(*this, TILT_BASE_NAME)));
     _axis_parsers.emplace(
         std::make_pair(JAWS_BASE_NAME, AxisParser(*this, JAWS_BASE_NAME)));
-    _axis_parsers.emplace(
-        std::make_pair(ROTATE_BASE_NAME, AxisParser(*this, ROTATE_BASE_NAME)));
-    _axis_parsers.emplace(
-        std::make_pair(MAGNET_BASE_NAME, AxisParser(*this, "bucket.magnet")));
     _joy_subscription = this->create_subscription<sensor_msgs::msg::Joy>(
         "joy", 10,
         std::bind(&GenericController::_joy_callback, this,
@@ -63,10 +59,6 @@ void GenericController::_joy_timeout_callback(void)
         actuator_msg.velocity.push_back(0);
         actuator_msg.velocity.push_back(0);
         actuator_msg.velocity.push_back(0);
-        actuator_msg.velocity.push_back(0);
-
-        // note: inverted, so magnet is released when the button's pressed
-        actuator_msg.normalized.push_back(0);
 
         actuator_msg.header.stamp = this->now();
         // Publish actuator message
@@ -89,13 +81,11 @@ void GenericController::_joy_callback(
     double lift = _axis_parsers.at(LIFT_BASE_NAME).get_value();
     double tilt = _axis_parsers.at(TILT_BASE_NAME).get_value();
     double jaws = _axis_parsers.at(JAWS_BASE_NAME).get_value();
-    double rotate = _axis_parsers.at(ROTATE_BASE_NAME).get_value();
-    bool magnet = _axis_parsers.at(MAGNET_BASE_NAME).get_value() > 0.5;
 
     RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
                           "Forward: %+2.2f, Turn: %+2.2f, Lift: %+2.2f, Tilt: "
-                          "%+2.2f, Jaws: %+2.2f, Rotate: %+2.2f, Magnet: %d",
-                          forward, turn, lift, tilt, jaws, rotate, magnet);
+                          "%+2.2f, Jaws: %+2.2f",
+                          forward, turn, lift, tilt, jaws);
 
     geometry_msgs::msg::TwistStamped twist_msg;
     twist_msg.twist.linear.x = forward;
@@ -109,10 +99,6 @@ void GenericController::_joy_callback(
     actuator_msg.velocity.push_back(lift);
     actuator_msg.velocity.push_back(tilt);
     actuator_msg.velocity.push_back(jaws);
-    actuator_msg.velocity.push_back(rotate);
-
-    // note: inverted, so magnet is released when the button's pressed
-    actuator_msg.normalized.push_back(magnet);
 
     actuator_msg.header.stamp = this->now();
     // Publish actuator message

@@ -39,7 +39,4 @@ generic_controller:
       rotate:
         scaling: -0.5
         axis: 6
-      magnet:
-        hold: true
-        axis: 7
     timeout_ns: 150000000

@@ -15,8 +15,7 @@ private:
     void _actuator_callback(const actuator_msgs::msg::Actuators::SharedPtr msg);
     void _timeout_callback();
 
-    void _write_actuators(double lift, double tilt, double jaws, double rotate,
-                          bool magnet);
+    void _write_actuators(double lift, double tilt, double jaws);
 
     constexpr static auto ACTUATOR_TIMEOUT = std::chrono::milliseconds(300);
 

@@ -34,26 +34,21 @@ void BucketDriver::_actuator_callback(
 
     _kill_timer->reset();
     _timed_out = false;
-    _write_actuators(msg->velocity[0], msg->velocity[1], msg->velocity[2],
-                     msg->velocity[3], std::abs(msg->normalized[0]) > 0.5);
+    _write_actuators(msg->velocity[0], msg->velocity[1], msg->velocity[2]);
 }
 void BucketDriver::_timeout_callback()
 {
     if (!_timed_out)
     {
-        _write_actuators(0, 0, 0, 0, false);
+        _write_actuators(0, 0, 0);
         _timed_out = true;
     }
 }
 
-void BucketDriver::_write_actuators(double lift, double tilt, double jaws,
-                                    double rotate, bool magnet)
+void BucketDriver::_write_actuators(double lift, double tilt, double jaws)
 {
     constexpr double ACTUATOR_MAX_SPEED = 0.1;  // m/s
-    constexpr double ROTATE_MAX_SPEED =
-        1.5;  // rad/s (this is a rough guesstimate)
     constexpr double LINEAR_CONVERSION_FACTOR = INT16_MAX / ACTUATOR_MAX_SPEED;
-    constexpr double ANGULAR_CONVERSION_FACTOR = INT16_MAX / ROTATE_MAX_SPEED;
 
     // actuator speeds -> PWM values
     const int16_t lift_pwm = static_cast<int16_t>(std::clamp(
@@ -65,48 +60,31 @@ void BucketDriver::_write_actuators(double lift, double tilt, double jaws,
     const int16_t jaws_pwm = static_cast<int16_t>(std::clamp(
         jaws * LINEAR_CONVERSION_FACTOR, static_cast<double>(INT16_MIN),
         static_cast<double>(INT16_MAX)));
-    const int16_t rotate_pwm = static_cast<int16_t>(std::clamp(
-        rotate * ANGULAR_CONVERSION_FACTOR, static_cast<double>(INT16_MIN),
-        static_cast<double>(INT16_MAX)));
 
     using namespace hi_can;
     using namespace addressing;
     using namespace addressing::excavation;
     using namespace addressing::excavation::bucket;
+    using namespace addressing::excavation::bucket::controller;
+    using namespace addressing::excavation::bucket::controller;
     using namespace parameters::excavation::bucket::controller;
 
-    const standard_address_t base_address{SYSTEM_ID, bucket::SUBSYSTEM_ID,
-                                          bucket::controller::DEVICE_ID};
+    const standard_address_t base_address{SYSTEM_ID, SUBSYSTEM_ID, DEVICE_ID};
 
     _can_interface.transmit(Packet(
-        static_cast<addressing::flagged_address_t>(standard_address_t{
-            base_address, static_cast<uint8_t>(controller::group::LIFT_BOTH),
-            static_cast<uint8_t>(controller::actuator_parameter::SPEED)}),
+        static_cast<flagged_address_t>(standard_address_t{
+            base_address, static_cast<uint8_t>(group::LIFT), static_cast<uint8_t>(bank_parameter::SPEED)}),
         speed_t{lift_pwm}.serialize_data()));
 
     _can_interface.transmit(Packet(
-        static_cast<addressing::flagged_address_t>(standard_address_t{
-            base_address, static_cast<uint8_t>(controller::group::TILT_BOTH),
-            static_cast<uint8_t>(controller::actuator_parameter::SPEED)}),
+        static_cast<flagged_address_t>(standard_address_t{
+            base_address, static_cast<uint8_t>(group::TILT), static_cast<uint8_t>(bank_parameter::SPEED)}),
         speed_t{tilt_pwm}.serialize_data()));
 
     _can_interface.transmit(Packet(
-        static_cast<addressing::flagged_address_t>(standard_address_t{
-            base_address, static_cast<uint8_t>(controller::group::JAWS_BOTH),
-            static_cast<uint8_t>(controller::actuator_parameter::SPEED)}),
+        static_cast<flagged_address_t>(standard_address_t{
+            base_address, static_cast<uint8_t>(group::JAWS), static_cast<uint8_t>(bank_parameter::SPEED)}),
         speed_t{jaws_pwm}.serialize_data()));
-
-    _can_interface.transmit(Packet(
-        static_cast<addressing::flagged_address_t>(standard_address_t{
-            base_address, static_cast<uint8_t>(controller::group::MAGNET),
-            static_cast<uint8_t>(controller::magnet_parameter::ROTATE_SPEED)}),
-        speed_t{rotate_pwm}.serialize_data()));
-
-    _can_interface.transmit(Packet(
-        static_cast<addressing::flagged_address_t>(standard_address_t{
-            base_address, static_cast<uint8_t>(controller::group::MAGNET),
-            static_cast<uint8_t>(controller::magnet_parameter::MAGNET_ENABLE)}),
-        magnet_t{magnet}.serialize_data()));
 }
 
 int main(int argc, char** argv)
