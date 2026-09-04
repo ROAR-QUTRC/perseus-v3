@@ -403,30 +403,20 @@ namespace hi_can
                 {
                     /// @brief The bucket controller device ID
                     constexpr uint8_t DEVICE_ID = 0x00;
-                    enum class group
+                    enum class group : uint8_t
                     {
-                        BANK_1 = 0x01,
-                        BANK_2 = 0x02,
-                        BANK_3 = 0x03,
-                        LIFT_BOTH = 0x04,
-                        LIFT_LEFT = 0x05,
-                        LIFT_RIGHT = 0x06,
-                        TILT_BOTH = 0x07,
-                        TILT_LEFT = 0x08,
-                        TILT_RIGHT = 0x09,
-                        JAWS_BOTH = 0x0a,
-                        JAWS_LEFT = 0x0b,
-                        JAWS_RIGHT = 0x0c,
+                        LIFT = 0x01,
+                        TILT = 0x02,
+                        JAWS = 0x03,
                     };
-                    enum class bank_parameter
+                    enum class bank_parameter : uint8_t
                     {
-                        CURRENT_LIMIT = 0x00,
-                        STATUS = 0x01,
-                    };
-                    enum class actuator_parameter
-                    {
-                        SPEED = 0x00,
-                        POSITION = 0x01,
+                        FAULT = 0x00,
+                        CURRENT = 0x01,
+                        POSITION = 0x02,
+                        PID_PARAMS = 0x03,
+                        ZERO = 0x04,  // No parameter
+                        SPEED = 0x05,
                     };
                 }  // namespace controller
             }  // namespace bucket
