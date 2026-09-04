@@ -42,8 +42,8 @@ lidar:
   # and the same caveat: it is a sphere, so raising it blinds the robot in every direction
   # at that radius.
   min_range_m: 1.5
-  # Real MID-360 range (~70 m at high reflectivity, ~40 m at 10%).
-  max_range_m: 70
+  # Real MID-360 range (~15 m at high reflectivity, ~10 m at 10%).
+  max_range_m: 15
   # Must match the URDF link name: it is the source frame of the lidar -> base lookup that
   # the three `base` switches below need.
   frame: "livox_frame"
