@@ -62,7 +62,7 @@ def generate_launch_description():
         # independent, so they can be enabled separately to tell them apart.
         DeclareLaunchArgument(
             "use_wheel_pid",
-            default_value="false",
+            default_value="true",
             description=(
                 "Chain a per-wheel velocity PID between the diff drive controller "
                 "and the hardware. See perseus/config/wheel_pid_chaining.yaml"

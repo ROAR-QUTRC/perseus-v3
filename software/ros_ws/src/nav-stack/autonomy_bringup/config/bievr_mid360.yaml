@@ -16,7 +16,7 @@ topics:
   # The Livox driver's own topics, same as FAST-LIO reads. The IMU is the bias-corrected
   # stream from the imu_bias_container in localisation.launch.py.
   pointcloud: "/livox/lidar"
-  imu: "/livox/imu/corrected"
+  imu: "/livox/imu"
   # Best-effort, which is compatible with the driver whether it publishes reliable or not.
   # A sample is only useful while it is current: a lost scan costs one update, a late scan
   # drags the estimate behind reality. Set true only if the cloud starts crossing a network.
@@ -91,9 +91,49 @@ preprocess:
   downsample_resolution_m: 0.10
   informed_sampling: true
 optimization:
-  huber_delta: 0.1
+  # Huber loss threshold, in metres of residual: below it the loss is quadratic,
+  # above it linear and the residual is down-weighted. Upstream ships 0.1, which
+  # against a sensor with ~2 cm per-point noise means nothing is ever
+  # down-weighted -- the robust loss is inert and the solve is plain least
+  # squares.
+  #
+  # THIS IS NOT JUST A SMOOTHNESS DIAL. At 0.05 and above, this LiDAR-inertial
+  # estimate diverges: in rosbag2_2026_09_03-13_37_54 the pose slides 2.8 m over
+  # 7 s (t=116-123 s) while the rover is provably stationary -- wheels at exactly
+  # zero, no joystick command, IMU showing |acc| 0.992 +/- 0.013. At 0.03 and
+  # below it holds position through the same input. An odometry source that
+  # teleports 2.8 m in the odom frame is a navigation failure, not a cosmetic one.
+  #
+  # Swept by replaying that bag through the node one value at a time, scoring RMS
+  # of the second difference of position while driving (n~663). The replay is
+  # deterministic -- two runs of the same config agree to 0.04% -- so these
+  # differences are real, not sampling noise:
+  #
+  #     huber   rms      p95     x@80s   survives the 116 s event
+  #     0.1     27.70    50.49   7.71    no, slides to 6.06
+  #     0.05    25.38    47.01   7.70    no, slides to 6.02
+  #     0.03    22.47    41.73   7.70    yes
+  #     0.02    20.54    35.72   7.68    yes
+  #     0.01    19.55    36.90   7.69    yes   <-- here
+  #     0.005   19.07    34.44   7.68    yes
+  #     0.002   18.33    35.69   7.69    yes
+  #
+  # It improves monotonically to the bottom of the sweep because as the threshold
+  # goes to zero the loss becomes L1, and these residuals are heavy-tailed (sand
+  # scatter, mixed pixels at range) rather than Gaussian. This is not
+  # over-smoothing: every config above lands within 3 cm of the same place at
+  # t=80 s while total path length falls 15.71 -> 13.12 m, i.e. the removed
+  # motion was wiggle, not travel.
+  #
+  # 0.01 is the knee. Below it the gain is a couple of percent per halving and
+  # p95 stops moving, and a small quadratic region is worth keeping: this bag is
+  # 129 s of gentle driving and does not test what happens when a scene produces
+  # genuinely large legitimate residuals, which is where too tight a threshold
+  # would start rejecting real data. Re-run the sweep on a rougher site before
+  # going lower.
+  huber_delta: 0.01
 imu:
-  window_s: 10
+  window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The
   # robot must be still for this long at startup, exactly as FAST-LIO's gravity_align_en
   # requires.
