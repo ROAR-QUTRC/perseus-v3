@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <random>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -27,9 +29,9 @@ double deg_from_rad(double radians) { return radians * 180.0 / M_PI; }
 
 GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions &options)
     : rclcpp::Node("global_traversability", options),
-      _map({"elevation_min", "elevation_max", "point_count", "height_diff",
-            "steepness", "roughness", "ridge", "ridge_bump", "ridge_pothole",
-            "clearance", "border", "obstacle", "inflation", "cost"}) {
+      _map({"elevation_min", "point_count", "height_above_ground", "steepness",
+            "roughness", "ridge", "ridge_bump", "ridge_pothole", "clearance",
+            "border", "obstacle", "inflation", "cost"}) {
   _load_parameters();
 
   _pointcloud_subscription =
@@ -55,10 +57,14 @@ GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions &options)
   // bumps stand out. Splitting gives potholes the same full 0-100 range bumps
   // already had.
   const std::vector<LayerPublisher> layer_specs = {
-      {"height_diff", 0.0, 1.0, nullptr},   {"roughness", 0.0, 0.3, nullptr},
-      {"steepness", 0.0, 90.0, nullptr},    {"ridge_bump", 0.0, 0.5, nullptr},
-      {"ridge_pothole", 0.0, 0.5, nullptr}, {"clearance", 0.0, 2.0, nullptr},
-      {"border", 0.0, 1.0, nullptr},        {"obstacle", 0.0, 1.0, nullptr},
+      {"height_above_ground", 0.0, 1.0, nullptr},
+      {"roughness", 0.0, 0.3, nullptr},
+      {"steepness", 0.0, 90.0, nullptr},
+      {"ridge_bump", 0.0, 0.5, nullptr},
+      {"ridge_pothole", 0.0, 0.5, nullptr},
+      {"clearance", 0.0, 2.0, nullptr},
+      {"border", 0.0, 1.0, nullptr},
+      {"obstacle", 0.0, 1.0, nullptr},
       {"inflation", 0.0, 99.0, nullptr},
   };
   for (const auto &spec : layer_specs) {
@@ -91,14 +97,20 @@ void GlobalTraversability::_load_parameters() {
   _min_points_per_cell = this->declare_parameter("min_points_per_cell",
                                                  DEFAULT_MIN_POINTS_PER_CELL);
 
-  _max_height_diff_m =
-      this->declare_parameter("max_height_diff_m", DEFAULT_MAX_HEIGHT_DIFF_M);
   _max_slope_deg =
       this->declare_parameter("max_slope_deg", DEFAULT_MAX_SLOPE_DEG);
   _max_roughness_m =
       this->declare_parameter("max_roughness_m", DEFAULT_MAX_ROUGHNESS_M);
   _min_obstacle_cells =
       this->declare_parameter("min_obstacle_cells", DEFAULT_MIN_OBSTACLE_CELLS);
+  _ransac_inlier_m =
+      this->declare_parameter("ransac_inlier_m", DEFAULT_RANSAC_INLIER_M);
+  _ransac_patch_m =
+      this->declare_parameter("ransac_patch_m", DEFAULT_RANSAC_PATCH_M);
+  _ransac_iterations =
+      this->declare_parameter("ransac_iterations", DEFAULT_RANSAC_ITERATIONS);
+  _max_height_above_ground_m = this->declare_parameter(
+      "max_height_above_ground_m", DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M);
   _min_clearance_m =
       this->declare_parameter("min_clearance_m", DEFAULT_MIN_CLEARANCE_M);
   _treat_unknown_as_obstacle = this->declare_parameter(
@@ -162,7 +174,6 @@ void GlobalTraversability::_update_costmap() {
   _map.setFrameId(_latest_cloud->header.frame_id);
 
   _map["elevation_min"].setConstant(NaN);
-  _map["elevation_max"].setConstant(NaN);
   _map["point_count"].setConstant(0.0f);
   _map["clearance"].setConstant(NaN);
   _map["steepness"].setConstant(NaN);
@@ -170,10 +181,11 @@ void GlobalTraversability::_update_costmap() {
   _map["ridge"].setConstant(NaN);
   _map["ridge_bump"].setConstant(NaN);
   _map["ridge_pothole"].setConstant(NaN);
+  _map["height_above_ground"].setConstant(NaN);
 
   _accumulate_elevation(cloud);
   _compute_clearance(cloud);
-  _map["height_diff"] = _map["elevation_max"] - _map["elevation_min"];
+  _compute_height_above_ground(cloud);
   _compute_local_terrain_features();
   _compute_border();
   _compute_obstacle();
@@ -188,7 +200,6 @@ void GlobalTraversability::_update_costmap() {
 void GlobalTraversability::_accumulate_elevation(
     const pcl::PointCloud<pcl::PointXYZ> &cloud) {
   Eigen::MatrixXf &elevation_min = _map["elevation_min"];
-  Eigen::MatrixXf &elevation_max = _map["elevation_max"];
   Eigen::MatrixXf &point_count = _map["point_count"];
 
   for (const auto &point : cloud.points) {
@@ -203,9 +214,7 @@ void GlobalTraversability::_accumulate_elevation(
     }
 
     float &cell_min = elevation_min(index(0), index(1));
-    float &cell_max = elevation_max(index(0), index(1));
     cell_min = std::isnan(cell_min) ? point.z : std::min(cell_min, point.z);
-    cell_max = std::isnan(cell_max) ? point.z : std::max(cell_max, point.z);
     point_count(index(0), index(1)) += 1.0f;
   }
 }
@@ -337,14 +346,13 @@ void GlobalTraversability::_compute_border() {
 }
 
 void GlobalTraversability::_compute_obstacle() {
-  const Eigen::MatrixXf &height_diff = _map["height_diff"];
+  const Eigen::MatrixXf &height_above_ground = _map["height_above_ground"];
   const Eigen::MatrixXf &steepness = _map["steepness"];
   const Eigen::MatrixXf &roughness = _map["roughness"];
   const Eigen::MatrixXf &clearance = _map["clearance"];
   const Eigen::MatrixXf &border = _map["border"];
   Eigen::MatrixXf &obstacle = _map["obstacle"];
 
-  const float max_height_diff = static_cast<float>(_max_height_diff_m);
   const float max_slope = static_cast<float>(_max_slope_deg);
   const float max_roughness = static_cast<float>(_max_roughness_m);
   const float min_clearance = static_cast<float>(_min_clearance_m);
@@ -358,14 +366,19 @@ void GlobalTraversability::_compute_obstacle() {
         continue;
       }
 
-      const float height_diff_value = height_diff(row, col);
+      // The vertical test is "how far does this stand above the surrounding
+      // terrain", never "how much vertical spread is in this cell" -- see
+      // DEFAULT_RANSAC_INLIER_M in the header for why that distinction matters.
+      const float vertical_value = height_above_ground(row, col);
       const float steepness_value = steepness(row, col);
       const float roughness_value = roughness(row, col);
       const float clearance_value = clearance(row, col);
 
+      const float vertical_limit =
+          static_cast<float>(_max_height_above_ground_m);
+
       const bool is_obstacle =
-          (!std::isnan(height_diff_value) &&
-           height_diff_value > max_height_diff) ||
+          (!std::isnan(vertical_value) && vertical_value > vertical_limit) ||
           (!std::isnan(steepness_value) && steepness_value > max_slope) ||
           (!std::isnan(roughness_value) && roughness_value > max_roughness) ||
           (!std::isnan(clearance_value) && clearance_value < min_clearance);
@@ -375,6 +388,164 @@ void GlobalTraversability::_compute_obstacle() {
   }
 
   _prune_small_obstacles();
+}
+
+void GlobalTraversability::_compute_height_above_ground(
+    const pcl::PointCloud<pcl::PointXYZ> &cloud) {
+  Eigen::MatrixXf &height_above_ground = _map["height_above_ground"];
+
+  // Plane coefficients for z = a*x + b*y + c, one per patch.
+  struct Plane {
+    double a{0.0}, b{0.0}, c{0.0};
+    bool valid{false};
+  };
+  using Key = std::pair<int, int>;
+  struct KeyHash {
+    std::size_t operator()(const Key &k) const noexcept {
+      return std::hash<long long>()(
+          static_cast<long long>(k.first) * 1000003LL + k.second);
+    }
+  };
+
+  const double patch = _ransac_patch_m;
+  auto key_of = [patch](float x, float y) {
+    return Key{static_cast<int>(std::floor(x / patch)),
+               static_cast<int>(std::floor(y / patch))};
+  };
+
+  std::unordered_map<Key, std::vector<std::size_t>, KeyHash> patches;
+  for (std::size_t i = 0; i < cloud.points.size(); ++i) {
+    const auto &p = cloud.points[i];
+    if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) {
+      continue;
+    }
+    patches[key_of(p.x, p.y)].push_back(i);
+  }
+
+  // Fixed seed: the costmap should not change between runs on identical input,
+  // which is also what makes an A/B of these parameters meaningful.
+  std::mt19937 rng(12345);
+
+  auto fit = [&](const std::vector<std::size_t> &idx) {
+    Plane plane;
+    // Three points define a plane; below about four times that, a RANSAC
+    // consensus means little and a least-squares fit is the honest answer.
+    if (idx.size() < 12) {
+      return plane;
+    }
+
+    std::uniform_int_distribution<std::size_t> pick(0, idx.size() - 1);
+    double best_a = 0.0, best_b = 0.0, best_c = 0.0;
+    std::size_t best_inliers = 0;
+
+    for (int iter = 0; iter < _ransac_iterations; ++iter) {
+      const auto &p0 = cloud.points[idx[pick(rng)]];
+      const auto &p1 = cloud.points[idx[pick(rng)]];
+      const auto &p2 = cloud.points[idx[pick(rng)]];
+
+      Eigen::Matrix3d m;
+      m << p0.x, p0.y, 1.0, p1.x, p1.y, 1.0, p2.x, p2.y, 1.0;
+      // A near-singular sample is three collinear or coincident points; there
+      // is no plane through them worth testing.
+      if (std::abs(m.determinant()) < 1e-6) {
+        continue;
+      }
+      const Eigen::Vector3d rhs(p0.z, p1.z, p2.z);
+      const Eigen::Vector3d sol = m.colPivHouseholderQr().solve(rhs);
+
+      std::size_t inliers = 0;
+      for (const auto i : idx) {
+        const auto &p = cloud.points[i];
+        const double r = std::abs(p.z - (sol(0) * p.x + sol(1) * p.y + sol(2)));
+        if (r < _ransac_inlier_m) {
+          ++inliers;
+        }
+      }
+      if (inliers > best_inliers) {
+        best_inliers = inliers;
+        best_a = sol(0);
+        best_b = sol(1);
+        best_c = sol(2);
+      }
+    }
+
+    if (best_inliers < 3) {
+      return plane;
+    }
+
+    // Refit on the consensus set: the three-point hypothesis fixes WHICH points
+    // are ground, and a least-squares fit over all of them is a better plane
+    // than the sample that happened to find them.
+    std::vector<std::size_t> inlier_idx;
+    inlier_idx.reserve(best_inliers);
+    for (const auto i : idx) {
+      const auto &p = cloud.points[i];
+      const double r = std::abs(p.z - (best_a * p.x + best_b * p.y + best_c));
+      if (r < _ransac_inlier_m) {
+        inlier_idx.push_back(i);
+      }
+    }
+    if (inlier_idx.size() >= 3) {
+      Eigen::MatrixXd A(inlier_idx.size(), 3);
+      Eigen::VectorXd z(inlier_idx.size());
+      for (Eigen::Index k = 0; k < static_cast<Eigen::Index>(inlier_idx.size());
+           ++k) {
+        const auto &p = cloud.points[inlier_idx[static_cast<std::size_t>(k)]];
+        A(k, 0) = p.x;
+        A(k, 1) = p.y;
+        A(k, 2) = 1.0;
+        z(k) = p.z;
+      }
+      const Eigen::Vector3d sol = A.colPivHouseholderQr().solve(z);
+      best_a = sol(0);
+      best_b = sol(1);
+      best_c = sol(2);
+    }
+
+    plane.a = best_a;
+    plane.b = best_b;
+    plane.c = best_c;
+    plane.valid = true;
+    return plane;
+  };
+
+  // Each plane is fitted over its patch plus a one-patch halo, so neighbouring
+  // planes overlap and the ground estimate does not step at patch boundaries.
+  std::unordered_map<Key, Plane, KeyHash> planes;
+  planes.reserve(patches.size());
+  std::vector<std::size_t> gathered;
+  for (const auto &[key, own] : patches) {
+    gathered.clear();
+    for (int dx = -1; dx <= 1; ++dx) {
+      for (int dy = -1; dy <= 1; ++dy) {
+        const auto it = patches.find(Key{key.first + dx, key.second + dy});
+        if (it != patches.end()) {
+          gathered.insert(gathered.end(), it->second.begin(), it->second.end());
+        }
+      }
+    }
+    planes[key] = fit(gathered);
+  }
+
+  for (const auto &point : cloud.points) {
+    if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
+        !std::isfinite(point.z)) {
+      continue;
+    }
+    const auto it = planes.find(key_of(point.x, point.y));
+    if (it == planes.end() || !it->second.valid) {
+      continue;
+    }
+    grid_map::Index index;
+    if (!_map.getIndex(grid_map::Position(point.x, point.y), index)) {
+      continue;
+    }
+    const float above =
+        static_cast<float>(point.z - (it->second.a * point.x +
+                                      it->second.b * point.y + it->second.c));
+    float &cell = height_above_ground(index(0), index(1));
+    cell = std::isnan(cell) ? above : std::max(cell, above);
+  }
 }
 
 void GlobalTraversability::_prune_small_obstacles() {

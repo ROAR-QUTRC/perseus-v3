@@ -14,7 +14,7 @@ global_traversability:
     # rather than ground-return noise, when computing clearance. Do not raise this much:
     # boulder cells report a minimum clearance of 0.06, so 0.05 is already close to the
     # returns that detect them.
-    ground_margin_m: 0.05
+    ground_margin_m: 0.15
     # Cells with fewer points than this are border/unknown rather than mapped ground.
     #
     # This is the parameter that decides whether rocks are seen at all, and 3 was too high.
@@ -35,16 +35,10 @@ global_traversability:
     #
     #     layer         boulders        open ground     verdict
     #     clearance     0.06 - 0.08     none at all     the detector that actually works
-    #     height_diff   0.14 - 0.28     0.00 - 0.04     clean separation
     #     roughness     0.042 - 0.078   0.003 - 0.015   separates, but see below
     #     steepness     6.3 - 17.1 deg  0 - 13.5 deg    overlaps; useless for rocks here
     #
-    # height_diff was 0.05, which is one centimetre above the highest value open ground
-    # produces -- no margin for a noisier cell. Sweeping it 0.05 -> 0.15 changes neither
-    # detection nor false positives (clearance flags those cells first), so 0.10 is free
-    # headroom rather than a behaviour change. Do NOT raise it past 0.13: the quietest
-    # boulder reads 0.14.
-    max_height_diff_m: 0.10
+    # There is no longer an in-cell max(z)-min(z) test; see max_height_above_ground_m.
     # Keep at 30. Open ground in this arena already reaches 13.5 deg, so tightening this
     # towards the boulders' 6.3-17.1 deg range buys nothing and starts flagging flat regolith.
     max_slope_deg: 30.0
@@ -56,13 +50,41 @@ global_traversability:
     #
     # and detection stays at 7/7 throughout, so every one of those is pure loss.
     max_roughness_m: 0.08
+    # THE VERTICAL TEST. A cell is an obstacle if its points rise more than
+    # max_height_above_ground_m above a RANSAC plane fitted to the surrounding
+    # terrain. The plane follows a berm rather than flagging it, so this asks
+    # "is something standing up here" rather than "how much vertical spread is
+    # here" -- the latter (max(z)-min(z) inside one cell) counted a slope, a
+    # cell straddling two map layers, and a rock identically, and has been
+    # removed.
+    #
+    # Set expectations from the measurement: on rosbag2_1970_01_01-10_31_15's
+    # /Laser_map the swap moved 4034 -> 4069 obstacle cells, i.e. nothing. This
+    # test only ever decides ~60 of those cells on its own -- see the ablation
+    # under min_clearance_m below. It is here because it is the better-defined
+    # test, not because it fixes the false obstacles.
+    #
+    # Residual within which a point counts as lying on the ground plane. Swept
+    # 0.08 / 0.10 / 0.15 / 0.20: identical results. Two map layers at the same
+    # xy cannot both be inliers of one plane whatever the band, which is why
+    # this dial does nothing on this data.
+    ransac_inlier_m: 0.20
+    # Height above the plane that counts as an obstacle. Swept 0.10 / 0.15 /
+    # 0.25 -> 4069 / 4049 / 4045 cells. This is the sensitivity dial, and its
+    # whole range is worth 24 cells.
+    max_height_above_ground_m: 0.20
+    # Square the plane is fitted over, plus a one-patch halo so neighbouring
+    # planes overlap. Must be well clear of the 30-40 cm boulders or one becomes
+    # its own ground and vanishes.
+    ransac_patch_m: 1.0
+    ransac_iterations: 40
     # Smallest run of connected obstacle cells that is published; smaller blobs
     # are erased (8-connected, so a corner touch still counts). 1 disables it.
     #
     # This is a filter on a symptom, and the symptom is that the map is
     # vertically inconsistent with itself: BIEVR-LIO's z wanders, so two passes
     # over the same ground write it at different heights and a cell straddling
-    # them clears max_height_diff_m without there being anything there. Measured
+    # them clears max_height_above_ground_m without anything being there. Measured
     # z spread per quarter of a run: 0.30 m before huber_delta was tuned, 0.115 m
     # after -- still above the 0.10 m threshold, hence the residue this catches.
     #
@@ -87,6 +109,31 @@ global_traversability:
     # took flagged cells from 2361 to 816 on identical LiDAR input, 65% against
     # this filter's 9%.
     min_obstacle_cells: 4
+    # THIS is the test that flags your flat ground, not the height one. Ablation
+    # on rosbag2_1970_01_01-10_31_15, disabling one test at a time:
+    #
+    #     all four on          4034 obstacle cells
+    #     clearance off        2955   (-1079)   <-- dominant
+    #     steepness off        3803   ( -231)
+    #     vertical off         3977   (  -57)
+    #     roughness off        3990   (  -44)
+    #
+    # And the 1079 sit in a narrow band. Sweeping this parameter:
+    #
+    #     0.60 0.25 0.15 0.10 -> 4034 (identical)
+    #     0.05 0.00           -> 2955
+    #
+    # So every offending cell has clearance between ground_margin_m (0.05) and
+    # 0.10 m. That is not overhead structure -- an open sand arena has none --
+    # it is the LIO writing the same ground twice, 5-10 cm apart, and the
+    # clearance test reading the upper copy as a low ceiling.
+    #
+    # Lowering this to 0.05 removes all 1079 but disables the test in practice.
+    # Raising ground_margin_m above the layering band is the targeted fix, since
+    # it stops those returns counting as overhead at all while leaving the 0.6 m
+    # requirement intact for anything real. Try ground_margin_m: 0.12 and check
+    # the boulders survive -- their minimum clearance is around 0.06, so this
+    # trades directly against detecting them and must be measured, not assumed.
     min_clearance_m: 0.6
     # Unmapped cells are treated as obstacles: safer default for a vehicle that cannot verify
     # unmapped ground ahead of time.

@@ -16,7 +16,7 @@ topics:
   # The Livox driver's own topics, same as FAST-LIO reads. The IMU is the bias-corrected
   # stream from the imu_bias_container in localisation.launch.py.
   pointcloud: "/livox/lidar"
-  imu: "/livox/imu/corrected"
+  imu: "/livox/imu"
   # Best-effort, which is compatible with the driver whether it publishes reliable or not.
   # A sample is only useful while it is current: a lost scan costs one update, a late scan
   # drags the estimate behind reality. Set true only if the cloud starts crossing a network.
@@ -131,7 +131,7 @@ optimization:
   # genuinely large legitimate residuals, which is where too tight a threshold
   # would start rejecting real data. Re-run the sweep on a rougher site before
   # going lower.
-  huber_delta: 0.01
+  huber_delta: 0.005
 imu:
   window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The

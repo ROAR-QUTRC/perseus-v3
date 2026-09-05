@@ -25,10 +25,11 @@ namespace global_traversability {
 /// A 2D SLAM map only ever records whether a cell is occupied in a single
 /// horizontal slice, which cannot tell a step the robot can climb from a wall
 /// it cannot, or a low branch it would hit from open air at the same (x, y).
-/// This node instead analyses the full 3D map point cloud per cell -- elevation
-/// spread, local slope, local roughness, overhead clearance -- and folds those
-/// into an obstacle/inflation cost that nav2's costmap can consume directly,
-/// without needing a 2D SLAM map as an intermediate.
+/// This node instead analyses the full 3D map point cloud per cell -- height
+/// above a locally fitted ground plane, local slope, local roughness, overhead
+/// clearance -- and folds those into an obstacle/inflation cost that nav2's
+/// costmap can consume directly, without needing a 2D SLAM map as an
+/// intermediate.
 ///
 /// The input cloud (FAST-LIO's /Laser_map, see
 /// autonomy_bringup/config/livox_mid360.yaml's publish.map_en) is republished
@@ -80,10 +81,6 @@ private:
   ///        border/unknown.
   static constexpr int DEFAULT_MIN_POINTS_PER_CELL = 3;
 
-  /// @brief Default per-cell max-min height spread, above which a cell is an
-  /// obstacle, in
-  ///        metres.
-  static constexpr double DEFAULT_MAX_HEIGHT_DIFF_M = 0.15;
   /// @brief Default local slope, above which a cell is an obstacle, in degrees.
   static constexpr double DEFAULT_MAX_SLOPE_DEG = 30.0;
   /// @brief Default local plane-fit residual, above which a cell is an
@@ -101,12 +98,46 @@ private:
   /// obstacle; anything smaller is erased. 1 disables the filter.
   /// @details A morphological opening on the obstacle layer. A 30-40 cm boulder
   /// covers 9-16 cells at 0.1 m resolution, so a one- or two-cell blob is not a
-  /// rock -- it is a cell that crept over max_height_diff_m because the map is
-  /// vertically inconsistent with itself where two passes overlap. Those are
-  /// expensive out of proportion to their size: inflation_radius_m turns a
+  /// rock -- it is a cell that crept over max_height_above_ground_m because the
+  /// map is vertically inconsistent with itself where two passes overlap. Those
+  /// are expensive out of proportion to their size: inflation_radius_m turns a
   /// single spurious cell into a 0.45 m disc of no-go in the middle of
   /// otherwise drivable ground.
   static constexpr int DEFAULT_MIN_OBSTACLE_CELLS = 1;
+
+  /// @brief Residual within which a point counts as lying on the ground plane.
+  /// @details Part of the node's only vertical obstacle test: fit a plane to
+  /// the surrounding terrain by RANSAC, then ask how far a cell's points rise
+  /// above THAT. This replaced max(z) - min(z) inside a single cell, which
+  /// answered "how much vertical spread is here" rather than "is something
+  /// standing up here" and so counted a sloped cell, a cell straddling two map
+  /// layers, and a rock identically. The fitted plane follows a berm instead of
+  /// flagging it.
+  ///
+  /// Measured by replaying rosbag2_1970_01_01-10_31_15's /Laser_map:
+  /// 816 obstacle cells with the old in-cell spread, 688 with this (-16%), and
+  /// the largest connected blob grows 205 -> 300 cells, i.e. walls come out as
+  /// coherent solids rather than fragments.
+  ///
+  /// It is not a cure for map layering. Two surfaces at the same xy put one of
+  /// them above any plane through the other, whatever the inlier band -- which
+  /// is why 0.08 through 0.20 all measure the same. The upstream fix
+  /// (huber_delta in bievr_mid360.yaml, 2361 -> 816 cells) remains the larger
+  /// lever, and min_clearance_m/ground_margin_m decide far more cells than this
+  /// test does -- see the ablation in autonomy_bringup/config/navigation.yaml.
+  static constexpr double DEFAULT_RANSAC_INLIER_M = 0.10;
+
+  /// @brief Side length of the square each ground plane is fitted over.
+  /// @details Must be comfortably larger than the obstacles being detected, or
+  /// a boulder becomes its own ground and disappears; small enough that the
+  /// terrain inside is close to planar. 1.0 m against 30-40 cm boulders.
+  static constexpr double DEFAULT_RANSAC_PATCH_M = 1.0;
+
+  /// @brief RANSAC sample count per patch.
+  static constexpr int DEFAULT_RANSAC_ITERATIONS = 40;
+
+  /// @brief Height above the fitted ground plane that counts as an obstacle.
+  static constexpr double DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M = 0.10;
 
   static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = true;
 
@@ -134,8 +165,7 @@ private:
   /// cloud, if any.
   void _update_costmap();
 
-  /// @brief Bins each point into elevation_min/elevation_max/point_count per
-  /// cell.
+  /// @brief Bins each point into elevation_min/point_count per cell.
   /// @param cloud Map cloud to accumulate.
   void _accumulate_elevation(const pcl::PointCloud<pcl::PointXYZ> &cloud);
 
@@ -154,12 +184,15 @@ private:
   /// @brief Marks cells with too few points as border/unknown.
   void _compute_border();
 
-  /// @brief Combines height_diff, steepness, roughness, clearance and border
-  /// into a binary
-  ///        obstacle layer.
+  /// @brief Combines height_above_ground, steepness, roughness, clearance and
+  ///        border into a binary obstacle layer.
   void _compute_obstacle();
   /// @brief Erase obstacle blobs smaller than _min_obstacle_cells, in place.
   void _prune_small_obstacles();
+  /// @brief Fill the height_above_ground layer from RANSAC ground planes.
+  /// @param cloud The same cloud the elevation layers were built from.
+  void
+  _compute_height_above_ground(const pcl::PointCloud<pcl::PointXYZ> &cloud);
 
   /// @brief Runs a two-pass chamfer distance transform off the obstacle layer
   /// and turns the
@@ -191,8 +224,8 @@ private:
   /// @param stamp Timestamp to publish the message with.
   void _publish_costmap(const rclcpp::Time &stamp);
 
-  /// @brief Publishes every debug layer (height_diff, steepness, roughness,
-  /// ridge_bump,
+  /// @brief Publishes every debug layer (height_above_ground, steepness,
+  /// roughness, ridge_bump,
   ///        ridge_pothole, clearance, border, obstacle, inflation) as its own
   ///        OccupancyGrid, for inspection/tuning in rviz.
   /// @param stamp Timestamp to publish the messages with.
@@ -215,11 +248,14 @@ private:
   double _ground_margin_m{DEFAULT_GROUND_MARGIN_M};
   int _min_points_per_cell{DEFAULT_MIN_POINTS_PER_CELL};
 
-  double _max_height_diff_m{DEFAULT_MAX_HEIGHT_DIFF_M};
   double _max_slope_deg{DEFAULT_MAX_SLOPE_DEG};
   double _max_roughness_m{DEFAULT_MAX_ROUGHNESS_M};
   double _min_clearance_m{DEFAULT_MIN_CLEARANCE_M};
   int _min_obstacle_cells{DEFAULT_MIN_OBSTACLE_CELLS};
+  double _ransac_inlier_m{DEFAULT_RANSAC_INLIER_M};
+  double _ransac_patch_m{DEFAULT_RANSAC_PATCH_M};
+  int _ransac_iterations{DEFAULT_RANSAC_ITERATIONS};
+  double _max_height_above_ground_m{DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M};
   bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
 
   double _robot_radius_m{DEFAULT_ROBOT_RADIUS_M};
