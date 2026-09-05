@@ -1,3 +1,15 @@
+# Parameters for everything navigation.launch.py brings up: the terrain costmap and the
+# global planner that consumes it.
+#
+#     /Laser_map  ->  global_traversability  ->  /costmap  ->  planner_server  ->  /plan
+#
+# The two halves are separated below. They are in one file because they are one pipeline and
+# every threshold in the first half is a decision the second half then plans against -- a
+# false obstacle here is a path that detours around nothing there.
+#
+# ============================================================================
+# TERRAIN COSTMAP -- global_traversability
+# ============================================================================
 global_traversability:
   ros__parameters:
     # FAST-LIO's accumulated map cloud (see config/livox_mid360.yaml's publish.map_en). It is
@@ -143,3 +155,132 @@ global_traversability:
     robot_radius_m: 0.3
     inflation_radius_m: 0.45
     cost_scaling_factor: 3.0
+# ============================================================================
+# GLOBAL PLANNER -- nav2 planner_server
+# ============================================================================
+# nav2's global planner ON ITS OWN -- no bt_navigator, no controller_server, no
+# behavior_server. planner_server is a self-contained lifecycle node that owns a costmap and
+# answers the ComputePathToPose action, so it can be brought up and exercised without
+# anything that drives the wheels. That is deliberate: it makes a bad path a thing you look
+# at in rviz rather than a thing the rover does.
+#
+# It consumes global_traversability's /costmap through nav2's static layer, so the terrain
+# analysis above is what the planner plans against. See global_costmap for the settings that
+# make that work, four of which are wrong by default.
+planner_server:
+  ros__parameters:
+    # Only warns when planning takes longer than this implies. Nothing here plans on a
+    # timer -- plans are requested by action -- so this exists to catch a planner that has
+    # become too slow to be useful on the Orange Pi, not to schedule anything.
+    expected_planner_frequency: 1.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      # NavFn: Dijkstra/A* over the costmap grid, ignoring the robot's heading. Correct
+      # first choice here because the rover is skid-steer and can turn on the spot, so a
+      # path that ignores heading is one it can actually follow.
+      #
+      # nav2_smac_planner::SmacPlannerHybrid is the upgrade if paths ever need to respect a
+      # turning radius; it costs much more CPU and needs its own tuning, so it is not where
+      # to start.
+      plugin: "nav2_navfn_planner::NavfnPlanner"
+      # How close to the requested goal counts as reaching it, in metres, when the goal
+      # itself is in an occupied or unreachable cell. 0.5 is loose enough that a goal
+      # clicked slightly inside an obstacle still plans.
+      tolerance: 0.5
+      # Dijkstra rather than A*. NavFn's A* is a known-weak implementation that produces
+      # worse paths for a speedup that does not matter at this map size.
+      use_astar: false
+      # Unknown cells are already published as cost 100 by global_traversability
+      # (treat_unknown_as_obstacle in navigation.yaml), so there is nothing here for the
+      # planner to be permissive about. false keeps the two agreeing: unmapped ground the
+      # rover cannot verify is not somewhere to route through.
+      allow_unknown: false
+# The planner's costmap. Note the doubled key -- Costmap2DROS runs as its own node called
+# global_costmap inside planner_server, so its parameters live one level deeper than the
+# server's own. This nesting is required, not stylistic.
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      # THERE IS NO map FRAME ON THIS ROBOT. BIEVR-LIO publishes its world frame as odom
+      # (map.frame in bievr_mid360.yaml) and the EKF owns odom -> base_link, so odom IS the
+      # global frame here and nothing publishes map -> odom. Setting this to "map" is the
+      # single most likely way to get a planner that never receives a costmap.
+      global_frame: odom
+      # The flattened frame from footprint_broadcaster, launched by localisation.launch.py.
+      # Using base_link instead would tilt the footprint with the rover's pitch.
+      robot_base_frame: base_footprint
+      # Matches global_traversability's own robot_radius_m in navigation.yaml. It is only
+      # used for footprint checks here -- inflation is not done in this costmap, see below.
+      robot_radius: 0.3
+      # global_traversability republishes on its own update_period_s (5.0 s). Polling faster
+      # than that just re-copies an unchanged grid.
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      # A global costmap that covers the whole known map, not a window around the robot.
+      rolling_window: false
+      # width/height/resolution are deliberately absent: the static layer resizes the master
+      # costmap to whatever /costmap arrives with, so hardcoding them here would only be a
+      # second source of truth to get out of sync with navigation.yaml's resolution_m.
+      #
+      # THE FOUR SETTINGS THAT DECIDE HOW /costmap IS INTERPRETED, and the reason they sit
+      # HERE rather than under static_layer below.
+      #
+      # StaticLayer reads these five from the COSTMAP NODE's own parameter namespace, not
+      # from its own layer-prefixed one -- it calls node->get_parameter("trinary_costmap")
+      # where every other option goes through declareParameter() and picks up a
+      # "static_layer." prefix. Nesting them under static_layer: is silently ignored: no
+      # warning, no error, the defaults just stay in force. Verified on nav2 1.3.12 by
+      # reading them back off the live node --
+      #
+      #     ros2 param get /global_costmap/global_costmap trinary_costmap
+      #
+      # -- which reported "Parameter not set" for static_layer.trinary_costmap while the
+      # unprefixed name held the default True.
+      #
+      # trinary_costmap true -- the default -- collapses every value below
+      # lethal_cost_threshold to FREE_SPACE, so the whole 0-99 inflation gradient
+      # global_traversability computes would arrive at the planner as open ground. Measured
+      # against a synthetic costmap with a lethal wall and this node's own inflation curve,
+      # as the highest input cost the returned path passed through:
+      #
+      #     nested under static_layer (ignored)    99   -- path grazed the wall at 0.02 m
+      #     at this level                          42   -- 103 of 104 poses on cost-0 ground
+      #
+      # false keeps the gradient, scaled into nav2's 0-254 range.
+      trinary_costmap: false
+      # global_traversability writes 100 for an obstacle cell and 99 for "inside the robot
+      # radius of one" (see _compute_final_cost). Both are places the robot's centre cannot
+      # be, so both should come out LETHAL. At the default 100, a 99 cell becomes 251 --
+      # expensive but passable, which is how the rover ends up planning through its own
+      # inflation. Everything below 99 scales linearly into 0-254.
+      lethal_cost_threshold: 99
+      # -1 in the OccupancyGrid arrives as 255 and becomes NO_INFORMATION rather than free
+      # space. With treat_unknown_as_obstacle true upstream this should never fire for mapped
+      # area -- it only covers cells outside the grid_map's own bounds. The default is false,
+      # i.e. unmapped ground reads as drivable, which is the wrong way round for a rover that
+      # cannot verify it.
+      track_unknown_space: true
+      unknown_cost_value: 255
+      # ONE LAYER. No obstacle_layer (there is no live sensor feed into this costmap; the
+      # terrain analysis is upstream) and no inflation_layer -- global_traversability
+      # already inflates, so adding nav2's would inflate the inflation.
+      plugins: ["static_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        # global_traversability's costmap publisher. Its node has no namespace and the
+        # publisher name is relative, so it resolves to /costmap.
+        map_topic: /costmap
+        # The publisher is transient_local (see the latched_qos comment in
+        # global_traversability.cpp). Leaving this false is a QoS mismatch: the subscription
+        # is created, no error is printed, and no message is ever delivered.
+        map_subscribe_transient_local: true
+        subscribe_to_updates: false
+# planner_server is a lifecycle node: launched, it sits unconfigured and answers nothing.
+# This drives it to active on startup, and is why the launch file does not need a hand-run
+# `ros2 lifecycle set`. Named for navigation rather than for path planning because it is
+# the launch file's manager -- add any further nav2 lifecycle nodes to node_names here.
+lifecycle_manager_navigation:
+  ros__parameters:
+    autostart: true
+    node_names: ["planner_server"]
+    bond_timeout: 4.0
