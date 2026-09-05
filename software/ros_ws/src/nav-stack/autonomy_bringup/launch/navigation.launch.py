@@ -1,99 +1,156 @@
 #!/usr/bin/env python3
-"""Launch the terrain costmap and the global planner that plans against it.
+"""Launch the terrain costmap, the global planner, and the nav2 stack that drives to a goal.
 
-    /Laser_map  ->  global_traversability  ->  /costmap  ->  planner_server  ->  /plan
+    /Laser_map -> global_traversability -> /costmap -> planner_server  -> /plan
+                                                   -> controller_server -> /cmd_vel
+                                                   -> velocity_smoother -> /cmd_vel_nav_stamped
 
-global_traversability turns BIEVR-LIO's accumulated map cloud into a terrain-aware occupancy
-costmap, in place of a global costmap sourced only from a 2D SLAM map. planner_server is
-nav2's global planner, pointed at that costmap through nav2's static layer.
+THIS LAUNCH FILE CAN MOVE THE ROVER. With use_control true (the default) an rviz "2D Goal
+Pose" makes it drive. bt_navigator subscribes to /goal_pose directly, so the rviz button
+works without the nav2 rviz panel.
 
-Deliberately NOT here: bt_navigator, controller_server, behavior_server. Nothing this file
-launches can move the rover -- it computes paths and publishes them on /plan, and a bad one
-is something to look at in rviz rather than something the rover does. Set use_planner false
-to bring up the costmap alone, which is what you want while tuning the thresholds in
-config/navigation.yaml.
+Two ways to stop it:
+  * The joystick. twist_mux gives it priority 100 against navigation's 10, so touching the
+    stick takes the rover off nav2 within one message and holds it for the 0.5 s timeout.
+  * The e-stop. That is the one to actually rely on.
 
-localisation.launch.py must already be running. It supplies /Laser_map, the odom frame, and
-the odom -> base_footprint that the planner's costmap needs to locate the robot: the
-flattening broadcaster that produces it is launched there, next to the EKF whose
-odom -> base_link it is derived from.
+Three levels, so the dangerous part is opt-out rather than unavoidable:
 
-planner_server answers an ACTION, not a service, so a path is requested with:
+    use_planner:=false                  costmap only. Nothing can move. Use this while
+                                        tuning the thresholds in config/navigation.yaml.
+    use_control:=false                  costmap + planner. Computes and publishes paths on
+                                        /plan, cannot drive. Use scripts/plan_probe.py.
+    (defaults)                          the full stack. The rover drives.
 
-  ros2 action send_goal /compute_path_to_pose nav2_msgs/action/ComputePathToPose \
-    "{goal: {header: {frame_id: odom}, pose: {position: {x: 3.0, y: 0.0}, \
-      orientation: {w: 1.0}}}, use_start: false}"
+localisation.launch.py must already be running -- it supplies /Laser_map, the odom frame,
+and the odom -> base_footprint every costmap here needs. perseus.launch.py must be running
+too, for twist_mux and the diff drive controller that turn /cmd_vel_nav_stamped into wheel
+motion.
 
-or with scripts/plan_probe.py, which drives it from rviz's "2D Goal Pose" button and reports
-path length, detour ratio and planning time.
+Configured entirely by config/navigation.yaml.
 """
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
     config_file = os.path.join(
         get_package_share_directory("autonomy_bringup"), "config", "navigation.yaml"
     )
-
-    declare_use_sim_time = DeclareLaunchArgument(
-        "use_sim_time",
-        default_value="false",
-        description="Use the simulation clock. Only set true when something publishes "
-        "/clock.",
-    )
-    declare_use_planner = DeclareLaunchArgument(
-        "use_planner",
-        default_value="true",
-        description="Launch nav2's global planner against /costmap. false brings up the "
-        "terrain costmap alone, for tuning it without a planner running.",
-    )
-
     use_sim_time = {"use_sim_time": LaunchConfiguration("use_sim_time")}
-    use_planner = IfCondition(LaunchConfiguration("use_planner"))
 
-    global_traversability_node = Node(
-        package="global_traversability",
-        executable="global_traversability",
-        name="global_traversability",
-        parameters=[config_file, use_sim_time],
-        output="screen",
-    )
+    # Resolved here rather than used as conditions because they change the SHAPE of the
+    # launch: the lifecycle manager has to be told exactly which nodes it is managing, and
+    # naming one that was never launched leaves it waiting forever on a bond that never
+    # forms, which brings the whole stack up as "failed" with nothing obviously wrong.
+    use_planner = IfCondition(LaunchConfiguration("use_planner")).evaluate(context)
+    use_control = IfCondition(LaunchConfiguration("use_control")).evaluate(context)
+    # The driving half calls ComputePathToPose on every replan, so it cannot run without
+    # the planner. Rather than fail obscurely at the first goal, pull the planner in.
+    if use_control:
+        use_planner = True
 
-    planner_server_node = Node(
-        package="nav2_planner",
-        executable="planner_server",
-        name="planner_server",
-        parameters=[config_file, use_sim_time],
-        output="screen",
-        condition=use_planner,
-    )
+    def nav2_node(package, executable, name, remappings=None):
+        return Node(
+            package=package,
+            executable=executable,
+            name=name,
+            parameters=[config_file, use_sim_time],
+            remappings=remappings or [],
+            output="screen",
+        )
 
-    # planner_server comes up unconfigured and stays that way until something walks it
-    # through configure -> activate. autostart in navigation.yaml makes that automatic;
-    # without this node the server launches, logs nothing wrong, and never answers an action.
-    lifecycle_manager_node = Node(
-        package="nav2_lifecycle_manager",
-        executable="lifecycle_manager",
-        name="lifecycle_manager_navigation",
-        parameters=[config_file, use_sim_time],
-        output="screen",
-        condition=use_planner,
-    )
+    nodes = [
+        Node(
+            package="global_traversability",
+            executable="global_traversability",
+            name="global_traversability",
+            parameters=[config_file, use_sim_time],
+            output="screen",
+        )
+    ]
+    # Lifecycle bringup order. nav2's own convention: the servers that answer requests come
+    # up before the ones that make them, so bt_navigator never asks a planner that is not
+    # yet listening.
+    managed = []
 
-    return LaunchDescription(
-        [
-            declare_use_sim_time,
-            declare_use_planner,
-            global_traversability_node,
-            planner_server_node,
-            lifecycle_manager_node,
+    if use_planner:
+        nodes.append(nav2_node("nav2_planner", "planner_server", "planner_server"))
+        managed.append("planner_server")
+
+    if use_control:
+        nodes += [
+            nav2_node("nav2_controller", "controller_server", "controller_server"),
+            nav2_node("nav2_behaviors", "behavior_server", "behavior_server"),
+            nav2_node("nav2_bt_navigator", "bt_navigator", "bt_navigator"),
+            nav2_node(
+                "nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"
+            ),
+            # THE ONE REMAP THAT CONNECTS NAV2 TO THIS ROVER. The smoother's output is
+            # nav2's last word on velocity; twist_mux's navigation input is
+            # cmd_vel_nav_stamped (perseus/config/twist_mux.yaml). Without this the stack
+            # runs perfectly and the wheels never turn.
+            nav2_node(
+                "nav2_velocity_smoother",
+                "velocity_smoother",
+                "velocity_smoother",
+                remappings=[("cmd_vel_smoothed", "/cmd_vel_nav_stamped")],
+            ),
         ]
-    )
+        # controller_server first: it is what everything else ultimately drives.
+        managed = [
+            "controller_server",
+            "planner_server",
+            "behavior_server",
+            "bt_navigator",
+            "waypoint_follower",
+            "velocity_smoother",
+        ]
+
+    if managed:
+        nodes.append(
+            Node(
+                package="nav2_lifecycle_manager",
+                executable="lifecycle_manager",
+                name="lifecycle_manager_navigation",
+                # node_names is set here rather than in the yaml because it has to match
+                # what was actually launched, which the arguments above decide.
+                parameters=[config_file, {"node_names": managed}, use_sim_time],
+                output="screen",
+            )
+        )
+
+    return nodes
+
+
+def generate_launch_description():
+    arguments = [
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="false",
+            description="Use the simulation clock. Only set true when something publishes "
+            "/clock.",
+        ),
+        DeclareLaunchArgument(
+            "use_planner",
+            default_value="true",
+            description="Launch nav2's global planner against /costmap. false brings up "
+            "the terrain costmap alone, for tuning it with nothing else running.",
+        ),
+        DeclareLaunchArgument(
+            "use_control",
+            default_value="true",
+            description="Launch the half of nav2 that DRIVES THE ROVER: controller, "
+            "behaviours, BT navigator, waypoint follower and velocity smoother. false "
+            "leaves the planner publishing paths on /plan without moving anything.",
+        ),
+    ]
+
+    return LaunchDescription(arguments + [OpaqueFunction(function=launch_setup)])
