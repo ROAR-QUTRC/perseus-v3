@@ -1,0 +1,71 @@
+<!--
+  nav2's navigate_to_pose_w_replanning_and_recovery.xml, with one addition: the planned
+  path is smoothed before it reaches the controller.
+
+  WHY. NavFn plans on the costmap grid (resolution_m 0.1 in navigation.yaml), so its paths
+  change direction in 45 and 90 degree steps. No physical rover follows a right angle. The
+  tightest arc this one can drive is speed / angular_ceiling = 0.15 / 0.4 = 0.38 m, so every
+  grid corner had to become either a cut corner or a stop-and-pivot, and tuning the
+  controller only moved the problem between those two failures. Smoothing removes the
+  corners instead, which is the only fix that addresses the cause.
+
+  The SmoothPath node writes back into the SAME {path} blackboard entry it reads, so
+  FollowPath downstream needs no change. It simply receives a better path.
+
+  THE FALLBACK IS DELIBERATE. Smoothing can fail: it is given a 0.2 s budget, and with
+  check_for_collisions true it also refuses a smoothed path that clips an obstacle the raw
+  one avoided. AlwaysSuccess then lets the tree carry on with the unsmoothed path rather
+  than failing the whole navigation. Degraded, not broken: the rover still drives, just
+  with the blocky path and the pivoting that goes with it. If cornering gets worse
+  mid-run, that is what happened, and smoother_server's log will say why.
+-->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithReplanning">
+        <ControllerSelector selected_controller="{selected_controller}" default_controller="FollowPath" topic_name="controller_selector"/>
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="GridBased" topic_name="planner_selector"/>
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <Sequence>
+              <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+              <Fallback>
+                <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="simple_smoother" max_smoothing_duration="0.2" check_for_collisions="true" error_code_id="{smoother_error_code}"/>
+                <AlwaysSuccess/>
+              </Fallback>
+            </Sequence>
+            <Sequence>
+              <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPath">
+          <FollowPath path="{path}" controller_id="{selected_controller}" error_code_id="{follow_path_error_code}"/>
+          <Sequence>
+            <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </Sequence>
+        </RecoveryNode>
+      </PipelineSequence>
+      <Sequence>
+        <Fallback>
+          <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+          <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+        </Fallback>
+        <ReactiveFallback name="RecoveryFallback">
+          <GoalUpdated/>
+          <RoundRobin name="RecoveryActions">
+            <Sequence name="ClearingActions">
+              <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+            <Spin spin_dist="1.57" error_code_id="{spin_error_code}"/>
+            <Wait wait_duration="5.0"/>
+            <BackUp backup_dist="0.30" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+          </RoundRobin>
+        </ReactiveFallback>
+      </Sequence>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

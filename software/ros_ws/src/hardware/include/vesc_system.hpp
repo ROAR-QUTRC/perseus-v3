@@ -16,54 +16,56 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <vector>
 
-namespace hardware {
-class VescSystemHardware : public hardware_interface::SystemInterface {
-public:
-  RCLCPP_SHARED_PTR_DEFINITIONS(VescSystemHardware)
-  virtual ~VescSystemHardware();
-  hardware_interface::CallbackReturn
-  on_init(const hardware_interface::HardwareComponentInterfaceParams &params)
-      override;
-  std::vector<hardware_interface::StateInterface>
-  export_state_interfaces() override;
-  std::vector<hardware_interface::CommandInterface>
-  export_command_interfaces() override;
-  hardware_interface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State &previous_state) override;
-  hardware_interface::CallbackReturn
-  on_cleanup(const rclcpp_lifecycle::State &previous_state) override;
-  hardware_interface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State &previous_state) override;
-  hardware_interface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State &previous_state) override;
-  hardware_interface::return_type read(const rclcpp::Time &time,
-                                       const rclcpp::Duration &period) override;
-  hardware_interface::return_type
-  write(const rclcpp::Time &time, const rclcpp::Duration &period) override;
+namespace hardware
+{
+    class VescSystemHardware : public hardware_interface::SystemInterface
+    {
+    public:
+        RCLCPP_SHARED_PTR_DEFINITIONS(VescSystemHardware)
+        virtual ~VescSystemHardware();
+        hardware_interface::CallbackReturn
+        on_init(const hardware_interface::HardwareComponentInterfaceParams& params)
+            override;
+        std::vector<hardware_interface::StateInterface>
+        export_state_interfaces() override;
+        std::vector<hardware_interface::CommandInterface>
+        export_command_interfaces() override;
+        hardware_interface::CallbackReturn
+        on_configure(const rclcpp_lifecycle::State& previous_state) override;
+        hardware_interface::CallbackReturn
+        on_cleanup(const rclcpp_lifecycle::State& previous_state) override;
+        hardware_interface::CallbackReturn
+        on_activate(const rclcpp_lifecycle::State& previous_state) override;
+        hardware_interface::CallbackReturn
+        on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
+        hardware_interface::return_type read(const rclcpp::Time& time,
+                                             const rclcpp::Duration& period) override;
+        hardware_interface::return_type
+        write(const rclcpp::Time& time, const rclcpp::Duration& period) override;
 
-private:
-  // note: using std::optional so we can delay initialisation until on_configure
-  std::optional<hi_can::RawCanInterface> _can_interface;
-  std::optional<hi_can::PacketManager> _packet_manager;
+    private:
+        // note: using std::optional so we can delay initialisation until on_configure
+        std::optional<hi_can::RawCanInterface> _can_interface;
+        std::optional<hi_can::PacketManager> _packet_manager;
 
-  /// @brief The last time we tried to transmit and had an error
-  /// @details Used to throttle transmissions (and error messages) so we don't
-  /// build up a massive transmit queue when the bus comes online again
-  rclcpp::Time _last_transmit_error;
+        /// @brief The last time we tried to transmit and had an error
+        /// @details Used to throttle transmissions (and error messages) so we don't
+        /// build up a massive transmit queue when the bus comes online again
+        rclcpp::Time _last_transmit_error;
 
-  /// @brief Smallest ERPM magnitude worth commanding, or 0 to disable
-  /// @details Below a certain speed the ESC cannot produce useful torque, so a
-  /// small command heats the motor without turning the wheel. Non-zero commands
-  /// under this are raised to it; an exact zero stays an exact zero.
-  double _min_command_erpm = 0.0;
+        /// @brief Smallest ERPM magnitude worth commanding, or 0 to disable
+        /// @details Below a certain speed the ESC cannot produce useful torque, so a
+        /// small command heats the motor without turning the wheel. Non-zero commands
+        /// under this are raised to it; an exact zero stays an exact zero.
+        double _min_command_erpm = 0.0;
 
-  std::vector<hi_can::parameters::drive::vesc::VescParameterGroup>
-      _parameter_groups;
-  std::vector<unsigned long> _vesc_ids;
-  std::vector<double> _command_speeds;
-  std::vector<double> _real_speeds;
-  std::vector<double> _real_positions;
-  std::vector<double> _real_currents;
-  std::vector<double> _real_temperatures;
-};
-} // namespace hardware
+        std::vector<hi_can::parameters::drive::vesc::VescParameterGroup>
+            _parameter_groups;
+        std::vector<unsigned long> _vesc_ids;
+        std::vector<double> _command_speeds;
+        std::vector<double> _real_speeds;
+        std::vector<double> _real_positions;
+        std::vector<double> _real_currents;
+        std::vector<double> _real_temperatures;
+    };
+}  // namespace hardware

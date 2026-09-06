@@ -1,0 +1,40 @@
+# Overlay on perseus_controllers.yaml, loaded after it when
+# controllers.launch.py is given safe_speed:=true. Only the keys below change;
+# everything else keeps the base file's value.
+#
+# A reduced-speed mode for testing near people, in confined spaces, or while
+# something in the stack is not yet trusted. It is a ceiling, not a setpoint:
+# the rover still drives normally, it just cannot be commanded past these.
+#
+# This is enforced in the diff drive controller's speed limiter, so it applies
+# to every command source at once -- joystick, web UI and nav2 alike -- rather
+# than relying on each of them to behave. twist_mux upstream does no limiting.
+#
+# Deliberately only the velocity ceilings. Acceleration stays at the base
+# file's 10.0, because lowering that changes how quickly the rover can stop as
+# well as start, and a slower stop is the opposite of safe.
+#
+# The base file's note applies here too: with no min_* the limiter uses -max_*,
+# so reverse is capped symmetrically.
+#
+# One caveat if this is ever used under Gazebo: the simulator's controller
+# manager is created by the gz_ros2_control plugin and takes its parameters
+# from the <parameters> tags in description/ros2_control/perseus.ros2_control.xacro,
+# not from controllers.launch.py -- which runs with launch_controller_manager
+# false there. This overlay would have to be added to the xacro the same way
+# the wheel PID chaining config is in the simulation repo.
+diff_drive_base_controller:
+  ros__parameters:
+    # 1.7 m/s in the base file. 0.8 is a brisk walk, so a person can stay
+    # alongside the rover and reach the e-stop.
+    linear.x.max_velocity: 0.8
+    # 5.0 rad/s in the base file, which is nearly 300 deg/s and far faster than
+    # anything the rover is driven at in practice. 0.4 rad/s is about 23 deg/s.
+    #
+    # Worth knowing given the low-speed stall work: 0.4 rad/s of yaw is
+    # 0.4 * (0.714/2) / 0.147 = 0.97 rad/s at the wheel, still comfortably above
+    # the ~0.34 rad/s the ESCs stall below. But a lower ceiling also means full
+    # joystick deflection now asks for less, so ordinary driving sits closer to
+    # that floor -- if stalling gets worse in this mode, that is why, and
+    # use_wheel_pid is the mitigation.
+    angular.z.max_velocity: 0.4
