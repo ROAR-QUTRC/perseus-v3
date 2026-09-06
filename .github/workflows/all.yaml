@@ -46,9 +46,9 @@ jobs:
           echo "has-cachix-secret=${{ needs.global-vars.outputs.has-cachix-secret }}"
           echo "has-repo-secret=${{ needs.global-vars.outputs.has-repo-secret }}"
           echo "can-push-commits=${{ needs.global-vars.outputs.can-push-commits }}"
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
+      - uses: cachix/cachix-action@v17
         if: needs.global-vars.outputs.has-cachix-secret == 'true'
         with:
           name: roar
