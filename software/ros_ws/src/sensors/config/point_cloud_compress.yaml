@@ -1,0 +1,27 @@
+# Parameters for the two streams handled by point_cloud_compress.launch.py /
+# point_cloud_decompress.launch.py: the live Livox scan and FAST-LIO's accumulated map.
+#
+# voxel_size_m -- edge length of each voxel cube, in metres. At most one point survives per
+#   cube, so a smaller value keeps more detail (and more points); a larger value downsamples
+#   harder. Fed straight to the matching *_voxel_downsampler node: this file doubles as its
+#   ROS parameters file.
+#
+# quantization_bits -- bits per x/y/z coordinate for Draco position quantization (0-31 per the
+#   draco_point_cloud_transport plugin). Higher keeps more spatial precision at the cost of a
+#   larger compressed payload. The launch file reads this value itself and sets it on the
+#   *_draco_encoder node under a different, dynamic parameter name: the plugin names its own
+#   parameter after the topic it publishes on, which is only known once the launch file has
+#   resolved that topic, so it can't be declared here directly the way voxel_size_m is.
+livox_voxel_downsampler:
+  ros__parameters:
+    voxel_size_m: 0.2
+laser_map_voxel_downsampler:
+  ros__parameters:
+    # The accumulated map is far denser than a single scan, so it is thinned harder.
+    voxel_size_m: 0.3
+livox_draco_encoder:
+  ros__parameters:
+    quantization_bits: 12
+laser_map_draco_encoder:
+  ros__parameters:
+    quantization_bits: 12
