@@ -1,0 +1,4 @@
+(version 1)
+(rule "USB-C mounting clearance"
+    (constraint edge_clearance (min 0.29mm))
+    (condition "A.Reference == 'J3'"))
