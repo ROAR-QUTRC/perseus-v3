@@ -169,8 +169,10 @@ controller_server:
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["goal_checker"]
-    # Both loaded; the active one is chosen per goal via ControllerSelector, defaulting to
-    # FollowPath in the behaviour tree.
+    # Both loaded; the active one is chosen per goal via ControllerSelector. The behaviour
+    # tree currently defaults to DWB -- flip default_controller in
+    # behavior_trees/navigate_to_pose_w_smoothing.xml to go back to FollowPath (RPP), or
+    # override live by publishing the name to /controller_selector.
     controller_plugins: ["FollowPath", "DWB"]
     progress_checker:
       # Loose on purpose: a stalled wheel, lost traction on sand, or a slow costmap update
@@ -187,10 +189,14 @@ controller_server:
       yaw_goal_tolerance: 0.5
       stateful: true
     FollowPath:
+      # NOT currently active -- see controller_plugins above. Kept tuned so it can be
+      # switched back to without redoing the work.
       # Follows the global path and regulates speed on curvature; it does not do its own
       # obstacle avoidance, which is right because obstacle knowledge lives upstream.
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.4
+      # 0.28 = 0.4 * 0.7, a deliberate 30% reduction of autonomous cruise speed.
+      # safe_speed.yaml is untouched, so teleop still has the full 0.8 m/s.
+      desired_linear_vel: 0.28
       # THE CORNERING TRADE. Long lookahead puts the carrot past a corner and asks for
       # gentler curvature, so it cuts corners; short lookahead tracks corners but weaves on
       # straights. Raise these if it weaves; lower them if it cuts.
@@ -221,7 +227,11 @@ controller_server:
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
       # 0.61 rad/s at the wheel; below ~0.15 the wheels stop mid-rotation and it hunts.
-      rotate_to_heading_angular_vel: 0.25
+      # 0.175 = 0.25 * 0.7. NOTE THE MARGIN: the note above says do not go below about
+      # 0.15 rad/s of body yaw or the wheels stop turning mid-rotation. 0.175 is only
+      # 0.025 above that, so this is as slow as in-place turning can safely go. A
+      # further reduction must come from somewhere else, not from this value.
+      rotate_to_heading_angular_vel: 0.175
       # Must be matched by velocity_smoother's max_accel below; the lower one binds.
       max_angular_accel: 3.2
       # Cannot be true alongside use_rotate_to_heading; the controller rejects it.
@@ -231,17 +241,18 @@ controller_server:
       max_allowed_time_to_collision_up_to_carrot: 1.0
       transform_tolerance: 0.2
     DWB:
-      # Alternative to FollowPath: samples trajectories and scores them, so unlike RPP it
-      # does avoid obstacles locally. Costs much more CPU.
+      # ACTIVE. Samples trajectories and scores them, so unlike RPP it avoids obstacles
+      # locally rather than trusting the global path. Costs much more CPU: vx_samples *
+      # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: true
       min_vel_x: 0.0
       min_vel_y: 0.0
       # y is zero throughout: the rover cannot strafe. Limits match safe_speed.yaml.
-      max_vel_x: 0.4
+      max_vel_x: 0.28
       max_vel_y: 0.0
-      max_vel_theta: 0.4
-      max_speed_xy: 0.4
+      max_vel_theta: 0.28
+      max_speed_xy: 0.28
       # STALL: both floors sit above the ESCs' 0.05 m/s and 0.14 rad/s.
       min_speed_xy: 0.06
       min_speed_theta: 0.15
@@ -260,7 +271,8 @@ controller_server:
       angular_granularity: 0.025
       transform_tolerance: 0.2
       xy_goal_tolerance: 0.35
-      trans_stopped_velocity: 0.1
+      # 0.07 = 0.1 * 0.7, keeping it the same fraction of cruise speed as before.
+      trans_stopped_velocity: 0.07
       short_circuit_trajectory_evaluation: true
       stateful: true
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
@@ -400,8 +412,10 @@ velocity_smoother:
     # [x, y, theta]; y is zero because the rover cannot strafe. Theta must match
     # safe_speed.yaml or this becomes a second, hidden ceiling -- at 0.2 it silently fixed
     # the minimum turning radius at 0.4/0.2 = 2.0 m and no controller tuning could help.
-    max_velocity: [0.4, 0.0, 0.4]
-    min_velocity: [-0.4, 0.0, -0.4]
+    # [0.28, 0.0, 0.28] = 30% off. This is the binding ceiling for BOTH controllers, so
+    # it is the one value to change if the reduction ever needs undoing in a hurry.
+    max_velocity: [0.28, 0.0, 0.28]
+    min_velocity: [-0.28, 0.0, -0.28]
     # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
     max_accel: [1.0, 0.0, 3.2]
     max_decel: [-1.0, 0.0, -3.2]
