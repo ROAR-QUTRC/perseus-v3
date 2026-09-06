@@ -5,7 +5,8 @@
 using namespace hi_can;
 using std::cout, std::cin, std::endl;
 
-int main() {
-  RawCanInterface can_interface("error-id");
-  return 0;
+int main()
+{
+    RawCanInterface can_interface("error-id");
+    return 0;
 }
