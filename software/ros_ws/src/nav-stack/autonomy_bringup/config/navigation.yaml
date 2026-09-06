@@ -138,9 +138,19 @@ global_costmap:
 lifecycle_manager_navigation:
   ros__parameters:
     autostart: true
-    # node_names is set by navigation.launch.py, to match what that launch actually
-    # started. Naming a node that was never launched hangs bringup on a bond that never
-    # forms. Raise bond_timeout if bringup fails under load on the Orange Pi.
+    # Bringup order: servers that answer requests come up before the ones that make them,
+    # so bt_navigator never asks a planner that is not listening yet. Must match the nodes
+    # navigation.launch.py starts -- naming a missing one hangs bringup on a bond that
+    # never forms.
+    node_names:
+      - controller_server
+      - smoother_server
+      - planner_server
+      - behavior_server
+      - bt_navigator
+      - waypoint_follower
+      - velocity_smoother
+    # Raise this if bringup fails under load on the Orange Pi.
     bond_timeout: 4.0
 # ============================================================================
 # DRIVING THE ROVER -- everything below here can move it
@@ -365,8 +375,8 @@ bt_navigator:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
     navigate_through_poses:
       plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
-    # default_nav_to_pose_bt_xml is set by navigation.launch.py: it is an absolute path
-    # into this package's share directory, which only the launch file can resolve.
+      # default_nav_to_pose_bt_xml is set by navigation.launch.py: it is an absolute path
+      # into this package's share directory, which only the launch file can resolve.
 waypoint_follower:
   ros__parameters:
     loop_rate: 20

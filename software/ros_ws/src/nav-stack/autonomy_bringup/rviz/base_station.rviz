@@ -12,7 +12,6 @@ Panels:
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
-        - /Map1/Status1
       Splitter Ratio: 0.5529412031173706
     Tree Height: 299
   - Class: rviz_common/Selection
@@ -23,8 +22,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_common/Views
-    Expanded:
-      - /Current View1
+    Expanded: ~
     Name: Views
     Splitter Ratio: 0.5
   - Class: rviz_plugins/TopicHealthPanel
@@ -621,25 +619,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 9.503928184509277
+      Distance: 8.126937866210938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.7419322729110718
-        Y: 0.5871549844741821
-        Z: 4.76837158203125e-07
+        X: -0.16902589797973633
+        Y: -0.11852605640888214
+        Z: -4.76837158203125e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4752013683319092
+      Pitch: 0.5852010250091553
       Target Frame: base_footprint
       Value: ThirdPersonFollower (rviz_default_plugins)
-      Yaw: 3.279859781265259
+      Yaw: 3.141200065612793
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
         Distance: 5.78459358215332
@@ -656,6 +654,26 @@ Visualization Manager:
         Focal Shape Size: 0.05000000074505806
         Invert Z Axis: false
         Name: 3RD Back
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.5852010250091553
+        Target Frame: base_footprint
+        Value: ThirdPersonFollower (rviz_default_plugins)
+        Yaw: 3.141200065612793
+      - Class: rviz_default_plugins/ThirdPersonFollower
+        Distance: 8.126937866210938
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Focal Point:
+          X: -0.16902589797973633
+          Y: -0.11852605640888214
+          Z: -4.76837158203125e-07
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Far
         Near Clip Distance: 0.009999999776482582
         Pitch: 0.5852010250091553
         Target Frame: base_footprint
