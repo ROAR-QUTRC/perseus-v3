@@ -31,7 +31,7 @@
 		'FAULT'
 	];
 
-	let listener: ROSLIB.Topic<{ data: string }> | null = null;
+	let listener: ROSLIB.Topic | null = null;
 	let busState = $state<
 		Record<string, { status: number; current: number; voltage: number; openAlert: boolean }>
 	>({
@@ -70,11 +70,11 @@
 			listener = new ROSLIB.Topic({
 				ros: getRosConnection() as ROSLIB.Ros,
 				name: '/can_to_ros',
-				messageType: 'std_msgs/String'
+				messageType: 'interfaces/msg/RcbPowerStatus'
 			});
 
 			listener.subscribe((message: any) => {
-				const { name, status, current, voltage } = JSON.parse(message.data);
+				const { name, status, current, voltage } = message;
 				busState[name] = {
 					status: Number(status),
 					current: Number(current),
