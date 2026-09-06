@@ -36,7 +36,7 @@ RcbDriver::RcbDriver(const rclcpp::NodeOptions& options)
     }
 
     _packet_publisher =
-        this->create_publisher<std_msgs::msg::String>("can_to_ros", 10);
+        this->create_publisher<interfaces::msg::RcbPowerStatus>("can_to_ros", 10);
     _packet_timeout_timer = this->create_wall_timer(
         PACKET_TIMEOUT, std::bind(&RcbDriver::_call_receive, this));
     _packet_subscriber = this->create_subscription<std_msgs::msg::String>(
@@ -78,18 +78,18 @@ void RcbDriver::_can_to_ros(const hi_can::Packet& packet)
         {
             const auto& raw_data = packet.get_data();
 
-      parameters::legacy::power::control::power_bus::status_t data;
-      data.deserialize_data(raw_data);
-      
-      auto msg = interfaces::msg::RcbPowerStatus();
-      msg.name = name;
-      msg.current = static_cast<float>(data.current);
-      msg.voltage = static_cast<float>(data.voltage);
-      msg.status = static_cast<uint8_t>(data.status);
-      this->_packet_publisher->publish(msg);
-      return;
+            parameters::legacy::power::control::power_bus::status_t data;
+            data.deserialize_data(raw_data);
+
+            auto msg = interfaces::msg::RcbPowerStatus();
+            msg.name = name;
+            msg.current = static_cast<float>(data.current);
+            msg.voltage = static_cast<float>(data.voltage);
+            msg.status = static_cast<uint8_t>(data.status);
+            this->_packet_publisher->publish(msg);
+            return;
+        }
     }
-  }
 }
 
 void RcbDriver::_ros_to_can(std_msgs::msg::String::UniquePtr msg)
