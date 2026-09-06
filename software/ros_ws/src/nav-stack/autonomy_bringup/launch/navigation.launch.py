@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Launch the terrain costmap, the global planner, and the nav2 stack that drives to a goal.
 
-    /Laser_map -> global_traversability -> /costmap -> planner_server  -> /plan
+    /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
+                                                   -> smoother_server  -> (smoothed path)
                                                    -> controller_server -> /cmd_vel
                                                    -> velocity_smoother -> /cmd_vel_nav_stamped
 
@@ -57,12 +58,21 @@ def launch_setup(context, *args, **kwargs):
     if use_control:
         use_planner = True
 
-    def nav2_node(package, executable, name, remappings=None):
+    # nav2's stock behaviour tree never calls SmoothPath, so pointing bt_navigator at our
+    # own tree is what actually enables smoother_server. An absolute path into the share
+    # directory, which is why it cannot live in navigation.yaml.
+    bt_xml = os.path.join(
+        get_package_share_directory("autonomy_bringup"),
+        "behavior_trees",
+        "navigate_to_pose_w_smoothing.xml",
+    )
+
+    def nav2_node(package, executable, name, remappings=None, extra_params=None):
         return Node(
             package=package,
             executable=executable,
             name=name,
-            parameters=[config_file, use_sim_time],
+            parameters=[config_file, *(extra_params or []), use_sim_time],
             remappings=remappings or [],
             output="screen",
         )
@@ -88,8 +98,14 @@ def launch_setup(context, *args, **kwargs):
     if use_control:
         nodes += [
             nav2_node("nav2_controller", "controller_server", "controller_server"),
+            nav2_node("nav2_smoother", "smoother_server", "smoother_server"),
             nav2_node("nav2_behaviors", "behavior_server", "behavior_server"),
-            nav2_node("nav2_bt_navigator", "bt_navigator", "bt_navigator"),
+            nav2_node(
+                "nav2_bt_navigator",
+                "bt_navigator",
+                "bt_navigator",
+                extra_params=[{"default_nav_to_pose_bt_xml": bt_xml}],
+            ),
             nav2_node(
                 "nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"
             ),
@@ -107,6 +123,7 @@ def launch_setup(context, *args, **kwargs):
         # controller_server first: it is what everything else ultimately drives.
         managed = [
             "controller_server",
+            "smoother_server",
             "planner_server",
             "behavior_server",
             "bt_navigator",

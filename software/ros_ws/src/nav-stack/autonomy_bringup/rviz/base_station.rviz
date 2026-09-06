@@ -12,7 +12,8 @@ Panels:
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
-      Splitter Ratio: 0.5833333134651184
+        - /Map1/Status1
+      Splitter Ratio: 0.5529412031173706
     Tree Height: 299
   - Class: rviz_common/Selection
     Name: Selection
@@ -498,7 +499,7 @@ Visualization Manager:
       Color Scheme: map
       Draw Behind: false
       Enabled: true
-      Name: Obstacle Map
+      Name: Global 2D Projection
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -544,7 +545,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
+      Color: 28; 113; 216
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -568,6 +569,29 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /plan
+      Value: true
+    - Alpha: 0.699999988079071
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap_updates
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
@@ -597,25 +621,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 5.78459358215332
+      Distance: 9.503928184509277
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.16902589797973633
-        Y: -0.11852605640888214
-        Z: -4.76837158203125e-07
+        X: 0.7419322729110718
+        Y: 0.5871549844741821
+        Z: 4.76837158203125e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5852010250091553
+      Pitch: 0.4752013683319092
       Target Frame: base_footprint
       Value: ThirdPersonFollower (rviz_default_plugins)
-      Yaw: 3.141200065612793
+      Yaw: 3.279859781265259
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
         Distance: 5.78459358215332
@@ -631,7 +655,7 @@ Visualization Manager:
         Focal Shape Fixed Size: true
         Focal Shape Size: 0.05000000074505806
         Invert Z Axis: false
-        Name: ThirdPersonFollower
+        Name: 3RD Back
         Near Clip Distance: 0.009999999776482582
         Pitch: 0.5852010250091553
         Target Frame: base_footprint
