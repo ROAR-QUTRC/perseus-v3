@@ -23,7 +23,7 @@
       <visual>
         <origin xyz="${-0.023} ${0.005} ${-0.035}" rpy="0.0 0.0 ${pi/2}"/>
         <geometry>
-          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/sensor_mount.dae"/>
+          <mesh scale="1.0 1.0 1.0" filename="package://description/meshes/sensor_mount.dae"/>
         </geometry>
       </visual>
     </link>
@@ -44,7 +44,7 @@
       <visual>
         <origin xyz="${-0.082} 0.0 ${0.002}" rpy="${pi/2} 0.0 ${pi}"/>
         <geometry>
-          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/lidar_base.dae"/>
+          <mesh scale="1.0 1.0 1.0" filename="package://description/meshes/lidar_base.dae"/>
         </geometry>
       </visual>
     </link>
@@ -68,7 +68,7 @@
       <visual>
         <origin xyz="0 0.0 -0.02" rpy="${pi/2} 0.0 ${pi}"/>
         <geometry>
-          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/mid-360.dae"/>
+          <mesh scale="1.0 1.0 1.0" filename="package://description/meshes/mid-360.dae"/>
         </geometry>
       </visual>
       <collision>

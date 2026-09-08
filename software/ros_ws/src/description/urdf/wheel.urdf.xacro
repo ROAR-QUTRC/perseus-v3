@@ -18,7 +18,7 @@
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
       </xacro:if>
       <geometry>
-        <mesh scale="0.1 0.1 0.1" filename="file://$(find description)/meshes/wheel.dae"/>
+        <mesh scale="0.1 0.1 0.1" filename="package://description/meshes/wheel.dae"/>
       </geometry>
     </visual>
     <collision>
