@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
-"""Launch the nodes nav2's global costmap depends on, but that nav2 itself does not provide.
+"""Launch the terrain costmap and the full nav2 stack that drives to a goal.
 
-global_traversability turns FAST-LIO's accumulated map cloud (/Laser_map) into a
-terrain-aware occupancy costmap, in place of a global costmap sourced only from a 2D SLAM
-map. Point nav2's global costmap static layer at its costmap topic once nav2 itself is
-brought up elsewhere. It is parameterised by config/navigation.yaml.
+    /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
+                                                    -> smoother_server
+                                                    -> controller_server -> /cmd_vel
+                                                    -> velocity_smoother -> /cmd_vel_nav_stamped
 
-localisation.launch.py must already be running to supply /Laser_map, and also the
-odom -> base_footprint that nav2's costmaps and controller need: the flattening
-broadcaster that produces it is launched there, next to the EKF whose odom -> base_link
-it is derived from.
+THIS LAUNCH FILE MOVES THE ROVER. An rviz "2D Goal Pose" makes it drive: bt_navigator
+subscribes to /goal_pose directly, so the button works without the nav2 rviz panel.
+
+Two ways to stop it:
+  * The joystick. twist_mux gives it priority 100 against navigation's 10, so touching the
+    stick takes the rover off nav2 within one message.
+  * The e-stop. That is the one to actually rely on.
+
+Prerequisites:
+  localisation.launch.py -- /Laser_map, the odom frame, and odom -> base_footprint.
+  perseus.launch.py      -- twist_mux and the diff drive controller that turn
+                            /cmd_vel_nav_stamped into wheel motion.
+
+Configured entirely by config/navigation.yaml.
 """
 
 import os
@@ -22,9 +32,12 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    config_file = os.path.join(
-        get_package_share_directory("autonomy_bringup"), "config", "navigation.yaml"
-    )
+    share = get_package_share_directory("autonomy_bringup")
+    config_file = os.path.join(share, "config", "navigation.yaml")
+    # nav2's stock behaviour tree never calls SmoothPath, so pointing bt_navigator at our
+    # own tree is what actually enables smoother_server. An absolute path into the share
+    # directory, which is why it cannot live in navigation.yaml.
+    bt_xml = os.path.join(share, "behavior_trees", "navigate_to_pose_w_smoothing.xml")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -32,18 +45,58 @@ def generate_launch_description():
         description="Use the simulation clock. Only set true when something publishes "
         "/clock.",
     )
+    use_sim_time = {"use_sim_time": LaunchConfiguration("use_sim_time")}
 
-    global_traversability_node = Node(
-        package="global_traversability",
-        executable="global_traversability",
-        name="global_traversability",
-        parameters=[config_file, {"use_sim_time": LaunchConfiguration("use_sim_time")}],
-        output="screen",
-    )
+    def nav2_node(package, executable, name, remappings=None, extra_params=None):
+        return Node(
+            package=package,
+            executable=executable,
+            name=name,
+            parameters=[config_file, *(extra_params or []), use_sim_time],
+            remappings=remappings or [],
+            output="screen",
+        )
 
-    return LaunchDescription(
-        [
-            declare_use_sim_time,
-            global_traversability_node,
-        ]
-    )
+    nodes = [
+        Node(
+            package="global_traversability",
+            executable="global_traversability",
+            name="global_traversability",
+            parameters=[config_file, use_sim_time],
+            output="screen",
+        ),
+        nav2_node("nav2_controller", "controller_server", "controller_server"),
+        nav2_node("nav2_smoother", "smoother_server", "smoother_server"),
+        nav2_node("nav2_planner", "planner_server", "planner_server"),
+        nav2_node("nav2_behaviors", "behavior_server", "behavior_server"),
+        nav2_node(
+            "nav2_bt_navigator",
+            "bt_navigator",
+            "bt_navigator",
+            extra_params=[{"default_nav_to_pose_bt_xml": bt_xml}],
+        ),
+        nav2_node("nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"),
+        # THE ONE REMAP THAT CONNECTS NAV2 TO THIS ROVER. The smoother's output is nav2's
+        # last word on velocity; twist_mux's navigation input is cmd_vel_nav_stamped
+        # (perseus/config/twist_mux.yaml). Without this the stack runs perfectly and the
+        # wheels never turn.
+        nav2_node(
+            "nav2_velocity_smoother",
+            "velocity_smoother",
+            "velocity_smoother",
+            remappings=[("cmd_vel_smoothed", "/cmd_vel_nav_stamped")],
+        ),
+        # Every nav2 node above is a lifecycle node: launched, it sits unconfigured and
+        # answers nothing. This walks them to active on startup. The order it does that in
+        # is node_names in navigation.yaml, and it must list exactly the nodes launched
+        # here -- naming one that is missing hangs bringup on a bond that never forms.
+        Node(
+            package="nav2_lifecycle_manager",
+            executable="lifecycle_manager",
+            name="lifecycle_manager_navigation",
+            parameters=[config_file, use_sim_time],
+            output="screen",
+        ),
+    ]
+
+    return LaunchDescription([declare_use_sim_time] + nodes)

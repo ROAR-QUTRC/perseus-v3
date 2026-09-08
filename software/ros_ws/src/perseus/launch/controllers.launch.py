@@ -21,6 +21,7 @@ def launch_setup(context, *args, **kwargs):
     # SHAPE of the launch (an extra spawner, and a different chain of event
     # handlers), not just whether one node runs.
     use_wheel_pid = IfCondition(LaunchConfiguration("use_wheel_pid")).evaluate(context)
+    safe_speed = IfCondition(LaunchConfiguration("safe_speed")).evaluate(context)
 
     # CONFIG + DATA FILES
     controller_config = PathJoinSubstitution(
@@ -30,10 +31,18 @@ def launch_setup(context, *args, **kwargs):
     wheel_pid_config = PathJoinSubstitution(
         [FindPackageShare("perseus"), "config", "wheel_pid_chaining.yaml"]
     )
+    safe_speed_config = PathJoinSubstitution(
+        [FindPackageShare("perseus"), "config", "safe_speed.yaml"]
+    )
 
+    # Order matters: later files win per parameter. The two overlays touch
+    # disjoint keys of diff_drive_base_controller (wheel names and feedback
+    # source vs velocity ceilings), so they compose and can be used together.
     controller_parameters = [controller_config]
     if use_wheel_pid:
         controller_parameters.append(wheel_pid_config)
+    if safe_speed:
+        controller_parameters.append(safe_speed_config)
     controller_parameters.append(use_sim_time_param)
 
     # NODES
@@ -127,8 +136,17 @@ def generate_launch_description():
             description="Launch the controller manager (off when something else owns it, eg Gazebo)",
         ),
         DeclareLaunchArgument(
+            "safe_speed",
+            default_value="true",
+            description=(
+                "Cap the rover at 0.8 m/s and 0.4 rad/s in the diff drive "
+                "controller's speed limiter, so every command source is limited "
+                "at once. See config/safe_speed.yaml"
+            ),
+        ),
+        DeclareLaunchArgument(
             "use_wheel_pid",
-            default_value="false",
+            default_value="true",
             description=(
                 "Chain a per-wheel velocity PID between the diff drive controller "
                 "and the hardware, to push through low-speed stall. See "
