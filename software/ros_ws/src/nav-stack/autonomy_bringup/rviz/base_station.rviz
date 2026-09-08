@@ -1,0 +1,500 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 78
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /TF1/Frames1
+        - /RobotModel1/Description Topic1
+        - /Livox Cloud1/Topic1
+      Splitter Ratio: 0.5833333134651184
+    Tree Height: 510
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Expanded:
+      - /2D Goal Pose1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz_plugins/TopicHealthPanel
+    Name: Topic Health
+    Topic: /health_check/health
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        base_footprint:
+          Value: true
+        base_link:
+          Value: true
+        camera_accel_frame:
+          Value: true
+        camera_accel_optical_frame:
+          Value: true
+        camera_bottom_screw_frame:
+          Value: true
+        camera_color_frame:
+          Value: true
+        camera_color_optical_frame:
+          Value: true
+        camera_depth_frame:
+          Value: true
+        camera_depth_optical_frame:
+          Value: true
+        camera_gyro_frame:
+          Value: true
+        camera_gyro_optical_frame:
+          Value: true
+        camera_imu_optical_frame:
+          Value: true
+        camera_infra1_frame:
+          Value: true
+        camera_infra1_optical_frame:
+          Value: true
+        camera_infra2_frame:
+          Value: true
+        camera_infra2_optical_frame:
+          Value: true
+        camera_link:
+          Value: true
+        chassis:
+          Value: true
+        differential_bar:
+          Value: true
+        flange_bearing:
+          Value: true
+        front_left_motor:
+          Value: true
+        front_left_wheel:
+          Value: true
+        front_right_motor:
+          Value: true
+        front_right_wheel:
+          Value: true
+        left_rocker:
+          Value: true
+        livox_base:
+          Value: true
+        livox_frame:
+          Value: true
+        odom:
+          Value: true
+        rear_left_motor:
+          Value: true
+        rear_left_wheel:
+          Value: true
+        rear_right_motor:
+          Value: true
+        rear_right_wheel:
+          Value: true
+        right_rocker:
+          Value: true
+        sensor_mount:
+          Value: true
+      Marker Scale: 0.5
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        odom:
+          base_link:
+            base_footprint:
+              {}
+            chassis:
+              flange_bearing:
+                differential_bar:
+                  {}
+              left_rocker:
+                front_left_motor:
+                  front_left_wheel:
+                    {}
+                rear_left_motor:
+                  rear_left_wheel:
+                    {}
+              right_rocker:
+                front_right_motor:
+                  front_right_wheel:
+                    {}
+                rear_right_motor:
+                  rear_right_wheel:
+                    {}
+              sensor_mount:
+                camera_bottom_screw_frame:
+                  camera_link:
+                    camera_accel_frame:
+                      camera_accel_optical_frame:
+                        {}
+                    camera_color_frame:
+                      camera_color_optical_frame:
+                        {}
+                    camera_depth_frame:
+                      camera_depth_optical_frame:
+                        {}
+                    camera_gyro_frame:
+                      camera_gyro_optical_frame:
+                        camera_imu_optical_frame:
+                          {}
+                    camera_infra1_frame:
+                      camera_infra1_optical_frame:
+                        {}
+                    camera_infra2_frame:
+                      camera_infra2_optical_frame:
+                        {}
+                livox_base:
+                  livox_frame:
+                    {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: /home/bocho0600/roar/perseus-v3/software/ros_ws/src/description/urdf/perseus.urdf.xacro
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_accel_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_accel_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_gyro_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_gyro_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_imu_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        differential_bar:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        flange_bearing:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_left_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_right_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_rocker:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_left_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_right_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_rocker:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        sensor_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 0
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Livox Cloud
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 2
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /cloud_registered
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /path
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_pose
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/ThirdPersonFollower
+      Distance: 9.713396072387695
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: -1.17427396774292
+        Y: -0.054597869515419006
+        Z: -4.76837158203125e-07
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.6852014064788818
+      Target Frame: base_footprint
+      Value: ThirdPersonFollower (rviz_default_plugins)
+      Yaw: 3.141200065612793
+    Saved:
+      - Class: rviz_default_plugins/ThirdPersonFollower
+        Distance: 9.713396072387695
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Focal Point:
+          X: -1.17427396774292
+          Y: -0.054597869515419006
+          Z: -4.76837158203125e-07
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: 3rd Person Back view
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.6852014064788818
+        Target Frame: base_footprint
+        Value: ThirdPersonFollower (rviz_default_plugins)
+        Yaw: 3.141200065612793
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1163
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000200000000000001560000042dfc0200000004fb000000100044006900730070006c006100790073010000003f0000028c000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000002d10000019b0000008800ffffff00000001000001000000042dfc0200000001fb0000000a00560069006500770073010000003f0000042d000000a900ffffff0000051e0000042d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Topic Health:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1920
+  X: 1920
+  Y: 0

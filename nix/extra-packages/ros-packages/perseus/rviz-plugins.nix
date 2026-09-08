@@ -5,23 +5,17 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
-  fast-lio,
-  footprint-broadcaster,
-  global-traversability,
-  health-check,
-  navigation2,
+  interfaces,
+  pluginlib,
+  qt5,
   rclcpp,
-  robot-localization,
-  rviz-plugins,
-  slam-toolbox,
-  watchdog,
-  xacro,
+  rviz-common,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-autonomy-bringup";
+  pname = "ros-jazzy-rviz-plugins";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/nav-stack/autonomy_bringup;
+  src = ./../../../../software/ros_ws/src/rviz_plugins;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -30,22 +24,16 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    fast-lio
-    footprint-broadcaster
-    global-traversability
-    health-check
-    navigation2
+    interfaces
+    pluginlib
+    qt5.qtbase
     rclcpp
-    robot-localization
-    rviz-plugins
-    slam-toolbox
-    watchdog
-    xacro
+    rviz-common
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "ROAR autonomy_bringup software control stack";
+    description = "RViz panels and displays for the rover's custom messages";
     license = with lib.licenses; [ mit ];
   };
 }
