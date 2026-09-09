@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
 inputs:
   # ROS2 related inputs
   nix-ros-overlay: # ros overlay
@@ -18,6 +19,9 @@ inputs:
       nixpkgs:
         follows: nixpkgs
   # Other utilities
+  nixpkgs-docs:
+    url: github:cachix/devenv-nixpkgs/rolling # mkdocs from from nix-ros-overlay/nixpkgs is too old
+    flake: false
   nixgl:
     url: github:nix-community/nixGL/main
     inputs:

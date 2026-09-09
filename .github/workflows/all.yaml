@@ -108,13 +108,16 @@ jobs:
         run: devenv --profile docs shell build # builds docs in docs/site
       # From here, deploying to the website repo
       - name: Checkout website repo
-        if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
+        if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') }}
+        # if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
         id: checkout-website
         uses: actions/checkout@v4
         with:
           repository: ROAR-QUTRC/roar-qutrc.github.io
           ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
           path: docs
+      - name: tree
+        run: tree -a .
       - name: Update docs in checked out repo
         if: ${{ steps.checkout-website.outcome == 'success' }}
         run: |

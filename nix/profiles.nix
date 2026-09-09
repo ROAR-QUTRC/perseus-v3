@@ -2,6 +2,7 @@
   pkgs,
   config,
   lib,
+  inputs,
   ...
 }:
 {
@@ -41,7 +42,7 @@
     };
 
     docs.module = import ./profiles/docs.nix {
-      inherit pkgs;
+      inherit pkgs inputs;
     };
   };
 }

@@ -60,9 +60,9 @@ extra_javascript:
 plugins:
   - search
   - awesome-nav
-  - drawio-exporter:
-      format: svg
-      cache_dir: assets/drawio/.cache
+  # - drawio-exporter:
+  #     format: svg
+  #     cache_dir: assets/drawio/.cache
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions
@@ -90,8 +90,7 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - # Tab groups
-    pymdownx.tabbed:
+  - pymdownx.tabbed:
       alternate_style: true
   # Annotations
   - md_in_html
