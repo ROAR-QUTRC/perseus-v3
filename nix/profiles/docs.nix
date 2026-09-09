@@ -24,6 +24,7 @@ in
   packages = [
     docs-with-plugins
     pkgs-docs.drawio # still need the drawio binary for mkdocs-drawio-exporter
+    pkgs-docs.xvfb # needed for a headless build of mkdocs-drawio-exporter
   ];
   languages = {
     python.enable = true;
@@ -31,6 +32,6 @@ in
 
   scripts = {
     dev.exec = "cd $(git rev-parse --show-toplevel)/docs && mkdocs serve";
-    build.exec = "cd $(git rev-parse --show-toplevel)/docs && mkdocs build";
+    build.exec = "cd $(git rev-parse --show-toplevel)/docs && xvfb-run -a mkdocs build";
   };
 }
