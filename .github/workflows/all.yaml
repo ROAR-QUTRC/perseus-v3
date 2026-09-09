@@ -104,6 +104,10 @@ jobs:
           extraPullNames: ros
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
+      - name: Fix for headless drawio
+        run: sudo apt install -y xvfb libasound2
+      - name: Build docs
+        run: devenv --profile docs shell build-actions # builds docs in docs/site
       - name: Build docs
         run: devenv --profile docs shell build # builds docs in docs/site
       # From here, deploying to the website repo
