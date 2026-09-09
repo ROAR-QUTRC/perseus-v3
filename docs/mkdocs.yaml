@@ -63,6 +63,8 @@ plugins:
   - drawio-exporter:
       format: svg
       cache_dir: assets/drawio/.cache
+      drawio_args:
+        - --no-sandbox
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions
