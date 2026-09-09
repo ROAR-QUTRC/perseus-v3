@@ -27,7 +27,7 @@ jobs:
       can-push-commits: ${{ (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
       # Auth secrets
       has-cachix-secret: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
-      has-repo-secret: ${{ secrets.REPO_DEPLOY_KEY != '' }}
+      # has-repo-secret: ${{ secrets.REPO_DEPLOY_KEY != '' }} # Unused - is meant for git auth but repo is public
     steps:
       - name: Export Nix config
         id: export-vars
@@ -89,6 +89,65 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "Package job will run"
           fi;
+  docs:
+    name: Build docs
+    needs: [global-vars, changes]
+    if: ${{ !cancelled() && (needs.changes.outputs.skip-format != 'true') && (needs.changes.outputs.docs == 'true') || (needs.changes.outputs.manual == 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      # Configure read only caches, will write to cachix below
+      - uses: cachix/cachix-action@v17
+        with:
+          name: roar
+          extraPullNames: ros
+      - name: Install devenv.sh
+        run: nix profile add nixpkgs#devenv
+      - name: Build docs
+        run: devenv --profile docs shell build # builds docs in docs/site
+      # From here, deploying to the website repo
+      - name: Checkout website repo
+        if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
+        id: checkout-website
+        uses: actions/checkout@v4
+        with:
+          repository: ROAR-QUTRC/roar-qutrc.github.io
+          ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
+          path: docs
+      - name: Update docs in checked out repo
+        if: ${{ steps.checkout-website.outcome == 'success' }}
+        run: |
+          rm -rf docs/*
+          cp -a result/html/. docs/
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        name: Commit and push changes
+        if: ${{ steps.checkout-website.outcome == 'success' }}
+        with:
+          commit_message: "Update generated docs"
+          repository: ./docs
+  # docs:
+  #   steps:
+  #     # From here, deploying to the website repo
+  #     - name: Checkout website repo
+  #       if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
+  #       id: checkout-website
+  #       uses: actions/checkout@v4
+  #       with:
+  #         repository: ROAR-QUTRC/roar-qutrc.github.io
+  #         ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
+  #         path: docs
+  #     - name: Update docs in checked out repo
+  #       if: ${{ steps.checkout-website.outcome == 'success' }}
+  #       run: |
+  #         rm -rf docs/*
+  #         cp -a result/html/. docs/
+  #     - uses: stefanzweifel/git-auto-commit-action@v5
+  #       name: Commit and push changes
+  #       if: ${{ steps.checkout-website.outcome == 'success' }}
+  #       with:
+  #         commit_message: "Update generated docs"
+  #         repository: ./docs
   # Regenerate ROS2 Nix packages using `ros2nix` if any of the `package.xml` files have changed
   package:
     name: Generate ROS2 Nix packages
@@ -153,7 +212,6 @@ jobs:
           echo "package-msg=${{ needs.global-vars.outputs.package-msg }}"
           echo "is-main=${{ needs.global-vars.outputs.is-main }}"
           echo "has-cachix-secret=${{ needs.global-vars.outputs.has-cachix-secret }}"
-          echo "has-repo-secret=${{ needs.global-vars.outputs.has-repo-secret }}"
           echo "can-push-commits=${{ needs.global-vars.outputs.can-push-commits }}"
       - name: print changed files
         run: |
