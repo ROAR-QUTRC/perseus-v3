@@ -115,20 +115,18 @@ jobs:
         with:
           repository: ROAR-QUTRC/roar-qutrc.github.io
           ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
-          path: docs
-      - name: tree
-        run: tree -a .
+          path: docs-repo
       - name: Update docs in checked out repo
         if: ${{ steps.checkout-website.outcome == 'success' }}
         run: |
-          rm -rf docs/*
-          cp -a result/html/. docs/
+          rm -rf docs-repo/*
+          cp -a docs/site/. docs-repo/
       - uses: stefanzweifel/git-auto-commit-action@v7
         name: Commit and push changes
         if: ${{ steps.checkout-website.outcome == 'success' }}
         with:
           commit_message: "Update generated docs"
-          repository: ./docs
+          repository: ./docs-repo
   # docs:
   #   steps:
   #     # From here, deploying to the website repo

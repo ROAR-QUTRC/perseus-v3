@@ -23,7 +23,6 @@ in
 
   packages = [
     docs-with-plugins
-    pkgs-docs.tree
     # pkgs-docs.drawio # still need the drawio binary for mkdocs-drawio-exporter
   ];
   languages = {
