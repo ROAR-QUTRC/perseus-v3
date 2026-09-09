@@ -13,7 +13,7 @@ let
       mkdocs-material
       mkdocs-material-extensions
       mkdocs-awesome-nav
-      # mkdocs-drawio-exporter
+      mkdocs-drawio-exporter
     ]
     ++ mkdocs-material.optional-dependencies.imaging
   );
@@ -23,7 +23,7 @@ in
 
   packages = [
     docs-with-plugins
-    # pkgs-docs.drawio # still need the drawio binary for mkdocs-drawio-exporter
+    pkgs-docs.drawio # still need the drawio binary for mkdocs-drawio-exporter
   ];
   languages = {
     python.enable = true;

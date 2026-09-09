@@ -127,28 +127,6 @@ jobs:
         with:
           commit_message: "Update generated docs"
           repository: ./docs-repo
-  # docs:
-  #   steps:
-  #     # From here, deploying to the website repo
-  #     - name: Checkout website repo
-  #       if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
-  #       id: checkout-website
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: ROAR-QUTRC/roar-qutrc.github.io
-  #         ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
-  #         path: docs
-  #     - name: Update docs in checked out repo
-  #       if: ${{ steps.checkout-website.outcome == 'success' }}
-  #       run: |
-  #         rm -rf docs/*
-  #         cp -a result/html/. docs/
-  #     - uses: stefanzweifel/git-auto-commit-action@v5
-  #       name: Commit and push changes
-  #       if: ${{ steps.checkout-website.outcome == 'success' }}
-  #       with:
-  #         commit_message: "Update generated docs"
-  #         repository: ./docs
   # Regenerate ROS2 Nix packages using `ros2nix` if any of the `package.xml` files have changed
   package:
     name: Generate ROS2 Nix packages

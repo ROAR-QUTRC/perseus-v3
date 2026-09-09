@@ -60,9 +60,9 @@ extra_javascript:
 plugins:
   - search
   - awesome-nav
-  # - drawio-exporter:
-  #     format: svg
-  #     cache_dir: assets/drawio/.cache
+  - drawio-exporter:
+      format: svg
+      cache_dir: assets/drawio/.cache
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions

@@ -4,8 +4,6 @@ title: Perseus V3
 
 # Welcome to Perseus-v3!
 
-hello this worked
-
 Welcome! This is the home of the Perseus Rover documentation. It contains (well, it should, if people have been updating it) everything you need to know about developing on the rover. If you are looking to follow and keep up with the ROAR team check out or socials: [LinkedIn](https://www.linkedin.com/company/roar-team/), [Instagram](https://www.instagram.com/qutroarteam?igsh=MXdzbXo4azY5cHhtMw==) or join our parent club the [QUT Robotics Club](https://linktr.ee/qutroboticsclub).
 
 If you're new here, you'll probably be wanting to read through the [Getting Started](../02-perseus-v3/01-getting-started/index.md) page, which contains everything you need to know to get yourself set up to start writing code.
