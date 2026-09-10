@@ -63,9 +63,9 @@ plugins:
   - drawio-exporter:
       format: svg
       cache_dir: assets/drawio/.cache
+      # fixes some problems still broken:
       drawio_args:
         - --no-sandbox
-        - --disable-gpu # these are needed for headless drawio to work in GitHub Actions
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions
