@@ -65,6 +65,7 @@ plugins:
       cache_dir: assets/drawio/.cache
       drawio_args:
         - --no-sandbox
+        - --disable-gpu # these are needed for headless drawio to work in GitHub Actions
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions

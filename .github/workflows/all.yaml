@@ -94,6 +94,8 @@ jobs:
     needs: [global-vars, changes]
     if: ${{ !cancelled() && (needs.changes.outputs.skip-format != 'true') && (needs.changes.outputs.docs == 'true') || (needs.changes.outputs.manual == 'true') }}
     runs-on: ubuntu-latest
+    env:
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
@@ -104,10 +106,6 @@ jobs:
           extraPullNames: ros
       - name: Install devenv.sh
         run: nix profile add nixpkgs#devenv
-      - name: Fix for headless drawio
-        run: sudo apt install -y xvfb libasound2
-      - name: Build docs
-        run: devenv --profile docs shell build-actions # builds docs in docs/site
       - name: Build docs
         run: devenv --profile docs shell build # builds docs in docs/site
       # From here, deploying to the website repo
