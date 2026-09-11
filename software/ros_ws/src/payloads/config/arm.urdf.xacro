@@ -1,6 +1,11 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="arm">
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <xacro:arg name="use_mock_hardware" default="true" />
+    <xacro:arg name="hardware_plugin" default="mock_components/GenericSystem" />
+    <xacro:arg name="port" default="/dev/ttyUSB0" />
+    <xacro:arg name="baud_rate" default="1000000" />
+
     <!-- Import arm urdf file -->
     <xacro:include filename="$(find payloads)/config/arm_model.urdf" />
 
@@ -8,6 +13,6 @@
     <xacro:include filename="arm.ros2_control.xacro" />
 
 
-    <xacro:arm_ros2_control name="ArmMockSystem" initial_positions_file="$(arg initial_positions_file)"/>
+    <xacro:arm_ros2_control name="DynamixelServos" initial_positions_file="$(arg initial_positions_file)" use_mock_hardware="$(arg use_mock_hardware)" hardware_plugin="$(arg hardware_plugin)" port="$(arg port)" baud_rate="$(arg baud_rate)"/>
 
 </robot>

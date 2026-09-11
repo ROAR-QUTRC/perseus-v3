@@ -9,6 +9,7 @@ extend-exclude = [
   "*.png",
   "*.drawio",
   "*.patch",
+  "software/ros_ws/src/arm_ikfast_plugin/src/*.cpp",
 ]
 
 [default]

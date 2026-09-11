@@ -1,5 +1,13 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import (
+    DeclareLaunchArgument,
+    EmitEvent,
+    LogInfo,
+    RegisterEventHandler,
+    SetEnvironmentVariable,
+)
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -13,6 +21,25 @@ from ament_index_python.packages import get_package_share_directory
 from launch.conditions import IfCondition
 import os
 import yaml
+
+
+def start_after_success(stage_name, actions):
+    """Start dependent actions only when a prerequisite exits successfully."""
+
+    def handle_exit(event, _context):
+        if event.returncode != 0:
+            reason = f"{stage_name} failed with exit code {event.returncode}"
+            return [
+                LogInfo(msg=f"ERROR: {reason}"),
+                EmitEvent(event=Shutdown(reason=reason)),
+            ]
+
+        return [
+            LogInfo(msg=f"{stage_name} is ready; starting the next stage"),
+            *actions,
+        ]
+
+    return handle_exit
 
 
 def load_yaml(package_name, file_path):
@@ -32,6 +59,13 @@ def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
         DeclareLaunchArgument(
+            "use_mock_hardware",
+            default_value="true",
+            description="Start robot with mock hardware mirroring command to its states.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "use_sim_time",
             default_value="false",
             description="Use simulation (Gazebo) clock if true",
@@ -44,10 +78,19 @@ def generate_launch_description():
             description="Start RViz2",
         )
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "rmw_implementation",
+            default_value="rmw_fastrtps_cpp",
+            description="ROS middleware used by all simulation processes",
+        )
+    )
 
     # Initialize Arguments
+    use_mock_hardware = LaunchConfiguration("use_mock_hardware")
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_rviz = LaunchConfiguration("use_rviz")
+    rmw_implementation = LaunchConfiguration("rmw_implementation")
 
     robot_description_content = Command(
         [
@@ -56,6 +99,9 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare("payloads"), "config", "arm.urdf.xacro"]
             ),
+            " ",
+            "use_mock_hardware:=",
+            use_mock_hardware,
         ]
     )
     robot_description = {
@@ -87,6 +133,41 @@ def generate_launch_description():
     joint_limits_yaml = load_yaml("payloads", "config/joint_limits.yaml")
     robot_description_planning = {"robot_description_planning": joint_limits_yaml}
 
+    # MoveIt Configuration
+    ompl_planning_yaml = load_yaml("payloads", "config/ompl_planning.yaml")
+    ompl_planning_pipeline_config = {
+        "planning_pipelines": ["ompl"],
+        "ompl": {
+            "planning_plugins": ["ompl_interface/OMPLPlanner"],
+            "request_adapters": [
+                "default_planning_request_adapters/ResolveConstraintFrames",
+                "default_planning_request_adapters/ValidateWorkspaceBounds",
+                "default_planning_request_adapters/CheckStartStateBounds",
+                "default_planning_request_adapters/CheckStartStateCollision",
+            ],
+            "response_adapters": [
+                "default_planning_response_adapters/AddTimeOptimalParameterization",
+                "default_planning_response_adapters/ValidateSolution",
+            ],
+            "start_state_max_bounds_error": 0.1,
+        },
+    }
+    ompl_planning_pipeline_config["ompl"].update(ompl_planning_yaml)
+
+    moveit_controllers = {
+        "moveit_simple_controller_manager": load_yaml(
+            "payloads", "config/moveit_controllers.yaml"
+        ),
+        "moveit_controller_manager": "moveit_simple_controller_manager/MoveItSimpleControllerManager",
+    }
+
+    trajectory_execution = {
+        "moveit_manage_controllers": True,
+        "trajectory_execution.allowed_execution_duration_scaling": 1.2,
+        "trajectory_execution.allowed_goal_duration_margin": 0.5,
+        "trajectory_execution.allowed_start_tolerance": 0.01,
+    }
+
     planning_scene_monitor_parameters = {
         "publish_planning_scene": True,
         "publish_geometry_updates": True,
@@ -103,7 +184,13 @@ def generate_launch_description():
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="both",
-        parameters=[robot_description, {"use_sim_time": use_sim_time}],
+        parameters=[
+            robot_description,
+            {
+                "use_robot_description_topic": False,
+                "use_sim_time": use_sim_time,
+            },
+        ],
     )
 
     # 2. ROS2 Control
@@ -117,10 +204,10 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            robot_description,
             ros2_controllers_path,
             {"use_sim_time": use_sim_time},
         ],
+        remappings=[("robot_description", "/robot_description")],
         output="both",
     )
 
@@ -132,6 +219,12 @@ def generate_launch_description():
             "joint_state_broadcaster",
             "--controller-manager",
             "/controller_manager",
+            "--controller-manager-timeout",
+            "20",
+            "--service-call-timeout",
+            "10",
+            "--switch-timeout",
+            "10",
         ],
         parameters=[{"use_sim_time": use_sim_time}],
     )
@@ -139,11 +232,73 @@ def generate_launch_description():
     servo_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["servo_controller", "--controller-manager", "/controller_manager"],
+        arguments=[
+            "servo_controller",
+            "--controller-manager",
+            "/controller_manager",
+            "--controller-manager-timeout",
+            "20",
+            "--service-call-timeout",
+            "10",
+            "--switch-timeout",
+            "10",
+        ],
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
-    # 4. MoveIt Servo Node
+    wrist_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "wrist_controller",
+            "--controller-manager",
+            "/controller_manager",
+            "--controller-manager-timeout",
+            "20",
+            "--service-call-timeout",
+            "10",
+            "--switch-timeout",
+            "10",
+        ],
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    gripper_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "gripper_controller",
+            "--controller-manager",
+            "/controller_manager",
+            "--controller-manager-timeout",
+            "20",
+            "--service-call-timeout",
+            "10",
+            "--switch-timeout",
+            "10",
+        ],
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    # 4. Move Group Node
+    move_group_node = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        output="screen",
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            robot_description_kinematics,
+            robot_description_planning,
+            ompl_planning_pipeline_config,
+            trajectory_execution,
+            moveit_controllers,
+            planning_scene_monitor_parameters,
+            {"use_sim_time": use_sim_time},
+        ],
+    )
+
+    # 5. MoveIt Servo Node
     servo_node = Node(
         package="moveit_servo",
         executable="servo_node",
@@ -159,7 +314,21 @@ def generate_launch_description():
         output="screen",
     )
 
-    # 5. RViz
+    wrist_velocity_bridge_node = Node(
+        package="payloads",
+        executable="wrist_velocity_bridge",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    gripper_velocity_bridge_node = Node(
+        package="payloads",
+        executable="gripper_velocity_bridge",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    # 6. RViz
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("payloads"), "config", "moveit.rviz"]
     )
@@ -174,12 +343,13 @@ def generate_launch_description():
             robot_description,
             robot_description_semantic,
             robot_description_kinematics,
+            ompl_planning_pipeline_config,
             {"use_sim_time": use_sim_time},
         ],
         condition=IfCondition(use_rviz),
     )
 
-    # 6. Static Transform Publisher (world -> plate)
+    # 7. Static Transform Publisher (world -> plate)
     static_tf_node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -188,14 +358,65 @@ def generate_launch_description():
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
+    start_servo_controller = RegisterEventHandler(
+        OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=start_after_success(
+                "Joint-state broadcaster",
+                [servo_controller_spawner],
+            ),
+        )
+    )
+
+    start_wrist_controller = RegisterEventHandler(
+        OnProcessExit(
+            target_action=servo_controller_spawner,
+            on_exit=start_after_success(
+                "Servo trajectory controller",
+                [wrist_controller_spawner],
+            ),
+        )
+    )
+
+    start_gripper_controller = RegisterEventHandler(
+        OnProcessExit(
+            target_action=wrist_controller_spawner,
+            on_exit=start_after_success(
+                "Wrist trajectory controller",
+                [gripper_controller_spawner],
+            ),
+        )
+    )
+
+    start_moveit = RegisterEventHandler(
+        OnProcessExit(
+            target_action=gripper_controller_spawner,
+            on_exit=start_after_success(
+                "Gripper trajectory controller",
+                [
+                    move_group_node,
+                    servo_node,
+                    wrist_velocity_bridge_node,
+                    gripper_velocity_bridge_node,
+                    rviz_node,
+                ],
+            ),
+        )
+    )
+
     nodes_to_start = [
+        SetEnvironmentVariable(
+            name="RMW_IMPLEMENTATION",
+            value=rmw_implementation,
+        ),
         robot_state_publisher_node,
         ros2_control_node,
-        joint_state_broadcaster_spawner,
-        servo_controller_spawner,
-        servo_node,
-        rviz_node,
         static_tf_node,
+        joint_state_broadcaster_spawner,
+        start_servo_controller,
+        start_wrist_controller,
+        start_gripper_controller,
+        start_moveit,
     ]
 
     return LaunchDescription(declared_arguments + nodes_to_start)

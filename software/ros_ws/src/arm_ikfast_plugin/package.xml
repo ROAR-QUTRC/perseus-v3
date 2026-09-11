@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>arm_ikfast_plugin</name>
+  <version>0.0.1</version>
+  <description>
+    Generated IKFast (TranslationZAxisAngle4D) kinematics plugin for the
+    arm arm group. Produced by
+    Max’s arm_control generation script -- do not hand-edit;
+    re-run the script instead.
+  </description>
+  <maintainer email="vumaximus30@gmail.com">maximus</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>moveit_core</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>tf2_kdl</depend>
+  <depend>tf2_eigen</depend>
+  <depend>orocos_kdl_vendor</depend>
+  <depend>generate_parameter_library</depend>
+  <depend>liblapack-dev</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <moveit_core plugin="${prefix}/arm_arm_moveit_ikfast_plugin_description.xml"/>
+  </export>
+</package>
