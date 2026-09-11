@@ -1,4 +1,5 @@
 final: prev: {
+  arm-ikfast-plugin = final.callPackage ./arm-ikfast-plugin.nix { };
   autonomy-bringup = final.callPackage ./autonomy-bringup.nix { };
   can-if = final.callPackage ./can-if.nix { };
   description = final.callPackage ./description.nix { };

@@ -4,4 +4,4 @@ initial_positions:
   shoulder_tilt: -0.75
   wrist_pitch: 0.525
   wrist_roll: 0.0
-  fake_dof: 0.0
+  left_finger_joint: 0.0

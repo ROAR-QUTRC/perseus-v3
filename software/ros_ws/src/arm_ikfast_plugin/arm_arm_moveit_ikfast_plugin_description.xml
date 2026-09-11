@@ -1,0 +1,7 @@
+<library path="arm_arm_moveit_ikfast_kinematics_plugin">
+  <class name="arm_arm/IKFastKinematicsPlugin"
+         type="arm_arm::IKFastKinematicsPlugin"
+         base_class_type="kinematics::KinematicsBase">
+    <description>IKFast TranslationZAxisAngle4D plugin for arm/arm</description>
+  </class>
+</library>

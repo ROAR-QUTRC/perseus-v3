@@ -7,6 +7,8 @@
   ament-cmake-python,
   backward-ros,
   geometry-msgs,
+  control-msgs,
+  moveit-msgs,
   joy,
   rclcpp,
   rclpy,
@@ -28,6 +30,8 @@ buildRosPackage rec {
     actuator-msgs
     backward-ros
     geometry-msgs
+    control-msgs
+    moveit-msgs
     joy
     rclcpp
     rclpy

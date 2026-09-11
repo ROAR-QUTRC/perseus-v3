@@ -27,6 +27,7 @@ pkgs.mkShell {
         with extraPkgs;
         [
           # Dependencies from package.xml files
+          arm-ikfast-plugin
           actuator-msgs
           ament-cmake
           ament-cmake-python
@@ -43,6 +44,7 @@ pkgs.mkShell {
           diff-drive-controller
           fast-lio
           geometry-msgs
+          generate-parameter-library
           grid-map-core
           hardware-interface
           hi-can
@@ -51,10 +53,16 @@ pkgs.mkShell {
           joint-state-publisher-gui
           joint-trajectory-controller
           joy
+          moveit-core
           moveit-kinematics
           mecanum-drive-controller
           moveit-msgs
+          moveit-planners-ompl
+          moveit-ros-control-interface
+          moveit-ros-move-group
+          moveit-ros-visualization
           moveit-servo
+          moveit-simple-controller-manager
           nav-msgs
           navigation2
           nlohmann_json
@@ -82,12 +90,17 @@ pkgs.mkShell {
           slam-toolbox
           std-msgs
           tf2
+          tf2-eigen
           tf2-geometry-msgs
+          tf2-kdl
           tf2-ros
+          trajectory-msgs
           twist-mux
           v4l2-camera
           visualization-msgs
           xacro
+          pkgs.blas
+          pkgs.lapack
         ]
       )
       ++ builtins.attrValues extraPkgs
