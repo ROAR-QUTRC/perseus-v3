@@ -8,7 +8,10 @@
 # lidar.allow_untimed for simulated clouds, calibration.from_tf so the LiDAR-IMU extrinsic
 # can come out of the robot description, configurable subscription QoS and bounded
 # synchronizer queues, and map publishing (publish.map_interval_s) plus a map_save
-# service, neither of which upstream has at all.
+# service, neither of which upstream has at all. Also carries map.stale_timeout_s: a bump-
+# image pixel not reconfirmed within that many seconds is cleared instead of averaged into
+# forever, so terrain that genuinely changes (e.g. fine sand reshaped by wheels) can
+# overwrite the old map instead of being diluted by it. 0 (the default) disables it.
 #
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
@@ -19,6 +22,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "8a9742c3fb84adef065b14a32c9086dfb74ee0b3"; # feat/configurable-frames
-  hash = "sha256-V88SPS4ZvCd1TdpZpU+ewucPsZclOBj0tNI48JNVzq0=";
+  rev = "d28aff4f76e973b1b4aa06fa58f0bce70b1f1c75"; # feat/stale-pixel-decay
+  hash = "sha256-Kx9WjQgM8XKrXJDjaY3+u55B+7lLkoOQJX6KKqS32+8=";
 }

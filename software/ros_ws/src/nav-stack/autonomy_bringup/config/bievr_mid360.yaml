@@ -58,6 +58,12 @@ map:
   normal_tolerance_deg: 3
   smooth: true
   weighted: true
+  # Off until field-tested: each bump-image pixel's weight only ever grows, so a fine-sand
+  # patch reshaped by the wheels barely moves the stored height once a pixel has enough
+  # hits. Setting this clears a pixel that goes this many seconds without a fresh hit, so
+  # the next one starts a clean average instead of blending into the old surface. See
+  # bievr_mid360_sim.yaml for a value to try in the simulator first.
+  stale_timeout_s: 0
   # A voxel count, not a metric extent, so it replaces both cube_side_length and the
   # ikd-Tree trimming FAST-LIO uses. Voxels past this are evicted least-recently-used first,
   # so the map degrades by forgetting where the robot has not been lately rather than by
