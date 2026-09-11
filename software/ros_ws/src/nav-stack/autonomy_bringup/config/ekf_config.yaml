@@ -86,7 +86,8 @@ ekf_filter_node:
     world_frame: odom
     publish_tf: true
     predict_to_current_time: true
-    smooth_lagged_data: false
+    smooth_lagged_data: True
+    history_length: 1.0
     # 15x15 row-major, so each of these MUST be exactly 225 elements: one row of 15 per
     # line below, which is the only reason a miscount is visible at all. robot_localization
     # does not validate the length -- it consumes the first 225 and silently drops the rest,
@@ -122,9 +123,9 @@ ekf_filter_node:
     # Values are decimal rather than 1e-3 notation on purpose: `1e-3` is not a valid YAML 1.1
     # float, so rcl accepts it via strtod but PyYAML reads it as a string. This repo already
     # yaml.safe_load()s a config in localisation.launch.py, so that trap is worth avoiding.
-    process_noise_covariance: [0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # x
-      0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # y
-      0.0, 0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # z
+    process_noise_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # x
+      0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # y
+      0.0, 0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # z
       0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # roll
       0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # pitch
       0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # yaw
