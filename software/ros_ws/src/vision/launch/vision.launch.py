@@ -9,21 +9,17 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
 
-def generate_launch_description():
-    """Build the launch description for the composed vision pipeline."""
+def launch_setup(context, *args, **kwargs):
+    """Build the composed vision pipeline, including only the enabled nodes."""
     vision_dir = get_package_share_directory("vision")
     config_dir = os.path.join(vision_dir, "config")
     config_file = os.path.join(config_dir, "vision.yaml")
-
-    use_sim_time_arg = DeclareLaunchArgument(
-        "use_sim_time", default_value="false", description="Use simulated time"
-    )
 
     common_parameters = [
         config_file,
@@ -34,29 +30,43 @@ def generate_launch_description():
     # these nodes cheaper than running them as separate processes.
     intra_process = [{"use_intra_process_comms": True}]
 
-    composable_nodes = [
-        ComposableNode(
-            package="vision",
-            plugin="vision::ArucoDetector",
-            name="aruco_detector",
-            parameters=common_parameters,
-            extra_arguments=intra_process,
-        ),
-        ComposableNode(
-            package="vision",
-            plugin="vision::CubeDetector",
-            name="cube_detector",
-            parameters=common_parameters,
-            extra_arguments=intra_process,
-        ),
-        ComposableNode(
-            package="vision",
-            plugin="vision::DetectionOverlay",
-            name="detection_overlay",
-            parameters=common_parameters,
-            extra_arguments=intra_process,
-        ),
-    ]
+    composable_nodes = []
+
+    if LaunchConfiguration("aruco").perform(context) == "true":
+        composable_nodes.append(
+            ComposableNode(
+                package="vision",
+                plugin="vision::ArucoDetector",
+                name="aruco_detector",
+                parameters=common_parameters,
+                extra_arguments=intra_process,
+            )
+        )
+
+    if LaunchConfiguration("cube").perform(context) == "true":
+        composable_nodes.append(
+            ComposableNode(
+                package="vision",
+                plugin="vision::CubeDetector",
+                name="cube_detector",
+                parameters=common_parameters,
+                extra_arguments=intra_process,
+            )
+        )
+
+    if LaunchConfiguration("overlay").perform(context) == "true":
+        composable_nodes.append(
+            ComposableNode(
+                package="vision",
+                plugin="vision::DetectionOverlay",
+                name="detection_overlay",
+                parameters=common_parameters,
+                extra_arguments=intra_process,
+            )
+        )
+
+    if not composable_nodes:
+        return []
 
     vision_container = ComposableNodeContainer(
         name="vision_container",
@@ -67,9 +77,30 @@ def generate_launch_description():
         output="screen",
     )
 
+    return [vision_container]
+
+
+def generate_launch_description():
+    """Build the launch description for the composed vision pipeline."""
+    use_sim_time_arg = DeclareLaunchArgument(
+        "use_sim_time", default_value="false", description="Use simulated time"
+    )
+    cube_arg = DeclareLaunchArgument(
+        "cube", default_value="false", description="Enable the cube detector"
+    )
+    aruco_arg = DeclareLaunchArgument(
+        "aruco", default_value="true", description="Enable the ArUco detector"
+    )
+    overlay_arg = DeclareLaunchArgument(
+        "overlay", default_value="true", description="Enable the detection overlay"
+    )
+
     return LaunchDescription(
         [
             use_sim_time_arg,
-            vision_container,
+            cube_arg,
+            aruco_arg,
+            overlay_arg,
+            OpaqueFunction(function=launch_setup),
         ]
     )
