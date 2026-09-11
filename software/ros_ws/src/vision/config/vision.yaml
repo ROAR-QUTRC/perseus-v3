@@ -80,6 +80,6 @@ detection_overlay:
     show_staleness: false # Draw the detection count and age onto the image
     # nav2's global plan, drawn onto the image in blue by projecting each pose
     # through the camera_info intrinsics and the plan_frame -> camera tf.
-    path_topic: /plan
+    path_topic: /plan_smoothed
     camera_info_topic: /camera/camera/color/camera_info
     show_path: true

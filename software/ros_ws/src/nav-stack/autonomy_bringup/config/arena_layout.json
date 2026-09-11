@@ -101,7 +101,7 @@
     "dictionary_id": 9,
     "marker_length_m": 0.238,
     "spacing_m": 0.4625,
-    "spacing_tolerance_m": 0.05,
+    "spacing_tolerance_m": 0.1,
     "markers": [
       { "id": 67, "x": -1.7125, "y": 0.028, "z": 0.4 },
       { "id": 68, "x": -1.25, "y": 0.028, "z": 0.4 },
