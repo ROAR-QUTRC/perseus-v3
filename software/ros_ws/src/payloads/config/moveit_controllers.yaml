@@ -1,0 +1,25 @@
+controller_names:
+  - servo_controller
+  - wrist_controller
+  - gripper_controller
+servo_controller:
+  action_ns: follow_joint_trajectory
+  default: true
+  type: FollowJointTrajectory
+  joints:
+    - shoulder_pan
+    - shoulder_tilt
+    - elbow
+wrist_controller:
+  action_ns: follow_joint_trajectory
+  default: true
+  type: FollowJointTrajectory
+  joints:
+    - wrist_pitch
+    - wrist_roll
+gripper_controller:
+  action_ns: follow_joint_trajectory
+  default: true
+  type: FollowJointTrajectory
+  joints:
+    - left_finger_joint

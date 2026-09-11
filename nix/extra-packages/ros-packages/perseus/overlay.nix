@@ -1,4 +1,5 @@
 final: prev: {
+  arm-ikfast-plugin = final.callPackage ./arm-ikfast-plugin.nix { };
   autonomy-bringup = final.callPackage ./autonomy-bringup.nix { };
   footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
   global-traversability = final.callPackage ./global-traversability.nix { };

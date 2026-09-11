@@ -1,0 +1,19 @@
+--- a/src/utils/common.cpp
++++ b/src/utils/common.cpp
+@@ -294,12 +294,13 @@
+   const double hard_stop_singularity_threshold = servo_params.hard_stop_singularity_threshold;
+   const double leaving_singularity_threshold_multiplier = servo_params.leaving_singularity_threshold_multiplier;
+
+-  // Get size of total controllable dimensions.
+-  const size_t dims = target_delta_x.size();
+-
+   // Get the current Jacobian and compute SVD
+   const Eigen::JacobiSVD<Eigen::MatrixXd> current_svd = Eigen::JacobiSVD<Eigen::MatrixXd>(
+       robot_state->getJacobian(joint_model_group), Eigen::ComputeThinU | Eigen::ComputeThinV);
++
++  // Number of singular values: min(6, number of joints). Indexing by the twist
++  // dimension reads out of bounds for groups with fewer than 6 joints.
++  const size_t dims = current_svd.singularValues().size();
+   const Eigen::MatrixXd matrix_s = current_svd.singularValues().asDiagonal();
+
+   // Compute pseudo inverse

@@ -1,6 +1,17 @@
 rosDistro: final: prev:
 let
   rosOverlay = rosFinal: rosPrev: {
+    moveit-servo = rosPrev.moveit-servo.overrideAttrs (
+      {
+        patches ? [ ],
+        ...
+      }:
+      {
+        patches = patches ++ [
+          ./moveit-servo-underactuated-svd.patch
+        ];
+      }
+    );
     livox-ros-driver2 = rosPrev.livox-ros-driver2.overrideAttrs (
       {
         buildInputs ? [ ],
