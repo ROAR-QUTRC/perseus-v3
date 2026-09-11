@@ -4,16 +4,14 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /TF1/Frames1
         - /RobotModel1/Description Topic1
-        - /Livox Cloud1/Topic1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 299
+    Tree Height: 298
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -65,6 +63,12 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        aruco_marker_67:
+          Value: true
+        aruco_marker_68:
+          Value: true
+        aruco_marker_69:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -174,7 +178,12 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          {}
+                          aruco_marker_67:
+                            {}
+                          aruco_marker_68:
+                            {}
+                          aruco_marker_69:
+                            {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -497,7 +506,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Global 2D Projection
       Topic:
         Depth: 5
@@ -505,28 +514,28 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /costmap
+        Value: /layers/obstacle
       Update Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /costmap_updates
+        Value: /layers/obstacle_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: Front Camera
+      Name: Detection Overlay
       Normalize Range: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /camera/camera/color/image_raw
+        Value: /vision/overlay/image/compressed
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
@@ -575,7 +584,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Local 2D Projection
       Topic:
         Depth: 5
@@ -591,7 +600,30 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /local_costmap/costmap_updates
       Use Timestamp: false
-      Value: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: true
+      Enabled: true
+      Name: Global Inflation
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /layers/inflation
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /layers/inflation_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -683,16 +715,16 @@ Visualization Manager:
 Window Geometry:
   Arena Minimap:
     collapsed: false
-  Displays:
+  Detection Overlay:
     collapsed: false
-  Front Camera:
+  Displays:
     collapsed: false
   Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000005fb000000100044006900730070006c006100790073010000003f0000016b000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001b0000000f20000008800fffffffb0000000a0056006900650077007301000002a80000012c000000a900ffffff00000001000000e100000395fc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000001700fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000010c000000e90000006400fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000001fb000001d90000010a00ffffff0000053d0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000005fb000000100044006900730070006c006100790073010000003f0000016a000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001af000000f30000008800fffffffb0000000a0056006900650077007301000002a80000012c000000a900ffffff00000001000001af00000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001530000001700fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e0063007901000001980000008f0000006400fffffffb0000001a004100720065006e00610020004d0069006e0069006d00610070010000022d000001a70000010a00ffffff0000046f0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
