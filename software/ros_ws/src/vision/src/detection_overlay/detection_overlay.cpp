@@ -54,21 +54,20 @@ namespace vision
             "detection_topics", DEFAULT_DETECTION_TOPICS);
         _max_detection_age_s = declare_parameter<double>("max_detection_age_s",
                                                          DEFAULT_MAX_DETECTION_AGE_S);
-        _is_compressed_io =
-            declare_parameter<bool>("compressed_io", DEFAULT_IS_COMPRESSED_IO);
+        _input_compressed =
+            declare_parameter<bool>("input_compressed", DEFAULT_INPUT_COMPRESSED);
+        _output_compressed =
+            declare_parameter<bool>("output_compressed", DEFAULT_OUTPUT_COMPRESSED);
         _should_show_staleness =
             declare_parameter<bool>("show_staleness", DEFAULT_SHOULD_SHOW_STALENESS);
 
-        if (_is_compressed_io)
+        if (_input_compressed)
         {
             _compressed_image_subscription =
                 create_subscription<sensor_msgs::msg::CompressedImage>(
                     _input_image_topic + "/compressed", IMAGE_QOS_DEPTH,
                     std::bind(&DetectionOverlay::_compressed_image_callback, this,
                               std::placeholders::_1));
-            _compressed_image_publisher =
-                create_publisher<sensor_msgs::msg::CompressedImage>(
-                    _output_image_topic + "/compressed", IMAGE_QOS_DEPTH);
         }
         else
         {
@@ -76,6 +75,16 @@ namespace vision
                 _input_image_topic, IMAGE_QOS_DEPTH,
                 std::bind(&DetectionOverlay::_image_callback, this,
                           std::placeholders::_1));
+        }
+
+        if (_output_compressed)
+        {
+            _compressed_image_publisher =
+                create_publisher<sensor_msgs::msg::CompressedImage>(
+                    _output_image_topic + "/compressed", IMAGE_QOS_DEPTH);
+        }
+        else
+        {
             _image_publisher = create_publisher<sensor_msgs::msg::Image>(
                 _output_image_topic, IMAGE_QOS_DEPTH);
         }
@@ -173,8 +182,7 @@ namespace vision
         }
 
         _draw_cached_detections(frame, msg->header.stamp);
-        _image_publisher->publish(
-            *cv_bridge::CvImage(msg->header, IMAGE_ENCODING, frame).toImageMsg());
+        _publish_frame(frame, msg->header);
     }
 
     void DetectionOverlay::_compressed_image_callback(
@@ -199,18 +207,31 @@ namespace vision
         }
 
         _draw_cached_detections(frame, msg->header.stamp);
+        _publish_frame(frame, msg->header);
+    }
 
-        sensor_msgs::msg::CompressedImage compressed_msg;
-        compressed_msg.header = msg->header;
-        compressed_msg.format = "jpeg";
+    void DetectionOverlay::_publish_frame(const cv::Mat& frame,
+                                          const std_msgs::msg::Header& header)
+    {
+        if (_output_compressed)
+        {
+            sensor_msgs::msg::CompressedImage compressed_msg;
+            compressed_msg.header = header;
+            compressed_msg.format = "jpeg";
 
-        std::vector<uchar> buffer;
-        const std::vector<int> encode_params = {cv::IMWRITE_JPEG_QUALITY,
-                                                JPEG_QUALITY};
-        cv::imencode(".jpg", frame, buffer, encode_params);
-        compressed_msg.data = std::move(buffer);
+            std::vector<uchar> buffer;
+            const std::vector<int> encode_params = {cv::IMWRITE_JPEG_QUALITY,
+                                                    JPEG_QUALITY};
+            cv::imencode(".jpg", frame, buffer, encode_params);
+            compressed_msg.data = std::move(buffer);
 
-        _compressed_image_publisher->publish(compressed_msg);
+            _compressed_image_publisher->publish(compressed_msg);
+        }
+        else
+        {
+            _image_publisher->publish(
+                *cv_bridge::CvImage(header, IMAGE_ENCODING, frame).toImageMsg());
+        }
     }
 
 }  // namespace vision

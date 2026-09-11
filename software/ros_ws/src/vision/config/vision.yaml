@@ -75,5 +75,6 @@ detection_overlay:
     # Detections older than this stop being drawn, so a stalled or crashed detector
     # leaves the image clean instead of freezing its last boxes on screen.
     max_detection_age_s: 1.0
-    compressed_io: false
+    input_compressed: false
+    output_compressed: true
     show_staleness: false # Draw the detection count and age onto the image

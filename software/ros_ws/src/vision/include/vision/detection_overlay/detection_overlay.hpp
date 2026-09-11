@@ -57,8 +57,10 @@ namespace vision
         /// @brief Default age past which cached detections stop being drawn, in
         /// seconds.
         static constexpr double DEFAULT_MAX_DETECTION_AGE_S = 1.0;
-        /// @brief Default for whether the camera source and output are compressed.
-        static constexpr bool DEFAULT_IS_COMPRESSED_IO = false;
+        /// @brief Default for whether the camera source is compressed.
+        static constexpr bool DEFAULT_INPUT_COMPRESSED = false;
+        /// @brief Default for whether the published overlay is compressed.
+        static constexpr bool DEFAULT_OUTPUT_COMPRESSED = true;
         /// @brief Default for whether detection staleness is drawn on the image.
         static constexpr bool DEFAULT_SHOULD_SHOW_STALENESS = false;
 
@@ -70,6 +72,12 @@ namespace vision
         /// @param msg Incoming compressed image message.
         void _compressed_image_callback(
             const sensor_msgs::msg::CompressedImage::SharedPtr msg);
+
+        /// @brief Publishes an annotated frame, encoding it to match whichever
+        /// output format is configured.
+        /// @param frame Annotated image to publish.
+        /// @param header Header to stamp the outgoing message with.
+        void _publish_frame(const cv::Mat& frame, const std_msgs::msg::Header& header);
 
         /// @brief Caches the latest detections from one detector.
         /// @param topic Topic the detections arrived on, used as the cache key.
@@ -89,7 +97,8 @@ namespace vision
         std::string _output_image_topic{DEFAULT_OUTPUT_IMAGE_TOPIC};
         std::vector<std::string> _detection_topics{DEFAULT_DETECTION_TOPICS};
         double _max_detection_age_s{DEFAULT_MAX_DETECTION_AGE_S};
-        bool _is_compressed_io{DEFAULT_IS_COMPRESSED_IO};
+        bool _input_compressed{DEFAULT_INPUT_COMPRESSED};
+        bool _output_compressed{DEFAULT_OUTPUT_COMPRESSED};
         bool _should_show_staleness{DEFAULT_SHOULD_SHOW_STALENESS};
 
         // ROS IO
