@@ -26,6 +26,11 @@
 # publish.odom_position_variance / publish.odom_orientation_variance (diagonal-only, m^2 /
 # rad^2) control it; both default to a placeholder sized to that bag's measured jitter.
 #
+# Twist gets its own pair -- publish.odom_linear_velocity_variance / _angular_ ((m/s)^2 /
+# (rad/s)^2) -- rather than reusing the pose pair above, which would have been dimensionally
+# wrong. Worth having: publishLatestState fills a real linear_velocity from the optimizer's
+# own state, unlike FAST-LIO, which never populates its odometry's twist at all.
+#
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
 #
@@ -35,6 +40,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "3527e9f8aaae1b71191ec0d3109ebf5cdef6306a"; # feat/stale-pixel-decay
-  hash = "sha256-OYsz5NpvAAinVQ6LEYfTH0EF6gZ6nUbTldjnPf0IlKU=";
+  rev = "e85f4ac47ad435a52a76079cda6e116b37a26a2d"; # feat/stale-pixel-decay
+  hash = "sha256-iTLbAP4OAyc60FIAXTX1m0qvFmgYmTJ2jAXi9ixA+Q0=";
 }
