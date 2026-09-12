@@ -1,0 +1,23 @@
+<!--
+  Mission tree behind mission_bt_server's two RViz buttons: ask arena_server for a
+  safe point in a zone, then drive there.
+
+  One tree serves both zones - service_name is a blackboard entry mission_bt_server sets
+  to either /arena/request_excavation_waypoint or /arena/request_construction_waypoint
+  before ticking, per which button was pressed. See RequestZoneWaypointBtNode.
+
+  "Developed from the current tree" (per the ask) means literally reusing it rather than
+  duplicating any of its logic: NavigateToPose here is nav2's own generic action-client BT
+  node, calling straight into bt_navigator's /navigate_to_pose action - the SAME action
+  server that runs navigate_to_pose_w_smoothing.xml (planning, smoothing, replanning,
+  recovery) for every other caller. This tree only decides WHERE to go; how to get there
+  is entirely bt_navigator's tree, unmodified and un-duplicated.
+-->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="GoToZoneWaypoint">
+      <RequestZoneWaypoint service_name="{service_name}" goal="{goal}"/>
+      <NavigateToPose goal="{goal}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>rviz_plugins</name>
+  <name>mission_bt_server</name>
   <version>0.0.1</version>
-  <description>RViz panels and displays for the rover's custom messages</description>
+  <description>Runs a small behaviour tree - request a safe zone waypoint from arena_server, then drive there via nav2's NavigateToPose - behind two plain services for the RViz mission panel</description>
   <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
   <license>MIT</license>
 
@@ -11,25 +11,15 @@
 
   <depend>rclcpp</depend>
   <depend>interfaces</depend>
-  <depend>rviz_common</depend>
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>ament_index_cpp</depend>
-  <!-- for the shared arena_layout JSON reader, so the panel and the robot
-       cannot disagree about the layout -->
-  <depend>arena_server</depend>
-  <depend>pluginlib</depend>
-  <depend>qtbase5-dev</depend>
+  <depend>geometry_msgs</depend>
+  <depend>behaviortree_cpp</depend>
+  <depend>nav2_behavior_tree</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
-    <rviz plugin="${prefix}/plugin_description.xml"/>
   </export>
 </package>

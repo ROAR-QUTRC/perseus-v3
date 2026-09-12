@@ -34,6 +34,10 @@ Panels:
   - Class: rviz_plugins/MobilityEfficiencyPanel
     Name: Mobility Efficiency
     Topic: /watchdog/mobility_status
+  - Class: rviz_plugins/MissionControlPanel
+    ConstructionService: /mission/go_to_construction_zone
+    ExcavationService: /mission/go_to_excavation_zone
+    Name: Mission Control
     WarnPercent: 60
 Visualization Manager:
   Class: ""

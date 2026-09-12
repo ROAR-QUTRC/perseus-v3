@@ -49,6 +49,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     pluginlib
     geometry_msgs
     nav_msgs
+    std_srvs
     tf2
     tf2_ros
     tf2_geometry_msgs
@@ -84,7 +85,9 @@ add_library(
   src/arena_minimap_panel.cpp
   include/rviz_plugins/arena_minimap_panel.hpp
   src/mobility_efficiency_panel.cpp
-  include/rviz_plugins/mobility_efficiency_panel.hpp)
+  include/rviz_plugins/mobility_efficiency_panel.hpp
+  src/mission_control_panel.cpp
+  include/rviz_plugins/mission_control_panel.hpp)
 
 target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
