@@ -110,7 +110,11 @@ stereo_odometry:
     base_link_frame_id: base_link
     # Overridden at runtime from the left camera_info header, if it has one set.
     sensor_frame_id: camera_infra1_optical_frame
-    publish_tf: true
+    # False: the EKF in ekf_config.yaml is the sole owner of odom -> base_link once this
+    # node is fused in as odom1. Two publishers on one TF edge make lookups depend on
+    # message arrival order -- the same reason BIEVR-LIO's own publish_tf is false in
+    # bievr_mid360.yaml.
+    publish_tf: false
     invert_tf: false
     # Initial pose. Interpreted as the base_link pose in odom, transformed to the sensor
     # frame via TF, unless initial_pose_in_camera_frame is true (then it is the sensor

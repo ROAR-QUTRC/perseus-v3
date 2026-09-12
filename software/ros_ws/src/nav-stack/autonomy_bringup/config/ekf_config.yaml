@@ -59,6 +59,42 @@ ekf_filter_node:
     # No rejection thresholds on purpose. They gate on Mahalanobis distance, and FAST-LIO's
     # covariance is one scan stale (it is filled after the message is published), so a tight
     # threshold silently discards good pose updates from the filter's only pose source.
+    #
+    # ----- stereo_odometry (libviso2, second pose source) -----
+    # A genuinely independent measurement of the same pose: a different sensor (RealSense
+    # infra1/infra2 stereo pair, not the Livox), a different algorithm (libviso2 feature
+    # matching, not LiDAR scan registration), so its failure modes do not line up with
+    # odom0's. It has a real covariance too, not a zero -- see
+    # vision/src/stereo_odometry/stereo_odometry.cpp's STANDARD_POSE_COVARIANCE and
+    # LOST_TRACKING_VARIANCE, fixed constants rather than odom0's per-scan estimate, but
+    # honestly present, which is what actually matters for the filter's blending and
+    # gating both working at all.
+    odom1: /vision/stereo_odometry/odometry
+    # Differential, not absolute, unlike odom0. Both odom0 and stereo_odometry are drift-
+    # prone dead-reckoning with no shared external reference, so fusing stereo_odometry's
+    # own integrated pose as a second *absolute* measurement would have it fight odom0
+    # increasingly hard as the two independently drift apart -- worse the longer the run
+    # goes, and with a fixed (not growing) covariance on either side nothing in the filter
+    # models that growing disagreement. Differential fuses the *change* in stereo_odometry's
+    # pose between consecutive messages instead, which stays valid however far the two
+    # sources' absolute origins have drifted from each other.
+    odom1_differential: true
+    odom1_relative: false
+    # Pose only, same reasoning as odom0's twist: stereo_odometry's twist is computed as
+    # this same pass's pose delta divided by dt (see OdometryPublisher::integrate_and_publish),
+    # so it is correlated with the pose in the same message rather than independent of it.
+    # Fusing BIEVR-LIO's twist for that exact reason measurably worsened the filter (see
+    # odom0_config above); untested here, but the mechanism is identical, so it starts off.
+    #                 x     y     z     roll  pitch yaw   vx     vy     vz     vroll  vpitch vyaw   ax     ay     az
+    odom1_config: [true, true, true, true, true, true, false, false, false, false, false, false, false, false, false]
+    # Rate depends on how fast the infra pair is actually delivered and libviso2 keeps up
+    # with it -- likely well under odom0's 10 Hz once feature matching cost is accounted
+    # for. 10 still only needs to cover a brief stall, same as odom0.
+    odom1_queue_size: 10
+    odom1_nodelay: true
+    # No rejection thresholds here either, and for the same reason as odom0: trust the
+    # covariance (here, the binary good-track/lost-track split) rather than a second,
+    # redundant gate on top of it.
     imu0: /livox/imu/corrected
     # Gyroscope only. The roll/pitch/yaw entries read
     # sensor_msgs/Imu.orientation, which the MID-360 never fills: its ICM-40609 is a 6-axis

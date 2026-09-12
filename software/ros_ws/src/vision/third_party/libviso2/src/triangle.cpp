@@ -2426,17 +2426,17 @@ void makesubseg(struct mesh* m, struct osub* newsubseg)
     x = (float)(a - b);      \
     Two_Diff_Tail(a, b, x, y)
 
-#define Split(a, ahi, also)     \
+#define Split(a, ahi, also)    \
     c = (float)(splitter * a); \
     abig = (float)(c - a);     \
     ahi = c - abig;            \
     also = a - ahi
 
 #define Two_Product_Tail(a, b, x, y) \
-    Split(a, ahi, also);              \
+    Split(a, ahi, also);             \
     Split(b, bhi, blo);              \
     err1 = x - (ahi * bhi);          \
-    err2 = err1 - (also * bhi);       \
+    err2 = err1 - (also * bhi);      \
     err3 = err2 - (ahi * blo);       \
     y = (also * blo) - err3
 
@@ -2449,17 +2449,17 @@ void makesubseg(struct mesh* m, struct osub* newsubseg)
 
 #define Two_Product_Presplit(a, b, bhi, blo, x, y) \
     x = (float)(a * b);                            \
-    Split(a, ahi, also);                            \
+    Split(a, ahi, also);                           \
     err1 = x - (ahi * bhi);                        \
-    err2 = err1 - (also * bhi);                     \
+    err2 = err1 - (also * bhi);                    \
     err3 = err2 - (ahi * blo);                     \
     y = (also * blo) - err3
 
 /* Square() can be done more quickly than Two_Product().                     */
 
-#define Square_Tail(a, x, y)           \
+#define Square_Tail(a, x, y)            \
     Split(a, ahi, also);                \
-    err1 = x - (ahi * ahi);            \
+    err1 = x - (ahi * ahi);             \
     err3 = err1 - ((ahi + ahi) * also); \
     y = (also * also) - err3
 

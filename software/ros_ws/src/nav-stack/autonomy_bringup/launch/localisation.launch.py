@@ -36,6 +36,15 @@ sim_overrides() for fast_lio and in config/bievr_mid360_sim.yaml for bievr. The 
 the answer differs because the backends do: FAST-LIO takes one parameter file, so its
 overrides are applied to a rewritten copy of it, while BIEVR-LIO already layers two configs
 and merges them per key, so its overrides are just a second file.
+
+A second, independent pose source rides alongside the LIO backend: vision's
+stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), fused as odom1 in
+ekf_config.yaml. Toggled with `stereo_odometry:=` (default true) rather than folded into
+the LIO backend choice above, since it is additive -- a different sensor and a different
+algorithm from either LIO backend, not a replacement for one. Also takes sim:=true, for
+the same reason the LIO backends do: the real driver's default topics
+(infra1/image_rect_raw) do not exist in Gazebo, which publishes un-suffixed
+infra1/image_raw instead (a synthetic camera has no distortion to rectify away).
 """
 
 import os
@@ -195,7 +204,8 @@ def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration("use_sim_time")
     rviz = LaunchConfiguration("rviz")
     ekf_params_file = LaunchConfiguration("ekf_params_file")
-    is_sim = LaunchConfiguration("sim").perform(context).lower() == "true"
+    sim = LaunchConfiguration("sim")
+    is_sim = sim.perform(context).lower() == "true"
     lio = LaunchConfiguration("lio").perform(context).lower()
 
     # An unknown value never reaches here: DeclareLaunchArgument takes LIO_BACKENDS as its
@@ -216,6 +226,22 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={
             "params_file": ekf_params_file,
             "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
+    # Second, independent pose source (see the module docstring): fused as odom1 in
+    # ekf_config.yaml, not a replacement for either LIO backend above. sim is passed
+    # through so the node picks up the simulator's un-suffixed infra1/infra2 topics --
+    # see vision/launch/stereo_odometry.launch.py's own sim:= handling.
+    stereo_odometry_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("vision"), "launch", "stereo_odometry.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "sim": sim,
         }.items(),
     )
 
@@ -326,6 +352,11 @@ def launch_setup(context, *args, **kwargs):
     # not an error. Scoping confines each include's arguments to the include that set them.
     return lio_actions + [
         GroupAction([ekf_launch], scoped=True),
+        GroupAction(
+            [stereo_odometry_launch],
+            scoped=True,
+            condition=IfCondition(LaunchConfiguration("stereo_odometry")),
+        ),
         flat_footprint_broadcaster_node,
         GroupAction([arena_server_launch], scoped=True),
         GroupAction([watchdog_launch], scoped=True),
@@ -370,6 +401,14 @@ def generate_launch_description():
             [FindPackageShare("autonomy_bringup"), "config", "ekf_config.yaml"]
         ),
         description="Parameters file for the robot_localization EKF.",
+    )
+
+    declare_stereo_odometry = DeclareLaunchArgument(
+        "stereo_odometry",
+        default_value="true",
+        description="Bring up vision's stereo_odometry (libviso2 against the RealSense "
+        "infra1/infra2 pair) and fuse it into the EKF as odom1. Additive to either LIO "
+        "backend above, not a replacement for one.",
     )
 
     bias_remover_container = ComposableNodeContainer(
@@ -442,6 +481,7 @@ def generate_launch_description():
             declare_use_sim_time,
             declare_rviz,
             declare_ekf_params_file,
+            declare_stereo_odometry,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),
         ]
