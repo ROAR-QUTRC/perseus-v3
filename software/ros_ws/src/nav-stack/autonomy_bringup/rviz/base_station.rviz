@@ -11,7 +11,7 @@ Panels:
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 298
+    Tree Height: 250
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -34,11 +34,11 @@ Panels:
   - Class: rviz_plugins/MobilityEfficiencyPanel
     Name: Mobility Efficiency
     Topic: /watchdog/mobility_status
+    WarnPercent: 60
   - Class: rviz_plugins/MissionControlPanel
     ConstructionService: /mission/go_to_construction_zone
     ExcavationService: /mission/go_to_excavation_zone
     Name: Mission Control
-    WarnPercent: 60
 Visualization Manager:
   Class: ""
   Displays:
@@ -67,12 +67,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        aruco_marker_67:
-          Value: true
-        aruco_marker_68:
-          Value: true
-        aruco_marker_69:
-          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -182,12 +176,7 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          aruco_marker_67:
-                            {}
-                          aruco_marker_68:
-                            {}
-                          aruco_marker_69:
-                            {}
+                          {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -611,7 +600,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: true
-      Enabled: false
+      Enabled: true
       Name: Global Inflation
       Topic:
         Depth: 5
@@ -627,7 +616,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /layers/inflation_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 10
       Class: rviz_default_plugins/CameraInfo
       Color: 85; 255; 255
@@ -744,9 +733,11 @@ Window Geometry:
   Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
+  Mission Control:
+    collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000005fb000000100044006900730070006c006100790073010000003f0000016a000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001af000000f30000008800fffffffb0000000a0056006900650077007301000002a80000012c000000a900ffffff00000001000001e900000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001260000001700fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000016b000000800000006400fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000001f1000001e30000010a00ffffff000004350000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000006fb000000100044006900730070006c006100790073010000003f0000013a000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c00740068010000017f000000d20000008800fffffffb0000000a00560069006500770073010000025700000104000000a900fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000361000000730000006400ffffff00000001000001e900000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f0000011c0000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d006100700100000161000001d30000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c010000033a0000009a0000007e00ffffff000004350000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:

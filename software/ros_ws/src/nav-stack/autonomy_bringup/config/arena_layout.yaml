@@ -112,3 +112,50 @@ arena_server:
     # summing to 1.
     waypoint_cost_weight: 0.7
     waypoint_distance_weight: 0.3
+    # Keeps the search off a zone's wall-adjacent sides (the ones
+    # arena_layout.json's "edges" list leaves undrawn - see Zone::draw_north
+    # etc in arena_layout.hpp). Without this, a zone's rectangle is searched
+    # right up to the arena wall itself, which is both hard to manoeuvre
+    # against and, since the waypoint faces the zone centre (see
+    # _find_safe_point), the main thing standing between a wall-flush point
+    # and a heading that clears the wall by a comfortable margin.
+    #
+    # excavation_zone only. construction_zone gets its own,
+    # construction_wall_standoff_m, below - excavation_zone is 9.14 x 3.0 m,
+    # construction_zone only 2.05 x 3.41 m, and one wall_standoff_m cannot
+    # serve both: this value would leave construction_zone a 0.55 x 1.91 m
+    # strip once its one walled side per axis is inset, which is what an
+    # "arena_server: no free point ... found in zone 'construction_zone'"
+    # warning after raising this usually means.
+    wall_standoff_m: 1.0
+    # construction_zone's own wall standoff - see wall_standoff_m above for why
+    # this is a separate, much smaller parameter rather than reusing it.
+    construction_wall_standoff_m: 1.0
+    # Radius that must be entirely clear (see _area_clear in arena_server.cpp)
+    # around the excavation waypoint, not just its own cell: digging there
+    # means the rover then reverses and/or drives forward on the spot, which a
+    # single clear cell says nothing about - a cell can be free with an
+    # obstacle immediately beside it. 0 disables this, falling back to the
+    # single-cell check. construction_zone gets no equivalent parameter: it is
+    # a drop-off point, not somewhere the rover manoeuvres back and forth.
+    excavation_clearance_radius_m: 1.3
+    # Whether an unmapped cell (costmap value -1, or simply outside the area
+    # the costmap currently covers) is treated as free rather than rejected -
+    # both for a candidate's own cell and everywhere inside
+    # excavation_clearance_radius_m of it. Off by default, matching
+    # global_traversability's own treat_unknown_as_obstacle: ground nobody has
+    # looked at yet could hide a rock or crater, so this trades that margin
+    # for availability and should be turned on deliberately (e.g. a small,
+    # already fully-surveyed test arena), not flipped to silence a "no free
+    # point ... not yet mapped" warning without checking why coverage is
+    # missing there first - a growing map (global_traversability's own
+    # update_period_s) or the rover simply not having driven/looked that way
+    # yet are both much more likely than the ground being unreachable.
+    waypoint_unknown_is_free: true
+    # target_berm_area (the scoring target, 5.2.2) sits almost centred inside
+    # construction_zone, so without this the construction waypoint frequently
+    # lands on top of it - including the use_costmap false fallback, which
+    # would otherwise just return construction_zone's centre. Only the
+    # construction service excludes anything; excavation_zone has no
+    # equivalent zone to avoid.
+    construction_avoid_zone_name: "target_berm_area"
