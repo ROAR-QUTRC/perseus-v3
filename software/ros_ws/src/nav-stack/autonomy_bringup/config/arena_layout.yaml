@@ -86,3 +86,29 @@ arena_server:
     # connected. Republishing covers that without anyone having to change the
     # display's QoS. 0 publishes once only.
     zone_republish_hz: 1.0
+    # ─── Zone waypoint services ───────────────────────────────────────────────
+    # /arena/request_excavation_waypoint and /arena/request_construction_waypoint
+    # each return one safe point inside their zone, scored against this costmap.
+    #
+    # Set false to skip the costmap entirely and always return the zone centre -
+    # e.g. before global_traversability is up, or to check the services against
+    # the zone geometry alone without waiting on a costmap.
+    use_costmap: true
+    # global_traversability's final nav2-consumable costmap (autonomy_bringup's
+    # navigation.yaml points nav2's own static layer at the same topic).
+    costmap_topic: "/costmap"
+    # Candidate spacing when searching a zone, independent of the costmap's own
+    # resolution (0.1 m by default) so this stays cheap even if that changes.
+    waypoint_sample_resolution_m: 0.2
+    # Above this costmap value (0-100) a candidate is rejected. 100 is a
+    # confirmed obstacle cell; below that the value decays with distance from
+    # the nearest one, so this leaves real margin rather than only excluding
+    # literal obstacle cells - see global_traversability's _compute_final_cost.
+    waypoint_max_cost: 50.0
+    # Weights for choosing among candidates under waypoint_max_cost: cost_weight
+    # favours a wider margin from obstacles, distance_weight favours a point
+    # closer to the rover right now. Both are normalised (cost against its own
+    # 0-100 range, distance against the zone's diagonal), so they default to
+    # summing to 1.
+    waypoint_cost_weight: 0.7
+    waypoint_distance_weight: 0.3

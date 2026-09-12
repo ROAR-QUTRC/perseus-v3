@@ -56,6 +56,7 @@ rosidl_generate_interfaces(
   ${PROJECT_NAME}
   "srv/GetFrontierGoal.srv"
   "srv/LocaliseInArena.srv"
+  "srv/RequestZoneWaypoint.srv"
   "msg/Detection.msg"
   "msg/DetectionArray.msg"
   "srv/DetectObjects.srv"

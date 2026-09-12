@@ -1,0 +1,25 @@
+# Ask arena_server for a safe point to drive to inside a named mission zone.
+#
+# Passive, like LocaliseInArena: reports a candidate now, does not drive there
+# and does not verify a nav2 plan exists to it - the caller's own
+# navigate_to_pose is what finds out whether the point is actually reachable.
+#
+# One message type shared by both /arena/request_excavation_waypoint and
+# /arena/request_construction_waypoint - which zone is searched is fixed by
+# which service you call, not a request field.
+
+---
+bool success
+string message
+
+# Chosen point, in the arena (map) frame. Only meaningful when success is true.
+geometry_msgs/PoseStamped waypoint
+
+# Costmap value (0-100) at the chosen point. -1 if use_costmap is false, in
+# which case no safety check was made and waypoint is just the zone centre.
+float64 cost
+
+# Age of the costmap message this was scored against, in seconds. Large means
+# global_traversability's update_period_s hasn't ticked in a while, so the
+# point may not reflect the current terrain. 0 if use_costmap is false.
+float64 costmap_age_s
