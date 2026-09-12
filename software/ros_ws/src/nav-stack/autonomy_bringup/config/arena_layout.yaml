@@ -130,7 +130,7 @@ arena_server:
     wall_standoff_m: 1.0
     # construction_zone's own wall standoff - see wall_standoff_m above for why
     # this is a separate, much smaller parameter rather than reusing it.
-    construction_wall_standoff_m: 1.0
+    construction_wall_standoff_m: 0.7
     # Radius that must be entirely clear (see _area_clear in arena_server.cpp)
     # around the excavation waypoint, not just its own cell: digging there
     # means the rover then reverses and/or drives forward on the spot, which a
