@@ -83,3 +83,102 @@ detection_overlay:
     path_topic: /plan_smoothed
     camera_info_topic: /camera/camera/color/camera_info
     show_path: true
+stereo_odometry:
+  ros__parameters:
+    # Defaults target the RealSense infra1/infra2 pair (see sensors/config/realsense.yaml):
+    # two hardware-rectified, hardware-synchronised global-shutter imagers on a
+    # factory-calibrated baseline carried in infra2's camera_info P matrix.
+    #
+    # NOTE for sim: perseus_simulation's Gazebo bridge publishes .../infra1/image_raw and
+    # .../infra2/image_raw (no "_rect" -- a synthetic pinhole camera has no distortion to
+    # rectify away), not image_rect_raw. Remap left_image_topic/right_image_topic (or the
+    # ROS topics themselves) when running this against the simulator.
+    left_image_topic: /camera/camera/infra1/image_rect_raw
+    right_image_topic: /camera/camera/infra2/image_rect_raw
+    left_camera_info_topic: /camera/camera/infra1/camera_info
+    right_camera_info_topic: /camera/camera/infra2/camera_info
+    output_odometry_topic: /vision/stereo_odometry/odometry
+    output_pose_topic: /vision/stereo_odometry/pose
+    output_info_topic: /vision/stereo_odometry/info
+    output_point_cloud_topic: /vision/stereo_odometry/point_cloud
+    output_inliers_topic: /vision/stereo_odometry/inliers_num
+    output_temporal_matches_topic: /vision/stereo_odometry/temporal_matches_num
+    sync_queue_size: 10
+    image_queue_size: 5
+    # Frames and TF
+    odom_frame_id: odom
+    base_link_frame_id: base_link
+    # Overridden at runtime from the left camera_info header, if it has one set.
+    sensor_frame_id: camera_infra1_optical_frame
+    publish_tf: true
+    invert_tf: false
+    # Initial pose. Interpreted as the base_link pose in odom, transformed to the sensor
+    # frame via TF, unless initial_pose_in_camera_frame is true (then it is the sensor
+    # pose directly). Defaults to identity, i.e. odometry starts at the origin.
+    initial_pose_in_camera_frame: false
+    initial_pose:
+      tx: 0.0
+      ty: 0.0
+      tz: 0.0
+      qx: 0.0
+      qy: 0.0
+      qz: 0.0
+      qw: 1.0
+    # Reference-frame change policy: whether libviso2 keeps the current frame as its
+    # matching reference (instead of advancing to the new one) on the next pass.
+    # 0 = always advance (upstream default). 1 = keep it while the average feature flow
+    # is below ref_frame_motion_threshold (stalled/slow motion). 2 = keep it while the
+    # inlier count is above ref_frame_inlier_threshold (strong tracking, no need to
+    # refresh yet). Runtime-adjustable via `ros2 param set`.
+    ref_frame_change_method: 0
+    ref_frame_motion_threshold: 2.5 # pixels, method 1 only
+    ref_frame_inlier_threshold: 150 # method 2 only
+    # Caps how often incoming synchronized stereo pairs are processed. 0.0 processes
+    # every pair (the correct default: skipping frames grows the motion between
+    # processed frames, which needs a wider match_radius/ref_frame_motion_threshold to
+    # compensate). Set this on hardware that cannot keep up with the camera's native
+    # rate, so it degrades to a lower but stable rate instead of falling further and
+    # further behind. Runtime-adjustable via `ros2 param set`.
+    processing_frequency_hz: 0.0
+    # Zeroes a per-frame motion estimate smaller than both thresholds below, instead of
+    # integrating it. Frame-to-frame VO never estimates exact identity for a genuinely
+    # static camera -- sub-pixel feature localisation noise means there is always some
+    # residual translation/rotation, which then integrates without bound since there is
+    # no absolute reference to correct against ("drifting while stationary"). This does
+    # NOT fix a real calibration bias (that would exceed the deadband and pass through
+    # unchanged) -- for that, check num_inliers in .../info while stationary; a high,
+    # stable inlier count with drift that keeps growing points at calibration, not noise.
+    # 0.0 disables a given axis; both 0.0 disables the deadband entirely (every estimate
+    # is integrated as-is). Tune by watching .../pose while stationary and setting these
+    # just above the noise floor you actually observe. Runtime-adjustable via `ros2 param set`.
+    static_translation_deadband_m: 0.01 # 1cm
+    static_rotation_deadband_rad: 0.005 # ~0.3 degrees
+    # libviso2 feature matcher. Unlike the perseus-v2 origin of this config, match_radius
+    # and the bucket.* block below are left at libviso2's own out-of-the-box defaults
+    # (200 / 50 / 50), not scaled down: this repo's realsense.yaml runs the infra pair at
+    # its native 848x480 (depth_module.infra_profile), not the 424x240 profile the v2
+    # values were tuned for. If that resolution ever changes, rescale match_radius and
+    # bucket_width/bucket_height proportionally to keep the same relative search coverage
+    # and feature density, rather than silently searching a smaller/larger fraction of
+    # the image.
+    matcher:
+      nms_n: 3 # non-max-suppression: min. distance between maxima, in pixels
+      nms_tau: 50 # non-max-suppression: interest point peakiness threshold
+      match_binsize: 50 # matching bin width/height; affects efficiency only
+      match_radius: 200 # matching radius (du/dv), in pixels -- libviso2 default, for 848px width
+      match_disp_tolerance: 2 # dv tolerance for stereo matches, in pixels
+      outlier_disp_tolerance: 5 # outlier removal: disparity tolerance, in pixels
+      outlier_flow_tolerance: 5 # outlier removal: flow tolerance, in pixels
+      multi_stage: true # denser, faster matching in two passes
+      half_resolution: true # match at half resolution, refine at full resolution
+      refinement: 1 # 0 = none, 1 = pixel, 2 = subpixel
+    # libviso2 feature bucketing, spreads matches evenly across the image.
+    bucket:
+      max_features: 2 # max features retained per bucket
+      bucket_width: 50.0 # pixels -- libviso2 default, for 848px width
+      bucket_height: 50.0 # pixels -- libviso2 default, for 480px height
+    # libviso2 stereo motion estimation (RANSAC).
+    stereo:
+      ransac_iters: 200
+      inlier_threshold: 2.0 # fundamental matrix inlier threshold
+      reweighting: true # down-weight border features; more robust to calibration errors
