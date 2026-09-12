@@ -17,6 +17,15 @@
 # a long-range or grazing-angle look -- naturally sparser than what built the surface -- is
 # not mistaken for the surface being gone.
 #
+# Also fixes /Odometry's pose and twist covariance, which upstream leaves at zero on every
+# message -- nothing in the pipeline or either ROS wrapper ever wrote to them. A zero
+# covariance tells a downstream consumer (a robot_localization EKF, here) that the
+# measurement is exact, defeating both its blending against its own prior and any
+# Mahalanobis gating it does: confirmed on a Lunabotics sand-arena bag as a ~3.7 m EKF
+# teleport-and-back over three corrections whose raw /Odometry input was smooth throughout.
+# publish.odom_position_variance / publish.odom_orientation_variance (diagonal-only, m^2 /
+# rad^2) control it; both default to a placeholder sized to that bag's measured jitter.
+#
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
 #
@@ -26,6 +35,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "c1f9b8dd41ed536f86d1eaf9775331da8979102b"; # feat/stale-pixel-decay
-  hash = "sha256-f1LHAwxPrPdFBwtvYGtAv3TrBcv+ZDvFZ4rtQuV1Uw4=";
+  rev = "3527e9f8aaae1b71191ec0d3109ebf5cdef6306a"; # feat/stale-pixel-decay
+  hash = "sha256-OYsz5NpvAAinVQ6LEYfTH0EF6gZ6nUbTldjnPf0IlKU=";
 }
