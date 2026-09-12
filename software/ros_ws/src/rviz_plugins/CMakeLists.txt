@@ -48,6 +48,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     rviz_common
     pluginlib
     geometry_msgs
+    nav_msgs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
     ament_index_cpp
     arena_server)
 

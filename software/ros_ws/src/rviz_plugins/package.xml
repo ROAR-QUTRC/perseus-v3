@@ -13,6 +13,10 @@
   <depend>interfaces</depend>
   <depend>rviz_common</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>ament_index_cpp</depend>
   <!-- for the shared arena_layout JSON reader, so the panel and the robot
        cannot disagree about the layout -->
