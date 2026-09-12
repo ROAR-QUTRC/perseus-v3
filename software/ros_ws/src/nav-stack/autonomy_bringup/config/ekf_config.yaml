@@ -33,19 +33,22 @@ ekf_filter_node:
     # integrated gyro. FAST-LIO publishes no TF, so the EKF remains the sole owner of
     # odom -> base_link.
     odom0: /Odometry
-    # Pose, plus linear velocity. FAST-LIO never populates the twist of its odometry message
-    # -- there is no assignment to it anywhere in laserMapping.cpp -- so with that backend
-    # these velocity columns would fuse a constant zero and actively drag the estimate
-    # towards standstill. localisation.launch.py's actual default backend, BIEVR-LIO, is
-    # different: publishLatestState fills linear_velocity from the optimizer's own state, a
-    # real (if imperfect) measurement, distinct from the constant-velocity model the filter
-    # would otherwise have to infer purely from differencing 10 Hz pose corrections -- which
-    # is the noise source behind the extrapolation jitter between corrections. Angular
-    # velocity stays unfused here even though BIEVR-LIO also fills it: it is a straight gyro
-    # passthrough (same function), so fusing it through odom0 as well as imu0 below would be
-    # asserting the same measurement twice rather than adding information.
-    #                 x     y     z     roll  pitch yaw   vx    vy    vz    vroll  vpitch vyaw   ax     ay     az
-    odom0_config: [true, true, true, true, true, true, true, true, true, false, false, false, false, false, false]
+    # Pose only. FAST-LIO never populates the twist of its odometry message -- there is no
+    # assignment to it anywhere in laserMapping.cpp -- so enabling the velocity columns would
+    # fuse a constant zero velocity at 10 Hz and actively drag the estimate towards standstill.
+    #
+    # BIEVR-LIO, localisation.launch.py's actual default backend, does populate a real
+    # linear_velocity (publishLatestState, from the optimizer's own state) -- fusing it was
+    # tried and made the filter measurably noisier, not smoother. Most likely reason: that
+    # velocity is derived from the same short window of the same registration as the pose in
+    # the same message, so its error is correlated with the pose error rather than
+    # independent of it. odom0_config's diagonal-only covariance assumes independence, so
+    # fusing both from one noisy scan double-counts that scan's error instead of averaging it
+    # against anything else -- the opposite of what an extra independent measurement should
+    # do. Revisit only alongside a real per-scan covariance that captures the correlation (or
+    # a second, genuinely independent velocity source), not a bigger diagonal number.
+    #                 x     y     z     roll  pitch yaw   vx     vy     vz     vroll  vpitch vyaw   ax     ay     az
+    odom0_config: [true, true, true, true, true, true, false, false, false, false, false, false, false, false, false]
     # Absolute, not differential: this is the pose reference, and both it and the filter start
     # at the robot's initial pose, so they agree from the first message.
     odom0_differential: false
