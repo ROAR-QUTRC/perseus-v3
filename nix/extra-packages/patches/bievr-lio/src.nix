@@ -29,7 +29,21 @@
 # Twist gets its own pair -- publish.odom_linear_velocity_variance / _angular_ ((m/s)^2 /
 # (rad/s)^2) -- rather than reusing the pose pair above, which would have been dimensionally
 # wrong. Worth having: publishLatestState fills a real linear_velocity from the optimizer's
-# own state, unlike FAST-LIO, which never populates its odometry's twist at all.
+# own state, unlike FAST-LIO, which never populates its odometry's twist at all. (Fusing it
+# into the Lunabotics EKF was tried anyway and made it measurably noisier -- see
+# ekf_config.yaml -- so this pair is currently unused there, not a recommendation to fuse it.)
+#
+# Pose covariance is no longer just that flat pair, either: LsqRegistration derives a real
+# per-scan estimate from the registration's own Gauss-Newton Hessian
+# (poseCovarianceDiagonal), so an ill-constrained direction (yaw and the horizontal plane on
+# a flat sand floor, the common case here) is reported as uncertain instead of getting the
+# same fixed number as a well-constrained one. odom_position_variance /
+# odom_orientation_variance are now that estimate's fallback, used only when it is not
+# trustworthy this scan (too few effective points, or too ill-conditioned).
+#
+# All five covariance keys (publish.enable_odom_covariance and the four variances) are also
+# ordinary ROS2 parameters on the bievr_lio node -- `ros2 param set /bievr_lio <name> <value>`
+# changes them live, not only this file at startup.
 #
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
@@ -40,6 +54,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "e85f4ac47ad435a52a76079cda6e116b37a26a2d"; # feat/stale-pixel-decay
-  hash = "sha256-iTLbAP4OAyc60FIAXTX1m0qvFmgYmTJ2jAXi9ixA+Q0=";
+  rev = "fa6f8b8a18e1d277eb080ff668f4332c6f41b518"; # feat/stale-pixel-decay
+  hash = "sha256-fWKWBvNFjdJhGhBw4T8jSjQ00zeN8unzFUiuxWsasC0=";
 }
