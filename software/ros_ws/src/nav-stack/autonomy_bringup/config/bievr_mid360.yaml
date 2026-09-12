@@ -64,6 +64,13 @@ map:
   # the next one starts a clean average instead of blending into the old surface. See
   # bievr_mid360_sim.yaml for a value to try in the simulator first.
   stale_timeout_s: 0
+  # A stale pixel is only actually cleared if this scan's point count in the voxel is at
+  # least this fraction of the voxel's currently-observed pixel count. LiDAR point density
+  # is not uniform across the map -- the same spot seen from further away or at a shallower
+  # angle than when its surface was first built naturally gets far fewer points, with
+  # nothing about the terrain having changed -- so a sparse look defers the decay decision
+  # instead of erasing on a thin sample. No effect while stale_timeout_s is 0.
+  stale_min_relative_density: 0.5
   # A voxel count, not a metric extent, so it replaces both cube_side_length and the
   # ikd-Tree trimming FAST-LIO uses. Voxels past this are evicted least-recently-used first,
   # so the map degrades by forgetting where the robot has not been lately rather than by

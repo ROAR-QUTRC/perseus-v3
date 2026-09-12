@@ -11,7 +11,11 @@
 # service, neither of which upstream has at all. Also carries map.stale_timeout_s: a bump-
 # image pixel not reconfirmed within that many seconds is cleared instead of averaged into
 # forever, so terrain that genuinely changes (e.g. fine sand reshaped by wheels) can
-# overwrite the old map instead of being diluted by it. 0 (the default) disables it.
+# overwrite the old map instead of being diluted by it. 0 (the default) disables it. A
+# stale pixel is only actually cleared if this scan's point count in the voxel is at least
+# map.stale_min_relative_density (default 0.5) times its currently-observed pixel count, so
+# a long-range or grazing-angle look -- naturally sparser than what built the surface -- is
+# not mistaken for the surface being gone.
 #
 # Pinned to a commit rather than a branch name, since fetchFromGitHub does not track a
 # moving ref and a bare branch would silently change what gets built.
@@ -22,6 +26,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "d28aff4f76e973b1b4aa06fa58f0bce70b1f1c75"; # feat/stale-pixel-decay
-  hash = "sha256-Kx9WjQgM8XKrXJDjaY3+u55B+7lLkoOQJX6KKqS32+8=";
+  rev = "c1f9b8dd41ed536f86d1eaf9775331da8979102b"; # feat/stale-pixel-decay
+  hash = "sha256-f1LHAwxPrPdFBwtvYGtAv3TrBcv+ZDvFZ4rtQuV1Uw4=";
 }
