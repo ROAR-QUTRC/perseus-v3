@@ -10,8 +10,6 @@ Panels:
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
-        - /Path1
-        - /CameraInfo1/Status1
       Splitter Ratio: 0.5529412031173706
     Tree Height: 298
   - Class: rviz_common/Selection
@@ -65,8 +63,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        aruco_marker_31:
-          Value: true
         aruco_marker_67:
           Value: true
         aruco_marker_68:
@@ -182,8 +178,6 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          aruco_marker_31:
-                            {}
                           aruco_marker_67:
                             {}
                           aruco_marker_68:
