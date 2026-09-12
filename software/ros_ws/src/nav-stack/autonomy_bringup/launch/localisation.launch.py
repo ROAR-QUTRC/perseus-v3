@@ -41,10 +41,11 @@ A second, independent pose source rides alongside the LIO backend: vision's
 stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), fused as odom1 in
 ekf_config.yaml. Toggled with `stereo_odometry:=` (default true) rather than folded into
 the LIO backend choice above, since it is additive -- a different sensor and a different
-algorithm from either LIO backend, not a replacement for one. Also takes sim:=true, for
-the same reason the LIO backends do: the real driver's default topics
-(infra1/image_rect_raw) do not exist in Gazebo, which publishes un-suffixed
-infra1/image_raw instead (a synthetic camera has no distortion to rectify away).
+algorithm from either LIO backend, not a replacement for one. Unlike the LIO backends, it
+takes no sim:=true of its own: perseus_simulation's Gazebo bridge publishes
+infra1/infra2/image_rect_raw under the same name the real driver uses (a synthetic camera
+has no distortion to rectify away, but the topic is named to match anyway), so
+vision.yaml's topics work unmodified against either.
 """
 
 import os
@@ -230,9 +231,8 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # Second, independent pose source (see the module docstring): fused as odom1 in
-    # ekf_config.yaml, not a replacement for either LIO backend above. sim is passed
-    # through so the node picks up the simulator's un-suffixed infra1/infra2 topics --
-    # see vision/launch/stereo_odometry.launch.py's own sim:= handling.
+    # ekf_config.yaml, not a replacement for either LIO backend above. No sim arg to pass
+    # through -- vision.yaml's topics already match the simulator (see module docstring).
     stereo_odometry_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -241,7 +241,6 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
-            "sim": sim,
         }.items(),
     )
 

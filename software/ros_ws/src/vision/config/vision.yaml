@@ -89,10 +89,9 @@ stereo_odometry:
     # two hardware-rectified, hardware-synchronised global-shutter imagers on a
     # factory-calibrated baseline carried in infra2's camera_info P matrix.
     #
-    # NOTE for sim: perseus_simulation's Gazebo bridge publishes .../infra1/image_raw and
-    # .../infra2/image_raw (no "_rect" -- a synthetic pinhole camera has no distortion to
-    # rectify away), not image_rect_raw. Remap left_image_topic/right_image_topic (or the
-    # ROS topics themselves) when running this against the simulator.
+    # perseus_simulation's Gazebo bridge publishes on these same image_rect_raw names (a
+    # synthetic pinhole camera has no distortion to rectify away, but the topic is named
+    # to match anyway), so these defaults work unmodified against either.
     left_image_topic: /camera/camera/infra1/image_rect_raw
     right_image_topic: /camera/camera/infra2/image_rect_raw
     left_camera_info_topic: /camera/camera/infra1/camera_info
