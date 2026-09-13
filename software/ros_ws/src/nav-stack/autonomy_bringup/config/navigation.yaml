@@ -69,9 +69,9 @@ global_traversability:
     treat_unknown_as_obstacle: false
     # Inflation, same semantics as nav2's InflationLayer. nav2 does NOT inflate on top of
     # this -- neither costmap loads an inflation layer.
-    robot_radius_m: 0.35
-    inflation_radius_m: 0.6
-    cost_scaling_factor: 3.5
+    robot_radius_m: 0.5
+    inflation_radius_m: 0.8
+    cost_scaling_factor: 3.2
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
@@ -79,7 +79,13 @@ planner_server:
   ros__parameters:
     # Only warns if planning is slower than this; nothing plans on a timer.
     expected_planner_frequency: 1.0
-    planner_plugins: ["GridBased"]
+    # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
+    # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
+    # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
+    # switch back to GridBased, or override live by publishing the name to /planner_selector,
+    # e.g. `ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"` before
+    # sending the next goal.
+    planner_plugins: ["GridBased", "ThetaStar"]
     GridBased:
       # NavFn ignores heading, which suits a skid-steer that can turn on the spot. It also
       # plans on the grid, so its paths turn in 45/90 deg steps -- see smoother_server.
@@ -91,6 +97,25 @@ planner_server:
       # treat_unknown_as_obstacle is false upstream. With it false the planner refused any
       # route touching an occlusion shadow and reported NO_VALID_PATH instead of the cause.
       # The risk is real: the rover cannot tell open sand from a drop-off out there.
+      allow_unknown: true
+    ThetaStar:
+      # Any-angle alternative to GridBased: takes line-of-sight shortcuts across the grid
+      # instead of being locked to 8-connected moves, so the raw path already has fewer and
+      # gentler direction changes for smoother_server to clean up - and, downstream, fewer
+      # corners sharp enough to trip FollowPath's rotate_to_heading_min_angle into a full
+      # stop-and-pivot. Does NOT reason about robot heading/turning radius the way
+      # Hybrid-A*/SMAC would; irrelevant here since this skid-steer can pivot on the spot.
+      plugin: "nav2_theta_star_planner::ThetaStarPlanner"
+      how_many_corners: 8
+      # Weights the search cost between the straight-line (euclidean) distance and the
+      # costmap's own traversal cost - nav2's defaults, unchanged: favour a shorter path but
+      # let real cost still steer it around expensive terrain, same balance GridBased's
+      # Dijkstra gets for free from the costmap values it searches over directly.
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+      # Same reasoning and same value as GridBased's allow_unknown above (UNMAPPED, 2 of 3):
+      # this reads the same costmap under the same track_unknown_space: false regime, so it
+      # needs the same policy on routing through ground the lidar has not seen yet.
       allow_unknown: true
 # The planner's costmap. Doubled key because Costmap2DROS runs as its own node named
 # global_costmap inside planner_server. Required, not stylistic.
@@ -159,7 +184,19 @@ controller_server:
   ros__parameters:
     # 20.0 is nav2's default; halved for the Orange Pi, which also runs BIEVR-LIO.
     controller_frequency: 10.0
-    odom_topic: /odom
+    # /odom (the wheel diff_drive_controller) is not used here: it is the wheels' OWN belief
+    # about how fast they are turning, which is exactly what sand slip corrupts - a spinning,
+    # non-gripping wheel reports a confident, wrong velocity, not a degraded one. That is a
+    # systematic bias (reads faster than the rover is actually moving) for as long as the slip
+    # lasts, which is worse for velocity-scaled lookahead and regulated speed scaling than
+    # /odometry/filtered's own documented weakness (ekf_config.yaml: its velocity is
+    # extrapolated, not measured, and noisy/laggy for a few tenths of a second after a speed
+    # change - a bounded, roughly zero-mean transient, not a persistent one-directional bias).
+    # Matches the precedent already in this stack: mobility_watchdog compares commanded
+    # velocity against /odometry/filtered specifically to detect wheel slip, i.e. it already
+    # treats the EKF output, not /odom, as ground truth for "how fast is the rover really
+    # going" on this terrain.
+    odom_topic: /odometry/filtered
     # twist_mux is use_stamped: true. With this false the message type is wrong, twist_mux
     # never sees it, and the rover does not move with nothing in any log to say why.
     enable_stamped_cmd_vel: true
@@ -186,13 +223,12 @@ controller_server:
       # goal. Yaw is generous because final heading rarely matters and tightening it means
       # a slow spin at exactly the rate the ESCs stall at.
       xy_goal_tolerance: 0.35
-      yaw_goal_tolerance: 0.5
+      yaw_goal_tolerance: 0.3
       stateful: true
     FollowPath:
-      # NOT currently active -- see controller_plugins above. Kept tuned so it can be
-      # switched back to without redoing the work.
-      # Follows the global path and regulates speed on curvature; it does not do its own
-      # obstacle avoidance, which is right because obstacle knowledge lives upstream.
+      # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
+      # curvature; it does not do its own obstacle avoidance, which is right because obstacle
+      # knowledge lives upstream.
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # 0.28 = 0.4 * 0.7, a deliberate 30% reduction of autonomous cruise speed.
       # safe_speed.yaml is untouched, so teleop still has the full 0.8 m/s.
@@ -219,10 +255,14 @@ controller_server:
       regulated_linear_scaling_min_speed: 0.15
       # Above this heading error the rover stops and pivots instead of arcing. That is the
       # only way to take a corner tighter than 0.38 m, which is most NavFn grid corners --
-      # though smoother_server now removes many of them, so this can sit higher than it
-      # otherwise would.
+      # though smoother_server now removes many of them, and ThetaStar (planner_server's
+      # current default) removes still more by not being grid-locked to begin with, so this
+      # can sit higher than it otherwise would. Raised from 0.8: this was tuned back when
+      # GridBased's forced 45/90 deg corners made a low threshold necessary; with a straighter
+      # raw path, more turns can be taken as a regulated arc instead of a full stop-and-pivot.
+      # Re-tune down again if it starts cutting corners too wide for the arena's clearances.
       use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 0.8
+      rotate_to_heading_min_angle: 1.2
       # Rotate-to-heading is BANG-BANG: full rate until the error drops under the threshold,
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
@@ -241,7 +281,9 @@ controller_server:
       max_allowed_time_to_collision_up_to_carrot: 1.0
       transform_tolerance: 0.2
     DWB:
-      # ACTIVE. Samples trajectories and scores them, so unlike RPP it avoids obstacles
+      # Loaded but NOT the BT default (see controller_plugins above) - selectable live for
+      # comparison via `ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"`
+      # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
       # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
       plugin: "dwb_core::DWBLocalPlanner"
@@ -379,7 +421,11 @@ bt_navigator:
   ros__parameters:
     global_frame: odom
     robot_base_frame: base_footprint
-    odom_topic: /odom
+    # Same reasoning as controller_server's odom_topic above: /odom (wheel encoders) reads a
+    # systematic bias under sand slip, not just noise, so any BT node that consults this
+    # (e.g. a stuck/velocity check) should see the same ground-truth velocity
+    # mobility_watchdog already trusts, not the wheels' own confident-but-wrong one.
+    odom_topic: /odometry/filtered
     bt_loop_duration: 10
     default_server_timeout: 20
     navigators: ["navigate_to_pose", "navigate_through_poses"]
