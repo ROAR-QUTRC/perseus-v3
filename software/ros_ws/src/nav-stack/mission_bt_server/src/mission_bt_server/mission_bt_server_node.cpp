@@ -12,12 +12,13 @@
 /// whole navigation on a reentrant callback group, and on a single-threaded
 /// executor that would stall the very executor the BT's own service/action
 /// clients need spun.
-int main(int argc, char **argv) {
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<mission_bt_server::MissionBtServer>();
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin();
-  rclcpp::shutdown();
-  return 0;
+int main(int argc, char** argv)
+{
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<mission_bt_server::MissionBtServer>();
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node);
+    executor.spin();
+    rclcpp::shutdown();
+    return 0;
 }

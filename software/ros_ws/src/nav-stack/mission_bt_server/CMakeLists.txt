@@ -37,13 +37,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # INCLUDE DEPENDENCIES
-set(THIS_PACKAGE_INCLUDE_DEPENDS
-    rclcpp
-    interfaces
-    std_srvs
-    geometry_msgs
-    behaviortree_cpp
-    nav2_behavior_tree)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp interfaces std_srvs geometry_msgs
+                                 behaviortree_cpp nav2_behavior_tree)
 
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
@@ -65,12 +60,17 @@ include_directories(include)
 # go_to_zone_waypoint.xml load both from one plugin_lib_names list without
 # either one knowing about the other's package.
 add_library(request_zone_waypoint_bt_node SHARED
-           src/mission_bt_server/request_zone_waypoint_bt_node.cpp)
-target_include_directories(
-  request_zone_waypoint_bt_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-ament_target_dependencies(request_zone_waypoint_bt_node PUBLIC rclcpp
-                          interfaces geometry_msgs behaviortree_cpp
-                          nav2_behavior_tree)
+            src/mission_bt_server/request_zone_waypoint_bt_node.cpp)
+target_include_directories(request_zone_waypoint_bt_node
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(
+  request_zone_waypoint_bt_node
+  PUBLIC
+  rclcpp
+  interfaces
+  geometry_msgs
+  behaviortree_cpp
+  nav2_behavior_tree)
 # Without this, BT_REGISTER_NODES expands BT_RegisterNodesFromPlugin as `static`
 # (internal linkage, invisible to dlopen/registerFromPlugin) rather than an
 # exported symbol - see behaviortree_cpp/bt_factory.h's BTCPP_EXPORT macro.
@@ -91,10 +91,11 @@ ament_target_dependencies(mission_bt_server PUBLIC
 # plugin loader resolves a bare name through the OS library search path
 # (LD_LIBRARY_PATH, which every package's lib/ is on via its ament hook), the
 # same place nav2's own plugin .so's install to.
-install(TARGETS request_zone_waypoint_bt_node
-       ARCHIVE DESTINATION lib
-       LIBRARY DESTINATION lib
-       RUNTIME DESTINATION bin)
+install(
+  TARGETS request_zone_waypoint_bt_node
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
 
 install(TARGETS mission_bt_server DESTINATION lib/${PROJECT_NAME})
 

@@ -5,7 +5,6 @@
 
 #include <tf2/exceptions.h>
 #include <tf2/utils.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <QPainter>
 #include <QPainterPath>
@@ -16,6 +15,7 @@
 #include <cstdint>
 #include <rviz_common/config.hpp>
 #include <rviz_common/display_context.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <utility>
 
 namespace rviz_plugins
