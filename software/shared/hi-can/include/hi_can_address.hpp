@@ -393,7 +393,7 @@ namespace hi_can
         {
             /// @brief The excavation system ID
             constexpr uint8_t SYSTEM_ID = 0x04;
-            /// @brief Namespace containing all addresses in the arm subsystem
+            /// @brief Namespace containing all addresses in the bucket subsystem
             namespace bucket
             {
                 /// @brief The bucket subsystem ID

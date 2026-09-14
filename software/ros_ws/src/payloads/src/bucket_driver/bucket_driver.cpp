@@ -66,8 +66,6 @@ void BucketDriver::_write_actuators(double lift, double tilt, double jaws)
     using namespace addressing::excavation;
     using namespace addressing::excavation::bucket;
     using namespace addressing::excavation::bucket::controller;
-    using namespace addressing::excavation::bucket::controller;
-    using namespace parameters::excavation::bucket::controller;
 
     const standard_address_t base_address{SYSTEM_ID, SUBSYSTEM_ID, DEVICE_ID};
 
