@@ -5,10 +5,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <string>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 #include <unordered_map>
 #include <vector>
 
@@ -37,6 +41,14 @@ private:
 
   /// @brief Default voxel cell size, in metres.
   static constexpr double DEFAULT_VOXEL_SIZE_M = 0.1;
+
+  /// @brief Default frame the height filter's cutoff is measured in.
+  static inline const std::string DEFAULT_HEIGHT_FILTER_FRAME = "odom";
+
+  /// @brief Default height cutoff, in metres above the height filter frame's
+  /// origin. Derived from the highest TF frame on the robot (livox_frame, at
+  /// roughly 0.725 m above base_link) plus a 2 m clearance margin.
+  static constexpr double DEFAULT_MAX_HEIGHT_M = 2.725;
 
   /// @brief Byte offsets of the position fields within a point.
   struct position_offsets_t {
@@ -80,7 +92,28 @@ private:
   /// @param vz Voxel coordinate along z, in units of the voxel size.
   static int64_t _voxel_key(int32_t vx, int32_t vy, int32_t vz);
 
+  /// @brief Looks up the transform from a cloud's frame into the height
+  ///        filter frame, if the filter is enabled.
+  /// @param cloud_frame_id Frame the incoming cloud is published in.
+  /// @return The resolved transform, or nullopt if the filter is disabled or
+  ///         the transform is not currently available.
+  std::optional<tf2::Transform>
+  _resolve_height_filter_transform(const std::string &cloud_frame_id);
+
   double _voxel_size_m{DEFAULT_VOXEL_SIZE_M};
+
+  /// @brief Points whose height filter frame's z exceeds this are dropped
+  /// before they can reach the voxel grid, so the highest frame on the robot
+  /// plus everything above it never gets detected, mapped or transmitted.
+  bool _height_filter_enabled{true};
+  /// @brief Frame the max_height_m cutoff is measured in. Odom rather than a
+  /// body frame, so the cutoff stays a fixed height off the ground the robot
+  /// started on regardless of chassis pitch/roll or the 45-degree lidar tilt.
+  std::string _height_filter_frame{DEFAULT_HEIGHT_FILTER_FRAME};
+  double _max_height_m{DEFAULT_MAX_HEIGHT_M};
+
+  std::unique_ptr<tf2_ros::Buffer> _tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> _tf_listener;
 
   /// @brief Field names to carry through, in order. Anything else the input has
   /// is dropped. Empty keeps every field, which is the escape hatch for a
