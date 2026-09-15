@@ -1,4 +1,4 @@
 #for ros to can
-string name
+string bus
 bool on
 bool clear
