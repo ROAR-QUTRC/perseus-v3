@@ -399,25 +399,43 @@ namespace hi_can
                 /// @brief The bucket subsystem ID
                 constexpr uint8_t SUBSYSTEM_ID = 0x00;
                 /// @brief Namespace containing all addresses for the bucket controller
-                namespace controller
+                namespace controller_board
                 {
                     /// @brief The bucket controller device ID
                     constexpr uint8_t DEVICE_ID = 0x00;
-                    enum class group : uint8_t
+                    enum class bank_group : uint8_t
                     {
-                        LIFT = 0x01,
-                        TILT = 0x02,
-                        JAWS = 0x03,
-                    };
+                        LIFT = 0x00,
+                        TILT = 0x01,
+                        JAWS = 0x02,
+                    }
                     enum class bank_parameter : uint8_t
                     {
-                        FAULT = 0x00,
-                        CURRENT = 0x01,
-                        POSITION = 0x02,
-                        PID_PARAMS = 0x03,
-                        ZERO = 0x04,  // No parameter
-                        SPEED = 0x05,
+                        GET_FAULT = 0x00,
+                        GET_CURRENT = 0x01,
+                        SET_SPEED = 0x02,
+                        GET_ANGLE = 0x03,
+                        SET_ANGLE = 0x04,
+                        SET_PID_PARAMS = 0x05,
+                        SET_ZERO_POS = 0x06,
+                        GET_SLEEP = 0x07,
+                        SET_SLEEP = 0x08,
+                        RESET_TO_ZERO = 0x09,
                     };
+                    enum class encoder_group : uint8_t
+                    {
+                        LIFT_L = 0x03,
+                        LIFT_R = 0x04,
+                        TILT_L = 0x05,
+                        TILT_R = 0x06,
+                        JAWS_L = 0x07,
+                        JAWS_R = 0x08,
+                    };
+                    enum class encoder_parameter : uint8_t
+                    {
+                        GET_ANGLE = 0x00,
+                        SET_ANGLE = 0x01,
+                    }
                 }  // namespace controller
             }  // namespace bucket
         }  // namespace excavation

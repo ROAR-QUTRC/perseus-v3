@@ -327,7 +327,7 @@ namespace hi_can::parameters
     {
         namespace bucket
         {
-            namespace controller
+            namespace controller_board
             {
 #pragma pack(push, 1)
                 struct _pid_params_t
@@ -341,6 +341,7 @@ namespace hi_can::parameters
                 typedef SimpleSerializable<wrapped_value_t<int16_t>> position_t;
                 typedef SimpleSerializable<_pid_params_t> pid_params_t;
                 typedef SimpleSerializable<wrapped_value_t<int16_t>> speed_t;
+                typedef SimpleSerializable<wrapped_value_t<bool>> status_t;
             }  // namespace controller
         }  // namespace bucket
     }  // namespace excavation
