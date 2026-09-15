@@ -1,33 +1,28 @@
-# Command configuration
 command_in_type: "speed_units"
-update_period: 0.01
+# Hard caps under speed_units, not multipliers. Bounds config/joystick_*.yaml.
 scale:
-  linear: 0.4
-  rotational: 0.8
-  joint: 0.5
+  linear: 0.4 # m/s
+  rotational: 0.8 # rad/s
+  joint: 0.5 # unitless commands only
 # Frame configuration
+# Command frame comes from the message header; planning frame from the SRDF.
 move_group_name: arm
-planning_frame: plate
-ee_frame_name: forearm_tip
-robot_link_command_frame: plate
+apply_twist_commands_about_ee_frame: false
 # Topics
 joint_command_in_topic: "~/delta_joint_cmds"
 cartesian_command_in_topic: "~/delta_twist_cmds"
 command_out_topic: "/servo_controller/joint_trajectory"
 command_out_type: "trajectory_msgs/JointTrajectory"
-joint_state_topic: "/joint_states"
+joint_topic: "/joint_states"
 status_topic: "~/status"
-halt_all_joints_topic: "~/halt_all_joints"
 # Publishing configuration
 publish_period: 0.01 # 100Hz
 publish_joint_positions: true
 publish_joint_velocities: true
 publish_joint_accelerations: false
-publish_status: true
 # Timeout and stopping behavior
 incoming_command_timeout: 0.1
 max_expected_latency: 0.3
-num_outgoing_halt_msgs_to_publish: 4
 # Collision checking
 check_collisions: true
 collision_check_rate: 10.0
@@ -40,9 +35,7 @@ leaving_singularity_threshold_multiplier: 15.0
 # Joint limit margins
 joint_limit_margins: [0.1, 0.1, 0.1]
 # Smoothing
+use_smoothing: true
 smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
-low_pass_filter_coeff: 2.0
 # Planning scene monitor
 is_primary_planning_scene_monitor: true
-# Low latency mode
-low_latency_mode: true

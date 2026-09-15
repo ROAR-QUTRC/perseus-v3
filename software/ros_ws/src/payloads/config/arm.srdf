@@ -21,6 +21,7 @@
     <group name="wrist">
         <joint name="wrist_pitch"/>
         <joint name="wrist_roll"/>
+        <link name="gripper_base"/>
     </group>
 
     <!-- right_finger_joint mimics this one, so it must not be listed. -->

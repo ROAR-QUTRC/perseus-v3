@@ -1,25 +1,27 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-    <xacro:macro name="arm_ros2_control" params="name initial_positions_file use_mock_hardware:=false hardware_plugin:=mock_components/GenericSystem port:=/dev/ttyUSB0 baud_rate:=1000000">
+    <xacro:macro name="arm_ros2_control" params="name initial_positions_file use_mock_hardware:=false hardware_plugin:=payloads/DynamixelServos device:=/dev/ttyUSB0 mock_servo_ids:=''">
         <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>
 
         <ros2_control name="${name}" type="system">
             <hardware>
-                <!--
-                     use_mock_hardware:=true for simulation, or point the
-                     hardware_plugin at your own servo hardware_interface plugin.
-                     use_mock_hardware:=false  -->
                 <xacro:if value="${use_mock_hardware}">
                   <plugin>mock_components/GenericSystem</plugin>
                 </xacro:if>
                 <xacro:unless value="${use_mock_hardware}">
                   <plugin>${hardware_plugin}</plugin>
-                  <param name="port">${port}</param>
-                  <param name="baud_rate">${baud_rate}</param>
+                  <param name="device">${device}</param>
+                  <!-- A 6-servo read plus write at 57600 does not fit the 100 Hz
+                       controller_manager budget; at 1 Mbaud it does. -->
+                  <param name="baud_rate">1000000</param>
+                  <!-- Servo IDs simulated in software rather than addressed on
+                       the bus. Comma-separated, no spaces. -->
+                  <param name="mock_servo_ids">${mock_servo_ids}</param>
                 </xacro:unless>
             </hardware>
+
             <joint name="shoulder_tilt">
-                <param name="id">2</param>
+                <param name="servo_id">2</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['shoulder_tilt']}</param>
@@ -27,7 +29,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="shoulder_pan">
-                <param name="id">1</param>
+                <param name="servo_id">1</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['shoulder_pan']}</param>
@@ -35,7 +37,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="elbow">
-                <param name="id">3</param>
+                <param name="servo_id">3</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['elbow']}</param>
@@ -43,7 +45,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="wrist_pitch">
-                <param name="id">4</param>
+                <param name="servo_id">4</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_pitch']}</param>
@@ -51,7 +53,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="wrist_roll">
-                <param name="id">5</param>
+                <param name="servo_id">5</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_roll']}</param>
@@ -60,7 +62,11 @@
             </joint>
             <!-- right_finger_joint is a URDF mimic; ros2_control mirrors it. -->
             <joint name="left_finger_joint">
-                <param name="id">6</param>
+                <param name="servo_id">6</param>
+                <!-- Metres of finger travel per radian of servo 6. Placeholder:
+                     15 mm over a quarter turn. Measure with the offset in
+                     left_finger_drive before un-mocking servo 6. -->
+                <param name="prismatic_scale">0.00955</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['left_finger_joint']}</param>
@@ -68,6 +74,7 @@
                 <state_interface name="velocity"/>
             </joint>
 
+            <!-- Gearbox reductions. The hardware plugin must apply these; ros2_control only parses them. -->
             <transmission name="shoulder_pan_drive">
                 <plugin>transmission_interface/SimpleTransmission</plugin>
                 <joint name="shoulder_pan" role="joint1">
@@ -101,6 +108,19 @@
                 </actuator>
             </transmission>
 
+            <!-- offset is the servo angle (rad) at which the fingers are closed. -->
+            <transmission name="left_finger_drive">
+                <plugin>transmission_interface/SimpleTransmission</plugin>
+                <joint name="left_finger_joint" role="joint1">
+                    <mechanical_reduction>1.0</mechanical_reduction>
+                    <offset>0.0</offset>
+                </joint>
+                <actuator name="gripper_servo" role="actuator1">
+                    <mechanical_reduction>1.0</mechanical_reduction>
+                </actuator>
+            </transmission>
+
+            <!-- Servos 4 and 5 jointly drive pitch and roll. -->
             <transmission name="wrist_differential">
                 <plugin>transmission_interface/DifferentialTransmission</plugin>
                 <joint name="wrist_pitch" role="joint1">

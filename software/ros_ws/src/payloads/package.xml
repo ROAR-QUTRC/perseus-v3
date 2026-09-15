@@ -15,9 +15,18 @@
   <depend>sensor_msgs</depend>
   <depend>hi_can_raw</depend>
 
+  <!-- Dynamixel bus ros2_control hardware plugin (payloads/DynamixelServos) -->
+  <depend>dynamixel_sdk</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>transmission_interface</depend>
+
   <!-- Arm mock-hardware and Cartesian Servo simulation -->
   <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>arm_ikfast_plugin</exec_depend>
   <exec_depend>controller_manager</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_trajectory_controller</exec_depend>
   <exec_depend>joy</exec_depend>
