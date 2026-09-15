@@ -50,15 +50,13 @@
 		const publisher = new ROSLIB.Topic({
 			ros: getRosConnection() as ROSLIB.Ros,
 			name: '/ros_to_can',
-			messageType: 'std_msgs/String'
+			messageType: 'interfaces/msg/RcbPowerCommand'
 		});
 
 		const message = {
-			data: JSON.stringify({
-				bus: bus,
-				on: busState[bus].status !== 1 ? '1' : '0',
-				clear: busState[bus].status === 6 || busState[bus].status === 4 ? '1' : '0' // Clear FAULT or SWITCH_FAILED
-			})
+			bus: bus,
+			on: busState[bus].status !== 1,
+			clear: busState[bus].status === 6 || busState[bus].status === 4 // Clear FAULT or SWITCH_FAILED
 		};
 
 		publisher.publish(message);

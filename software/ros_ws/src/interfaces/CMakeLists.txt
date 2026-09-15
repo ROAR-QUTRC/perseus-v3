@@ -63,6 +63,7 @@ rosidl_generate_interfaces(
   "msg/Waypoint.msg"
   "msg/MobilityStatus.msg"
   "msg/RcbPowerStatus.msg"
+  "msg/RcbPowerCommand.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
