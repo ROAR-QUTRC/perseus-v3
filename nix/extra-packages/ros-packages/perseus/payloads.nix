@@ -5,21 +5,28 @@
   actuator-msgs,
   ament-cmake,
   ament-index-python,
+  arm-ikfast-plugin,
   backward-ros,
   controller-manager,
+  dynamixel-sdk,
+  geometry-msgs,
+  hardware-interface,
   hi-can-raw,
   joint-state-broadcaster,
   joint-trajectory-controller,
   moveit-kinematics,
   moveit-msgs,
   moveit-servo,
+  pluginlib,
   rclcpp,
+  rclcpp-lifecycle,
   robot-state-publisher,
   ros2-control,
   rviz2,
   sensor-msgs,
   teleop,
   tf2-ros,
+  transmission-interface,
   xacro,
 }:
 buildRosPackage rec {
@@ -33,21 +40,28 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     actuator-msgs
     ament-index-python
+    arm-ikfast-plugin
     backward-ros
     controller-manager
+    dynamixel-sdk
+    geometry-msgs
+    hardware-interface
     hi-can-raw
     joint-state-broadcaster
     joint-trajectory-controller
     moveit-kinematics
     moveit-msgs
     moveit-servo
+    pluginlib
     rclcpp
+    rclcpp-lifecycle
     robot-state-publisher
     ros2-control
     rviz2
     sensor-msgs
     teleop
     tf2-ros
+    transmission-interface
     xacro
   ];
   nativeBuildInputs = [ ament-cmake ];
