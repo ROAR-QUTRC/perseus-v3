@@ -73,6 +73,7 @@ rosidl_generate_interfaces(
   "msg/LinkHealth.msg"
   "msg/OrbSlamOdometryInfo.msg"
   "msg/RcbPowerStatus.msg"
+  "msg/RcbPowerCommand.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
