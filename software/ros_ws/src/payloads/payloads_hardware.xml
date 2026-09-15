@@ -1,0 +1,13 @@
+<library path="dynamixel_servos">
+  <class name="payloads/DynamixelServos"
+         type="payloads::DynamixelServos"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Dynamixel bus hardware_interface plugin for the Perseus arm. Reads servo
+      positions and writes goal positions over Protocol 2.0 via the
+      dynamixel_easy_sdk, applying the SimpleTransmission and
+      DifferentialTransmission transforms declared in arm.ros2_control.xacro to
+      convert between joint space and actuator space.
+    </description>
+  </class>
+</library>

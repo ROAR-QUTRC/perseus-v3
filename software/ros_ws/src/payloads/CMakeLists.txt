@@ -43,8 +43,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # public dependencies (which should propagate)
 set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs actuator_msgs)
 
+# dependencies of the ros2_control hardware plugin only
+set(HARDWARE_PLUGIN_DEPENDS dynamixel_sdk hardware_interface pluginlib rclcpp
+                            rclcpp_lifecycle transmission_interface)
+
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
+
+foreach(Dependency IN ITEMS ${HARDWARE_PLUGIN_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
@@ -91,8 +99,33 @@ ament_target_dependencies(
 ament_target_dependencies(bucket_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
                           actuator_msgs)
 
-# target_link_libraries(arm_driver PUBLIC st3215_lib)
 target_link_libraries(bucket_driver PUBLIC hi_can_raw)
+
+# COMPILE (ros2_control hardware plugin)
+
+# Dynamixel bus SystemInterface, loaded by controller_manager when
+# use_mock_hardware is false. Built as a shared library so pluginlib can dlopen
+# it; the library name must match <library path=...> in payloads_hardware.xml.
+add_library(
+  dynamixel_servos SHARED src/dynamixel_servos/dynamixel_servos.cpp
+                          src/dynamixel_servos/dynamixel_controller.cpp)
+
+target_include_directories(
+  dynamixel_servos
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include>
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/dynamixel_servos>)
+
+ament_target_dependencies(dynamixel_servos PUBLIC ${HARDWARE_PLUGIN_DEPENDS})
+
+install(
+  TARGETS dynamixel_servos
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+install(DIRECTORY include/dynamixel_servos DESTINATION include)
 
 # Install ROS Executable
 install(TARGETS arm_driver DESTINATION lib/${PROJECT_NAME})
@@ -115,5 +148,21 @@ install(
   PROGRAMS scripts/wrist_velocity_bridge.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME wrist_velocity_bridge)
+
+install(
+  PROGRAMS scripts/keyboard_control.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME keyboard_control)
+
+# EXPORT PLUGINLIB INFORMATION
+
+# ROS2 Control hardware interface plugin
+pluginlib_export_plugin_description_file(hardware_interface
+                                         payloads_hardware.xml)
+
+# ROS LIBRARY POST-INSTALL
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_dependencies(${HARDWARE_PLUGIN_DEPENDS})
 
 ament_package()

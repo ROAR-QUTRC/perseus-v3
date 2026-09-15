@@ -11,6 +11,9 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
+    use_mock_hardware = LaunchConfiguration("use_mock_hardware")
+    device = LaunchConfiguration("device")
+    mock_servo_ids = LaunchConfiguration("mock_servo_ids")
     joy_topic = LaunchConfiguration("joy_topic")
     command_frame = LaunchConfiguration("command_frame")
     joy_timeout = LaunchConfiguration("joy_timeout")
@@ -23,6 +26,9 @@ def generate_launch_description():
         ),
         launch_arguments={
             "use_rviz": use_rviz,
+            "use_mock_hardware": use_mock_hardware,
+            "device": device,
+            "mock_servo_ids": mock_servo_ids,
         }.items(),
     )
 
@@ -58,6 +64,24 @@ def generate_launch_description():
                 "use_rviz",
                 default_value="true",
                 description="Start RViz2",
+            ),
+            DeclareLaunchArgument(
+                "use_mock_hardware",
+                default_value="true",
+                description="Mirror commands to states instead of driving the bus",
+            ),
+            DeclareLaunchArgument(
+                "device",
+                default_value="/dev/ttyUSB0",
+                description="Serial port the Dynamixel bus is attached to",
+            ),
+            DeclareLaunchArgument(
+                "mock_servo_ids",
+                default_value="6",
+                description=(
+                    "Comma-separated servo IDs to simulate instead of "
+                    "communicating with the physical bus. No spaces."
+                ),
             ),
             DeclareLaunchArgument(
                 "joy_topic",

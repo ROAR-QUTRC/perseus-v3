@@ -2,6 +2,7 @@
 controller_manager:
   ros__parameters:
     update_rate: 100 # Hz
+    thread_priority: 50
     servo_controller:
       type: joint_trajectory_controller/JointTrajectoryController
     wrist_controller:

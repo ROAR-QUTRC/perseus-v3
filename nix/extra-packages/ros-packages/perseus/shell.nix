@@ -42,6 +42,7 @@ pkgs.mkShell {
           controller-manager
           cv-bridge
           diff-drive-controller
+          dynamixel-sdk
           fast-lio
           geometry-msgs
           generate-parameter-library
@@ -95,6 +96,7 @@ pkgs.mkShell {
           tf2-kdl
           tf2-ros
           trajectory-msgs
+          transmission-interface
           twist-mux
           v4l2-camera
           visualization-msgs

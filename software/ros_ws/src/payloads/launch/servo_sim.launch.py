@@ -22,6 +22,14 @@ from launch.conditions import IfCondition
 import os
 import yaml
 
+USE_MOCK_HARDWARE = "true"
+HARDWARE_PLUGIN = "payloads/DynamixelServos"
+# Servo IDs simulated in software instead of on the bus. Comma-separated, no
+# spaces. Servo 6 drives the prismatic gripper, whose metres-per-radian ratio
+# has not been measured yet, so it is mocked until prismatic_scale is set in
+# config/arm.ros2_control.xacro.
+MOCK_SERVO_IDS = "6"
+
 
 def start_after_success(stage_name, actions):
     """Start dependent actions only when a prerequisite exits successfully."""
@@ -60,8 +68,36 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "use_mock_hardware",
-            default_value="true",
+            default_value=USE_MOCK_HARDWARE,
             description="Start robot with mock hardware mirroring command to its states.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "hardware_plugin",
+            default_value=HARDWARE_PLUGIN,
+            description=(
+                "ros2_control hardware_interface plugin loaded when "
+                "use_mock_hardware is false"
+            ),
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "device",
+            default_value="/dev/ttyUSB0",
+            description="Serial port the Dynamixel bus is attached to",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "mock_servo_ids",
+            default_value=MOCK_SERVO_IDS,
+            description=(
+                "Comma-separated servo IDs to simulate instead of "
+                "communicating with the physical bus (e.g. '4,5,6'). "
+                "Must contain no spaces."
+            ),
         )
     )
     declared_arguments.append(
@@ -88,6 +124,9 @@ def generate_launch_description():
 
     # Initialize Arguments
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
+    hardware_plugin = LaunchConfiguration("hardware_plugin")
+    device = LaunchConfiguration("device")
+    mock_servo_ids = LaunchConfiguration("mock_servo_ids")
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_rviz = LaunchConfiguration("use_rviz")
     rmw_implementation = LaunchConfiguration("rmw_implementation")
@@ -102,6 +141,15 @@ def generate_launch_description():
             " ",
             "use_mock_hardware:=",
             use_mock_hardware,
+            " ",
+            "hardware_plugin:=",
+            hardware_plugin,
+            " ",
+            "device:=",
+            device,
+            " ",
+            "mock_servo_ids:=",
+            mock_servo_ids,
         ]
     )
     robot_description = {
