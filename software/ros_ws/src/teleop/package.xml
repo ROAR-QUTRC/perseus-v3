@@ -7,10 +7,8 @@
     Teleoperation for Perseus: keyboard teleop node, generic joystick controller node, and controller configs.
   </description>
   <maintainer email="59348282+RandomSpaceship@users.noreply.github.com">james</maintainer>
-  <maintainer email="nguyenleminh1002@gmail.com">Kelvin Le</maintainer>
   <license>MIT</license>
   <license>Apache-2.0</license>
-  <author email="nguyenleminh1002@gmail.com">Kelvin Le</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>

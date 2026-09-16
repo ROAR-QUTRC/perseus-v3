@@ -6,11 +6,4 @@
       Hardware interface for VESC motor controllers
     </description>
   </class>
-  <class name="hardware/McbSystemHardware"
-         type="hardware::McbSystemHardware"
-         base_class_type="hardware_interface::SystemInterface">
-    <description>
-      Hardware interface for legacy Motor Control Boards
-    </description>
-  </class>
 </library>
