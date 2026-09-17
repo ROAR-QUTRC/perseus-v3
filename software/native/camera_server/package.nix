@@ -16,5 +16,6 @@ python3Packages.buildPythonApplication {
     pygobject3
     requests
     websocket-client
+    pyudev
   ];
 }

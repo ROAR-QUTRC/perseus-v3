@@ -205,7 +205,7 @@ const startStream = (
   gstInstances.at(-1)!.instance.stderr.pipe(process.stderr);
 };
 
-socket.on("camera-event", (event: CameraEventType) => {
+socket.on("camera_event", (event: CameraEventType) => {
   // Return if the target device is not owned by this server
   if (
     event.data &&

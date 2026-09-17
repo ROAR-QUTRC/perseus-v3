@@ -144,7 +144,7 @@
 	});
 
 	// Handle incoming camera events
-	socket.on('camera-event', (event: CameraEventType) => {
+	socket.on('camera_event', (event: CameraEventType) => {
 		switch (event.action) {
 			case 'group-description':
 				event.data!.devices?.forEach((device) => {
