@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 # Project/target name. Renaming later should only ever require changing this line
 # copying the file as a starting should also only require changing this line 
 set(TARGET_NAME blink)
+set(TARGET_VERSION 0.1)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -59,6 +60,9 @@ add_executable(${TARGET_NAME} ${TARGET_NAME}.cpp)
 # If the app is split into multiple files later, add them here e.g.:
 #   add_executable(${TARGET_NAME} ${TARGET_NAME}.cpp led.cpp sensors.cpp)
 
+pico_set_program_name(${TARGET_NAME} "${TARGET_NAME}")
+pico_set_program_version(${TARGET_NAME} "${TARGET_VERSION}")
+
 # ====================================================================================
 # Chip-variant / silicon-revision definitions.
 #
@@ -84,6 +88,11 @@ target_compile_definitions(${TARGET_NAME} PRIVATE
 # into ws2812.pio.h, available to blink.cpp via #include "ws2812.pio.h".
 # Any future .pio files get added here the same way.
 pico_generate_pio_header(${TARGET_NAME} ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio)
+
+# ====================================================================================
+# Modify the below lines to enable/disable output over UART/USB
+pico_enable_stdio_uart(${TARGET_NAME} 0)
+pico_enable_stdio_usb(${TARGET_NAME} 0)
 
 # ====================================================================================
 # Linked libraries. pico_stdlib is the baseline (GPIO, timing, printf, etc.)

@@ -24,7 +24,7 @@
 // this file, e.g.g:
 //   target_compile_definitions(blink PRIVATE LED_DELAY_MS=200)
 #ifndef LED_DELAY_MS
-#define LED_DELAY_MS 700
+#define LED_DELAY_MS 500
 #endif
 
 // Anonymous namespace - this file's private implementation detail (the C++
