@@ -18,4 +18,8 @@
     # alias the output to pkgs.ros to make it easier to use
     ros = final.rosPackages.${rosDistro};
   })
+  # packagesFromDirectoryRecursive returns a deep set and this converts to a list of derivations
+  (final: prev: {
+    flattenDerivationSet = set: (final.lib.collect final.lib.isDerivation set);
+  })
 ]
