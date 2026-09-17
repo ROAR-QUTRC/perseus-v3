@@ -2,7 +2,6 @@
 {
   # Access to inputs from devenv.yaml
   pkgs,
-  lib,
   # config,
   # nixpkgs,
   nix-ros-overlay,
@@ -19,8 +18,6 @@ let
   #   enableIntelX86Extensions = isIntelX86Platform;
   # };
   rosDistro = "jazzy";
-  # packagesFromDirectoryRecursive returns a deep set and this converts to a list of derivations
-  flattenDerivationSet = set: (lib.collect lib.isDerivation set);
 in
 {
   name = "Perseus-v3";

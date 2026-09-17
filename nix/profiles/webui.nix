@@ -7,13 +7,20 @@
       [
         libnice
         tsx
+        v4l-utils
       ]
+      ++ flattenDerivationSet camera-server
+      # TODO: select only the gst plugins that are needed see:
+      # https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/libraries/gstreamer/rs/default.nix#L36
       ++ (with gst_all_1; [
         gstreamer
         gst-plugins-base
         gst-plugins-good
         gst-plugins-bad
         gst-plugins-rs
+      ])
+      ++ (with python3Packages; [
+        pygobject-stubs # python bindings for gobject-introspection
       ])
     );
 
