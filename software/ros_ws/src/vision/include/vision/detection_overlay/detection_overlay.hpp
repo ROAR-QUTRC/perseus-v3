@@ -58,7 +58,9 @@ namespace vision
             "/vision/overlay/image";
         /// @brief Default detection topics subscribed to.
         static inline const std::vector<std::string> DEFAULT_DETECTION_TOPICS = {
-            "/vision/aruco/detections", "/vision/cube/detections"};
+            "/vision/aruco/detections", 
+            "/vision/cube/detections",
+            "/perseus_vision/rock/detections"};
         /// @brief Default age past which cached detections stop being drawn, in
         /// seconds.
         static constexpr double DEFAULT_MAX_DETECTION_AGE_S = 1.0;
