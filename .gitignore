@@ -20,6 +20,7 @@ install/
 generated/
 build/
 public/
+site/
 # draw.io stuff
 .$*
 
