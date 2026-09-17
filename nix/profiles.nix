@@ -51,5 +51,12 @@
       };
     };
 
+    zenoh = {
+      extends = [ "dev" ];
+      module = import ./profiles/zenoh.nix {
+        inherit pkgs config lib;
+      };
+    };
+
   };
 }

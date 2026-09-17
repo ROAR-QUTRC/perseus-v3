@@ -46,4 +46,3 @@ imports:
   - ./nix/treefmt.nix
   - ./nix/profiles.nix
   - ./nix/machines/default.nix
-  - ./nix/networking.nix
