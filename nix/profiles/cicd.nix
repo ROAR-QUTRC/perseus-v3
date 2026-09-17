@@ -2,8 +2,7 @@
 
 { ... }: {
   extends = [
-    "prod"
-    "web-ui"
+    "prod" # this extends webui already
     "firmware"
   ];
 
