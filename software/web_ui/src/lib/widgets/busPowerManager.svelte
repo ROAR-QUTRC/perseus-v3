@@ -31,7 +31,7 @@
 		'FAULT'
 	];
 
-	let listener: ROSLIB.Topic<{ data: string }> | null = null;
+	let listener: ROSLIB.Topic | null = null;
 	let busState = $state<
 		Record<string, { status: number; current: number; voltage: number; openAlert: boolean }>
 	>({
@@ -50,15 +50,13 @@
 		const publisher = new ROSLIB.Topic({
 			ros: getRosConnection() as ROSLIB.Ros,
 			name: '/ros_to_can',
-			messageType: 'std_msgs/String'
+			messageType: 'interfaces/msg/RcbPowerCommand'
 		});
 
 		const message = {
-			data: JSON.stringify({
-				bus: bus,
-				on: busState[bus].status !== 1 ? '1' : '0',
-				clear: busState[bus].status === 6 || busState[bus].status === 4 ? '1' : '0' // Clear FAULT or SWITCH_FAILED
-			})
+			bus: bus,
+			on: busState[bus].status !== 1,
+			clear: busState[bus].status === 6 || busState[bus].status === 4 // Clear FAULT or SWITCH_FAILED
 		};
 
 		publisher.publish(message);
@@ -70,11 +68,11 @@
 			listener = new ROSLIB.Topic({
 				ros: getRosConnection() as ROSLIB.Ros,
 				name: '/can_to_ros',
-				messageType: 'std_msgs/String'
+				messageType: 'interfaces/msg/RcbPowerStatus'
 			});
 
 			listener.subscribe((message: any) => {
-				const { name, status, current, voltage } = JSON.parse(message.data);
+				const { name, status, current, voltage } = message;
 				busState[name] = {
 					status: Number(status),
 					current: Number(current),
