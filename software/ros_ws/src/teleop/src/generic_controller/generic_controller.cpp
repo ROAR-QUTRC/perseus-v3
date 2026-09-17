@@ -23,7 +23,7 @@ GenericController::GenericController(const rclcpp::NodeOptions& options)
     _axis_parsers.emplace(
         std::make_pair(ROTATE_BASE_NAME, AxisParser(*this, ROTATE_BASE_NAME)));
     _axis_parsers.emplace(
-        std::make_pair(MAGNET_BASE_NAME, AxisParser(*this, "bucket.magnet")));
+        std::make_pair(MAGNET_BASE_NAME, AxisParser(*this, MAGNET_BASE_NAME)));
     _joy_subscription = this->create_subscription<sensor_msgs::msg::Joy>(
         "joy", 10,
         std::bind(&GenericController::_joy_callback, this,
@@ -200,10 +200,9 @@ GenericController::AxisParser::AxisParser(GenericController& parent,
 
 double GenericController::AxisParser::get_value()
 {
+    // Only .enable is a deadman switch not .turbo_enable
     if (_has_enable &&
-        !_parent._enable_parsers.at(_param_base_name + ".enable").get_value() &&
-        !_parent._enable_parsers.at(_param_base_name + ".turbo_enable")
-             .get_value())
+        !_parent._enable_parsers.at(_param_base_name + ".enable").get_value())
         return 0.0;
 
     auto params = _resolve_params();

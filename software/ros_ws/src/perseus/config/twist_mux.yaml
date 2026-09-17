@@ -1,6 +1,7 @@
 twist_mux:
   ros__parameters:
     use_stamped: true
+    # Highest priority is first in the list
     topics:
       navigation:
         topic: cmd_vel_nav_stamped

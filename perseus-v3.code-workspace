@@ -4,6 +4,10 @@
       "path": ".",
     },
     {
+      "name": "Docs",
+      "path": "./docs"
+    },
+    {
       "name": "Excavation Bucket Firmware",
       "path": "./firmware/excavation-bucket"
     }
