@@ -34,7 +34,7 @@
         <!-- qutrc@small-brain -->
         <Peer address="192.168.2.15"/>
         <!-- Autonomy Brain -->
-        <Peer address="192.168.2.119"/>
+        <Peer address="192.168.2.18"/>
 
 
          <!-- Base Station -->
