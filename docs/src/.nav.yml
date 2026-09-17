@@ -1,0 +1,18 @@
+# Use the "title" field in the index.md preamble for folder titles
+use_index_title: true
+# Flatten directories with a single markdown file into a single page
+# This is useful to group images and static elements with a single markdown file
+flatten_single_child_sections: true
+# This allows folders and files to be sorted in the correct order
+sort:
+  sections: mixed
+# The nav section is the main purpose of this plugin. As mentioned in the docs, ordering an naming is done at a file level
+# so the file structure here is as close to what is rendered as possible. The only exception is that the index.md file
+# which must be in the root of the /docs folder which we want to render in the home folder.
+nav:
+  - Home:
+      - Welcome: index.md
+      - 01-home/*
+  - 02-perseus-v3
+  - 03-archive
+  - 04-old

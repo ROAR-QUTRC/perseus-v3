@@ -2,11 +2,8 @@
 
 { ... }: {
   extends = [
-    "dev"
     "prod"
     "web-ui"
-    "simulation"
-    "autonomy"
     "firmware"
   ];
 
