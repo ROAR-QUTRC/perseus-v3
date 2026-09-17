@@ -1,8 +1,12 @@
 import sys
+from typing import Literal
+from signal import signal, SIGINT
 import socketio
 import gi
+from time import sleep
 
 from logger import log, enable_debug
+from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
 
 gi.require_version("GLib", "2.0")
 gi.require_version("GObject", "2.0")
@@ -11,48 +15,37 @@ gi.require_version("Gst", "1.0")
 # Formatter error E402 is silenced as the gi design pattern requires imports to be after the gi.require_version calls.
 # gi.require_version("GLib", "2.0") generates typelib data at runtime.
 # pylance throws an error (which we can ignore) on the following line due to this.
+# from gi.repository import Gst # noqa: E402 # type: ignore[reportMissingImports]
 
-# sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
-
-# videoTransformType = Literal[
-#     "none",
-#     "clockwise",
-#     "counterclockwise",
-#     "rotate-180",
-#     "horizontal-flip",
-#     "vertical-flip",
-#     "upper-left-diagonal",
-#     "upper-right-diagonal",
-#     "automatic",
-# ]
+videoTransformType = Literal[
+    "none",
+    "clockwise",
+    "counterclockwise",
+    "rotate-180",
+    "horizontal-flip",
+    "vertical-flip",
+    "upper-left-diagonal",
+    "upper-right-diagonal",
+    "automatic",
+]
 
 
-# pipeline = None
-# bus = None
-# message = None
+def cleanup(sig, frame):
+    log("Shutting down camera server...")
 
-# # initialize GStreamer
-# Gst.init(sys.argv[1:])
+    # cleanup here
+    stop_v4l_monitor()
 
-# # build the pipeline
-# pipeline = Gst.parse_launch(
-#     "playbin uri=https://gstreamer.freedesktop.org/data/media/sintel_trailer-480p.webm"
-# )
+    log("Bye!")
+    sys.exit(0)
 
-# # start playing
-# pipeline.set_state(Gst.State.PLAYING)
 
-# # wait until EOS or error
-# bus = pipeline.get_bus()
-# msg = bus.timed_pop_filtered(
-#     Gst.CLOCK_TIME_NONE, Gst.MessageType.ERROR | Gst.MessageType.EOS
-# )
-
-# # free resources
-# pipeline.set_state(Gst.State.NULL)
+signal(SIGINT, cleanup)
 
 
 def main():
+    # -----------< Parse command line arguments >-----------
+
     args = sys.argv[1:]
     if "--debug" in args:
         enable_debug()
@@ -61,11 +54,11 @@ def main():
 
     hostname = "localhost"
     port = 3000
-    if len(sys.argv) > 0:
+
+    if len(args) > 0:
         # hostname:port passed as command line argument
-        arg = sys.argv[1]
-        if ":" in arg:
-            hostname, port_str = arg.split(":", 1)
+        if ":" in args[0]:
+            hostname, port_str = args[0].split(":", 1)
             try:
                 port = int(port_str)
             except ValueError:
@@ -74,17 +67,46 @@ def main():
             if hostname == "":
                 hostname = "localhost"
         else:
-            hostname = arg
+            hostname = args[0]
     log(f"Connecting to webserver at {hostname}:{port}")
 
-    # Connect to web server socket
-    with socketio.SimpleClient() as sio:
+    # ----------< Get hardware information >-----------
+
+    def handle_device_change(devices):
+        log(f"Detected camera device change: {devices}", "DEBUG")
+
+    devices = start_v4l_monitor(handle_device_change)
+    log(f"Detected camera devices: {devices}")
+
+    # -----------< Connect to web server socket >-----------
+
+    sio = socketio.Client()
+
+    @sio.event
+    def camera_event(data):
+        handle_camera_event(data)
+
+    while sio.connected is False:
         try:
-            sio.connect(f"http://{hostname}:{port}")
+            sio.connect(f"http://{hostname}:{port}", {})
             log("Connected to web server socket")
         except Exception as e:
-            log(f"Failed to connect to web server socket: {e}", "ERROR")
-            sys.exit(1)
+            log("Connection error, please check the config. Retrying...", "ERROR")
+            log(f"Error: {e}", "DEBUG")
+            sleep(1)
+
+    # -----------< Send initial message to web server >-----------
+
+    sio.send({"type": "camera", "action": "group-description"})
+
+    while True:
+        sleep(0.0001)
+
+    cleanup(None, None)
+
+
+def handle_camera_event(data):
+    log(f"Received camera event: {data}", "DEBUG")
 
 
 if __name__ == "__main__":
