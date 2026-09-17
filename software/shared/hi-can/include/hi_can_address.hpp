@@ -408,7 +408,7 @@ namespace hi_can
                         LIFT = 0x00,
                         TILT = 0x01,
                         JAWS = 0x02,
-                    }
+                    };
                     enum class bank_parameter : uint8_t
                     {
                         GET_FAULT = 0x00,
@@ -435,7 +435,7 @@ namespace hi_can
                     {
                         GET_ANGLE = 0x00,
                         SET_ANGLE = 0x01,
-                    }
+                    };
                 }  // namespace controller
             }  // namespace bucket
         }  // namespace excavation
