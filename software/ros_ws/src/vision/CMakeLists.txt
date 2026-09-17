@@ -95,10 +95,15 @@ target_include_directories(
 # Unmodified upstream code kept diffable against its source — not held to this
 # repo's warning policy.
 target_compile_options(vision_libviso2 PRIVATE -w)
+# PUBLIC, not PRIVATE: vision_stereo_odom's own sources (stereo_odometry.cpp) also
+# transitively include libviso2/matcher.h, which branches on __ARM_NEON__ to decide
+# whether to pull in the x86 emmintrin.h intrinsics header. A PRIVATE define here would
+# leave that translation unit un-defined on ARM and fail with "emmintrin.h: No such
+# file or directory".
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm.*)$")
-  target_compile_definitions(vision_libviso2 PRIVATE __ARM_NEON__)
+  target_compile_definitions(vision_libviso2 PUBLIC __ARM_NEON__)
 else()
-  target_compile_options(vision_libviso2 PRIVATE -msse3)
+  target_compile_options(vision_libviso2 PUBLIC -msse3)
 endif()
 
 # ── stereo_odometry component library ───────────────────────────────────────────
