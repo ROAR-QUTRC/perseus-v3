@@ -10,6 +10,7 @@
   cv-bridge,
   geometry-msgs,
   interfaces,
+  nav-msgs,
   onnxruntime,
   opencv,
   rcl-interfaces,
@@ -41,6 +42,7 @@ buildRosPackage rec {
     cv-bridge
     geometry-msgs
     interfaces
+    nav-msgs
     onnxruntime
     opencv
     rcl-interfaces
