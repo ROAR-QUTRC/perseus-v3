@@ -114,6 +114,7 @@ def generate_launch_description():
                 "hardware_plugin": final_hardware_plugin,
                 "can_bus": can_bus,
                 "min_command_erpm": min_command_erpm,
+                "payload": LaunchConfiguration("payload"),
             }.items(),
         )
         return [rsp_launch]
