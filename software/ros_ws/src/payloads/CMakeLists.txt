@@ -44,8 +44,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs actuator_msgs)
 
 # dependencies of the ros2_control hardware plugin only
-set(HARDWARE_PLUGIN_DEPENDS dynamixel_sdk hardware_interface pluginlib rclcpp
-                            rclcpp_lifecycle transmission_interface)
+set(HARDWARE_PLUGIN_DEPENDS
+    dynamixel_sdk
+    hardware_interface
+    pluginlib
+    rclcpp
+    rclcpp_lifecycle
+    transmission_interface
+    hector_transmission_interface
+    hector_transmission_interface_msgs)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
@@ -111,10 +118,8 @@ add_library(
                           src/dynamixel_servos/dynamixel_controller.cpp)
 
 target_include_directories(
-  dynamixel_servos
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:include>
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/dynamixel_servos>)
+  dynamixel_servos PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                          $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(dynamixel_servos PUBLIC ${HARDWARE_PLUGIN_DEPENDS})
 
