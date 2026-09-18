@@ -1,3 +1,0 @@
-[submodule "software/ros_ws/src/hector_transmission_interface"]
-	path = software/ros_ws/src/hector_transmission_interface
-	url = https://github.com/tu-darmstadt-ros-pkg/hector_transmission_interface
