@@ -23,6 +23,8 @@ Arguments:
     mesh          reconstruct a surface from the decoded map cloud, published as a marker
                   on /mesh for RViz. Off by default: it is only useful once the rover has
                   mapped something, and it costs a fraction of a second per update
+    rviz_only     skip the point cloud decoders, mesh node and minimap, launching RViz
+                  alone. Overrides decompress/mesh/minimap regardless of their own values
 """
 
 from launch import LaunchDescription
@@ -45,6 +47,7 @@ def generate_launch_description():
     use_nixgl = LaunchConfiguration("use_nixgl")
     decompress = LaunchConfiguration("decompress")
     mesh = LaunchConfiguration("mesh")
+    rviz_only = LaunchConfiguration("rviz_only")
 
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -67,6 +70,14 @@ def generate_launch_description():
         "decompress",
         default_value="true",
         description="Decode the rover's Draco point cloud topics back into PointCloud2",
+    )
+    rviz_only_arg = DeclareLaunchArgument(
+        "rviz_only",
+        default_value="false",
+        description=(
+            "Launch RViz alone, skipping the point cloud decoders, mesh node and "
+            "minimap regardless of decompress/mesh/minimap"
+        ),
     )
 
     # The environment below matches description/launch/view_perseus.launch.py: RViz needs
@@ -228,6 +239,17 @@ def generate_launch_description():
         condition=IfCondition(minimap),
     )
 
+    # rviz_only:=true drops this whole group, regardless of decompress/mesh/minimap,
+    # leaving just the RViz processes above.
+    processing_nodes = GroupAction(
+        [
+            decompress_launch,
+            mesh_node,
+            minimap_launch,
+        ],
+        condition=UnlessCondition(rviz_only),
+    )
+
     return LaunchDescription(
         [
             rviz_config_arg,
@@ -236,10 +258,9 @@ def generate_launch_description():
             use_nixgl_arg,
             decompress_arg,
             mesh_arg,
+            rviz_only_arg,
             rviz_nixgl,
             rviz_plain,
-            decompress_launch,
-            mesh_node,
-            minimap_launch,
+            processing_nodes,
         ]
     )
