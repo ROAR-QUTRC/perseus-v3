@@ -51,7 +51,7 @@ def _handle_udev_event(on_change, _):
         on_change(snapshot)
 
 
-def start_v4l_monitor(on_change=None):
+def start_v4l_monitor(on_change=None) -> dict[str, str]:
     """
     Scans /sys/class/video4linux, starts a background udev event listener,
     and returns the current {videoXX: name} map immediately.
