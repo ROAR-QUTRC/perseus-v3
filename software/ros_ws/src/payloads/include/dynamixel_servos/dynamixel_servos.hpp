@@ -1,17 +1,23 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <hardware_interface/hardware_component_interface.hpp>
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_interface_return_values.hpp>
+#include <hector_transmission_interface/adjustable_offset_manager.hpp>
+#include <hector_transmission_interface/adjustable_offset_transmission.hpp>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <rclcpp/duration.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 #include <set>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -56,6 +62,9 @@ namespace payloads
             int servo_id = 0;
             double joint_reduction = 1.0;
             double joint_offset = 0.0;
+            /// Calibrated offset with its own persistence and service, when the
+            /// transmission is a hector AdjustableOffsetTransmission.
+            std::shared_ptr<hector_transmission_interface::AdjustableOffsetTransmission> adjustable;
             double initial = 0.0;
             double lower = -std::numeric_limits<double>::infinity();
             double upper = std::numeric_limits<double>::infinity();
@@ -86,6 +95,7 @@ namespace payloads
         /// True if the servo with the given ID is mocked (not on the physical bus).
         bool isMocked(int servo_id) const;
 
+        double jointOffset(const Joint& joint) const;
         double forwardTransform(const Joint& joint, double actuator_pos) const;
         double inverseTransform(const Joint& joint, double joint_pos) const;
         std::pair<double, double> differentialJoints(const DifferentialGroup& diff,
@@ -101,6 +111,8 @@ namespace payloads
         int32_t toCounts(uint8_t id, double radians) const;
         std::unordered_map<uint8_t, double>
         actuatorPositions(const std::unordered_map<uint8_t, int32_t>& counts) const;
+        /// A servo that browns out reboots into its first turn with torque off.
+        void recoverReboots(const std::unordered_map<uint8_t, int32_t>& counts);
 
         /// Push actuator positions (rad, keyed by servo ID) through the transmissions
         /// into the joint state interfaces. A zero period reports zero velocity.
@@ -119,5 +131,17 @@ namespace payloads
         std::unordered_map<uint8_t, double> mock_positions_;
         /// Count at actuator zero for each real servo, fixed by resolveTurns().
         std::unordered_map<uint8_t, int32_t> origin_;
+        std::unordered_map<uint8_t, int32_t> last_counts_;
+        /// Goals are only re-sent when a joint command changes, so a calibration
+        /// offset moves the reported angle rather than the servo.
+        std::unordered_map<std::string, double> last_command_;
+
+        /// Held by the calibration services while they move an offset; the RT loop
+        /// skips a cycle rather than wait.
+        std::mutex io_mutex_;
+        rclcpp::Node::SharedPtr node_;
+        rclcpp::executors::SingleThreadedExecutor executor_;
+        std::thread spin_thread_;
+        std::unique_ptr<hector_transmission_interface::AdjustableOffsetManager> offsets_;
     };
 }  // namespace payloads

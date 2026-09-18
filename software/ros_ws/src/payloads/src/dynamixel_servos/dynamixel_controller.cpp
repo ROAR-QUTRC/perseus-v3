@@ -20,6 +20,8 @@ namespace payloads
         constexpr uint16_t profile_acceleration_address = 108;
         constexpr uint16_t profile_velocity_address = 112;
         constexpr uint16_t turn_store_address = 168;
+        constexpr uint16_t goal_position_address = 116;
+        constexpr uint16_t present_position_address = 132;
         // Odd byte addresses inside the indirect-address block are valid to write
         // and never equal the power-on default (224), so a default reads as unset.
         constexpr int turn_store_base = 169;
@@ -127,6 +129,17 @@ namespace payloads
                 servos_.emplace(id, connector_.createMotor(id));
             }
         }
+        reader_ = std::make_unique<dynamixel::GroupSyncRead>(
+            connector_.getPortHandler(), connector_.getPacketHandler(),
+            present_position_address, 4);
+        writer_ = std::make_unique<dynamixel::GroupSyncWrite>(
+            connector_.getPortHandler(), connector_.getPacketHandler(),
+            goal_position_address, 4);
+        for (const auto& [id, motor] : servos_)
+        {
+            (void)motor;
+            reader_->addParam(id);
+        }
         return result.value();
     }
 
@@ -194,61 +207,46 @@ namespace payloads
         const std::unordered_map<uint8_t, int32_t>& counts) -> Result<void>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
-        if (counts.empty())
+        if (counts.empty() || !writer_)
         {
             return {};
         }
-        auto executor = connector_.createGroupExecutor();
+        writer_->clearParam();
         for (const auto& [id, count] : counts)
         {
-            auto command = servo(id).stageSetGoalPosition(
-                std::clamp(count, -count_limit, count_limit));
-            if (!command.isSuccess())
-            {
-                return command.error();
-            }
-            executor->addCmd(command.value());
+            auto value = static_cast<uint32_t>(std::clamp(count, -count_limit, count_limit));
+            uint8_t bytes[4] = {DXL_LOBYTE(DXL_LOWORD(value)), DXL_HIBYTE(DXL_LOWORD(value)),
+                                DXL_LOBYTE(DXL_HIWORD(value)), DXL_HIBYTE(DXL_HIWORD(value))};
+            writer_->addParam(id, bytes);
         }
-        return executor->executeWrite();
+        if (int result = writer_->txPacket(); result != COMM_SUCCESS)
+        {
+            return static_cast<dynamixel::DxlError>(result);
+        }
+        return {};
     }
 
     auto DynamixelController::readCounts() -> Result<std::unordered_map<uint8_t, int32_t>>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
         std::unordered_map<uint8_t, int32_t> counts;
-        // An executor with nothing staged has no defined result.
-        if (servos_.empty())
+        if (!reader_ || servos_.empty())
         {
             return counts;
         }
-
-        auto executor = connector_.createGroupExecutor();
-        std::vector<uint8_t> ids;
-        ids.reserve(servos_.size());
-        for (auto& [id, motor] : servos_)
+        if (int result = reader_->txRxPacket(); result != COMM_SUCCESS)
         {
-            auto command = motor->stageGetPresentPosition();
-            if (!command.isSuccess())
-            {
-                return command.error();
-            }
-            ids.push_back(id);
-            executor->addCmd(command.value());
+            return static_cast<dynamixel::DxlError>(result);
         }
-
-        auto values = executor->executeRead();
-        if (!values.isSuccess())
+        for (const auto& [id, motor] : servos_)
         {
-            return values.error();
-        }
-        for (std::size_t index = 0; index < ids.size(); ++index)
-        {
-            auto& value = values.value()[index];
-            if (!value.isSuccess())
+            (void)motor;
+            if (!reader_->isAvailable(id, present_position_address, 4))
             {
-                return value.error();
+                return dynamixel::DxlError::EASY_SDK_FAIL_TO_GET_DATA;
             }
-            counts.emplace(ids[index], value.value());
+            counts.emplace(id, static_cast<int32_t>(
+                                   reader_->getData(id, present_position_address, 4)));
         }
         return counts;
     }
