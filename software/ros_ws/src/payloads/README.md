@@ -13,6 +13,7 @@ ros2 run payloads keyboard_control              # keyboard teleop, second shell
 
 - `use_mock_hardware:=false` loads `payloads/DynamixelServos` (Protocol 2.0, 1 Mbaud, extended position mode). Port, baud and `mock_servo_ids` (IDs simulated in software; comma-separated, no spaces) live in `config/arm.ros2_control.xacro`.
 - The gripper is a 3-pin PWM servo, not a Dynamixel: keep ID 6 in `mock_servo_ids` until it has its own driver.
+- `initial_positions.yaml` is the simulation start pose; on hardware the arm reports where it is, and `ros2 service call /arm_home/move std_srvs/srv/Trigger` drives it there (Servo is paused for the move).
 - `scripts/generate_ikfast_plugin.sh` regenerates `arm_ikfast_plugin`; needed only when `config/arm_model.urdf` geometry changes.
 
 ### Servo setup and calibration

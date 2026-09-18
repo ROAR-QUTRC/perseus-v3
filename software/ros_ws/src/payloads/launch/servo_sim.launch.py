@@ -335,7 +335,10 @@ def generate_launch_description():
         executable="move_group",
         output="screen",
         # No depth sensors: silence the octomap monitor complaining about it.
-        ros_arguments=["--log-level", "move_group.moveit.moveit.ros.occupancy_map_monitor:=fatal"],
+        ros_arguments=[
+            "--log-level",
+            "move_group.moveit.moveit.ros.occupancy_map_monitor:=fatal",
+        ],
         parameters=[
             robot_description,
             robot_description_semantic,
@@ -375,6 +378,13 @@ def generate_launch_description():
     gripper_velocity_bridge_node = Node(
         package="payloads",
         executable="gripper_velocity_bridge",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
+    arm_home_node = Node(
+        package="payloads",
+        executable="arm_home",
         output="screen",
         parameters=[{"use_sim_time": use_sim_time}],
     )
@@ -466,6 +476,7 @@ def generate_launch_description():
                     servo_node,
                     wrist_velocity_bridge_node,
                     gripper_velocity_bridge_node,
+                    arm_home_node,
                     rviz_node,
                 ],
             ),
