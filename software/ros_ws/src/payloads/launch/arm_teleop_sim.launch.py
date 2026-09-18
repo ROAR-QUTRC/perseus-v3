@@ -112,7 +112,7 @@ def generate_launch_description():
             ),
             SetEnvironmentVariable(
                 name="CYCLONEDDS_URI",
-                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
+                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces><AllowMulticast>false</AllowMulticast></General></Domain></CycloneDDS>",
             ),
             servo_sim,
             joy_node,
