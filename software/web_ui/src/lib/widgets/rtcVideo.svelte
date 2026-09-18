@@ -32,6 +32,8 @@
 		}
 	});
 
+	export type DevIdType = `video${number}`;
+
 	export type videoTransformType =
 		| 'none'
 		| 'clockwise'
@@ -53,7 +55,8 @@
 			| 'group-terminated'
 			| 'device-disconnect';
 		data: {
-			devices?: string[];
+			devices?: Array<DevIdType>;
+			deviceNames?: Record<DevIdType, string>;
 			resolution?: { width: number; height: number };
 			transform?: videoTransformType;
 			forceRestart?: boolean;
@@ -89,29 +92,33 @@
 
 	let socket: Socket = io();
 
-	let devices = $state<string[]>([]);
+	let devices = $state<Record<DevIdType, string>>({});
 	let config = $derived<Record<string, ConfigType>>(
 		JSON.parse(settings.groups.setupCamera.config.value!) || {}
 	);
 
 	// Do not modify without updating in the camera server aswell
-	const formatDeviceName = (device: string): string =>
-		device.replace('-video-index0', '').replace('usb-', '').replaceAll('_', ' ');
+	// const formatDeviceName = (device: string): string =>
+	// 	device.replace('-video-index0', '').replace('usb-', '').replaceAll('_', ' ');
 
-	const updateAvailableDevices = (device: string, addingNewDevice: boolean) => {
-		if (addingNewDevice && !devices.includes(device)) {
-			devices.push(device);
+	const updateAvailableDevices = (
+		devId: DevIdType,
+		name: string | null,
+		addingNewDevice: boolean
+	) => {
+		if (addingNewDevice && !devices[devId] && name) {
+			devices[devId] = name;
 			if (!settings.groups.setupCamera.device.options)
 				settings.groups.setupCamera.device.options = [];
 			settings.groups.setupCamera.device.options.push({
-				value: device,
-				label: formatDeviceName(device)
+				value: devId,
+				label: name
 			});
-		} else if (!addingNewDevice && devices.includes(device)) {
-			devices = devices.filter((d) => d !== device);
+		} else if (!addingNewDevice && devices[devId]) {
+			delete devices[devId];
 			if (settings.groups.setupCamera.device.options) {
 				settings.groups.setupCamera.device.options =
-					settings.groups.setupCamera.device.options.filter((option) => option.value !== device);
+					settings.groups.setupCamera.device.options.filter((option) => option.value !== devId);
 			}
 		}
 	};
@@ -147,13 +154,13 @@
 	socket.on('camera_event', (event: CameraEventType) => {
 		switch (event.action) {
 			case 'group-description':
-				event.data!.devices?.forEach((device) => {
-					updateAvailableDevices(device, true);
+				Object.entries(event.data!.deviceNames ?? {}).forEach(([devId, name]) => {
+					updateAvailableDevices(devId as DevIdType, name, true);
 				});
 
 				// request streams for cameras in config
 				Object.keys(config).forEach((device) => {
-					if (event.data.devices?.includes(device)) {
+					if (event.data.devices?.includes(device as DevIdType)) {
 						socket.send({
 							type: 'camera',
 							action: 'request-stream',
@@ -170,7 +177,7 @@
 				break;
 			case 'device-disconnect':
 				// Remove device from the list
-				updateAvailableDevices(event.data.devices![0], false);
+				updateAvailableDevices(event.data.devices![0], null, false);
 				break;
 			case 'group-terminated':
 				// remove all peer connections for this group
@@ -187,7 +194,7 @@
 					}
 				});
 				// Remove device from the list
-				updateAvailableDevices(event.data.devices![0], false);
+				updateAvailableDevices(event.data.devices![0], null, false);
 				break;
 			case 'kill':
 				break;
@@ -247,7 +254,7 @@
 		};
 
 		// send initial request for camera groups
-		socket.send({ type: 'camera', action: 'request-groups' } as CameraEventType);
+		socket.send({ type: 'camera', action: 'request-groups', data: {} } as CameraEventType);
 
 		connectToSignallingServer(window.location.hostname);
 		return () => {
