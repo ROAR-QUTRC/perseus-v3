@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="bucket" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="bucket" params="prefix:=^">
+    <!--
+      bucket_mount.dae's own origin sits at the back of the frame body (the flat face
+      that bolts to the chassis, at mesh x = -0.2374). The mesh's front face, where the
+      4 bearing blocks for the bucket linkage stick out (at mesh x = 0.02259372), is
+      offset here so the link origin instead sits at the centre of that front face,
+      matching the same front-face-centre convention chassis and sensor_mount use.
+    -->
+    <link name="${prefix}bucket_mount">
+      <visual>
+        <origin xyz="-0.022594 0.050708 -0.016954" rpy="0.0 0.0 0.0"/>
+        <geometry>
+          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/bucket_mount.dae"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="${prefix}bucket_mount_joint" type="fixed">
+      <parent link="${prefix}chassis"/>
+      <child link="${prefix}bucket_mount"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

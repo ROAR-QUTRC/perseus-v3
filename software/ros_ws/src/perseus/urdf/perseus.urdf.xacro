@@ -4,6 +4,7 @@
   <xacro:arg name="can_bus" default="can0" />
   <xacro:arg name="hardware_plugin" default="hardware/VescSystemHardware" />
   <xacro:arg name="min_command_erpm" default="0" />
+  <xacro:arg name="payload" default="none" />
 
   <!-- Import URDF description -->
   <xacro:include filename="$(find description)/urdf/perseus.urdf.xacro" />
@@ -13,6 +14,6 @@
   <xacro:include filename="$(find description)/ros2_control/perseus.ros2_control.xacro" />
 
   <!-- Instantiate the description and the ROS2 control information -->
-  <xacro:perseus prefix="$(arg prefix)" />
+  <xacro:perseus prefix="$(arg prefix)" payload="$(arg payload)" />
   <xacro:perseus_ros2_control name="Perseus" prefix="$(arg prefix)" can_bus="$(arg can_bus)" hardware_plugin="$(arg hardware_plugin)" min_command_erpm="$(arg min_command_erpm)"/>
 </robot>
