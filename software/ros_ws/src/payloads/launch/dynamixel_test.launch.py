@@ -174,7 +174,7 @@ def generate_launch_description():
             ),
             SetEnvironmentVariable(
                 name="CYCLONEDDS_URI",
-                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
+                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces><AllowMulticast>false</AllowMulticast></General></Domain></CycloneDDS>",
             ),
             robot_state_publisher_node,
             ros2_control_node,

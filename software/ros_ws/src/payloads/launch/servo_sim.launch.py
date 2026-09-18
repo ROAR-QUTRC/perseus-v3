@@ -185,6 +185,7 @@ def generate_launch_description():
     ompl_planning_yaml = load_yaml("payloads", "config/ompl_planning.yaml")
     ompl_planning_pipeline_config = {
         "planning_pipelines": ["ompl"],
+        "default_planning_pipeline": "ompl",
         "ompl": {
             "planning_plugins": ["ompl_interface/OMPLPlanner"],
             "request_adapters": [
@@ -333,6 +334,8 @@ def generate_launch_description():
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
+        # No depth sensors: silence the octomap monitor complaining about it.
+        ros_arguments=["--log-level", "move_group.moveit.moveit.ros.occupancy_map_monitor:=fatal"],
         parameters=[
             robot_description,
             robot_description_semantic,
@@ -476,7 +479,7 @@ def generate_launch_description():
         ),
         SetEnvironmentVariable(
             name="CYCLONEDDS_URI",
-            value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
+            value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces><AllowMulticast>false</AllowMulticast></General></Domain></CycloneDDS>",
         ),
         robot_state_publisher_node,
         ros2_control_node,
