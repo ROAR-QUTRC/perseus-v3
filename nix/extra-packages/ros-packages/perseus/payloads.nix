@@ -34,6 +34,7 @@
   rviz2,
   sensor-msgs,
   std-msgs,
+  std-srvs,
   teleop,
   tf2-ros,
   trajectory-msgs,
@@ -80,6 +81,7 @@ buildRosPackage rec {
     rviz2
     sensor-msgs
     std-msgs
+    std-srvs
     teleop
     tf2-ros
     trajectory-msgs

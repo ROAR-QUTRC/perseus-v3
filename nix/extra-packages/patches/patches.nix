@@ -1,6 +1,17 @@
 rosDistro: final: prev:
 let
   rosOverlay = rosFinal: rosPrev: {
+    dynamixel-sdk = rosPrev.dynamixel-sdk.overrideAttrs (
+      {
+        patches ? [ ],
+        ...
+      }:
+      {
+        patches = patches ++ [
+          ./dynamixel-sdk-latency-timer.patch
+        ];
+      }
+    );
     moveit-servo = rosPrev.moveit-servo.overrideAttrs (
       {
         patches ? [ ],

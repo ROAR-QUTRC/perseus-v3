@@ -48,6 +48,7 @@
   <exec_depend>teleop</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
   <exec_depend>xacro</exec_depend>
 
   <export>
