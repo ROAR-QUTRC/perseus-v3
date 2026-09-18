@@ -11,8 +11,6 @@
                 <xacro:unless value="${use_mock_hardware}">
                   <plugin>${hardware_plugin}</plugin>
                   <param name="device">${device}</param>
-                  <!-- A 6-servo read plus write at 57600 does not fit the 100 Hz
-                       controller_manager budget; at 1 Mbaud it does. -->
                   <param name="baud_rate">1000000</param>
                   <!-- Servo IDs simulated in software rather than addressed on
                        the bus. Comma-separated, no spaces. -->
@@ -63,9 +61,7 @@
             <!-- right_finger_joint is a URDF mimic; ros2_control mirrors it. -->
             <joint name="left_finger_joint">
                 <param name="servo_id">6</param>
-                <!-- Metres of finger travel per radian of servo 6. Placeholder:
-                     15 mm over a quarter turn. Measure with the offset in
-                     left_finger_drive before un-mocking servo 6. -->
+                <!-- Metres of finger travel per radian of servo 6. Placeholder: Measure with the offset in left_finger_drive before un-mocking servo 6. -->
                 <param name="prismatic_scale">0.00955</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
