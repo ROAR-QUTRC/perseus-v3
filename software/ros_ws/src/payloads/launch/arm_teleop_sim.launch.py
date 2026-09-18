@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    SetEnvironmentVariable,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -17,6 +18,7 @@ def generate_launch_description():
     joy_topic = LaunchConfiguration("joy_topic")
     command_frame = LaunchConfiguration("command_frame")
     joy_timeout = LaunchConfiguration("joy_timeout")
+    rmw_implementation = LaunchConfiguration("rmw_implementation")
 
     servo_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -29,6 +31,7 @@ def generate_launch_description():
             "use_mock_hardware": use_mock_hardware,
             "device": device,
             "mock_servo_ids": mock_servo_ids,
+            "rmw_implementation": rmw_implementation,
         }.items(),
     )
 
@@ -77,7 +80,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "mock_servo_ids",
-                default_value="6",
+                default_value="4,5,6",
                 description=(
                     "Comma-separated servo IDs to simulate instead of "
                     "communicating with the physical bus. No spaces."
@@ -97,6 +100,19 @@ def generate_launch_description():
                 "command_frame",
                 default_value="plate",
                 description="Frame used for Cartesian Servo commands",
+            ),
+            DeclareLaunchArgument(
+                "rmw_implementation",
+                default_value="rmw_cyclonedds_cpp",
+                description="ROS middleware used by all simulation and teleop processes",
+            ),
+            SetEnvironmentVariable(
+                name="RMW_IMPLEMENTATION",
+                value=rmw_implementation,
+            ),
+            SetEnvironmentVariable(
+                name="CYCLONEDDS_URI",
+                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
             ),
             servo_sim,
             joy_node,

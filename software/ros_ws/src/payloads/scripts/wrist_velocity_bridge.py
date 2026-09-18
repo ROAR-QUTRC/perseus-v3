@@ -5,6 +5,7 @@
 import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -36,13 +37,13 @@ class WristVelocityBridge(Node):
             Float64,
             self.get_parameter("bend_command_topic").value,
             lambda m: self.on_cmd("wrist_pitch", m),
-            10,
+            qos_profile_sensor_data,
         )
         self.create_subscription(
             Float64,
             self.get_parameter("twist_command_topic").value,
             lambda m: self.on_cmd("wrist_roll", m),
-            10,
+            qos_profile_sensor_data,
         )
         self.pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10

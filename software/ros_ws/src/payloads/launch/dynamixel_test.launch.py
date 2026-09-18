@@ -37,6 +37,7 @@ from launch.actions import (
     EmitEvent,
     LogInfo,
     RegisterEventHandler,
+    SetEnvironmentVariable,
 )
 from launch.event_handlers import OnProcessExit
 from launch.events import Shutdown
@@ -73,6 +74,11 @@ def generate_launch_description():
                 "Comma-separated servo IDs to simulate instead of "
                 "communicating with the physical bus. No spaces."
             ),
+        ),
+        DeclareLaunchArgument(
+            "rmw_implementation",
+            default_value="rmw_cyclonedds_cpp",
+            description="ROS middleware used by all processes",
         ),
     ]
 
@@ -162,6 +168,14 @@ def generate_launch_description():
     return LaunchDescription(
         declared_arguments
         + [
+            SetEnvironmentVariable(
+                name="RMW_IMPLEMENTATION",
+                value=LaunchConfiguration("rmw_implementation"),
+            ),
+            SetEnvironmentVariable(
+                name="CYCLONEDDS_URI",
+                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
+            ),
             robot_state_publisher_node,
             ros2_control_node,
             joint_state_broadcaster_spawner,

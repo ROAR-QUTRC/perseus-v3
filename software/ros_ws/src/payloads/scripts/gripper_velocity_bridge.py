@@ -5,6 +5,7 @@ trajectory controller by integrating it into a position target."""
 import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Float64
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
@@ -28,7 +29,7 @@ class GripperVelocityBridge(Node):
             Float64,
             self.get_parameter("command_topic").value,
             self.on_cmd,
-            10,
+            qos_profile_sensor_data,
         )
         self.pub = self.create_publisher(
             JointTrajectory, self.get_parameter("trajectory_topic").value, 10
