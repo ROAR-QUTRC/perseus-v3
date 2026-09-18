@@ -40,6 +40,9 @@
           ".devenv/**"
           "build/**"
           "result/**"
+          # submodules / external packages
+          "software/ros_ws/src/hector_transmission_interface"
+          "software/ros_ws/src/hector_transmission_interface/**"
           # generated stuff
           "generated/**"
           "treefmt.toml"

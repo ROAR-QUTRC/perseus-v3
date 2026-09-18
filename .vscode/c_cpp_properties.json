@@ -9,7 +9,8 @@
         "${env:ROS_WORKSPACE_ENV_PATH}/include/**",
         "${workspaceFolder}/**/include",
         "${workspaceFolder}/software/**",
-        "/usr/include/**"
+        "/usr/include/**",
+        "${workspaceFolder}/.devenv/profile/include/hardware_interface"
       ],
       "name": "Linux",
       "intelliSenseMode": "${default}",

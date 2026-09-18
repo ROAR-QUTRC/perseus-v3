@@ -6,6 +6,8 @@ final: prev: {
   footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
   global-traversability = final.callPackage ./global-traversability.nix { };
   hardware = final.callPackage ./hardware.nix { };
+  hector-transmission-interface = final.callPackage ./hector-transmission-interface.nix { };
+  hector-transmission-interface-msgs = final.callPackage ./hector-transmission-interface-msgs.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };

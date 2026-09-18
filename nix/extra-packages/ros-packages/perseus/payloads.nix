@@ -7,25 +7,36 @@
   ament-index-python,
   arm-ikfast-plugin,
   backward-ros,
+  control-msgs,
   controller-manager,
   dynamixel-sdk,
   geometry-msgs,
   hardware-interface,
+  hector-transmission-interface,
+  hector-transmission-interface-msgs,
   hi-can-raw,
   joint-state-broadcaster,
   joint-trajectory-controller,
+  joy,
   moveit-kinematics,
   moveit-msgs,
+  moveit-planners-ompl,
+  moveit-ros-move-group,
+  moveit-ros-visualization,
   moveit-servo,
+  moveit-simple-controller-manager,
   pluginlib,
   rclcpp,
   rclcpp-lifecycle,
+  rclpy,
   robot-state-publisher,
   ros2-control,
   rviz2,
   sensor-msgs,
+  std-msgs,
   teleop,
   tf2-ros,
+  trajectory-msgs,
   transmission-interface,
   xacro,
 }:
@@ -42,25 +53,36 @@ buildRosPackage rec {
     ament-index-python
     arm-ikfast-plugin
     backward-ros
+    control-msgs
     controller-manager
     dynamixel-sdk
     geometry-msgs
     hardware-interface
+    hector-transmission-interface
+    hector-transmission-interface-msgs
     hi-can-raw
     joint-state-broadcaster
     joint-trajectory-controller
+    joy
     moveit-kinematics
     moveit-msgs
+    moveit-planners-ompl
+    moveit-ros-move-group
+    moveit-ros-visualization
     moveit-servo
+    moveit-simple-controller-manager
     pluginlib
     rclcpp
     rclcpp-lifecycle
+    rclpy
     robot-state-publisher
     ros2-control
     rviz2
     sensor-msgs
+    std-msgs
     teleop
     tf2-ros
+    trajectory-msgs
     transmission-interface
     xacro
   ];

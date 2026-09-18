@@ -76,9 +76,9 @@
 
             <!-- Gearbox reductions. The hardware plugin must apply these; ros2_control only parses them. -->
             <transmission name="shoulder_pan_drive">
-                <plugin>transmission_interface/SimpleTransmission</plugin>
+                <plugin>hector_transmission_interface/AdjustableOffsetTransmission</plugin>
                 <joint name="shoulder_pan" role="joint1">
-                    <mechanical_reduction>1.0</mechanical_reduction>
+                    <mechanical_reduction>3.0</mechanical_reduction>
                     <offset>0.0</offset>
                 </joint>
                 <actuator name="shoulder_pan_servo" role="actuator1">
@@ -87,9 +87,9 @@
             </transmission>
 
             <transmission name="shoulder_tilt_drive">
-                <plugin>transmission_interface/SimpleTransmission</plugin>
+                <plugin>hector_transmission_interface/AdjustableOffsetTransmission</plugin>
                 <joint name="shoulder_tilt" role="joint1">
-                    <mechanical_reduction>1.0</mechanical_reduction>
+                    <mechanical_reduction>2.5</mechanical_reduction>
                     <offset>0.0</offset>
                 </joint>
                 <actuator name="shoulder_tilt_servo" role="actuator1">
@@ -98,15 +98,16 @@
             </transmission>
 
             <transmission name="elbow_drive">
-                <plugin>transmission_interface/SimpleTransmission</plugin>
+                <plugin>hector_transmission_interface/AdjustableOffsetTransmission</plugin>
                 <joint name="elbow" role="joint1">
-                    <mechanical_reduction>1.0</mechanical_reduction>
+                    <mechanical_reduction>-3.0</mechanical_reduction>
                     <offset>0.0</offset>
                 </joint>
                 <actuator name="elbow_servo" role="actuator1">
                     <mechanical_reduction>1.0</mechanical_reduction>
                 </actuator>
             </transmission>
+
 
             <!-- offset is the servo angle (rad) at which the fingers are closed. -->
             <transmission name="left_finger_drive">
