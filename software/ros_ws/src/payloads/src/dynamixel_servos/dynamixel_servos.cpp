@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
-#include <fstream>
 #include <limits>
 #include <optional>
 #include <pluginlib/class_list_macros.hpp>
@@ -22,9 +20,18 @@ namespace payloads
         constexpr int32_t counts_per_turn = DynamixelController::counts_per_turn;
         /// Servo turns searched either side of the raw reading for a geared joint.
         constexpr int turn_window = 16;
+        constexpr char adjustable_plugin[] =
+            "hector_transmission_interface/AdjustableOffsetTransmission";
     }  // namespace
 
-    DynamixelServos::~DynamixelServos() = default;
+    DynamixelServos::~DynamixelServos()
+    {
+        executor_.cancel();
+        if (spin_thread_.joinable())
+        {
+            spin_thread_.join();
+        }
+    }
 
     bool DynamixelServos::isMocked(int servo_id) const
     {
@@ -78,6 +85,24 @@ namespace payloads
             return ret;
         }
 
+        // Calibration services live on their own node so the RT loop never blocks.
+        node_ = std::make_shared<rclcpp::Node>("dynamixel_servos");
+        offsets_ = std::make_unique<hector_transmission_interface::AdjustableOffsetManager>(
+            node_, std::ref(io_mutex_));
+        for (const auto& joint : joints_)
+        {
+            if (!joint.adjustable)
+            {
+                continue;
+            }
+            offsets_->add_joint_state_interface(joint.name, joint.adjustable,
+                                                [this, name = joint.name]
+                                                { return get_state(name + "/position"); });
+            offsets_->add_joint_command_interface(joint.name, joint.adjustable);
+        }
+        executor_.add_node(node_);
+        spin_thread_ = std::thread([this]
+                                   { executor_.spin(); });
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
@@ -133,7 +158,7 @@ namespace payloads
         for (const auto& trans : info_.transmissions)
         {
             if (trans.type == "transmission_interface/SimpleTransmission" ||
-                trans.type == "hector_transmission_interface/AdjustableOffsetTransmission")
+                trans.type == adjustable_plugin)
             {
                 if (trans.joints.size() != 1)
                 {
@@ -160,28 +185,13 @@ namespace payloads
                         : 1.0;
                 it->joint_reduction = j.mechanical_reduction * actuator_reduction;
                 it->joint_offset = j.offset;
-
-                if (trans.type == "hector_transmission_interface/AdjustableOffsetTransmission")
+                if (trans.type == adjustable_plugin)
                 {
-                    const char* home = std::getenv("HOME");
-                    if (home != nullptr)
-                    {
-                        std::filesystem::path offset_file = std::filesystem::path(home) / ".ros" /
-                                                            "dynamic_offset_transmissions" / (j.name + ".txt");
-                        if (std::filesystem::exists(offset_file))
-                        {
-                            std::ifstream file(offset_file);
-                            double saved_offset = 0.0;
-                            if (file >> saved_offset)
-                            {
-                                it->joint_offset = saved_offset;
-                                RCLCPP_INFO(get_logger(),
-                                            "Loaded dynamic offset for %s: %.4f from %s",
-                                            j.name.c_str(), saved_offset,
-                                            offset_file.string().c_str());
-                            }
-                        }
-                    }
+                    // Loads ~/.ros/dynamic_offset_transmissions/<joint>.txt, seeding it
+                    // with the xacro offset on first use.
+                    it->adjustable = std::make_shared<
+                        hector_transmission_interface::AdjustableOffsetTransmission>(
+                        j.name, it->joint_reduction, j.offset);
                 }
             }
             else if (trans.type ==
@@ -260,11 +270,16 @@ namespace payloads
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
+    double DynamixelServos::jointOffset(const Joint& joint) const
+    {
+        return joint.adjustable ? joint.adjustable->get_joint_offset() : joint.joint_offset;
+    }
+
     double DynamixelServos::forwardTransform(const Joint& joint,
                                              double actuator_pos) const
     {
         double joint_pos = joint.has_transmission
-                               ? actuator_pos / joint.joint_reduction + joint.joint_offset
+                               ? actuator_pos / joint.joint_reduction + jointOffset(joint)
                                : actuator_pos;
         return joint.is_prismatic ? joint_pos * joint.prismatic_scale : joint_pos;
     }
@@ -276,7 +291,7 @@ namespace payloads
             joint_pos /= joint.prismatic_scale;
         }
         return joint.has_transmission
-                   ? (joint_pos - joint.joint_offset) * joint.joint_reduction
+                   ? (joint_pos - jointOffset(joint)) * joint.joint_reduction
                    : joint_pos;
     }
 
@@ -491,6 +506,7 @@ namespace payloads
             return hardware_interface::CallbackReturn::FAILURE;
         }
         resolveTurns(counts.value());
+        last_counts_ = counts.value();
         updateStates(actuatorPositions(counts.value()), 0.0);
         return hardware_interface::CallbackReturn::SUCCESS;
     }
@@ -576,9 +592,40 @@ namespace payloads
         }
     }
 
+    void DynamixelServos::recoverReboots(const std::unordered_map<uint8_t, int32_t>& counts)
+    {
+        for (const auto& [id, count] : counts)
+        {
+            auto last = last_counts_.find(id);
+            if (last != last_counts_.end() && !isMocked(id))
+            {
+                // Whole turns between two cycles is impossible motion: the count
+                // collapsed into the first turn.
+                int turns = static_cast<int>(
+                    std::lround(static_cast<double>(count - last->second) / counts_per_turn));
+                if (turns != 0)
+                {
+                    origin_[id] += turns * counts_per_turn;
+                    (void)controller_->saveTurn(
+                        id, (DynamixelController::center - origin_[id]) / counts_per_turn);
+                    (void)controller_->enableTorque(id);
+                    last_command_.clear();
+                    RCLCPP_WARN(get_logger(),
+                                "Servo %d rebooted: turn frame restored, torque re-enabled", id);
+                }
+            }
+            last_counts_[id] = count;
+        }
+    }
+
     hardware_interface::return_type
     DynamixelServos::read(const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
     {
+        std::unique_lock<std::mutex> lock(io_mutex_, std::try_to_lock);
+        if (!lock.owns_lock())
+        {
+            return hardware_interface::return_type::OK;
+        }
         auto counts = controller_->readCounts();
         if (!counts.isSuccess())
         {
@@ -587,6 +634,7 @@ namespace payloads
                                  dynamixel::getErrorMessage(counts.error()).c_str());
             return hardware_interface::return_type::OK;
         }
+        recoverReboots(counts.value());
         updateStates(actuatorPositions(counts.value()), period.seconds());
         return hardware_interface::return_type::OK;
     }
@@ -595,7 +643,13 @@ namespace payloads
     DynamixelServos::write(const rclcpp::Time& /*time*/,
                            const rclcpp::Duration& /*period*/)
     {
+        std::unique_lock<std::mutex> lock(io_mutex_, std::try_to_lock);
+        if (!lock.owns_lock())
+        {
+            return hardware_interface::return_type::OK;
+        }
         std::unordered_map<uint8_t, double> targets;
+        std::unordered_map<std::string, double> pending;
         // Never clamp harder than where the joint already is, so one found outside
         // its limits is not yanked to the limit at full speed.
         auto bounded = [&](const Joint& joint, double cmd)
@@ -603,6 +657,11 @@ namespace payloads
             double current = get_state(joint.name + "/position");
             return std::clamp(cmd, std::min(joint.lower, current),
                               std::max(joint.upper, current));
+        };
+        auto changed = [&](const Joint& joint, double cmd)
+        {
+            auto it = last_command_.find(joint.name);
+            return it == last_command_.end() || it->second != cmd;
         };
 
         for (const auto& joint : joints_)
@@ -613,12 +672,13 @@ namespace payloads
             }
             double cmd = get_command(joint.name + "/position");
             // Controllers have not written a command yet on the first few cycles.
-            if (!std::isfinite(cmd))
+            if (!std::isfinite(cmd) || !changed(joint, cmd))
             {
                 continue;
             }
             targets[static_cast<uint8_t>(joint.servo_id)] =
                 inverseTransform(joint, bounded(joint, cmd));
+            pending[joint.name] = cmd;
         }
 
         for (const auto& diff : differentials_)
@@ -627,13 +687,16 @@ namespace payloads
             const Joint& j2 = joints_[diff.joint2_index];
             double c1 = get_command(j1.name + "/position");
             double c2 = get_command(j2.name + "/position");
-            if (!std::isfinite(c1) || !std::isfinite(c2))
+            if (!std::isfinite(c1) || !std::isfinite(c2) ||
+                (!changed(j1, c1) && !changed(j2, c2)))
             {
                 continue;
             }
             auto [a1, a2] = differentialActuators(diff, bounded(j1, c1), bounded(j2, c2));
             targets[static_cast<uint8_t>(diff.actuator1_servo_id)] = a1;
             targets[static_cast<uint8_t>(diff.actuator2_servo_id)] = a2;
+            pending[j1.name] = c1;
+            pending[j2.name] = c2;
         }
 
         // Mocked servos track their target instantly and never reach the bus.
@@ -655,8 +718,12 @@ namespace payloads
             RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
                                  "setGoalCounts failed: %s",
                                  dynamixel::getErrorMessage(result.error()).c_str());
+            return hardware_interface::return_type::OK;
         }
-
+        for (const auto& [name, cmd] : pending)
+        {
+            last_command_[name] = cmd;
+        }
         return hardware_interface::return_type::OK;
     }
 

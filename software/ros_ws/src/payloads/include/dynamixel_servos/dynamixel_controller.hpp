@@ -12,7 +12,7 @@
 namespace payloads
 {
     /// Thread-safe wrapper over the Dynamixel easy-SDK. Owns the bus and one Motor
-    /// per servo found by scan(); reads and writes service every servo per round trip.
+    /// per servo found by scan(); one sync read and one sync write serve every servo.
     class DynamixelController
     {
     public:
@@ -50,6 +50,8 @@ namespace payloads
         std::mutex bus_mutex_;
         dynamixel::Connector connector_;
         std::unordered_map<uint8_t, std::unique_ptr<dynamixel::Motor>> servos_;
+        std::unique_ptr<dynamixel::GroupSyncRead> reader_;
+        std::unique_ptr<dynamixel::GroupSyncWrite> writer_;
         std::string low_latency_error_;
     };
 }  // namespace payloads
