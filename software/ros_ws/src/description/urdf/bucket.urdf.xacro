@@ -35,7 +35,7 @@
       _hinge_ to leave "hinge" free for other bucket joints (tilt hinge, actuator
       pivots) added later.
     -->
-    <xacro:property name="bucket_lift_arm_pivot_x" value="0.03"/>
+    <xacro:property name="bucket_lift_arm_pivot_x" value="0.042"/>
     <xacro:property name="bucket_lift_arm_pivot_y" value="0.10"/>
     <xacro:property name="bucket_lift_arm_pivot_z" value="0.12"/>
 

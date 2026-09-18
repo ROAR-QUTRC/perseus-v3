@@ -54,7 +54,7 @@ map:
   # dial as FAST-LIO's filter_size_map. pixel_size_m is the resolution *within* a voxel
   # image; voxel_size_m is the voxel grid itself.
   pixel_size_m: 0.05
-  voxel_size_m: 0.5
+  voxel_size_m: 0.3
   normal_tolerance_deg: 3
   smooth: true
   weighted: true
