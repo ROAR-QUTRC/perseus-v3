@@ -1,14 +1,16 @@
 final: prev: {
   arm-ikfast-plugin = final.callPackage ./arm-ikfast-plugin.nix { };
   autonomy-bringup = final.callPackage ./autonomy-bringup.nix { };
-  footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
-  global-traversability = final.callPackage ./global-traversability.nix { };
-  perseus = final.callPackage ./perseus.nix { };
   can-if = final.callPackage ./can-if.nix { };
   description = final.callPackage ./description.nix { };
+  footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
+  global-traversability = final.callPackage ./global-traversability.nix { };
   hardware = final.callPackage ./hardware.nix { };
+  hector-transmission-interface = final.callPackage ./hector-transmission-interface.nix { };
+  hector-transmission-interface-msgs = final.callPackage ./hector-transmission-interface-msgs.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
   payloads = final.callPackage ./payloads.nix { };
+  perseus = final.callPackage ./perseus.nix { };
   sensors = final.callPackage ./sensors.nix { };
   teleop = final.callPackage ./teleop.nix { };
   vision = final.callPackage ./vision.nix { };

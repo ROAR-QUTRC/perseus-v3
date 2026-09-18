@@ -35,6 +35,18 @@ the arm runs with servos not yet wired. It defaults to `6`: the gripper mechanis
 is unbuilt, so its `prismatic_scale` and closed-position `offset` in the xacro are
 placeholders.
 
+Servos run in extended (multi-turn) position mode so geared joints can exceed
+one servo turn; the transmission `offset` in the xacro is the mechanical
+calibration relative to the horn mark (count 2048). A servo only knows its angle
+within one turn after power-up, so at startup the plugin picks the turn that
+keeps each joint inside its URDF limits and nearest `initial_positions.yaml`,
+then stashes that turn in a servo RAM register so later restarts recover the
+exact frame wherever the arm is. After a power cycle, park every geared joint
+within half a servo turn (pi / reduction) of the initial pose first.
+
+All nodes, launch files, and CLI tools use `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`
+consistently across the workspace.
+
 The plugin sets the FTDI adapter's latency timer to 1 ms itself on every open
 (the 16 ms Linux default would cap the 100 Hz loop near 30 Hz), so no host setup
 is needed. A udev rule doing the same system-wide is optional and also helps

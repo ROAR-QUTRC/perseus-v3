@@ -79,6 +79,7 @@ rec {
       postShellHook = ''
         # use CycloneDDS ROS middleware
         export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+        export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>"
         # enable coloured ros2 launch output
         export RCUTILS_COLORIZED_OUTPUT=1
         # fix locale issues

@@ -21,6 +21,8 @@
   <depend>pluginlib</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>transmission_interface</depend>
+  <depend>hector_transmission_interface</depend>
+  <depend>hector_transmission_interface_msgs</depend>
 
   <!-- Arm mock-hardware and Cartesian Servo simulation -->
   <exec_depend>ament_index_python</exec_depend>
