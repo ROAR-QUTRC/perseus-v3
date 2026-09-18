@@ -5,6 +5,7 @@
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_interface_return_values.hpp>
+#include <limits>
 #include <memory>
 #include <rclcpp/duration.hpp>
 #include <rclcpp/time.hpp>
@@ -12,18 +13,16 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace payloads
 {
     class DynamixelController;
 
-    /// ros2_control SystemInterface plugin for the Dynamixel servo bus.
-    ///
-    /// Reads present positions and writes goal positions over Protocol 2.0,
-    /// applying the SimpleTransmission and DifferentialTransmission entries
-    /// declared in arm.ros2_control.xacro to convert between joint space and
-    /// actuator space.
+    /// ros2_control SystemInterface for the Dynamixel bus: Protocol 2.0 multi-turn
+    /// position read/write with the Simple and Differential transmissions declared
+    /// in arm.ros2_control.xacro applied between joint and actuator space.
     class DynamixelServos : public hardware_interface::SystemInterface
     {
     public:
@@ -57,7 +56,9 @@ namespace payloads
             int servo_id = 0;
             double joint_reduction = 1.0;
             double joint_offset = 0.0;
-            double actuator_reduction = 1.0;
+            double initial = 0.0;
+            double lower = -std::numeric_limits<double>::infinity();
+            double upper = std::numeric_limits<double>::infinity();
             bool has_transmission = false;
             bool in_differential = false;
             bool is_prismatic = false;
@@ -85,17 +86,26 @@ namespace payloads
         /// True if the servo with the given ID is mocked (not on the physical bus).
         bool isMocked(int servo_id) const;
 
-        /// Apply forward transmission (actuator -> joint) for a single joint.
         double forwardTransform(const Joint& joint, double actuator_pos) const;
-
-        /// Apply inverse transmission (joint -> actuator) for a single joint.
         double inverseTransform(const Joint& joint, double joint_pos) const;
+        std::pair<double, double> differentialJoints(const DifferentialGroup& diff,
+                                                     double a1, double a2) const;
+        std::pair<double, double> differentialActuators(const DifferentialGroup& diff,
+                                                        double j1, double j2) const;
 
-        /// Wrap an angle to [-pi, pi].
-        static double normalizeAngle(double angle);
+        /// A servo only knows its angle within one turn after power-up. Pick the
+        /// turn that keeps each joint inside its limits and nearest its initial
+        /// position, and seed mocked servos at that initial position.
+        void resolveTurns(const std::unordered_map<uint8_t, int32_t>& counts);
+        double toActuator(uint8_t id, int32_t counts) const;
+        int32_t toCounts(uint8_t id, double radians) const;
+        std::unordered_map<uint8_t, double>
+        actuatorPositions(const std::unordered_map<uint8_t, int32_t>& counts) const;
 
-        /// Wrap an angle to [0, 2pi).
-        static double normalizeAnglePositive(double angle);
+        /// Push actuator positions (rad, keyed by servo ID) through the transmissions
+        /// into the joint state interfaces. A zero period reports zero velocity.
+        void updateStates(const std::unordered_map<uint8_t, double>& actuators,
+                          double period);
 
         std::unique_ptr<DynamixelController> controller_;
         std::vector<Joint> joints_;
@@ -107,5 +117,7 @@ namespace payloads
         std::set<int> mock_servo_ids_;
         /// Simulated actuator positions for mocked servos (radians).
         std::unordered_map<uint8_t, double> mock_positions_;
+        /// Count at actuator zero for each real servo, fixed by resolveTurns().
+        std::unordered_map<uint8_t, int32_t> origin_;
     };
 }  // namespace payloads

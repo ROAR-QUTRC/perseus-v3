@@ -5,7 +5,12 @@ import rclpy
 from control_msgs.msg import JointJog
 from geometry_msgs.msg import TwistStamped
 from rclpy.node import Node
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.qos import (
+    DurabilityPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 from sensor_msgs.msg import Joy
 from moveit_msgs.srv import ServoCommandType
 from std_msgs.msg import Bool, Empty, Float64
@@ -49,16 +54,16 @@ class TeleopNode(Node):
             JointJog, "command/shoulder_joint_jog", 10
         )
         self.wrist_bend_publisher = self.create_publisher(
-            Float64, "command/wrist_bend_velocity", 10
+            Float64, "command/wrist_bend_velocity", qos_profile_sensor_data
         )
         self.wrist_twist_publisher = self.create_publisher(
-            Float64, "command/wrist_twist_velocity", 10
+            Float64, "command/wrist_twist_velocity", qos_profile_sensor_data
         )
 
         self.gripper_publisher = self.create_publisher(
             Float64,
             "command/gripper_velocity",
-            10,
+            qos_profile_sensor_data,
         )
 
         self.reset_roll_publisher = self.create_publisher(
@@ -90,7 +95,7 @@ class TeleopNode(Node):
             Joy,
             "joy",
             self.joy_callback,
-            10,
+            qos_profile_sensor_data,
         )
 
         self.servo_mode_client = self.create_client(
@@ -336,6 +341,7 @@ class TeleopNode(Node):
             if self.enabled:
                 self.enabled = False
                 self.publish_enabled_state()
+                self.get_logger().warning("Joy input timed out: teleoperation LOCKED")
 
             self.stop_motion()
 

@@ -1,4 +1,4 @@
-#include "dynamixel_controller.hpp"
+#include "dynamixel_servos/dynamixel_controller.hpp"
 
 #include <asm/termbits.h>
 #include <fcntl.h>
@@ -6,27 +6,30 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cmath>
 #include <cstring>
-#include <limits>
 #include <stdexcept>
 
 namespace payloads
 {
     namespace
     {
+        constexpr uint16_t return_delay_address = 9;
+        constexpr uint16_t profile_acceleration_address = 108;
+        constexpr uint16_t profile_velocity_address = 112;
+        constexpr uint16_t turn_store_address = 168;
+        // Odd byte addresses inside the indirect-address block are valid to write
+        // and never equal the power-on default (224), so a default reads as unset.
+        constexpr int turn_store_base = 169;
+        constexpr int turn_store_range = 16;
 
         // FTDI adapters buffer received bytes until latency_timer ms elapse, 16 ms by
         // default, which alone caps a request/response protocol near 30 Hz. ftdi_sio
-        // maps ASYNC_LOW_LATENCY onto that register and drops it to 1 ms. The flag is
-        // in ASYNC_USR_MASK, so setting it needs no CAP_SYS_ADMIN.
-        //
-        // The value is per-port driver state rather than per-fd, so a temporary fd
-        // suffices; PortHandlerLinux does not expose its own. Drivers other than
-        // ftdi_sio implement no set_serial op and fail with ENOTTY.
-        //
-        // Returns an error description, or empty on success.
+        // maps ASYNC_LOW_LATENCY onto that register and drops it to 1 ms; the flag is
+        // in ASYNC_USR_MASK so it needs no CAP_SYS_ADMIN. The value is per-port driver
+        // state, so a temporary fd suffices. Returns an error description, or empty.
         std::string applyLowLatency(const std::string& device)
         {
             int fd = ::open(device.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -54,6 +57,9 @@ namespace payloads
             return error;
         }
 
+        // SDK 4.0.3 setupPort() ORs the numeric baud rate into c_cflag, which leaves
+        // the line at B0 and every packet unanswered. termios state is per-tty, so
+        // re-setting it through a side fd also fixes the SDK's own descriptor.
         std::string applyBaudRate(const std::string& device, int baud_rate)
         {
             int fd = ::open(device.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -86,27 +92,7 @@ namespace payloads
 
     }  // namespace
 
-    double DynamixelController::unitsToRadians(int32_t units)
-    {
-        constexpr double tau = 6.28318530717958647692;
-        return static_cast<double>(units) * tau / (counts_per_turn * gear_ratio);
-    }
-
-    int32_t DynamixelController::radiansToUnits(double radians)
-    {
-        constexpr double tau = 6.28318530717958647692;
-        const double units = radians * counts_per_turn * gear_ratio / tau;
-        if (!std::isfinite(units) || units < std::numeric_limits<int32_t>::min() ||
-            units > std::numeric_limits<int32_t>::max())
-        {
-            throw std::out_of_range(
-                "Radian target is outside the 32-bit position range");
-        }
-        return static_cast<int32_t>(std::llround(units));
-    }
-
-    DynamixelController::DynamixelController(const std::string& device,
-                                             int baud_rate)
+    DynamixelController::DynamixelController(const std::string& device, int baud_rate)
         : connector_(device, baud_rate)
     {
         if (const auto err = applyBaudRate(device, baud_rate); !err.empty())
@@ -126,8 +112,7 @@ namespace payloads
         }
     }
 
-    dynamixel::Result<std::vector<uint8_t>, dynamixel::DxlError>
-    DynamixelController::scan()
+    auto DynamixelController::scan() -> Result<std::vector<uint8_t>>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
         auto result = connector_.broadcastPing();
@@ -145,81 +130,79 @@ namespace payloads
         return result.value();
     }
 
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::enableTorque(uint8_t id)
+    auto DynamixelController::configure(uint8_t id) -> Result<void>
+    {
+        std::lock_guard<std::mutex> lock(bus_mutex_);
+        auto& motor = servo(id);
+
+        auto mode = motor.getOperatingMode();
+        if (!mode.isSuccess())
+        {
+            return mode.error();
+        }
+        if (mode.value() != Mode::EXTENDED_POSITION)
+        {
+            if (auto off = motor.disableTorque(); !off.isSuccess())
+            {
+                return off.error();
+            }
+            if (auto set = motor.setOperatingMode(Mode::EXTENDED_POSITION); !set.isSuccess())
+            {
+                return set.error();
+            }
+        }
+
+        auto delay = connector_.read1ByteData(id, return_delay_address);
+        if (!delay.isSuccess())
+        {
+            return delay.error();
+        }
+        if (delay.value() != 0)
+        {
+            if (auto off = motor.disableTorque(); !off.isSuccess())
+            {
+                return off.error();
+            }
+            if (auto set_delay = connector_.write1ByteData(id, return_delay_address, 0);
+                !set_delay.isSuccess())
+            {
+                return set_delay.error();
+            }
+        }
+
+        // Ensure internal trajectory profile is set to 0 (unlimited/fastest tracking)
+        // so the 100 Hz ros2_control commands track smoothly without internal throttling.
+        (void)connector_.write4ByteData(id, profile_acceleration_address, 0);
+        (void)connector_.write4ByteData(id, profile_velocity_address, 0);
+
+        return {};
+    }
+
+    auto DynamixelController::enableTorque(uint8_t id) -> Result<void>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
         return servo(id).enableTorque();
     }
 
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::disableTorque(uint8_t id)
+    auto DynamixelController::disableTorque(uint8_t id) -> Result<void>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
         return servo(id).disableTorque();
     }
 
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::setMode(uint8_t id, Mode mode)
+    auto DynamixelController::setGoalCounts(
+        const std::unordered_map<uint8_t, int32_t>& counts) -> Result<void>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
-        // Operating mode can only be changed when torque is disabled.
-        auto torque_off = servo(id).disableTorque();
-        if (!torque_off.isSuccess())
-        {
-            return torque_off.error();
-        }
-        return servo(id).setOperatingMode(mode);
-    }
-
-    dynamixel::Result<DynamixelController::Mode, dynamixel::DxlError>
-    DynamixelController::mode(uint8_t id)
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        return servo(id).getOperatingMode();
-    }
-
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::setTargetPosition(uint8_t id, double radians)
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        return servo(id).setGoalPosition(radiansToUnits(radians));
-    }
-
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::setTargetPosition(
-        const std::unordered_map<uint8_t, double>& radians)
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        return setTargetPositionsLocked(radians);
-    }
-
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::setTargetPosition(double radians)
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        std::unordered_map<uint8_t, double> targets;
-        targets.reserve(servos_.size());
-        for (const auto& [id, motor] : servos_)
-        {
-            (void)motor;
-            targets.emplace(id, radians);
-        }
-        return setTargetPositionsLocked(targets);
-    }
-
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::setTargetPositionsLocked(
-        const std::unordered_map<uint8_t, double>& radians)
-    {
-        if (radians.empty())
+        if (counts.empty())
         {
             return {};
         }
         auto executor = connector_.createGroupExecutor();
-        for (const auto& [id, target] : radians)
+        for (const auto& [id, count] : counts)
         {
-            auto command = servo(id).stageSetGoalPosition(radiansToUnits(target));
+            auto command = servo(id).stageSetGoalPosition(
+                std::clamp(count, -count_limit, count_limit));
             if (!command.isSuccess())
             {
                 return command.error();
@@ -229,60 +212,19 @@ namespace payloads
         return executor->executeWrite();
     }
 
-    dynamixel::Result<void, dynamixel::DxlError>
-    DynamixelController::moveToMiddle(uint8_t id)
+    auto DynamixelController::readCounts() -> Result<std::unordered_map<uint8_t, int32_t>>
     {
         std::lock_guard<std::mutex> lock(bus_mutex_);
-        auto minimum = servo(id).getMinPositionLimit();
-        if (!minimum.isSuccess())
-        {
-            return minimum.error();
-        }
-
-        auto maximum = servo(id).getMaxPositionLimit();
-        if (!maximum.isSuccess())
-        {
-            return maximum.error();
-        }
-
-        const auto middle = static_cast<int32_t>(
-            minimum.value() + ((maximum.value() - minimum.value()) / 2));
-        return servo(id).setGoalPosition(middle);
-    }
-
-    dynamixel::Result<double, dynamixel::DxlError>
-    DynamixelController::readPosition(uint8_t id)
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        auto result = servo(id).getPresentPosition();
-        if (!result.isSuccess())
-        {
-            return result.error();
-        }
-
-        const double radians = unitsToRadians(result.value());
-        {
-            std::lock_guard<std::mutex> positions_lock(positions_mutex_);
-            positions_[id] = radians;
-        }
-        return radians;
-    }
-
-    dynamixel::Result<std::unordered_map<uint8_t, double>, dynamixel::DxlError>
-    DynamixelController::readPositions()
-    {
-        std::lock_guard<std::mutex> lock(bus_mutex_);
-        // Nothing on the bus (every servo mocked, or scan() found none): a group
-        // executor with no staged commands has no defined result, so short-circuit.
+        std::unordered_map<uint8_t, int32_t> counts;
+        // An executor with nothing staged has no defined result.
         if (servos_.empty())
         {
-            return std::unordered_map<uint8_t, double>{};
+            return counts;
         }
 
         auto executor = connector_.createGroupExecutor();
         std::vector<uint8_t> ids;
         ids.reserve(servos_.size());
-
         for (auto& [id, motor] : servos_)
         {
             auto command = motor->stageGetPresentPosition();
@@ -299,8 +241,6 @@ namespace payloads
         {
             return values.error();
         }
-
-        std::unordered_map<uint8_t, double> positions;
         for (std::size_t index = 0; index < ids.size(); ++index)
         {
             auto& value = values.value()[index];
@@ -308,20 +248,35 @@ namespace payloads
             {
                 return value.error();
             }
-            positions.emplace(ids[index], unitsToRadians(value.value()));
+            counts.emplace(ids[index], value.value());
         }
-
-        {
-            std::lock_guard<std::mutex> positions_lock(positions_mutex_);
-            positions_ = positions;
-        }
-        return positions;
+        return counts;
     }
 
-    std::unordered_map<uint8_t, double> DynamixelController::memPositions() const
+    auto DynamixelController::savedTurn(uint8_t id) -> Result<std::optional<int>>
     {
-        std::lock_guard<std::mutex> lock(positions_mutex_);
-        return positions_;
+        std::lock_guard<std::mutex> lock(bus_mutex_);
+        auto value = connector_.read2ByteData(id, turn_store_address);
+        if (!value.isSuccess())
+        {
+            return value.error();
+        }
+        int stored = value.value();
+        if (stored % 2 == 0 || stored < turn_store_base ||
+            stored > turn_store_base + 4 * turn_store_range)
+        {
+            return std::optional<int>{};
+        }
+        return std::optional<int>{(stored - turn_store_base) / 2 - turn_store_range};
+    }
+
+    auto DynamixelController::saveTurn(uint8_t id, int turn) -> Result<void>
+    {
+        std::lock_guard<std::mutex> lock(bus_mutex_);
+        turn = std::clamp(turn, -turn_store_range, turn_store_range);
+        return connector_.write2ByteData(
+            id, turn_store_address,
+            static_cast<uint16_t>(turn_store_base + 2 * (turn + turn_store_range)));
     }
 
     dynamixel::Motor& DynamixelController::servo(uint8_t id)

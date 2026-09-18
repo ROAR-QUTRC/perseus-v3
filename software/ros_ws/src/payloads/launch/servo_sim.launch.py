@@ -25,10 +25,10 @@ import yaml
 USE_MOCK_HARDWARE = "true"
 HARDWARE_PLUGIN = "payloads/DynamixelServos"
 # Servo IDs simulated in software instead of on the bus. Comma-separated, no
-# spaces. Servo 6 drives the prismatic gripper, whose metres-per-radian ratio
-# has not been measured yet, so it is mocked until prismatic_scale is set in
-# config/arm.ros2_control.xacro.
-MOCK_SERVO_IDS = "6"
+# spaces. Servos 1-3 drive the 3 arm DOF (shoulder_pan, shoulder_tilt, elbow).
+# The other joints (servos 4, 5, 6 for wrist_pitch, wrist_roll, gripper) are
+# mocked until wired.
+MOCK_SERVO_IDS = "4,5,6"
 
 
 def start_after_success(stage_name, actions):
@@ -117,7 +117,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "rmw_implementation",
-            default_value="rmw_fastrtps_cpp",
+            default_value="rmw_cyclonedds_cpp",
             description="ROS middleware used by all simulation processes",
         )
     )
@@ -252,10 +252,10 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
+            robot_description,
             ros2_controllers_path,
             {"use_sim_time": use_sim_time},
         ],
-        remappings=[("robot_description", "/robot_description")],
         output="both",
     )
 
@@ -456,6 +456,10 @@ def generate_launch_description():
         SetEnvironmentVariable(
             name="RMW_IMPLEMENTATION",
             value=rmw_implementation,
+        ),
+        SetEnvironmentVariable(
+            name="CYCLONEDDS_URI",
+            value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
         ),
         robot_state_publisher_node,
         ros2_control_node,
