@@ -159,6 +159,11 @@ install(
   DESTINATION lib/${PROJECT_NAME}
   RENAME keyboard_control)
 
+install(
+  PROGRAMS scripts/arm_home.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME arm_home)
+
 # EXPORT PLUGINLIB INFORMATION
 
 # ROS2 Control hardware interface plugin
