@@ -1,0 +1,13 @@
+repositories:
+  hector_ros2_utils:
+    type: git
+    url: https://github.com/tu-darmstadt-ros-pkg/hector_ros2_utils.git
+    version: jazzy
+  rtest:
+    type: git
+    url: https://github.com/tu-darmstadt-ros-pkg/rtest.git
+    version: jazzy
+  hector_testing_utils:
+    type: git
+    url: https://github.com/Joschi3/hector_testing_utils.git
+    version: main
