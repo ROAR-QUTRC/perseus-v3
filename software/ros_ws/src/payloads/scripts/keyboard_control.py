@@ -10,6 +10,12 @@ import time
 import tty
 from typing import List
 
+os.environ.setdefault("RMW_IMPLEMENTATION", "rmw_cyclonedds_cpp")
+os.environ.setdefault(
+    "CYCLONEDDS_URI",
+    "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
+)
+
 import rclpy
 from control_msgs.msg import JointJog
 from geometry_msgs.msg import TwistStamped

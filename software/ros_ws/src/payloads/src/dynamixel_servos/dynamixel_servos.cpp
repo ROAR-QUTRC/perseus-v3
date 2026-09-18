@@ -2,16 +2,27 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <optional>
 #include <pluginlib/class_list_macros.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
-#include "dynamixel_controller.hpp"
+#include "dynamixel_servos/dynamixel_controller.hpp"
 
 namespace payloads
 {
+    namespace
+    {
+        constexpr double tau = 6.28318530717958647692;
+        constexpr int32_t counts_per_turn = DynamixelController::counts_per_turn;
+        /// Servo turns searched either side of the raw reading for a geared joint.
+        constexpr int turn_window = 16;
+    }  // namespace
 
     DynamixelServos::~DynamixelServos() = default;
 
@@ -42,7 +53,6 @@ namespace payloads
             baud_rate_ = std::atoi(baud->second.c_str());
         }
 
-        // Comma-separated list of servo IDs to simulate (e.g. "4,5,6").
         auto mock = info_.hardware_parameters.find("mock_servo_ids");
         if (mock != info_.hardware_parameters.end() && !mock->second.empty())
         {
@@ -99,6 +109,20 @@ namespace payloads
                 }
             }
 
+            for (const auto& state : joint_info.state_interfaces)
+            {
+                if (state.name == "position" && !state.initial_value.empty())
+                {
+                    j.initial = std::atof(state.initial_value.c_str());
+                }
+            }
+            auto limits = info_.limits.find(j.name);
+            if (limits != info_.limits.end() && limits->second.has_position_limits)
+            {
+                j.lower = limits->second.min_position;
+                j.upper = limits->second.max_position;
+            }
+
             joints_.push_back(std::move(j));
         }
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -108,12 +132,13 @@ namespace payloads
     {
         for (const auto& trans : info_.transmissions)
         {
-            if (trans.type == "transmission_interface/SimpleTransmission")
+            if (trans.type == "transmission_interface/SimpleTransmission" ||
+                trans.type == "hector_transmission_interface/AdjustableOffsetTransmission")
             {
                 if (trans.joints.size() != 1)
                 {
                     RCLCPP_ERROR(get_logger(),
-                                 "SimpleTransmission '%s' must have exactly one joint",
+                                 "Transmission '%s' must have exactly one joint",
                                  trans.name.c_str());
                     return hardware_interface::CallbackReturn::ERROR;
                 }
@@ -124,20 +149,44 @@ namespace payloads
                 if (it == joints_.end())
                 {
                     RCLCPP_ERROR(get_logger(),
-                                 "SimpleTransmission '%s' references unknown joint '%s'",
+                                 "Transmission '%s' references unknown joint '%s'",
                                  trans.name.c_str(), j.name.c_str());
                     return hardware_interface::CallbackReturn::ERROR;
                 }
                 it->has_transmission = true;
-                it->joint_reduction = j.mechanical_reduction;
+                double actuator_reduction =
+                    (!trans.actuators.empty() && trans.actuators[0].mechanical_reduction != 0.0)
+                        ? trans.actuators[0].mechanical_reduction
+                        : 1.0;
+                it->joint_reduction = j.mechanical_reduction * actuator_reduction;
                 it->joint_offset = j.offset;
-                if (!trans.actuators.empty())
+
+                if (trans.type == "hector_transmission_interface/AdjustableOffsetTransmission")
                 {
-                    it->actuator_reduction = trans.actuators[0].mechanical_reduction;
+                    const char* home = std::getenv("HOME");
+                    if (home != nullptr)
+                    {
+                        std::filesystem::path offset_file = std::filesystem::path(home) / ".ros" /
+                                                            "dynamic_offset_transmissions" / (j.name + ".txt");
+                        if (std::filesystem::exists(offset_file))
+                        {
+                            std::ifstream file(offset_file);
+                            double saved_offset = 0.0;
+                            if (file >> saved_offset)
+                            {
+                                it->joint_offset = saved_offset;
+                                RCLCPP_INFO(get_logger(),
+                                            "Loaded dynamic offset for %s: %.4f from %s",
+                                            j.name.c_str(), saved_offset,
+                                            offset_file.string().c_str());
+                            }
+                        }
+                    }
                 }
             }
             else if (trans.type ==
                      "transmission_interface/DifferentialTransmission")
+
             {
                 if (trans.joints.size() != 2 || trans.actuators.size() != 2)
                 {
@@ -214,52 +263,163 @@ namespace payloads
     double DynamixelServos::forwardTransform(const Joint& joint,
                                              double actuator_pos) const
     {
-        // SimpleTransmission forward: j = a / jr + offset
-        double joint_pos =
-            joint.has_transmission
-                ? actuator_pos / joint.joint_reduction + joint.joint_offset
-                : actuator_pos;
-        if (joint.is_prismatic)
-        {
-            joint_pos *= joint.prismatic_scale;
-        }
-        return joint_pos;
+        double joint_pos = joint.has_transmission
+                               ? actuator_pos / joint.joint_reduction + joint.joint_offset
+                               : actuator_pos;
+        return joint.is_prismatic ? joint_pos * joint.prismatic_scale : joint_pos;
     }
 
-    double DynamixelServos::inverseTransform(const Joint& joint,
-                                             double joint_pos) const
+    double DynamixelServos::inverseTransform(const Joint& joint, double joint_pos) const
     {
-        // Prismatic conversion first: metres -> radians in joint space.
         if (joint.is_prismatic)
         {
             joint_pos /= joint.prismatic_scale;
         }
-        // SimpleTransmission inverse: a = (j - offset) * jr
         return joint.has_transmission
                    ? (joint_pos - joint.joint_offset) * joint.joint_reduction
                    : joint_pos;
     }
 
-    double DynamixelServos::normalizeAngle(double angle)
+    std::pair<double, double>
+    DynamixelServos::differentialJoints(const DifferentialGroup& diff, double a1,
+                                        double a2) const
     {
-        constexpr double tau = 6.28318530717958647692;
-        angle = std::fmod(angle + M_PI, tau);
-        if (angle < 0.0)
-        {
-            angle += tau;
-        }
-        return angle - M_PI;
+        double sum = a1 / diff.ar[0] + a2 / diff.ar[1];
+        double difference = a1 / diff.ar[0] - a2 / diff.ar[1];
+        return {sum / (2.0 * diff.jr[0]) + diff.off[0],
+                difference / (2.0 * diff.jr[1]) + diff.off[1]};
     }
 
-    double DynamixelServos::normalizeAnglePositive(double angle)
+    std::pair<double, double>
+    DynamixelServos::differentialActuators(const DifferentialGroup& diff, double j1,
+                                           double j2) const
     {
-        constexpr double tau = 6.28318530717958647692;
-        angle = std::fmod(angle, tau);
-        if (angle < 0.0)
+        double p = (j1 - diff.off[0]) * diff.jr[0];
+        double q = (j2 - diff.off[1]) * diff.jr[1];
+        return {(p + q) * diff.ar[0], (p - q) * diff.ar[1]};
+    }
+
+    double DynamixelServos::toActuator(uint8_t id, int32_t counts) const
+    {
+        return (counts - origin_.at(id)) * tau / counts_per_turn;
+    }
+
+    int32_t DynamixelServos::toCounts(uint8_t id, double radians) const
+    {
+        long long counts = std::llround(radians * counts_per_turn / tau) + origin_.at(id);
+        return static_cast<int32_t>(std::clamp<long long>(
+            counts, -DynamixelController::count_limit, DynamixelController::count_limit));
+    }
+
+    void DynamixelServos::resolveTurns(const std::unordered_map<uint8_t, int32_t>& counts)
+    {
+        std::set<uint8_t> restored;
+        auto candidates = [&](int servo_id, double image)
         {
-            angle += tau;
+            std::vector<double> out;
+            if (isMocked(servo_id))
+            {
+                out.push_back(image);
+                return out;
+            }
+            auto id = static_cast<uint8_t>(servo_id);
+            double raw = (counts.at(id) - DynamixelController::center) * tau / counts_per_turn;
+            auto saved = controller_->savedTurn(id);
+            if (saved.isSuccess() && saved.value())
+            {
+                restored.insert(id);
+                out.push_back(raw + *saved.value() * tau);
+                return out;
+            }
+            for (int k = -turn_window; k <= turn_window; ++k)
+            {
+                out.push_back(raw + k * tau);
+            }
+            return out;
+        };
+        // Any in-limit candidate beats every out-of-limit one; ties go to initial.
+        auto score = [](const Joint& joint, double pos)
+        {
+            double delta = pos - joint.initial;
+            return (pos < joint.lower || pos > joint.upper ? 1e6 : 0.0) + delta * delta;
+        };
+        auto commit = [&](const Joint& joint, double actuator)
+        {
+            auto id = static_cast<uint8_t>(joint.servo_id);
+            if (isMocked(joint.servo_id))
+            {
+                mock_positions_[id] = actuator;
+                return;
+            }
+            origin_[id] = counts.at(id) - static_cast<int32_t>(std::llround(
+                                              actuator * counts_per_turn / tau));
+            int turn = (DynamixelController::center - origin_[id]) / counts_per_turn;
+            (void)controller_->saveTurn(id, turn);
+            RCLCPP_INFO(get_logger(), "Servo %d (%s): turn %+d %s, position %.3f",
+                        joint.servo_id, joint.name.c_str(), turn,
+                        restored.count(id) ? "restored" : "resolved",
+                        forwardTransform(joint, actuator));
+        };
+
+        for (const auto& joint : joints_)
+        {
+            if (joint.in_differential)
+            {
+                continue;
+            }
+            double best = 0.0;
+            double best_score = std::numeric_limits<double>::infinity();
+            for (double a : candidates(joint.servo_id, inverseTransform(joint, joint.initial)))
+            {
+                double s = score(joint, forwardTransform(joint, a));
+                if (s < best_score)
+                {
+                    best_score = s;
+                    best = a;
+                }
+            }
+            commit(joint, best);
         }
-        return angle;
+
+        for (const auto& diff : differentials_)
+        {
+            const Joint& j1 = joints_[diff.joint1_index];
+            const Joint& j2 = joints_[diff.joint2_index];
+            auto [i1, i2] = differentialActuators(diff, j1.initial, j2.initial);
+            double best1 = 0.0;
+            double best2 = 0.0;
+            double best_score = std::numeric_limits<double>::infinity();
+            for (double a1 : candidates(diff.actuator1_servo_id, i1))
+            {
+                for (double a2 : candidates(diff.actuator2_servo_id, i2))
+                {
+                    auto [p1, p2] = differentialJoints(diff, a1, a2);
+                    double s = score(j1, p1) + score(j2, p2);
+                    if (s < best_score)
+                    {
+                        best_score = s;
+                        best1 = a1;
+                        best2 = a2;
+                    }
+                }
+            }
+            commit(j1, best1);
+            commit(j2, best2);
+        }
+    }
+
+    std::unordered_map<uint8_t, double> DynamixelServos::actuatorPositions(
+        const std::unordered_map<uint8_t, int32_t>& counts) const
+    {
+        auto positions = mock_positions_;
+        for (const auto& [id, count] : counts)
+        {
+            if (!isMocked(id))
+            {
+                positions[id] = toActuator(id, count);
+            }
+        }
+        return positions;
     }
 
     hardware_interface::CallbackReturn DynamixelServos::on_configure(
@@ -311,75 +471,27 @@ namespace payloads
                 controller_.reset();
                 return hardware_interface::CallbackReturn::FAILURE;
             }
-        }
-
-        // Ensure every real servo is in POSITION mode before reading positions or
-        // enabling torque. A servo left in VELOCITY/PWM from a prior session would
-        // ignore position commands.
-        for (const auto& joint : joints_)
-        {
-            if (isMocked(joint.servo_id))
+            auto id = static_cast<uint8_t>(joint.servo_id);
+            if (auto result = controller_->configure(id); !result.isSuccess())
             {
-                continue;
-            }
-            auto mode_result =
-                controller_->setMode(static_cast<uint8_t>(joint.servo_id),
-                                     DynamixelController::Mode::POSITION);
-            if (!mode_result.isSuccess())
-            {
-                RCLCPP_ERROR(get_logger(), "Failed to set POSITION mode on servo %d: %s",
+                RCLCPP_ERROR(get_logger(), "Failed to configure servo %d: %s",
                              joint.servo_id,
-                             dynamixel::getErrorMessage(mode_result.error()).c_str());
+                             dynamixel::getErrorMessage(result.error()).c_str());
                 controller_.reset();
                 return hardware_interface::CallbackReturn::FAILURE;
             }
         }
 
-        auto pos_result = controller_->readPositions();
-        if (!pos_result.isSuccess())
+        auto counts = controller_->readCounts();
+        if (!counts.isSuccess())
         {
             RCLCPP_ERROR(get_logger(), "Initial position read failed: %s",
-                         dynamixel::getErrorMessage(pos_result.error()).c_str());
+                         dynamixel::getErrorMessage(counts.error()).c_str());
             controller_.reset();
             return hardware_interface::CallbackReturn::FAILURE;
         }
-        auto positions = pos_result.value();
-
-        for (int id : mock_servo_ids_)
-        {
-            mock_positions_[static_cast<uint8_t>(id)] = 0.0;
-            positions[static_cast<uint8_t>(id)] = 0.0;
-        }
-
-        for (const auto& diff : differentials_)
-        {
-            double a1 = normalizeAngle(
-                positions.at(static_cast<uint8_t>(diff.actuator1_servo_id)));
-            double a2 = normalizeAngle(
-                positions.at(static_cast<uint8_t>(diff.actuator2_servo_id)));
-            double j1 =
-                (a1 / diff.ar[0] + a2 / diff.ar[1]) / (2.0 * diff.jr[0]) + diff.off[0];
-            double j2 =
-                (a1 / diff.ar[0] - a2 / diff.ar[1]) / (2.0 * diff.jr[1]) + diff.off[1];
-            set_state(joints_[diff.joint1_index].name + "/position", j1);
-            set_state(joints_[diff.joint1_index].name + "/velocity", 0.0);
-            set_state(joints_[diff.joint2_index].name + "/position", j2);
-            set_state(joints_[diff.joint2_index].name + "/velocity", 0.0);
-        }
-
-        for (const auto& joint : joints_)
-        {
-            if (joint.in_differential)
-            {
-                continue;
-            }
-            double actuator_pos =
-                normalizeAngle(positions.at(static_cast<uint8_t>(joint.servo_id)));
-            double joint_pos = forwardTransform(joint, actuator_pos);
-            set_state(joint.name + "/position", joint_pos);
-            set_state(joint.name + "/velocity", 0.0);
-        }
-
+        resolveTurns(counts.value());
+        updateStates(actuatorPositions(counts.value()), 0.0);
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
@@ -426,37 +538,28 @@ namespace payloads
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
-    hardware_interface::return_type
-    DynamixelServos::read(const rclcpp::Time& /*time*/,
-                          const rclcpp::Duration& /*period*/)
+    void DynamixelServos::updateStates(
+        const std::unordered_map<uint8_t, double>& actuators, double period)
     {
-        auto pos_result = controller_->readPositions();
-        if (!pos_result.isSuccess())
+        auto set = [&](const std::string& name, double position)
         {
-            RCLCPP_WARN(get_logger(), "readPositions failed: %s",
-                        dynamixel::getErrorMessage(pos_result.error()).c_str());
-            return hardware_interface::return_type::OK;
-        }
-        auto positions = pos_result.value();
-        for (const auto& [id, pos] : mock_positions_)
-        {
-            positions[id] = pos;
-        }
+            double velocity =
+                period > 0.0 ? (position - get_state(name + "/position")) / period : 0.0;
+            set_state(name + "/position", position);
+            set_state(name + "/velocity", velocity);
+        };
 
         for (const auto& diff : differentials_)
         {
-            double a1 = normalizeAngle(
-                positions.at(static_cast<uint8_t>(diff.actuator1_servo_id)));
-            double a2 = normalizeAngle(
-                positions.at(static_cast<uint8_t>(diff.actuator2_servo_id)));
-            double j1 =
-                (a1 / diff.ar[0] + a2 / diff.ar[1]) / (2.0 * diff.jr[0]) + diff.off[0];
-            double j2 =
-                (a1 / diff.ar[0] - a2 / diff.ar[1]) / (2.0 * diff.jr[1]) + diff.off[1];
-            set_state(joints_[diff.joint1_index].name + "/position", j1);
-            set_state(joints_[diff.joint1_index].name + "/velocity", 0.0);
-            set_state(joints_[diff.joint2_index].name + "/position", j2);
-            set_state(joints_[diff.joint2_index].name + "/velocity", 0.0);
+            auto a1 = actuators.find(static_cast<uint8_t>(diff.actuator1_servo_id));
+            auto a2 = actuators.find(static_cast<uint8_t>(diff.actuator2_servo_id));
+            if (a1 == actuators.end() || a2 == actuators.end())
+            {
+                continue;
+            }
+            auto [j1, j2] = differentialJoints(diff, a1->second, a2->second);
+            set(joints_[diff.joint1_index].name, j1);
+            set(joints_[diff.joint2_index].name, j2);
         }
 
         for (const auto& joint : joints_)
@@ -465,16 +568,26 @@ namespace payloads
             {
                 continue;
             }
-            auto it = positions.find(static_cast<uint8_t>(joint.servo_id));
-            if (it == positions.end())
+            auto it = actuators.find(static_cast<uint8_t>(joint.servo_id));
+            if (it != actuators.end())
             {
-                continue;
+                set(joint.name, forwardTransform(joint, it->second));
             }
-            double joint_pos = forwardTransform(joint, normalizeAngle(it->second));
-            set_state(joint.name + "/position", joint_pos);
-            set_state(joint.name + "/velocity", 0.0);
         }
+    }
 
+    hardware_interface::return_type
+    DynamixelServos::read(const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
+    {
+        auto counts = controller_->readCounts();
+        if (!counts.isSuccess())
+        {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                                 "readCounts failed: %s",
+                                 dynamixel::getErrorMessage(counts.error()).c_str());
+            return hardware_interface::return_type::OK;
+        }
+        updateStates(actuatorPositions(counts.value()), period.seconds());
         return hardware_interface::return_type::OK;
     }
 
@@ -483,6 +596,14 @@ namespace payloads
                            const rclcpp::Duration& /*period*/)
     {
         std::unordered_map<uint8_t, double> targets;
+        // Never clamp harder than where the joint already is, so one found outside
+        // its limits is not yanked to the limit at full speed.
+        auto bounded = [&](const Joint& joint, double cmd)
+        {
+            double current = get_state(joint.name + "/position");
+            return std::clamp(cmd, std::min(joint.lower, current),
+                              std::max(joint.upper, current));
+        };
 
         for (const auto& joint : joints_)
         {
@@ -491,64 +612,49 @@ namespace payloads
                 continue;
             }
             double cmd = get_command(joint.name + "/position");
-            // Controllers have not written a command yet on the first few cycles;
-            // converting NaN to servo units would throw out_of_range.
+            // Controllers have not written a command yet on the first few cycles.
             if (!std::isfinite(cmd))
             {
                 continue;
             }
-            double actuator_pos = inverseTransform(joint, cmd);
-            targets[static_cast<uint8_t>(joint.servo_id)] = actuator_pos;
+            targets[static_cast<uint8_t>(joint.servo_id)] =
+                inverseTransform(joint, bounded(joint, cmd));
         }
 
         for (const auto& diff : differentials_)
         {
-            double j1 = get_command(joints_[diff.joint1_index].name + "/position");
-            double j2 = get_command(joints_[diff.joint2_index].name + "/position");
-            if (!std::isfinite(j1) || !std::isfinite(j2))
+            const Joint& j1 = joints_[diff.joint1_index];
+            const Joint& j2 = joints_[diff.joint2_index];
+            double c1 = get_command(j1.name + "/position");
+            double c2 = get_command(j2.name + "/position");
+            if (!std::isfinite(c1) || !std::isfinite(c2))
             {
                 continue;
             }
-            double a1 =
-                ((j1 - diff.off[0]) * diff.jr[0] + (j2 - diff.off[1]) * diff.jr[1]) *
-                diff.ar[0];
-            double a2 =
-                ((j1 - diff.off[0]) * diff.jr[0] - (j2 - diff.off[1]) * diff.jr[1]) *
-                diff.ar[1];
+            auto [a1, a2] = differentialActuators(diff, bounded(j1, c1), bounded(j2, c2));
             targets[static_cast<uint8_t>(diff.actuator1_servo_id)] = a1;
             targets[static_cast<uint8_t>(diff.actuator2_servo_id)] = a2;
         }
 
-        // Normalize all targets to [0, 2pi) -- the Dynamixel position range.
-        for (auto& [id, pos] : targets)
+        // Mocked servos track their target instantly and never reach the bus.
+        std::unordered_map<uint8_t, int32_t> counts;
+        for (const auto& [id, actuator] : targets)
         {
-            (void)id;
-            pos = normalizeAnglePositive(pos);
-        }
-
-        // Update mocked servo positions (simulates instant tracking) and remove them
-        // from the targets map so they are not sent to the physical bus.
-        for (auto it = targets.begin(); it != targets.end();)
-        {
-            if (mock_servo_ids_.count(static_cast<int>(it->first)))
+            if (isMocked(id))
             {
-                mock_positions_[it->first] = it->second;
-                it = targets.erase(it);
+                mock_positions_[id] = actuator;
             }
             else
             {
-                ++it;
+                counts[id] = toCounts(id, actuator);
             }
         }
 
-        if (!targets.empty())
+        if (auto result = controller_->setGoalCounts(counts); !result.isSuccess())
         {
-            auto result = controller_->setTargetPosition(targets);
-            if (!result.isSuccess())
-            {
-                RCLCPP_WARN(get_logger(), "setTargetPosition failed: %s",
-                            dynamixel::getErrorMessage(result.error()).c_str());
-            }
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                                 "setGoalCounts failed: %s",
+                                 dynamixel::getErrorMessage(result.error()).c_str());
         }
 
         return hardware_interface::return_type::OK;

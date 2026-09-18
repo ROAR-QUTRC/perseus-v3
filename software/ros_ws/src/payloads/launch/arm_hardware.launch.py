@@ -10,7 +10,11 @@ before the wrist and gripper are wired.
 """
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -72,6 +76,19 @@ def generate_launch_description():
                 "command_frame",
                 default_value="plate",
                 description="Frame used for Cartesian Servo commands",
+            ),
+            DeclareLaunchArgument(
+                "rmw_implementation",
+                default_value="rmw_cyclonedds_cpp",
+                description="ROS middleware used by all processes",
+            ),
+            SetEnvironmentVariable(
+                name="RMW_IMPLEMENTATION",
+                value=LaunchConfiguration("rmw_implementation"),
+            ),
+            SetEnvironmentVariable(
+                name="CYCLONEDDS_URI",
+                value="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name='lo'/></Interfaces></General></Domain></CycloneDDS>",
             ),
             arm_teleop,
         ]
