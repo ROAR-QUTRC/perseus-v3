@@ -34,6 +34,7 @@ pkgs.mkShell {
           ament-lint-auto
           ament-lint-common
           backward-ros
+          behaviortree-cpp
           bievr-lio-ros2
           builtin-interfaces
           compressed-depth-image-transport
@@ -48,12 +49,15 @@ pkgs.mkShell {
           hardware-interface
           hi-can
           hi-can-raw
+          image-transport
           joint-state-broadcaster
           joint-state-publisher
           joint-state-publisher-gui
           joy
           mecanum-drive-controller
+          message-filters
           nav-msgs
+          nav2-behavior-tree
           navigation2
           nlohmann_json
           onnxruntime
@@ -83,6 +87,7 @@ pkgs.mkShell {
           sensor-msgs
           slam-toolbox
           std-msgs
+          std-srvs
           tf2
           tf2-geometry-msgs
           tf2-ros

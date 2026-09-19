@@ -9,7 +9,9 @@
   builtin-interfaces,
   cv-bridge,
   geometry-msgs,
+  image-transport,
   interfaces,
+  message-filters,
   nav-msgs,
   onnxruntime,
   opencv,
@@ -18,6 +20,7 @@
   rclcpp-components,
   sensor-msgs,
   std-msgs,
+  std-srvs,
   tf2,
   tf2-geometry-msgs,
   tf2-ros,
@@ -41,7 +44,9 @@ buildRosPackage rec {
     builtin-interfaces
     cv-bridge
     geometry-msgs
+    image-transport
     interfaces
+    message-filters
     nav-msgs
     onnxruntime
     opencv
@@ -50,6 +55,7 @@ buildRosPackage rec {
     rclcpp-components
     sensor-msgs
     std-msgs
+    std-srvs
     tf2
     tf2-geometry-msgs
     tf2-ros

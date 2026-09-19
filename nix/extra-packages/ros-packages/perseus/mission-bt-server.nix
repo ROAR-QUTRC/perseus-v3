@@ -3,27 +3,20 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  ament-index-cpp,
   ament-lint-auto,
   ament-lint-common,
-  arena-server,
+  behaviortree-cpp,
   geometry-msgs,
   interfaces,
-  nav-msgs,
-  pluginlib,
-  qt5,
+  nav2-behavior-tree,
   rclcpp,
-  rviz-common,
   std-srvs,
-  tf2,
-  tf2-geometry-msgs,
-  tf2-ros,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-rviz-plugins";
+  pname = "ros-jazzy-mission-bt-server";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/rviz_plugins;
+  src = ./../../../../software/ros_ws/src/nav-stack/mission_bt_server;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
@@ -32,24 +25,17 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    ament-index-cpp
-    arena-server
+    behaviortree-cpp
     geometry-msgs
     interfaces
-    nav-msgs
-    pluginlib
-    qt5.qtbase
+    nav2-behavior-tree
     rclcpp
-    rviz-common
     std-srvs
-    tf2
-    tf2-geometry-msgs
-    tf2-ros
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "RViz panels and displays for the rover's custom messages";
+    description = "Runs a small behaviour tree - request a safe zone waypoint from arena_server, then drive there via nav2's NavigateToPose - behind two plain services for the RViz mission panel";
     license = with lib.licenses; [ mit ];
   };
 }
