@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.13)
 
 # ====================================================================================
 # Project/target name. Renaming later should only ever require changing this line
-# copying the file as a starting should also only require changing this line 
+# copying the file as a starting should also only require changing this line
 set(TARGET_NAME blink)
 set(TARGET_VERSION 0.1)
 
@@ -36,14 +36,18 @@ endif()
 
 # PICO_BOARD "none" tells the SDK there is no board header to pull defaults
 # from - used for custom/bare RP2350 silicon rather than an official board
-# Because of this, everything a board header would supply (platform, 
-# chip varient, stepping, default pins) has to be given explicitly below
-set(PICO_BOARD none CACHE STRING "Board type")
+# Because of this, everything a board header would supply (platform,
+# chip variant, stepping, default pins) has to be given explicitly below
+set(PICO_BOARD
+    pico2
+    CACHE STRING "Board type")
 
 # RP2350 has two possible cores:
 #    rp2350-arm-s -> Cortex-M33 (Arm), the default
 #    rp2350-riscv -> Hazard3 (RISC-V)
-set(PICO_PLATFORM rp2350-arm-s CACHE STRING "Platform")
+set(PICO_PLATFORM
+    rp2350-arm-s
+    CACHE STRING "Platform")
 
 # Pull in Raspberry Pi Pico SDK (must be before project())
 include(pico_sdk_import.cmake)
@@ -78,10 +82,9 @@ pico_set_program_version(${TARGET_NAME} "${TARGET_VERSION}")
 #                                pin (this is the compile-time constant,
 #                                not an SDK-defined one like the two above).
 
-target_compile_definitions(${TARGET_NAME} PRIVATE 
-  PICO_RP2350A=1
-  PICO_RP2350_A2_SUPPORTED=1
-  NEOPIXEL_PIN=4)
+target_compile_definitions(
+  ${TARGET_NAME} PRIVATE PICO_RP2350A=1 PICO_RP2350_A2_SUPPORTED=1
+                         NEOPIXEL_PIN=4)
 
 # ====================================================================================
 # Compile ws2812.pio (the PIO assembly that generates the WS2812 signal)
@@ -109,9 +112,9 @@ pico_enable_stdio_usb(${TARGET_NAME} 0)
 # Note: pico_cyw43_arch_* (wireless) libraries are not included.
 # They are specific to boards with CyW43 radio, which the encoders do not include
 
-target_link_libraries(${TARGET_NAME}
-  pico_stdlib
-  hardware_pio  # needed to drive ws2812.pio's state machine
+target_link_libraries(
+  ${TARGET_NAME} pico_stdlib
+  hardware_pio # needed to drive ws2812.pio's state machine
 )
 
 # create map/bin/hex file etc.

@@ -1,2 +1,4 @@
 build
 !.vscode/*
+tools/.venv
+tools/__pycache__

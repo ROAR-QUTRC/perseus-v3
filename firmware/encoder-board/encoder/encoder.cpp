@@ -1,97 +1,116 @@
-// blink_rgb.cpp
+// encoder.cpp
 //
-// Fades a single WS2812 ("NeoPixel", SparkFun COM-16347) connected to
-// GPIO4 through the color spectrum (red -> green -> blue -> red)
-// RP2350A silicon (revision A2)
-// Driven via PIO (see ws2812.pio) since WS2812s need a precisely-timed 
-// one-wire serial signal, not plain GPIO on/off.
+// FreeRTOS entry point. Does one-time hardware bring-up that doesn't
+// belong to any single task (DIP-switch device ID, AS5600 DIR strap,
+// boot-time serial banner), then creates the three tasks and starts the
+// scheduler:
+//   - encoder_task (core 1): owns the AS5600 exclusively
+//   - comms_task   (core 0): RS485/Modbus RTU slave
+//   - led_task     (core 0): status LED, strictly higher priority than
+//                            comms_task on this core -- see led_task.hpp
+// RP2350A silicon (revision A2), custom board, powered over USB.
 
-// pico/stdlib.h is the SDK's C API; its headers already wrap themselves in
-// `extern "C"` guards, so they can be included directly from C++ with no 
-// extra work.
+#include <cstdio>
+
+#include "FreeRTOS.h"
+#include "task.h"
+
+#include "hardware/gpio.h"
 #include "pico/stdlib.h"
-#include "hardware/pio.h"
-#include "hardware/clocks.h"
-#include "ws2812.pio.h"   // generated from ws2812.pio by pico_generate_pio_header()
 
-// GPIO wired to the NeoPixel's data-in pin. Overridable at build time, e.g.:
-//   target_compile_definitions(blink PRIVATE NEOPIXEL_PIN=4)
-#ifndef NEOPIXEL_PIN
-#define NEOPIXEL_PIN 4
+#include "board_id.hpp"
+#include "comms_task.hpp"
+#include "encoder_task.hpp"
+#include "led_task.hpp"
+#include "shared_state.hpp"
+
+// Sets the AS5600's rotation-direction convention; has a light external
+// pull-up on the board (plus a 4th DIP switch position that can ground it),
+// so it's read as a plain input with no internal pull. High = CW, low = CCW.
+#ifndef AS5600_DIR_PIN
+#define AS5600_DIR_PIN 8
 #endif
 
-// How long to hold each step of the fade, in milliseconds.
-// There are 768 steps in one full red->green->blue->red cycle (see 
-// colour_from_hue() below), so this also sets overall cycle time:
-// 10ms/step -> ~7.7s/cycle. Overridable same as NEOPIXEL_PIN
-#ifndef FADE_STEP_MS
-#define FADE_STEP_MS 10
-#endif
+namespace
+{
+    // Stack sizes are in words (4 bytes each on this target), not bytes.
+    constexpr uint32_t kEncoderTaskStackWords = 1024;  // I2C + printf
+    constexpr uint32_t kCommsTaskStackWords = 1024;    // RS485/Modbus dispatch + printf
+    constexpr uint32_t kLedTaskStackWords = 512;  // just tick() + set_pixel(), no printf
 
-// Anonymous namespace - this file's private implementation detail (the C++
-// equivalent of C's `static` for functions/variables at file scope). Nothing
-// in here is visible to, or needs to be linked against, other source files.
-namespace {
-    constexpr float kWs2812FreqHz = 800000.0f; // standard WS2812 bit rate
-    constexpr bool kIsRgbw = false; // COM-16347 is plain RGB, no white channel
+    // See led_task.hpp for why led_task must outrank comms_task here.
+    constexpr UBaseType_t kEncoderTaskPriority = tskIDLE_PRIORITY + 2;
+    constexpr UBaseType_t kCommsTaskPriority = tskIDLE_PRIORITY + 1;
+    constexpr UBaseType_t kLedTaskPriority = tskIDLE_PRIORITY + 3;
 
-    // Plain 8-bit-per-channel colour. Kept as a tiny struct rather than 2 
-    // loose bytes so colour_from_hue()'s return type says what it is
-    struct RGB {
-        uint8_t r, g, b;
-    };
+    constexpr UBaseType_t kCore0Affinity = (1u << 0);
+    constexpr UBaseType_t kCore1Affinity = (1u << 1);
+}  // namespace
 
-    // Map a hue position (0..767, wrapping) onto the RGB spectrum by linearly
-    // interpolating red->green->blue->red, one third of the cycle (256 steps)
-    // per transition. As one channel counts down 255->0, the next counts up
-    // 0->255, so the colour blends smoothly with no jumps at the seams.
-    //
-    // This is a lighter-weight stand-in for a full HSV->RGB conversion
-    // Acceptable as only sweeping hue at fixed full saturation and brightness
-    RGB colour_from_hue(uint16_t hue)
-    {
-        hue = hue % 768;
-        uint8_t segment = hue / 256;  // 0 = red->green, 1 = green->blue, 2 = blue->red
-        uint8_t pos = hue % 256;      // position within that segment, 0..255
-        uint8_t rising = pos;
-        uint8_t falling = 255 - pos;
-
-        switch (segment) {
-            case 0:  return {falling, rising, 0};  // red -> green
-            case 1:  return {0, falling, rising};  // green -> blue
-            default: return {rising, 0, falling};  // blue -> red
-        }
-    }
-
-    // WS2812s receive colour data as Green, Red, Blue -- not RGB order
-    // data is packed into the the top 24 bits of the 32-bit word the PIO's
-    // FIFO expects (hence the final <<8)
-    void set_pixel(PIO pio, uint sm, uint8_t r, uint8_t g, uint8_t b)
-    {
-        uint32_t grb = (static_cast<uint32_t>(g) << 16) | 
-                       (static_cast<uint32_t>(r) << 8) |
-                       static_cast<uint32_t>(b);
-                       pio_sm_put_blocking(pio, sm, grb << 8u);
-    }
-
-} // namespace
+// Required by configCHECK_FOR_STACK_OVERFLOW > 0 (FreeRTOSConfig.h) -- the
+// kernel calls this itself, we just need to supply it. A stack overflow is
+// not recoverable (adjacent memory is already corrupted), so this halts
+// rather than trying to continue.
+extern "C" void vApplicationStackOverflowHook(TaskHandle_t, char* task_name)
+{
+    printf("FATAL: stack overflow in task '%s'\n", task_name);
+    while (true)
+        tight_loop_contents();
+}
 
 int main()
 {
-    PIO pio = pio0;
-    uint sm = 0;
+    stdio_init_all();
 
-    // Load the PIO program once at startup and start a state machine
-    // running it on NEOPIXEL_PIN
-    uint offset = pio_add_program(pio, &ws2812_program);
-    ws2812_program_init(pio, sm, offset, NEOPIXEL_PIN, kWs2812FreqHz, kIsRgbw);
+    static SharedState shared{};
+    shared.device_id = read_board_id();
 
-    uint16_t hue = 0;
-    while (true) {
-        RGB colour = colour_from_hue(hue);
-        set_pixel(pio, sm, colour.r, colour.g, colour.b);
-        sleep_ms(FADE_STEP_MS);
-        hue = (hue + 1) % 768; // advance one step; wraps every 768 steps
+    gpio_init(AS5600_DIR_PIN);
+    gpio_set_dir(AS5600_DIR_PIN, GPIO_IN);
+    bool clockwise = gpio_get(AS5600_DIR_PIN);
+
+    // Repeat this for a couple seconds after boot -- the USB CDC connection
+    // race means a monitor opened right after flashing can easily miss a
+    // one-shot print.
+    for (int i = 0; i < 10; ++i)
+    {
+        printf("device id: %u, direction: %s\n", shared.device_id, clockwise ? "CW" : "CCW");
+        sleep_ms(200);
     }
-}
 
+    shared.latest_sample = xQueueCreate(1, sizeof(EncoderSample));
+    shared.encoder_commands = xQueueCreate(4, sizeof(EncoderCommand));
+    shared.heartbeat_state = xQueueCreate(1, sizeof(HeartbeatState));
+    shared.discovery_active = xQueueCreate(1, sizeof(bool));
+    configASSERT(shared.latest_sample && shared.encoder_commands && shared.heartbeat_state &&
+                 shared.discovery_active);
+
+    // The length-1 "latest state" queues need a first value before
+    // anything calls xQueuePeek() on them (comms_task/led_task both do,
+    // immediately), otherwise that first peek just fails and they fall
+    // back to their empty-state defaults for one cycle -- harmless, but
+    // seeding them removes the ambiguity.
+    EncoderSample initial_sample{};
+    xQueueOverwrite(shared.latest_sample, &initial_sample);
+    HeartbeatState initial_heartbeat{};
+    xQueueOverwrite(shared.heartbeat_state, &initial_heartbeat);
+    bool initial_discovery = false;
+    xQueueOverwrite(shared.discovery_active, &initial_discovery);
+
+    BaseType_t ok = pdPASS;
+    ok &= xTaskCreateAffinitySet(encoder_task, "encoder", kEncoderTaskStackWords, &shared,
+                                  kEncoderTaskPriority, kCore1Affinity, nullptr);
+    ok &= xTaskCreateAffinitySet(comms_task, "comms", kCommsTaskStackWords, &shared,
+                                  kCommsTaskPriority, kCore0Affinity, nullptr);
+    ok &= xTaskCreateAffinitySet(led_task, "led", kLedTaskStackWords, &shared, kLedTaskPriority,
+                                  kCore0Affinity, nullptr);
+    configASSERT(ok == pdPASS);
+
+    vTaskStartScheduler();
+
+    // Only reached if the scheduler couldn't start (e.g. out of heap for
+    // the idle/timer tasks) -- everything past this point runs as tasks.
+    printf("FATAL: vTaskStartScheduler() returned\n");
+    while (true)
+        tight_loop_contents();
+}
