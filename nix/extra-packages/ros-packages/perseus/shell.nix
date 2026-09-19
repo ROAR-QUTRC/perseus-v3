@@ -60,6 +60,7 @@ pkgs.mkShell {
           nav2-behavior-tree
           navigation2
           nlohmann_json
+          ohm
           onnxruntime
           opencv
           pcl
