@@ -16,7 +16,7 @@ topics:
   # The Livox driver's own topics, same as FAST-LIO reads. The IMU is the bias-corrected
   # stream from the imu_bias_container in localisation.launch.py.
   pointcloud: "/livox/lidar"
-  imu: "/livox/imu"
+  imu: "/livox/imu/corrected"
   # Best-effort, which is compatible with the driver whether it publishes reliable or not.
   # A sample is only useful while it is current: a lost scan costs one update, a late scan
   # drags the estimate behind reality. Set true only if the cloud starts crossing a network.
@@ -54,8 +54,8 @@ map:
   # dial as FAST-LIO's filter_size_map. pixel_size_m is the resolution *within* a voxel
   # image; voxel_size_m is the voxel grid itself.
   pixel_size_m: 0.05
-  voxel_size_m: 0.3
-  normal_tolerance_deg: 3
+  voxel_size_m: 1.0
+  normal_tolerance_deg: 1
   smooth: true
   weighted: true
   # Off until field-tested: each bump-image pixel's weight only ever grows, so a fine-sand
@@ -144,7 +144,7 @@ optimization:
   # genuinely large legitimate residuals, which is where too tight a threshold
   # would start rejecting real data. Re-run the sweep on a rougher site before
   # going lower.
-  huber_delta: 0.005
+  huber_delta: 0.01
 imu:
   window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The
