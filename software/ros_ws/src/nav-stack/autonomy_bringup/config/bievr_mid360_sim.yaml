@@ -22,6 +22,13 @@ lidar:
   # beyond it never appear, so this only saves the filter from carrying a range it will
   # never see.
   max_range_m: 40
+map:
+  # Enabled here (and only here) to try out the stale-pixel decay: 1 s is short enough to
+  # see a pixel clear within a normal sim session. Not a recommendation for the real arena
+  # cadence -- move this to bievr_mid360.yaml, and re-tune it, once it has been driven
+  # against the sim's sand deformation and shown not to erase terrain the rover just isn't
+  # currently looking at.
+  stale_timeout_s: 1.0
 # calibration is deliberately absent: the simulator now models the LiDAR-IMU offset the
 # same way the robot does. perseus_simulation's perseus_description carries the same
 # livox_imu_joint as this repo's description package, and its Gazebo imu sensor is attached

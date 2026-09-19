@@ -58,6 +58,19 @@ map:
   normal_tolerance_deg: 3
   smooth: true
   weighted: true
+  # Off until field-tested: each bump-image pixel's weight only ever grows, so a fine-sand
+  # patch reshaped by the wheels barely moves the stored height once a pixel has enough
+  # hits. Setting this clears a pixel that goes this many seconds without a fresh hit, so
+  # the next one starts a clean average instead of blending into the old surface. See
+  # bievr_mid360_sim.yaml for a value to try in the simulator first.
+  stale_timeout_s: 1
+  # A stale pixel is only actually cleared if this scan's point count in the voxel is at
+  # least this fraction of the voxel's currently-observed pixel count. LiDAR point density
+  # is not uniform across the map -- the same spot seen from further away or at a shallower
+  # angle than when its surface was first built naturally gets far fewer points, with
+  # nothing about the terrain having changed -- so a sparse look defers the decay decision
+  # instead of erasing on a thin sample. No effect while stale_timeout_s is 0.
+  stale_min_relative_density: 0.5
   # A voxel count, not a metric extent, so it replaces both cube_side_length and the
   # ikd-Tree trimming FAST-LIO uses. Voxels past this are evicted least-recently-used first,
   # so the map degrades by forgetting where the robot has not been lately rather than by
@@ -201,6 +214,36 @@ publish:
   # FAST-LIO's pcd_save_en: false, saving is on demand only -- nothing is written unless the
   # service is called.
   map_path: "~/maps/bievr_map.pcd"
+  # Covariance stamped onto /Odometry's pose and twist. false leaves the message at its
+  # default zero, which tells the EKF the measurement is exact -- defeating both its
+  # blending against its own prior and its Mahalanobis gating. Confirmed on
+  # rosbag2_1970_01_01-10_31_15 as a ~3.7 m EKF teleport-and-back over three corrections
+  # with covariance at zero, while raw /Odometry was smooth throughout.
+  #
+  # These five are also plain ROS parameters on the bievr_lio node (not only read from this
+  # file at startup), so `ros2 param set /bievr_lio <name> <value>` changes them live --
+  # useful for A/B testing without relaunching. `ros2 param get /bievr_lio <name>` reads the
+  # value currently in effect.
+  enable_odom_covariance: true
+  # Pose gets a real per-scan estimate from the registration's own Gauss-Newton Hessian
+  # (LsqRegistration::poseCovarianceDiagonal), so an ill-constrained direction -- e.g. yaw
+  # and the horizontal plane on the flat sand floor this arena mostly is -- is reported as
+  # uncertain instead of getting the same fixed number as a well-constrained one. These two
+  # are its fallback for when that estimate is not trustworthy this scan (too few effective
+  # points, or too ill-conditioned), sized to the jitter measured on that bag (the second
+  # difference of position/yaw over a 10 Hz scan: ~15 mm RMS position, well under a degree
+  # RMS yaw).
+  odom_position_variance: 0.0004 # m^2, x/y/z diagonal fallback
+  odom_orientation_variance: 0.0003 # rad^2, roll/pitch/yaw diagonal fallback
+  # Twist has no per-scan estimate, so these are always used as-is. Distinct units from the
+  # pose pair above (velocity, not position), so reusing those would be dimensionally wrong.
+  # Linear is sized from the frame-to-frame variation of the published linear velocity
+  # itself (~0.16 m/s RMS against a ~0.12 m/s median driving speed on that bag) -- i.e.
+  # velocity here is only moderately informative, not exact. Not currently fused by
+  # ekf_config.yaml regardless: tried, and it made the EKF measurably noisier rather than
+  # smoother (see ekf_config.yaml's odom0_config comment for why).
+  odom_linear_velocity_variance: 0.01 # (m/s)^2, vx/vy/vz diagonal
+  odom_angular_velocity_variance: 0.0001 # (rad/s)^2, vroll/vpitch/vyaw diagonal
 debug:
   # Every one of these serialises a point cloud on the Jetson's CPU, competing with the
   # filter itself. /bievr_lio/points/registered is published unconditionally; this only
