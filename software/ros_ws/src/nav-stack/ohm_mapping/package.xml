@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ohm_mapping</name>
+  <version>0.0.1</version>
+  <description>ROS 2 front end for CSIRO OHM: streams a registered LiDAR cloud into a probabilistic 3D occupancy map and publishes its 2.5D heightmap, including virtual surfaces inferred over unobserved ground</description>
+  <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <!-- CSIRO OHM. Not a ROS package and not in any rosdistro: it is supplied by
+       nix/extra-packages/patches/ohm, and rosdep cannot resolve this key. It is named
+       here anyway so the dependency is visible where every other one is. -->
+  <depend>ohm</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

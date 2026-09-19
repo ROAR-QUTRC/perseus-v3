@@ -5,6 +5,9 @@ final: prev: {
   bievr-lio-ros2 = final.callPackage ./bievr-lio-ros2 { };
   bievr-ros-common = final.callPackage ./bievr-ros-common { };
   livox-sdk2 = final.callPackage ./livox-sdk2 { };
+  # CSIRO OHM, built CPU-only. Consumed by the ohm_mapping ROS package, not by anything
+  # in the workspace directly.
+  ohm = final.callPackage ./ohm { };
   fast-lio = final.callPackage ./fast-lio { };
   livox-ros-driver2 = final.callPackage ./livox-ros-driver2 { };
 }

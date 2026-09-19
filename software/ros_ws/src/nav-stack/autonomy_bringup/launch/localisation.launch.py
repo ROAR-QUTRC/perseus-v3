@@ -217,6 +217,56 @@ def bievr_actions(rviz, use_sim_time, is_sim):
     ]
 
 
+def ohm_actions(lio_backend, use_sim_time, enabled):
+    """OHM occupancy mapping and its heightmap, off by default.
+
+    An addition to this stack rather than a replacement for anything in it. It consumes the
+    registered cloud the selected LIO backend already publishes and produces a second
+    OccupancyGrid, on /ohm_mapping/heightmap, alongside the one global_traversability builds
+    from /Laser_map. Nothing subscribes to it until navigation.yaml is pointed at it.
+
+    Worth the CPU for one thing global_traversability structurally cannot do: tell an
+    unswept patch of ground apart from a hole. Gridding a point cloud, both are "no points
+    here". OHM carves free space along every ray, so the floor of a pit reads as free space
+    bounded below by unknown -- which is what it reports as a virtual surface.
+
+    The cloud topic follows the backend because the two name it differently, and both
+    publish it in the same frame (odom), so nothing else changes:
+      bievr      /bievr_lio/points/registered, published unconditionally
+      fast_lio   /cloud_registered, gated on publish.scan_publish_en in livox_mid360.yaml
+
+    Only fast_lio overrides the value from ohm_mapping.yaml. Leaving bievr's to the config
+    file keeps the default editable in the place every other tuning knob for this node
+    lives, rather than burying it here.
+    """
+    overrides = {"use_sim_time": use_sim_time}
+    if lio_backend == "fast_lio":
+        overrides["cloud_topic"] = "/cloud_registered"
+
+    return [
+        Node(
+            package="ohm_mapping",
+            executable="ohm_mapping",
+            # Must stay "ohm_mapping": ohm_mapping.yaml keys its parameters under that
+            # node name rather than /**, so a rename silently leaves every value at its
+            # in-code default.
+            name="ohm_mapping",
+            output="screen",
+            parameters=[
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("autonomy_bringup"),
+                        "config",
+                        "ohm_mapping.yaml",
+                    ]
+                ),
+                overrides,
+            ],
+            condition=IfCondition(enabled),
+        )
+    ]
+
+
 def launch_setup(context, *args, **kwargs):
     """Build the actions once the launch arguments can be resolved.
 
@@ -372,6 +422,10 @@ def launch_setup(context, *args, **kwargs):
             )
         ]
 
+    # Conditioned inside ohm_actions rather than here, so the argument stays a normal
+    # substitution and does not have to be resolved in this OpaqueFunction.
+    ohm_mapping_actions = ohm_actions(lio, use_sim_time, LaunchConfiguration("ohm"))
+
     # Flattens the EKF's odom -> base_link into odom -> base_footprint, dropping z, roll
     # and pitch while keeping yaw. nav2's costmaps and controller are the consumers, but
     # the transform is derived from the EKF output, so it is brought up here rather than
@@ -480,6 +534,7 @@ def launch_setup(context, *args, **kwargs):
     return (
         lio_actions
         + sensor_actions
+        + ohm_mapping_actions
         + [
             GroupAction([ekf_launch], scoped=True),
             flat_footprint_broadcaster_node,
@@ -541,6 +596,16 @@ def generate_launch_description():
         "infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
         "when the drivers are already running from sensors/sensors.launch.py, in which case "
         "stereo_odometry is launched standalone instead. See the module docstring.",
+    )
+
+    declare_ohm = DeclareLaunchArgument(
+        "ohm",
+        default_value="false",
+        description="Also run OHM occupancy mapping, publishing a heightmap-derived "
+        "costmap on /ohm_mapping/heightmap. Off by default: it is a second mapping stack "
+        "running alongside global_traversability, it costs CPU nothing else needs, and "
+        "nothing subscribes to its output until navigation.yaml is pointed at it. Tuned by "
+        "config/ohm_mapping.yaml.",
     )
 
     declare_interface = DeclareLaunchArgument(
@@ -623,6 +688,7 @@ def generate_launch_description():
             declare_rviz,
             declare_ekf_params_file,
             declare_enable_sensors,
+            declare_ohm,
             declare_interface,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),

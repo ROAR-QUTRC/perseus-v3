@@ -12,6 +12,7 @@
   global-traversability,
   health-check,
   navigation2,
+  ohm-mapping,
   rclcpp,
   robot-localization,
   rviz-plugins,
@@ -41,6 +42,7 @@ buildRosPackage rec {
     global-traversability
     health-check
     navigation2
+    ohm-mapping
     rclcpp
     robot-localization
     rviz-plugins

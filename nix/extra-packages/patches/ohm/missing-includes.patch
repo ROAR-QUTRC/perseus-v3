@@ -1,0 +1,41 @@
+diff -ru a/ohm/CovarianceVoxel.h b/ohm/CovarianceVoxel.h
+--- a/ohm/CovarianceVoxel.h	2026-09-19 17:27:21.256869697 +1000
++++ b/ohm/CovarianceVoxel.h	2026-09-19 17:27:21.289050883 +1000
+@@ -10,6 +10,10 @@
+ 
+ #define GLM_ENABLE_EXPERIMENTAL
+ #include <glm/gtx/norm.hpp>
++// glm::dquat, used by covarianceUnitSphereTransformation() below. glm used to pull the
++// quaternion types in through one of the headers here; from glm 1.0 it does not, and the
++// declaration below fails to parse without this.
++#include <glm/gtc/quaternion.hpp>
+ #include <glm/mat3x3.hpp>
+ #include <glm/vec3.hpp>
+ 
+diff -ru a/ohm/VoxelBuffer.cpp b/ohm/VoxelBuffer.cpp
+--- a/ohm/VoxelBuffer.cpp	2026-09-19 17:27:21.249381542 +1000
++++ b/ohm/VoxelBuffer.cpp	2026-09-19 17:27:21.288967809 +1000
+@@ -5,6 +5,9 @@
+ // Author: Kazys Stepanas
+ #include "VoxelBuffer.h"
+ 
++// std::exchange. Reached transitively until libstdc++ 13 pruned its internal includes.
++#include <utility>
++
+ namespace ohm
+ {
+ template <typename VoxelBlock>
+diff -ru a/ohmutil/PlyPointStream.cpp b/ohmutil/PlyPointStream.cpp
+--- a/ohmutil/PlyPointStream.cpp	2026-09-19 17:27:21.261581354 +1000
++++ b/ohmutil/PlyPointStream.cpp	2026-09-19 17:27:21.264137253 +1000
+@@ -12,6 +12,10 @@
+ #include <iostream>
+ #include <limits>
+ #include <stdexcept>
++// std::exchange. Reached transitively through one of the headers above until libstdc++ 13
++// pruned its internal includes, so this compiled everywhere when OHM was written and
++// compiles nowhere now.
++#include <utility>
+ 
+ namespace ohm
+ {

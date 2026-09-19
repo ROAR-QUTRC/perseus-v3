@@ -35,6 +35,9 @@
        vision::StereoOdometry component into the RealSense driver's container. The plugin
        is resolved by name at runtime, so nothing here links against it. -->
   <exec_depend>vision</exec_depend>
+  <!-- ohm_mapping, launched by localisation.launch.py under ohm:=true. Exec only: the
+       launch file starts the executable by name and nothing here links against it. -->
+  <exec_depend>ohm_mapping</exec_depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
 

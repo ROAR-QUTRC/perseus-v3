@@ -9,6 +9,7 @@ final: prev: {
   health-check = final.callPackage ./health-check.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
   mission-bt-server = final.callPackage ./mission-bt-server.nix { };
+  ohm-mapping = final.callPackage ./ohm-mapping.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };
   rviz-plugins = final.callPackage ./rviz-plugins.nix { };

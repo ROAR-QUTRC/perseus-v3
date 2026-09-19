@@ -1,0 +1,142 @@
+# OHM occupancy mapping and heightmap, for the ohm_mapping node.
+#
+# This is an ADDITION to the localisation stack, not a replacement for anything in it. It
+# consumes what BIEVR-LIO already publishes and produces a second OccupancyGrid alongside
+# global_traversability's. Nothing subscribes to it by default -- point navigation.yaml at
+# /ohm_mapping/heightmap when you want nav2 to use it instead.
+#
+# What it adds over global_traversability: that node grids /Laser_map, so a cell with no
+# points is "unknown" whether it is unswept ground or a hole. OHM carves free space along
+# every ray, so it can tell the two apart, and reports inferred ground at the free/unknown
+# boundary as a *virtual surface* -- the negative-obstacle case, which matters on a sand
+# arena with excavation pits in it.
+ohm_mapping:
+  ros__parameters:
+    # ---- Input ------------------------------------------------------------------------
+    # BIEVR-LIO's registered cloud: already motion-compensated and already expressed in
+    # world_frame (Pipeline::publishFrame publishes `T_W_I * undistorted`), which is
+    # exactly the form integrateRays() wants. Published unconditionally, so debug.
+    # publish_all_clouds in bievr_mid360.yaml does not need turning on.
+    #
+    # Do NOT point this at /livox/lidar: that cloud is raw, in the sensor frame, undeskewed,
+    # and 87% zero-fill non-returns. The node refuses a cloud whose frame_id is not
+    # world_frame rather than mapping it wrongly, so the mistake fails loudly.
+    cloud_topic: "/bievr_lio/points/registered"
+    # The pose the cloud above was registered with. Deliberately the LIO's own output rather
+    # than TF's odom -> base_link, which comes from the EKF and differs from it by a few
+    # centimetres -- mixing the two would put the ray origins slightly off the cloud they
+    # belong to.
+    odom_topic: "/Odometry"
+    world_frame: "odom"
+    robot_frame: "base_link"
+    # Looked up once against robot_frame to put the ray origins at the sensor. The MID-360
+    # sits up the mast, and the difference between carving free space from there and from
+    # base_link is a cone of phantom free space punched through the floor.
+    lidar_frame: "livox_frame"
+    odom_match_tolerance_s: 0.05
+    # A cloud is held until the odometry sharing its stamp arrives, because BIEVR publishes
+    # the cloud FIRST -- measured on rosbag2_1970_01_01-10_06_09, by ~0.2 ms, with the
+    # odometry the very next message 84% of the time. Matching on arrival instead of waiting
+    # finds only the previous scan's pose and throws the scan away. This is how long to keep
+    # waiting before concluding the odometry is simply not coming.
+    pending_timeout_s: 0.5
+    # ---- Occupancy map ----------------------------------------------------------------
+    # Coarser than the heightmap below on purpose. This is the 3D voxel grid every ray is
+    # traced through, so it drives integration cost directly (rays touch ~1/resolution
+    # voxels per metre); the heightmap reads sub-voxel surface positions out of it via the
+    # voxel-mean layer, so a 0.15 m voxel does not quantise the ground to 0.15 m steps.
+    resolution_m: 0.15
+    hit_probability: 0.7
+    miss_probability: 0.4
+    # Matches lidar.max_range_m in bievr_mid360.yaml. Longer rays are clipped rather than
+    # dropped: past the MID-360's honest range the return is mostly noise but the emptiness
+    # in front of it is still a real measurement.
+    ray_max_range_m: 15.0
+    # 1 keeps every point. The registered cloud is already downsampled to
+    # preprocess.downsample_resolution_m (0.10 m) by BIEVR, and after its range gating only
+    # ~10% of the raw sensor cloud survives -- about 20k points/s, not the datasheet's 200k
+    # -- so there is no need to thin further. Raise it first if integration falls behind.
+    ray_stride: 1
+    # Regions further than this from the robot are dropped. The map is otherwise unbounded
+    # for the whole run, and because the heightmap walks the source map's extents, an
+    # unbounded map means a build that gets slower the longer you drive.
+    map_retain_radius_m: 30.0
+    # ---- Heightmap --------------------------------------------------------------------
+    # Matches global_traversability's resolution_m so the two grids are directly comparable
+    # and either can feed the same costmap layer.
+    heightmap_resolution_m: 0.10
+    # THE CPU DIAL. buildHeightmap() clears and rebuilds from scratch every call
+    # (Heightmap.cpp:534), it is unconditionally serial -- Heightmap.h:146 declares
+    # setThreadCount() and nothing in the repository defines it, so calling it is a link
+    # error -- and its cost scales with AREA, not with point count. 10 m here is a 20x20 m
+    # box, i.e. 40k columns, which the feasibility notes put at order 100 ms on a 1.7 GHz
+    # A78AE. Doubling this quadruples that.
+    heightmap_radius_m: 10.0
+    # 1 Hz against the above is ~0.1 of a core on an Orange Pi 5 Plus A76 (which is roughly
+    # 1.3x that A78AE, being 2.4 GHz against 1.7). Nav2's local costmap runs at 5 Hz, but it
+    # has its own inflation and this is terrain that changes at driving speed, not at
+    # obstacle speed. Raise it only after measuring: the cost is per build and nothing
+    # amortises it.
+    heightmap_rate_hz: 1.0
+    # Headroom the robot needs. Passed to Heightmap as min_clearance, so a surface with less
+    # than this above it is not offered as a supporting surface at all.
+    min_clearance_m: 0.6
+    # Vertical search window around the seed position, in metres. These also set the z
+    # extent of the cull box, so they bound the build as well as the search.
+    ceiling_m: 2.0
+    floor_m: 2.0
+    # planar | simple_fill | layered_fill | layered_fill_unordered.
+    #
+    # planar visits each column exactly once and is the cheapest by a wide margin. The
+    # layered modes keep more than one surface per column, so a ramp or an overhang stays
+    # traversable instead of collapsing into an obstacle -- worth having on a site with
+    # berms, and worth measuring before enabling on the rover.
+    mode: "planar"
+    # The reason to run OHM at all. Infers ground at the free/unknown boundary, so a pit the
+    # laser never reached the bottom of reads as a surface below the robot rather than as
+    # unobserved space.
+    generate_virtual_surface: true
+    # Require this many occupied neighbours before believing an inferred surface. 0 lets
+    # isolated speculative cells through, which on a noisy sand return is most of them.
+    virtual_surface_filter_threshold: 3
+    # ---- Cost mapping -----------------------------------------------------------------
+    # Slope at or above this is lethal; below it the cost ramps linearly to 99. Computed
+    # from neighbouring cell heights rather than from HeightmapVoxel's normal field, which
+    # is only populated when the source map carries CovarianceVoxel.
+    max_slope_deg: 25.0
+    # A virtual surface is INFERRED GROUND, not automatically a hole, and the distinction is
+    # the difference between a usable costmap and a wall. Measured on
+    # rosbag2_1970_01_01-10_06_09 over 60 s of replay:
+    #
+    #     generate_virtual_surface   known cells   virtual   traversable
+    #     true                       11400 (28%)      8396          1897
+    #     false                       3017 ( 8%)         2          2574
+    #
+    # Inference quadruples the mapped area, but three quarters of that area is inferred --
+    # because the MID-360's -7..+52 deg vertical FOV and lidar.min_range_m leave a wide
+    # unscanned annulus around the robot, and free space over unknown space is exactly what
+    # that looks like. Costing all of it near-lethal would be worse than not running OHM.
+    #
+    # So the cost comes from the DROP, not from the inference. A virtual surface more than
+    # virtual_drop_threshold_m below the median real surface within
+    # virtual_reference_radius_m gets virtual_surface_cost -- that is the negative obstacle.
+    # Everything else gets virtual_flat_cost.
+    #
+    # 90 rather than 100 on purpose: an inferred hole should push the planner away without
+    # being an immovable obstacle, and keeping it distinguishable from a measured lethal cell
+    # means you can see in RViz which is which.
+    virtual_surface_cost: 90
+    # Unconfirmed but level ground. Not free -- nothing has measured it -- but nothing
+    # suggests it is dangerous either.
+    virtual_flat_cost: 20
+    # A 15 cm drop is well above the sensor's per-point noise and the heightmap's own 10 cm
+    # quantisation, and well below anything the rover could drive out of.
+    virtual_drop_threshold_m: 0.15
+    # 0.6 m of surrounding ground to compare against: wide enough to span the unscanned gap
+    # at a pit rim, narrow enough that a real slope is not read as a drop.
+    virtual_reference_radius_m: 0.6
+    low_clearance_cost: 100
+    # /ohm_mapping/heightmap_cloud, coloured by cost. Cheap (it is one point per surface
+    # cell, ~40k at these settings) and the only practical way to see what the heightmap is
+    # actually doing. Turn off on the rover if the link is tight.
+    publish_cloud: true

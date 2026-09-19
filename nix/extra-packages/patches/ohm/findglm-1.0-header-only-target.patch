@@ -1,0 +1,17 @@
+--- a/cmake/Findglm.cmake	2026-09-19 17:22:25.535029031 +1000
++++ b/cmake/Findglm.cmake	2026-09-19 17:22:25.559913380 +1000
+@@ -46,6 +46,14 @@
+   )
+ else()
+   get_target_property(GLM_INCLUDE_DIRS glm::glm INTERFACE_INCLUDE_DIRECTORIES)
++  # glm 1.0 splits its export: glm::glm became a STATIC imported target carrying no
++  # include directories of its own, and the headers moved to glm::glm-header-only, which
++  # glm::glm only reaches through INTERFACE_LINK_LIBRARIES. Reading the property off
++  # glm::glm therefore yields NOTFOUND and the REQUIRED_VARS check below fails, even though
++  # linking glm::glm would have resolved the includes perfectly well.
++  if(NOT GLM_INCLUDE_DIRS AND TARGET glm::glm-header-only)
++    get_target_property(GLM_INCLUDE_DIRS glm::glm-header-only INTERFACE_INCLUDE_DIRECTORIES)
++  endif()
+ endif()
+ 
+ include(FindPackageHandleStandardArgs)
