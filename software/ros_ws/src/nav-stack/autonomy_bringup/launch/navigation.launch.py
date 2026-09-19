@@ -38,6 +38,10 @@ def generate_launch_description():
     # own tree is what actually enables smoother_server. An absolute path into the share
     # directory, which is why it cannot live in navigation.yaml.
     bt_xml = os.path.join(share, "behavior_trees", "navigate_to_pose_w_smoothing.xml")
+    # mission_bt_server's own small tree: request a safe zone waypoint from arena_server,
+    # then hand it to bt_navigator's own /navigate_to_pose action - i.e. the tree above,
+    # unmodified. Same reason this path cannot live in navigation.yaml either.
+    mission_bt_xml = os.path.join(share, "behavior_trees", "go_to_zone_waypoint.xml")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -76,6 +80,16 @@ def generate_launch_description():
             extra_params=[{"default_nav_to_pose_bt_xml": bt_xml}],
         ),
         nav2_node("nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"),
+        # Behind the RViz mission panel's two buttons. Brought up here rather than with
+        # localisation (where arena_server lives): it needs bt_navigator's
+        # /navigate_to_pose action, which only exists once this file's nodes are active.
+        Node(
+            package="mission_bt_server",
+            executable="mission_bt_server",
+            name="mission_bt_server",
+            parameters=[{"bt_xml_path": mission_bt_xml}, use_sim_time],
+            output="screen",
+        ),
         # THE ONE REMAP THAT CONNECTS NAV2 TO THIS ROVER. The smoother's output is nav2's
         # last word on velocity; twist_mux's navigation input is cmd_vel_nav_stamped
         # (perseus/config/twist_mux.yaml). Without this the stack runs perfectly and the
