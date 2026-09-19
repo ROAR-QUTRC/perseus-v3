@@ -188,6 +188,7 @@ namespace ohm_mapping
         cfg_.heightmap_radius_m = declare_parameter<double>("heightmap_radius_m", 10.0);
         cfg_.heightmap_rate_hz = declare_parameter<double>("heightmap_rate_hz", 1.0);
         cfg_.min_clearance_m = declare_parameter<double>("min_clearance_m", 0.6);
+        cfg_.ground_margin_m = declare_parameter<double>("ground_margin_m", 0.15);
         cfg_.ceiling_m = declare_parameter<double>("ceiling_m", 2.0);
         cfg_.floor_m = declare_parameter<double>("floor_m", 2.0);
         cfg_.mode = declare_parameter<std::string>("mode", "planar");
@@ -196,6 +197,8 @@ namespace ohm_mapping
             declare_parameter<int>("virtual_surface_filter_threshold", 3);
 
         cfg_.max_slope_deg = declare_parameter<double>("max_slope_deg", 25.0);
+        cfg_.slope_radius_m = declare_parameter<double>("slope_radius_m", 0.3);
+        cfg_.min_slope_fit_cells = declare_parameter<int>("min_slope_fit_cells", 6);
         cfg_.virtual_surface_cost = declare_parameter<int>("virtual_surface_cost", 90);
         cfg_.virtual_flat_cost = declare_parameter<int>("virtual_flat_cost", 20);
         cfg_.virtual_drop_threshold_m = declare_parameter<double>("virtual_drop_threshold_m", 0.15);
@@ -525,6 +528,8 @@ namespace ohm_mapping
         size_t surface_cells = 0;
         size_t virtual_cells = 0;
         size_t virtual_drop_cells = 0;
+        const auto slope_radius_cells =
+            std::max(1, static_cast<int>(std::lround(cfg_.slope_radius_m / res)));
         const auto reference_radius_cells =
             std::max(1, static_cast<int>(std::lround(cfg_.virtual_reference_radius_m / res)));
 
@@ -576,66 +581,107 @@ namespace ohm_mapping
                     continue;
                 }
 
-                // Clearance is reported as zero when nothing is known to be overhead, which is the
-                // common case outdoors and must not be read as "no headroom".
-                if (clearance[idx] > 0.0F && static_cast<double>(clearance[idx]) < cfg_.min_clearance_m)
+                // Clearance is reported as zero when nothing is known to be overhead, which is
+                // the common case outdoors and must not be read as "no headroom".
+                //
+                // ground_margin_m is the other half, and on this rover it is the important
+                // half. navigation.yaml records the ablation for the equivalent test in
+                // global_traversability: of the tests that flag open ground, clearance cost
+                // 1079 cells against 231 for steepness, and "every offending cell sits
+                // between ground_margin_m and 0.10 m of clearance -- not overhead structure,
+                // just the map's second copy of the floor". LIO z-wander writes the same
+                // ground twice 5-10 cm apart, and without a margin the upper copy reads as a
+                // ceiling 5 cm above the floor. So an obstruction closer than the margin is
+                // ground noise, not headroom.
+                const auto clearance_m = static_cast<double>(clearance[idx]);
+                if (clearance_m > cfg_.ground_margin_m && clearance_m < cfg_.min_clearance_m)
                 {
                     grid.data[idx] = static_cast<int8_t>(std::clamp(cfg_.low_clearance_cost, 0, 100));
                     continue;
                 }
 
-                // Central difference where both neighbours exist, one-sided where only one does, and
-                // zero slope where the cell is isolated -- an isolated cell has no gradient evidence
-                // either way, and guessing lethal there would make every map edge a wall.
-                double gx = 0.0;
-                double gy = 0.0;
-                const auto sample = [&](int sx, int sy, double* out)
+                // Slope from a least-squares plane fit over a neighbourhood, NOT from a
+                // one-cell finite difference.
+                //
+                // The difference is not cosmetic. A one-cell difference at 0.10 m spacing
+                // calls 25 deg lethal on a 4.7 cm step between adjacent cells, which sand
+                // scatter produces on its own -- and if the heightmap is finer than the
+                // source voxel grid, a single voxel-boundary step reads as a ~56 deg cliff.
+                // Fitting a plane over slope_radius_m averages the per-cell noise down by
+                // roughly sqrt(N) and measures the slope the ROBOT experiences, over its
+                // own footprint, rather than the slope between two adjacent samples.
+                double slope = 0.0;
                 {
-                    if (sx < 0 || sy < 0 || sx >= span || sy >= span)
+                    // Normal equations for z = a*x + b*y + c over the window, with x and y
+                    // taken relative to this cell so the system stays well conditioned.
+                    double sxx = 0.0;
+                    double sxy = 0.0;
+                    double syy = 0.0;
+                    double sx = 0.0;
+                    double sy = 0.0;
+                    double sz = 0.0;
+                    double sxz = 0.0;
+                    double syz = 0.0;
+                    double n = 0.0;
+                    for (int r = std::max(0, row - slope_radius_cells);
+                         r <= std::min(span - 1, row + slope_radius_cells); ++r)
                     {
-                        return false;
+                        for (int c = std::max(0, col - slope_radius_cells);
+                             c <= std::min(span - 1, col + slope_radius_cells); ++c)
+                        {
+                            const auto sidx = static_cast<size_t>(r) * static_cast<size_t>(span) +
+                                              static_cast<size_t>(c);
+                            if (std::isnan(height[sidx]))
+                            {
+                                continue;
+                            }
+                            // Virtual surfaces are excluded: they are inferred, and letting a
+                            // guessed height tilt the plane would turn the boundary of the
+                            // scanned region into a slope that was never measured.
+                            if (is_virtual[sidx] != 0U)
+                            {
+                                continue;
+                            }
+                            const double dx = static_cast<double>(c - col) * res;
+                            const double dy = static_cast<double>(r - row) * res;
+                            const double dz = static_cast<double>(height[sidx]);
+                            sxx += dx * dx;
+                            sxy += dx * dy;
+                            syy += dy * dy;
+                            sx += dx;
+                            sy += dy;
+                            sz += dz;
+                            sxz += dx * dz;
+                            syz += dy * dz;
+                            n += 1.0;
+                        }
                     }
-                    const auto sidx =
-                        static_cast<size_t>(sy) * static_cast<size_t>(span) + static_cast<size_t>(sx);
-                    if (std::isnan(height[sidx]))
+                    // Three points minimum to define a plane, and min_slope_fit_cells above
+                    // that to stop a bare handful of noisy samples deciding "lethal". Too few
+                    // is reported as flat rather than as steep: there is no gradient evidence
+                    // either way, and guessing lethal would make every edge of the scanned
+                    // region a wall.
+                    if (n >= static_cast<double>(std::max(3, cfg_.min_slope_fit_cells)))
                     {
-                        return false;
+                        // Solve the 3x3 symmetric system by elimination of c.
+                        const double a11 = sxx - sx * sx / n;
+                        const double a12 = sxy - sx * sy / n;
+                        const double a22 = syy - sy * sy / n;
+                        const double b1 = sxz - sx * sz / n;
+                        const double b2 = syz - sy * sz / n;
+                        const double det = a11 * a22 - a12 * a12;
+                        // Degenerate when the valid cells are collinear (a one-cell-wide
+                        // sliver at the edge of the scanned region), which is exactly where a
+                        // fitted slope would be meaningless.
+                        if (std::abs(det) > 1e-12)
+                        {
+                            const double ga = (b1 * a22 - b2 * a12) / det;
+                            const double gb = (a11 * b2 - a12 * b1) / det;
+                            slope = std::sqrt(ga * ga + gb * gb);
+                        }
                     }
-                    *out = static_cast<double>(height[sidx]);
-                    return true;
-                };
-                double lo = 0.0;
-                double hi = 0.0;
-                const bool have_lo_x = sample(col - 1, row, &lo);
-                const bool have_hi_x = sample(col + 1, row, &hi);
-                if (have_lo_x && have_hi_x)
-                {
-                    gx = (hi - lo) / (2.0 * res);
-                }
-                else if (have_hi_x)
-                {
-                    gx = (hi - static_cast<double>(height[idx])) / res;
-                }
-                else if (have_lo_x)
-                {
-                    gx = (static_cast<double>(height[idx]) - lo) / res;
-                }
-                const bool have_lo_y = sample(col, row - 1, &lo);
-                const bool have_hi_y = sample(col, row + 1, &hi);
-                if (have_lo_y && have_hi_y)
-                {
-                    gy = (hi - lo) / (2.0 * res);
-                }
-                else if (have_hi_y)
-                {
-                    gy = (hi - static_cast<double>(height[idx])) / res;
-                }
-                else if (have_lo_y)
-                {
-                    gy = (static_cast<double>(height[idx]) - lo) / res;
                 }
 
-                const double slope = std::sqrt(gx * gx + gy * gy);
                 if (max_slope_tan > 0.0 && slope >= max_slope_tan)
                 {
                     grid.data[idx] = kLethalCell;

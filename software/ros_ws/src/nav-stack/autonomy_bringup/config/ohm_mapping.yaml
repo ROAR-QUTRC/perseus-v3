@@ -62,9 +62,22 @@ ohm_mapping:
     # unbounded map means a build that gets slower the longer you drive.
     map_retain_radius_m: 30.0
     # ---- Heightmap --------------------------------------------------------------------
-    # Matches global_traversability's resolution_m so the two grids are directly comparable
-    # and either can feed the same costmap layer.
-    heightmap_resolution_m: 0.10
+    # MUST NOT be finer than resolution_m above, and that is the single biggest noise
+    # control in this file. A heightmap cell smaller than a source voxel samples the voxel
+    # grid's own quantisation: one 0.15 m voxel step across a 0.10 m cell is a gradient of
+    # 1.5, i.e. 56 deg, so every voxel boundary reads as a cliff.
+    #
+    # Measured on rosbag2_1970_01_01-10_06_09, 20x20 m window, plane-fit slope throughout:
+    #
+    #     voxel / heightmap    coverage   lethal cells   as % of known
+    #     0.15 / 0.10             27%            228          2.1%
+    #     0.10 / 0.10             60%            434          1.8%
+    #     0.15 / 0.20             61%             22          0.4%
+    #
+    # 0.20 gives the same coverage as the fine matched grid for a twentieth of the false
+    # obstacles and a quarter of the cells. Coarser than global_traversability's 0.1 m grid,
+    # which is the trade: this node is the hazard signal, not the whole costmap.
+    heightmap_resolution_m: 0.20
     # THE CPU DIAL. buildHeightmap() clears and rebuilds from scratch every call
     # (Heightmap.cpp:534), it is unconditionally serial -- Heightmap.h:146 declares
     # setThreadCount() and nothing in the repository defines it, so calling it is a link
@@ -81,6 +94,14 @@ ohm_mapping:
     # Headroom the robot needs. Passed to Heightmap as min_clearance, so a surface with less
     # than this above it is not offered as a supporting surface at all.
     min_clearance_m: 0.6
+    # And the floor of that test. Without it the clearance check is the single largest
+    # source of false obstacles -- navigation.yaml's ablation of the same test in
+    # global_traversability cost 1079 cells to clearance against 231 to steepness, and
+    # records that "every offending cell sits between ground_margin_m and 0.10 m of
+    # clearance -- not overhead structure, just the map's second copy of the floor". LIO
+    # z-wander writes the ground twice, 5-10 cm apart. An obstruction closer than this to
+    # the surface is that second copy, not a ceiling.
+    ground_margin_m: 0.15
     # Vertical search window around the seed position, in metres. These also set the z
     # extent of the cull box, so they bound the build as well as the search.
     ceiling_m: 2.0
@@ -101,9 +122,25 @@ ohm_mapping:
     virtual_surface_filter_threshold: 3
     # ---- Cost mapping -----------------------------------------------------------------
     # Slope at or above this is lethal; below it the cost ramps linearly to 99. Computed
-    # from neighbouring cell heights rather than from HeightmapVoxel's normal field, which
-    # is only populated when the source map carries CovarianceVoxel.
-    max_slope_deg: 25.0
+    # from a least-squares plane fit over slope_radius_m of neighbouring cell heights,
+    # rather than from HeightmapVoxel's normal field (only populated when the source map
+    # carries CovarianceVoxel).
+    #
+    # 30, not 25, and not by taste: navigation.yaml records for global_traversability's
+    # equivalent test that "open ground here already reaches 13.5 deg, so tightening this
+    # flags flat regolith". Same site, same LiDAR, same argument.
+    max_slope_deg: 30.0
+    # THE NOISE DIAL, and the reason the first version of this node painted the arena with
+    # obstacles. A one-cell finite difference at 0.10 m spacing calls 25 deg lethal on a
+    # 4.7 cm step between adjacent cells -- which sand scatter produces unaided -- so the
+    # slope is fitted over a neighbourhood instead. 0.3 m matches
+    # global_traversability's neighbourhood_radius_m, which was arrived at on this site.
+    slope_radius_m: 0.3
+    # Measured cells needed in that neighbourhood before the fit is believed; below it the
+    # cell reports flat rather than steep, so the edge of the scanned region does not
+    # become a wall. global_traversability's min_plane_fit_points is 4; this is a little
+    # stricter because it counts grid cells, each already an average of several points.
+    min_slope_fit_cells: 6
     # A virtual surface is INFERRED GROUND, not automatically a hole, and the distinction is
     # the difference between a usable costmap and a wall. Measured on
     # rosbag2_1970_01_01-10_06_09 over 60 s of replay:

@@ -103,6 +103,10 @@ namespace ohm_mapping
         /// Passed to Heightmap's constructor as min_clearance: a surface with less headroom
         /// than this is not a surface the robot can occupy.
         double min_clearance_m;
+        /// An overhead obstruction closer than this to the surface is the map's own second
+        /// copy of the floor, not a ceiling. Matches global_traversability's parameter of
+        /// the same name and for the same measured reason.
+        double ground_margin_m;
         /// Vertical search limits relative to the seed position, in metres. Positive enables.
         double ceiling_m;
         double floor_m;
@@ -122,6 +126,15 @@ namespace ohm_mapping
         /// than from HeightmapVoxel's normal, which is only populated when the source map
         /// carries CovarianceVoxel.
         double max_slope_deg;
+        /// Radius of the neighbourhood the slope plane is fitted over. This is the noise
+        /// dial: a one-cell difference at 0.10 m calls 25 deg lethal on a 4.7 cm step, which
+        /// sand scatter alone produces. Fitting over a radius averages that down and
+        /// measures the slope across something closer to the robot's own footprint.
+        double slope_radius_m;
+        /// Minimum measured cells in that neighbourhood before a fitted slope is believed.
+        /// Below it the cell is reported flat, not steep -- there is no gradient evidence
+        /// either way, and guessing lethal would wall off every edge of the scanned region.
+        int min_slope_fit_cells;
         /// Cost for a virtual surface that sits more than `virtual_drop_threshold_m` below
         /// the real ground around it -- i.e. an actual inferred hole. Deliberately high but
         /// not 100: an unconfirmed hole should repel the planner without being an immovable

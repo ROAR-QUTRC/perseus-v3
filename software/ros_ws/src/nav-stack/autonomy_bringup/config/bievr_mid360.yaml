@@ -144,7 +144,7 @@ optimization:
   # genuinely large legitimate residuals, which is where too tight a threshold
   # would start rejecting real data. Re-run the sweep on a rougher site before
   # going lower.
-  huber_delta: 0.01
+  huber_delta: 0.008
 imu:
   window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The
