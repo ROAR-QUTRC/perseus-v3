@@ -9,10 +9,15 @@
   arena-server,
   geometry-msgs,
   interfaces,
+  nav-msgs,
   pluginlib,
   qt5,
   rclcpp,
   rviz-common,
+  std-srvs,
+  tf2,
+  tf2-geometry-msgs,
+  tf2-ros,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-rviz-plugins";
@@ -31,10 +36,15 @@ buildRosPackage rec {
     arena-server
     geometry-msgs
     interfaces
+    nav-msgs
     pluginlib
     qt5.qtbase
     rclcpp
     rviz-common
+    std-srvs
+    tf2
+    tf2-geometry-msgs
+    tf2-ros
   ];
   nativeBuildInputs = [ ament-cmake ];
 

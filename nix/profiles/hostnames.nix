@@ -26,4 +26,10 @@
   #   "big-brain".module = {
   #     env.ROAR_DDS_IFACE = "enP8p1s0";
   #   };
+
+  # autonomy-brain: holds 192.168.2.119 on enP4p65s0 (dynamic/DHCP). The other up
+  # interface, enP3p49s0, carries no IPv4 address.
+  "autonomy-brain".module = {
+    env.ROAR_DDS_IFACE = "enP4p65s0";
+  };
 }

@@ -17,6 +17,7 @@
   rviz-plugins,
   sensors,
   slam-toolbox,
+  vision,
   watchdog,
   xacro,
 }:
@@ -45,6 +46,7 @@ buildRosPackage rec {
     rviz-plugins
     sensors
     slam-toolbox
+    vision
     watchdog
     xacro
   ];

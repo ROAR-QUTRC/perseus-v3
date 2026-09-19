@@ -27,4 +27,13 @@
       threshold. Greys a channel that has nothing commanded to measure.
     </description>
   </class>
+  <class
+    name="rviz_plugins/MissionControlPanel"
+    type="rviz_plugins::MissionControlPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Two buttons, one per mission zone. Each calls mission_bt_server, which
+      requests a safe point from arena_server and navigates there via nav2.
+    </description>
+  </class>
 </library>

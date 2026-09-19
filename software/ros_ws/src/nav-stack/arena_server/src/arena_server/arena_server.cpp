@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <limits>
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2/utils.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -34,6 +35,26 @@ namespace arena_server
             declare_parameter<double>("zone_wall_thickness_m", 0.04);
         _zone_wall_alpha = declare_parameter<double>("zone_wall_alpha", 0.35);
         _zone_labels = declare_parameter<bool>("zone_labels", true);
+
+        _use_costmap = declare_parameter<bool>("use_costmap", true);
+        _costmap_topic =
+            declare_parameter<std::string>("costmap_topic", "/costmap");
+        _waypoint_sample_resolution_m =
+            declare_parameter<double>("waypoint_sample_resolution_m", 0.2);
+        _waypoint_max_cost = declare_parameter<double>("waypoint_max_cost", 50.0);
+        _waypoint_cost_weight =
+            declare_parameter<double>("waypoint_cost_weight", 0.7);
+        _waypoint_distance_weight =
+            declare_parameter<double>("waypoint_distance_weight", 0.3);
+        _construction_avoid_zone_name = declare_parameter<std::string>(
+            "construction_avoid_zone_name", "target_berm_area");
+        _wall_standoff_m = declare_parameter<double>("wall_standoff_m", 0.5);
+        _construction_wall_standoff_m =
+            declare_parameter<double>("construction_wall_standoff_m", 0.3);
+        _excavation_clearance_radius_m =
+            declare_parameter<double>("excavation_clearance_radius_m", 1.0);
+        _waypoint_unknown_is_free =
+            declare_parameter<bool>("waypoint_unknown_is_free", false);
 
         // The layout is JSON, not ROS parameters, so the base station's minimap can
         // read byte-for-byte the same file. Both ends log summary() at startup: the
@@ -94,6 +115,30 @@ namespace arena_server
             std::bind(&ArenaServer::_on_localise, this, std::placeholders::_1,
                       std::placeholders::_2),
             rclcpp::ServicesQoS(), _service_group);
+
+        // Neither waypoint service blocks, so both are fine on the node's default
+        // callback group - unlike /arena/localise they don't need the reentrant one.
+        _excavation_waypoint_srv = create_service<interfaces::srv::RequestZoneWaypoint>(
+            "/arena/request_excavation_waypoint",
+            std::bind(&ArenaServer::_on_request_excavation_waypoint, this,
+                      std::placeholders::_1, std::placeholders::_2));
+        _construction_waypoint_srv =
+            create_service<interfaces::srv::RequestZoneWaypoint>(
+                "/arena/request_construction_waypoint",
+                std::bind(&ArenaServer::_on_request_construction_waypoint, this,
+                          std::placeholders::_1, std::placeholders::_2));
+
+        // Permanent subscription, not on-demand like _detections_sub: there is no
+        // lazy camera here to justify tearing it down between requests, and
+        // global_traversability only republishes every update_period_s (5 s by
+        // default), so a fresh subscribe-per-request could easily wait a full
+        // period for the first message.
+        if (_use_costmap)
+        {
+            _costmap_sub = create_subscription<nav_msgs::msg::OccupancyGrid>(
+                _costmap_topic, rclcpp::QoS(1).transient_local(),
+                std::bind(&ArenaServer::_on_costmap, this, std::placeholders::_1));
+        }
 
         // The one thing that has to cross the network. The base station draws the
         // arena from its own copy of the JSON, so this small pose is all it needs -
@@ -170,10 +215,10 @@ namespace arena_server
                     x, y, yaw);
     }
 
-    void ArenaServer::_publish_robot_pose()
+    bool ArenaServer::_robot_pose_in_map(geometry_msgs::msg::Pose& pose) const
     {
         if (!_have_transform)
-            return;
+            return false;
         geometry_msgs::msg::TransformStamped odom_base;
         try
         {
@@ -183,26 +228,34 @@ namespace arena_server
         }
         catch (const tf2::TransformException&)
         {
-            // Nothing publishing odom -> base_link yet. Silent on purpose: this runs on
-            // a timer, and warning every cycle before the EKF is up is pure noise.
-            return;
+            // Nothing publishing odom -> base_link yet.
+            return false;
         }
 
         const double yaw = tf2::getYaw(_map_odom.transform.rotation);
         const double c = std::cos(yaw), s = std::sin(yaw);
+        pose.position.x = _map_odom.transform.translation.x +
+                          c * odom_base.transform.translation.x -
+                          s * odom_base.transform.translation.y;
+        pose.position.y = _map_odom.transform.translation.y +
+                          s * odom_base.transform.translation.x +
+                          c * odom_base.transform.translation.y;
+        pose.position.z = 0.0;
+        tf2::Quaternion q;
+        q.setRPY(0.0, 0.0, yaw + tf2::getYaw(odom_base.transform.rotation));
+        pose.orientation = tf2::toMsg(q);
+        return true;
+    }
+
+    void ArenaServer::_publish_robot_pose()
+    {
         geometry_msgs::msg::PoseStamped pose;
         pose.header.frame_id = _map_frame;
         pose.header.stamp = now();
-        pose.pose.position.x = _map_odom.transform.translation.x +
-                               c * odom_base.transform.translation.x -
-                               s * odom_base.transform.translation.y;
-        pose.pose.position.y = _map_odom.transform.translation.y +
-                               s * odom_base.transform.translation.x +
-                               c * odom_base.transform.translation.y;
-        pose.pose.position.z = 0.0;
-        tf2::Quaternion q;
-        q.setRPY(0.0, 0.0, yaw + tf2::getYaw(odom_base.transform.rotation));
-        pose.pose.orientation = tf2::toMsg(q);
+        // Silent on failure, on purpose: this runs on a timer, and warning every
+        // cycle before the EKF/localise fix is up is pure noise.
+        if (!_robot_pose_in_map(pose.pose))
+            return;
         _pose_pub->publish(pose);
     }
 
@@ -571,6 +624,352 @@ namespace arena_server
         response->message = "fix from " + std::to_string(ids.size()) +
                             " markers, residual " + std::to_string(residual) + " m";
         RCLCPP_INFO(get_logger(), "%s", response->message.c_str());
+    }
+
+    void ArenaServer::_on_costmap(
+        nav_msgs::msg::OccupancyGrid::ConstSharedPtr message)
+    {
+        std::lock_guard<std::mutex> lock(_costmap_mutex);
+        _latest_costmap = message;
+    }
+
+    const Zone* ArenaServer::_find_zone(const std::string& name) const
+    {
+        for (const auto& z : _layout.zones)
+        {
+            if (z.name == name)
+                return &z;
+        }
+        return nullptr;
+    }
+
+    namespace
+    {
+        /// @brief True if (x, y) falls inside a zone's axis-aligned rectangle.
+        bool point_in_zone(double x, double y, const Zone& zone)
+        {
+            const double hx = zone.width * 0.5, hy = zone.height * 0.5;
+            return x >= zone.x - hx && x <= zone.x + hx && y >= zone.y - hy &&
+                   y <= zone.y + hy;
+        }
+    }  // namespace
+
+    bool ArenaServer::_area_clear(const nav_msgs::msg::OccupancyGrid& costmap,
+                                  double ox, double oy, double radius_m) const
+    {
+        if (radius_m <= 0.0)
+            return true;
+
+        const double resolution = costmap.info.resolution;
+        const int radius_cells = static_cast<int>(std::ceil(radius_m / resolution));
+        const int center_col = static_cast<int>(
+            std::floor((ox - costmap.info.origin.position.x) / resolution));
+        const int center_row = static_cast<int>(
+            std::floor((oy - costmap.info.origin.position.y) / resolution));
+
+        for (int drow = -radius_cells; drow <= radius_cells; ++drow)
+        {
+            for (int dcol = -radius_cells; dcol <= radius_cells; ++dcol)
+            {
+                if (drow * drow + dcol * dcol > radius_cells * radius_cells)
+                    continue;  // outside the disc, only its bounding square
+
+                const int row = center_row + drow, col = center_col + dcol;
+                if (row < 0 || col < 0 || row >= static_cast<int>(costmap.info.height) ||
+                    col >= static_cast<int>(costmap.info.width))
+                {
+                    if (_waypoint_unknown_is_free)
+                        continue;
+                    return false;  // off the mapped area - cannot confirm it is clear
+                }
+
+                const int8_t cell =
+                    costmap.data[static_cast<size_t>(row) * costmap.info.width +
+                                 static_cast<size_t>(col)];
+                if (cell < 0)
+                {
+                    if (_waypoint_unknown_is_free)
+                        continue;
+                    return false;
+                }
+                if (static_cast<double>(cell) > _waypoint_max_cost)
+                    return false;  // a real, known cost is never treated as free
+            }
+        }
+        return true;
+    }
+
+    bool ArenaServer::_find_safe_point(const std::string& zone_name,
+                                       const std::string& avoid_zone_name,
+                                       double wall_standoff_m,
+                                       double clearance_radius_m,
+                                       geometry_msgs::msg::PoseStamped& waypoint,
+                                       double& cost, double& costmap_age_s,
+                                       std::string& error) const
+    {
+        cost = -1.0;
+        costmap_age_s = 0.0;
+
+        const Zone* zone = _find_zone(zone_name);
+        if (!zone)
+        {
+            error = "no zone named '" + zone_name + "' in the loaded layout";
+            return false;
+        }
+
+        const Zone* avoid_zone = nullptr;
+        if (!avoid_zone_name.empty())
+        {
+            avoid_zone = _find_zone(avoid_zone_name);
+            if (!avoid_zone)
+            {
+                error =
+                    "no zone named '" + avoid_zone_name + "' to avoid in the loaded layout";
+                return false;
+            }
+        }
+
+        if (!_have_transform)
+        {
+            error = _map_frame + " -> " + _odom_frame + " not established yet";
+            return false;
+        }
+
+        waypoint.header.frame_id = _map_frame;
+        waypoint.header.stamp = now();
+        waypoint.pose.orientation.w = 1.0;
+
+        nav_msgs::msg::OccupancyGrid::ConstSharedPtr costmap;
+        if (_use_costmap)
+        {
+            std::lock_guard<std::mutex> lock(_costmap_mutex);
+            costmap = _latest_costmap;
+            if (!costmap)
+            {
+                error = "use_costmap is true but nothing has been received yet on " +
+                        _costmap_topic;
+                return false;
+            }
+            if (costmap->info.resolution <= 0.0 || costmap->info.width == 0 ||
+                costmap->info.height == 0)
+            {
+                error = "received costmap has no usable grid (zero resolution or size)";
+                return false;
+            }
+        }
+
+        // Nothing to search for: no exclusion to honour and no costmap to check
+        // against, so every point in the zone is as good as any other.
+        if (!_use_costmap && !avoid_zone)
+        {
+            waypoint.pose.position.x = zone->x;
+            waypoint.pose.position.y = zone->y;
+            return true;
+        }
+
+        geometry_msgs::msg::Pose robot_pose;
+        const bool have_robot_pose = _robot_pose_in_map(robot_pose);
+
+        // map -> odom, the inverse of the rotation _robot_pose_in_map applies going
+        // odom -> map, needed here because the costmap's cells are indexed in odom.
+        const double yaw = tf2::getYaw(_map_odom.transform.rotation);
+        const double c = std::cos(yaw), s = std::sin(yaw);
+        const double tx = _map_odom.transform.translation.x;
+        const double ty = _map_odom.transform.translation.y;
+
+        const double hx = zone->width * 0.5, hy = zone->height * 0.5;
+        const double step = _waypoint_sample_resolution_m > 0.0
+                                ? _waypoint_sample_resolution_m
+                                : (_use_costmap ? costmap->info.resolution : 0.2);
+        const double diagonal_m = std::hypot(zone->width, zone->height);
+
+        // Inset the search rectangle off this zone's wall-adjacent sides only (see
+        // wall_standoff_m's doc). Falls back to the un-inset side if the standoff
+        // would otherwise invert the range (a zone narrower than 2x the standoff on
+        // an axis with walls on both sides), rather than searching an empty range.
+        double min_x = zone->x - hx + (zone->draw_west ? 0.0 : wall_standoff_m);
+        double max_x = zone->x + hx - (zone->draw_east ? 0.0 : wall_standoff_m);
+        double min_y = zone->y - hy + (zone->draw_south ? 0.0 : wall_standoff_m);
+        double max_y = zone->y + hy - (zone->draw_north ? 0.0 : wall_standoff_m);
+        if (min_x > max_x)
+        {
+            min_x = zone->x - hx;
+            max_x = zone->x + hx;
+        }
+        if (min_y > max_y)
+        {
+            min_y = zone->y - hy;
+            max_y = zone->y + hy;
+        }
+
+        bool found = false;
+        double best_score = std::numeric_limits<double>::infinity();
+        double best_x = 0.0, best_y = 0.0, best_cost = -1.0;
+
+        // Counted so a "no free point" failure names WHY, rather than leaving the
+        // three generic possibilities in the message below to guess between - in
+        // particular, distinguishing "nothing sampled is mapped yet" from
+        // "sampled and it is genuinely over cost" is exactly what tells a caller
+        // whether waiting for more map coverage would help versus not.
+        size_t sampled = 0, excluded_by_avoid_zone = 0, no_coverage = 0,
+               over_cost = 0, failed_clearance = 0;
+
+        for (double mx = min_x; mx <= max_x; mx += step)
+        {
+            for (double my = min_y; my <= max_y; my += step)
+            {
+                ++sampled;
+                if (avoid_zone && point_in_zone(mx, my, *avoid_zone))
+                {
+                    ++excluded_by_avoid_zone;  // e.g. construction_zone's target_berm_area
+                    continue;
+                }
+
+                double value = -1.0;  // stays -1 when use_costmap is false: unscored
+                if (_use_costmap)
+                {
+                    const double dx = mx - tx, dy = my - ty;
+                    const double ox = c * dx + s * dy;
+                    const double oy = -s * dx + c * dy;
+
+                    const int col = static_cast<int>(std::floor(
+                        (ox - costmap->info.origin.position.x) / costmap->info.resolution));
+                    const int row = static_cast<int>(std::floor(
+                        (oy - costmap->info.origin.position.y) / costmap->info.resolution));
+                    const bool off_grid = col < 0 || row < 0 ||
+                                          col >= static_cast<int>(costmap->info.width) ||
+                                          row >= static_cast<int>(costmap->info.height);
+
+                    if (off_grid && !_waypoint_unknown_is_free)
+                    {
+                        ++no_coverage;  // outside what the costmap currently covers
+                        continue;
+                    }
+
+                    if (!off_grid)
+                    {
+                        const int8_t cell =
+                            costmap->data[static_cast<size_t>(row) * costmap->info.width +
+                                          static_cast<size_t>(col)];
+                        if (cell < 0 && !_waypoint_unknown_is_free)
+                        {
+                            ++no_coverage;  // covered by the grid, but not enough points yet
+                            continue;
+                        }
+                        if (cell >= 0 && static_cast<double>(cell) > _waypoint_max_cost)
+                        {
+                            ++over_cost;
+                            continue;
+                        }
+                        if (cell >= 0)
+                            value = static_cast<double>(cell);
+                    }
+                    // else: off_grid and _waypoint_unknown_is_free - value stays -1,
+                    // scored as free below, same as an in-grid unknown cell would be.
+
+                    if (!_area_clear(*costmap, ox, oy, clearance_radius_m))
+                    {
+                        ++failed_clearance;  // own cell is fine, but not enough room around it
+                        continue;
+                    }
+                }
+
+                double score = _use_costmap ? _waypoint_cost_weight * (std::max(value, 0.0) / 100.0)
+                                            : 0.0;
+                if (have_robot_pose)
+                {
+                    const double dist =
+                        std::hypot(mx - robot_pose.position.x, my - robot_pose.position.y);
+                    score += _waypoint_distance_weight *
+                             (diagonal_m > 0.0 ? dist / diagonal_m : dist);
+                }
+
+                if (score < best_score)
+                {
+                    best_score = score;
+                    best_x = mx;
+                    best_y = my;
+                    best_cost = value;
+                    found = true;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            error = "no free point";
+            if (avoid_zone)
+                error += " outside " + avoid_zone_name;
+            if (clearance_radius_m > 0.0)
+                error += " with " + std::to_string(clearance_radius_m) + " m clear around it";
+            error += " found in zone '" + zone_name + "' (sampled " +
+                     std::to_string(sampled) + ": " +
+                     std::to_string(excluded_by_avoid_zone) + " excluded, " +
+                     std::to_string(no_coverage) +
+                     " not yet mapped, " + std::to_string(over_cost) +
+                     " over waypoint_max_cost, " + std::to_string(failed_clearance) +
+                     " failed the clearance check), searched [" +
+                     std::to_string(min_x) + ", " + std::to_string(max_x) + "] x [" +
+                     std::to_string(min_y) + ", " + std::to_string(max_y) +
+                     "] (wall_standoff_m=" + std::to_string(wall_standoff_m) + ")";
+            if (_use_costmap)
+            {
+                error +=
+                    "; the costmap may not cover it yet, it is fully obstructed, "
+                    "or waypoint_max_cost (" +
+                    std::to_string(_waypoint_max_cost) + ") is too strict";
+            }
+            return false;
+        }
+
+        waypoint.pose.position.x = best_x;
+        waypoint.pose.position.y = best_y;
+        cost = best_cost;
+        if (_use_costmap)
+            costmap_age_s = (now() - costmap->header.stamp).seconds();
+
+        // Face the zone's own center rather than leave the identity orientation the
+        // caller never asked for. A candidate near a wall-adjacent edge (even after
+        // wall_standoff_m) is exactly where an arbitrary fixed heading is most
+        // likely to point the rover straight at the wall it is standing next to;
+        // the zone center is by construction on the open side.
+        const double to_center_x = zone->x - best_x, to_center_y = zone->y - best_y;
+        if (std::hypot(to_center_x, to_center_y) > 1e-6)
+        {
+            tf2::Quaternion q;
+            q.setRPY(0.0, 0.0, std::atan2(to_center_y, to_center_x));
+            waypoint.pose.orientation = tf2::toMsg(q);
+        }
+        return true;
+    }
+
+    void ArenaServer::_on_request_excavation_waypoint(
+        const std::shared_ptr<interfaces::srv::RequestZoneWaypoint::Request>,
+        std::shared_ptr<interfaces::srv::RequestZoneWaypoint::Response>
+            response)
+    {
+        std::string error;
+        response->success = _find_safe_point(
+            "excavation_zone", "", _wall_standoff_m, _excavation_clearance_radius_m,
+            response->waypoint, response->cost, response->costmap_age_s, error);
+        response->message = error;
+        if (!response->success)
+            RCLCPP_WARN(get_logger(), "%s", error.c_str());
+    }
+
+    void ArenaServer::_on_request_construction_waypoint(
+        const std::shared_ptr<interfaces::srv::RequestZoneWaypoint::Request>,
+        std::shared_ptr<interfaces::srv::RequestZoneWaypoint::Response>
+            response)
+    {
+        std::string error;
+        response->success = _find_safe_point(
+            "construction_zone", _construction_avoid_zone_name,
+            _construction_wall_standoff_m, 0.0, response->waypoint, response->cost,
+            response->costmap_age_s, error);
+        response->message = error;
+        if (!response->success)
+            RCLCPP_WARN(get_logger(), "%s", error.c_str());
     }
 
 }  // namespace arena_server
