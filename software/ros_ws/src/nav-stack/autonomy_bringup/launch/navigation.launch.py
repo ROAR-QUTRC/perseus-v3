@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Launch the terrain costmap and the full nav2 stack that drives to a goal.
+"""Launch the terrain costmaps and the full nav2 stack that drives to a goal.
 
-    /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
-                                                    -> smoother_server
-                                                    -> controller_server -> /cmd_vel
-                                                    -> velocity_smoother -> /cmd_vel_nav_stamped
+    /Laser_map   -> global_traversability -> /costmap ---------------> planner_server   -> /plan
+                                                       |                smoother_server
+    /livox/lidar -> local_traversability                -> controller_server -> /cmd_vel
+                    -> /local_costmap_terrain --------/                 velocity_smoother
+                                                                          -> /cmd_vel_nav_stamped
+
+TWO TERRAIN COSTMAPS, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE. global_traversability reads
+the accumulated LIO map every 5 s and covers the whole arena, so it is what the planner plans
+on. local_traversability reads the raw Livox scan at sensor rate over an 8 m window, so it is
+what the controller reacts to. Both land in the controller's local costmap, the local one
+layered on top with use_maximum -- see local_costmap in config/navigation.yaml.
 
 THIS LAUNCH FILE MOVES THE ROVER. An rviz "2D Goal Pose" makes it drive: bt_navigator
 subscribes to /goal_pose directly, so the button works without the nav2 rviz panel.
@@ -66,6 +73,21 @@ def generate_launch_description():
             package="global_traversability",
             executable="global_traversability",
             name="global_traversability",
+            parameters=[config_file, use_sim_time],
+            output="screen",
+        ),
+        # The reactive half. Not a lifecycle node and not in lifecycle_manager's
+        # node_names below: it is a plain publisher, so it comes up with the process and
+        # the local costmap picks its grid up whenever it appears. It needs TF
+        # (odom -> livox_frame and odom -> base_footprint) and the raw Livox scan, both
+        # of which come from localisation.launch.py and the sensor drivers -- without
+        # them it logs a throttled "Dropping scan" and publishes nothing, which is the
+        # intended failure: nav2 then runs on the global terrain map alone, exactly as
+        # it did before this node existed.
+        Node(
+            package="local_traversability",
+            executable="local_traversability",
+            name="local_traversability",
             parameters=[config_file, use_sim_time],
             output="screen",
         ),

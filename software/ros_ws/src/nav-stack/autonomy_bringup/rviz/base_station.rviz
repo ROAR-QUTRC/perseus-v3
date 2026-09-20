@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Description Topic1
+        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
@@ -109,11 +110,7 @@ Visualization Manager:
           Value: true
         front_left_motor:
           Value: true
-        front_left_wheel:
-          Value: true
         front_right_motor:
-          Value: true
-        front_right_wheel:
           Value: true
         left_rocker:
           Value: true
@@ -129,11 +126,7 @@ Visualization Manager:
           Value: true
         rear_left_motor:
           Value: true
-        rear_left_wheel:
-          Value: true
         rear_right_motor:
-          Value: true
-        rear_right_wheel:
           Value: true
         right_rocker:
           Value: true
@@ -156,18 +149,14 @@ Visualization Manager:
                     {}
                 left_rocker:
                   front_left_motor:
-                    front_left_wheel:
-                      {}
+                    {}
                   rear_left_motor:
-                    rear_left_wheel:
-                      {}
+                    {}
                 right_rocker:
                   front_right_motor:
-                    front_right_wheel:
-                      {}
+                    {}
                   rear_right_motor:
-                    rear_right_wheel:
-                      {}
+                    {}
                 sensor_mount:
                   camera_bottom_screw_frame:
                     camera_link:
@@ -214,159 +203,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_footprint:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_bottom_screw_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_imu_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        chassis:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        differential_bar:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flange_bearing:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_imu_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rear_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        sensor_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -384,7 +220,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/PointCloud2
-      Color: 224; 27; 36
+      Color: 255; 255; 255
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -396,9 +232,9 @@ Visualization Manager:
       Name: Livox Cloud
       Position Transformer: XYZ
       Selectable: true
-      Size (Pixels): 2
-      Size (m): 0.019999999552965164
-      Style: Squares
+      Size (Pixels): 4
+      Size (m): 0.05000000074505806
+      Style: Flat Squares
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -577,7 +413,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Local 2D Projection
       Topic:
         Depth: 5
@@ -593,7 +429,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /local_costmap/costmap_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 0.699999988079071
       Binary representation: false
       Binary threshold: 100
@@ -663,7 +499,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 8.126937866210938
+      Distance: 7.342294216156006
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
