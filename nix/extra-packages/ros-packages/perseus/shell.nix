@@ -89,6 +89,7 @@ pkgs.mkShell {
           std-msgs
           std-srvs
           tf2
+          tf2-eigen
           tf2-geometry-msgs
           tf2-ros
           twist-mux
