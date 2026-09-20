@@ -24,6 +24,7 @@
   <depend>footprint_broadcaster</depend>
   <depend>arena_server</depend>
   <depend>global_traversability</depend>
+  <depend>local_traversability</depend>
   <!-- health_monitor, launched alongside localisation -->
   <depend>health_check</depend>
   <!-- imu_processors components and point_cloud_compress.launch.py, both brought up by
