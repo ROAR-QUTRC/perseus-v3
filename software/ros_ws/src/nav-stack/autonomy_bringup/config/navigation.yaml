@@ -80,7 +80,7 @@ planner_server:
     # Only warns if planning is slower than this; nothing plans on a timer.
     expected_planner_frequency: 1.0
     # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
-    # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
+    # controller_plugins below uses for FollowPath/RPP/DWB. The behaviour tree currently defaults to
     # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
     # switch back to GridBased, or override live by publishing the name to /planner_selector,
     # e.g. `ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"` before
@@ -102,8 +102,8 @@ planner_server:
       # Any-angle alternative to GridBased: takes line-of-sight shortcuts across the grid
       # instead of being locked to 8-connected moves, so the raw path already has fewer and
       # gentler direction changes for smoother_server to clean up - and, downstream, fewer
-      # corners sharp enough to trip FollowPath's rotate_to_heading_min_angle into a full
-      # stop-and-pivot. Does NOT reason about robot heading/turning radius the way
+      # corners sharp enough to trip a stop-and-pivot out of the controller (RPP's
+      # rotate_to_heading_min_angle, MPPI's PathAngleCritic.max_angle_to_furthest). Does NOT reason about robot heading/turning radius the way
       # Hybrid-A*/SMAC would; irrelevant here since this skid-steer can pivot on the spot.
       plugin: "nav2_theta_star_planner::ThetaStarPlanner"
       how_many_corners: 8
@@ -184,6 +184,20 @@ controller_server:
   ros__parameters:
     # 20.0 is nav2's default; halved for the Orange Pi, which also runs BIEVR-LIO.
     controller_frequency: 10.0
+    # HOW LONG computeControl() WILL WAIT FOR local_costmap TO GO current BEFORE KILLING
+    # THE GOAL. nav2's default is 0.3 s, which cannot work against this terrain pipeline.
+    # Every time the LiDAR map grows, local_costmap's StaticLayer resizes and drops out of
+    # isCurrent(); it can only come back when the next /costmap arrives, and
+    # global_traversability publishes on update_period_s: 5.0. So there is a window of up
+    # to 5 s after each resize in which the 0.3 s wait CANNOT succeed, and any goal landing
+    # in it dies with "Costmap timed out waiting for update" before a single control cycle
+    # runs -- for ANY controller, since this wait sits in ControllerServer above the plugin.
+    # Looks random from outside because it depends on goal timing vs resize timing.
+    # 6.0 covers the 5 s publish period with margin. It costs nothing on a normal goal:
+    # the costmap is already current, so the wait returns immediately. Keep this ABOVE
+    # global_traversability's update_period_s if that is ever changed.
+    # NOTE: read in on_configure, so a live `ros2 param set` does nothing -- relaunch.
+    costmap_update_timeout: 6.0
     # /odom (the wheel diff_drive_controller) is not used here: it is the wheels' OWN belief
     # about how fast they are turning, which is exactly what sand slip corrupts - a spinning,
     # non-gripping wheel reports a confident, wrong velocity, not a degraded one. That is a
@@ -206,11 +220,15 @@ controller_server:
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["goal_checker"]
-    # Both loaded; the active one is chosen per goal via ControllerSelector. The behaviour
-    # tree currently defaults to DWB -- flip default_controller in
-    # behavior_trees/navigate_to_pose_w_smoothing.xml to go back to FollowPath (RPP), or
-    # override live by publishing the name to /controller_selector.
-    controller_plugins: ["FollowPath", "DWB"]
+    # All three loaded; the active one is chosen per goal via ControllerSelector. MPPI is
+    # registered under the name FollowPath, which is what makes it the default -- see the
+    # note on that block. RPP (the previous default) and DWB stay loaded so a bad MPPI run
+    # can be compared against them without a rebuild: publish the name to
+    # /controller_selector before the next goal, e.g.
+    # `ros2 topic pub -1 /controller_selector std_msgs/String "{data: RPP}"`.
+    # That only covers navigate_to_pose_w_smoothing.xml; navigate_through_poses uses
+    # nav2's stock tree, which hardcodes FollowPath and so always gets MPPI.
+    controller_plugins: ["FollowPath", "RPP", "DWB"]
     progress_checker:
       # Loose on purpose: a stalled wheel, lost traction on sand, or a slow costmap update
       # are all recoverable, and nav2's 10 s default fails them too eagerly.
@@ -226,9 +244,245 @@ controller_server:
       yaw_goal_tolerance: 0.3
       stateful: true
     FollowPath:
-      # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
-      # curvature; it does not do its own obstacle avoidance, which is right because obstacle
-      # knowledge lives upstream.
+      # ACTIVE. Named FollowPath because that is the controller_id nav2's own stock trees
+      # hardcode -- navigate_through_poses (waypoint following) uses the stock tree, so a
+      # plugin registered under any other name would never run there. Renaming the RPP
+      # entry below and giving MPPI this name is how MPPI becomes the default EVERYWHERE,
+      # not just in navigate_to_pose_w_smoothing.xml's ControllerSelector.
+      #
+      # WHAT CHANGES vs RPP: MPPI samples batch_size whole velocity sequences per cycle,
+      # scores each against the critics below, and commands the softmax-weighted average.
+      # So unlike RPP it does reason about the local costmap, via CostCritic -- the one
+      # critic here that can fight the upstream "obstacle knowledge lives upstream"
+      # design, and the one to suspect first if MPPI refuses to move. Read its note.
+      plugin: "nav2_mppi_controller::MPPIController"
+      # HORIZON AND CPU. model_dt must equal 1/controller_frequency (10 Hz -> 0.1).
+      # 30 steps x 0.1 s = 3.0 s, which at 0.28 m/s is 0.84 m of lookahead -- deliberately
+      # close to RPP's max_lookahead_dist of 0.9 so the two are comparable on the same run.
+      model_dt: 0.1
+      # THE HORIZON MUST CONTAIN A WHOLE TURN. This is the single value that decides
+      # whether MPPI can turn at all. wz_max is 0.28 rad/s, so a 90 deg turn takes
+      # 1.57/0.28 = 5.6 s; 56 x 0.1 = 5.6 s covers exactly that. At the old 30 steps
+      # (3.0 s) the horizon held only 0.84 rad = 48 deg, so for any larger heading error
+      # EVERY sampled trajectory ended still misaligned, left and right scored the same,
+      # and the optimiser averaged symmetric noise to nothing -- measured as wz flipping
+      # between +0.280 and -0.256 with a mean of -0.017, netting 48 deg of a 90 deg turn
+      # in 30 s. If you ever raise velocity_smoother's theta ceiling, this can come down
+      # in proportion; if you lower it, this must go up or the oscillation returns.
+      time_steps: 56
+      # nav2's default is 2000. That is 2000 x 30 = 60k trajectory points per cycle at
+      # 10 Hz on an Orange Pi that is also running BIEVR-LIO; 600 keeps it near 3x DWB's
+      # 200 rollouts, which this stack already calls expensive. THIS IS THE FIRST DIAL:
+      # raise it if the commanded velocity looks jittery or it clips corners, lower it if
+      # controller_server starts logging that it missed its control loop deadline.
+      # Lowered 600 -> 400 when time_steps went 30 -> 56, so total work per cycle rose
+      # only ~24% (400x56 vs 600x30) rather than doubling. Measured holding 10.0 Hz.
+      batch_size: 400
+      iteration_count: 1
+      # KINEMATICS. Every one of these is bounded by velocity_smoother's max_velocity
+      # [0.28, 0.0, 0.28] and max_accel [1.0, 0.0, 3.2] at the bottom of this file --
+      # the lower of the two binds, so exceeding them here just means MPPI plans motion
+      # the smoother then refuses to pass on.
+      vx_max: 0.28
+      # 0.0, not negative: no reversing, same policy as RPP's allow_reversing below. There
+      # is nothing facing backwards and the costmap is a 5 s-stale copy of the global
+      # terrain map, so a reverse manoeuvre would be driven entirely on stale data.
+      vx_min: 0.0
+      # y is zero throughout this file; the rover cannot strafe. Unread under DiffDrive.
+      vy_max: 0.0
+      wz_max: 0.28
+      ax_max: 1.0
+      ax_min: -1.0
+      ay_max: 0.0
+      az_max: 3.2
+      # SAMPLING WIDTH, and the setting most likely to need changing. These are the std
+      # devs of the noise added around the current control sequence, so they should be a
+      # decent fraction of the range they explore. nav2's defaults (0.2 / 0.4) assume a
+      # ~0.5 m/s, ~1.9 rad/s robot; against our 0.28 ceilings they would spend most samples
+      # clipped at the limits and waste the batch. Roughly half the usable band each.
+      vx_std: 0.1
+      vy_std: 0.0
+      wz_std: 0.15
+      # Softmax sharpness (lower = greedier) and running-cost discount. nav2 defaults.
+      temperature: 0.3
+      gamma: 0.015
+      # How far ahead of the robot the global path is kept. MUST EXCEED THE HORIZON
+      # DISTANCE or the path-following critics run out of path to score against and go
+      # quiet. At vx_max 0.28 over 5.6 s that distance is 1.57 m, so this is 2.0 with a
+      # margin. Raise it with time_steps.
+      prune_distance: 2.0
+      transform_tolerance: 0.2
+      # Skid-steer: pivots on the spot, no turning radius, no path inversions to detect.
+      motion_model: "DiffDrive"
+      enforce_path_inversion: false
+      # How many times the optimizer retries a cycle whose softmax came out degenerate
+      # (every sample in collision) before giving up and reporting a controller failure to
+      # the BT. 1 is nav2's default; the BT's RecoveryNode handles it from there.
+      retry_attempt_limit: 1
+      # OFF for CPU. Turn this on to get the sampled trajectories on /trajectories and the
+      # chosen one on /local_plan in RViz -- invaluable for tuning the critics, far too
+      # expensive to leave on for a real run. Nothing else in this stack visualises WHY
+      # MPPI chose what it chose, so expect to need it at least once.
+      visualize: true
+      # Noise is regenerated only when the optimizer needs it; true costs CPU for little.
+      regenerate_noises: false
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+      critics: ["ConstraintCritic", "CostCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic", "VelocityDeadbandCritic"]
+      # Penalises samples that violate the vx/wz limits above. Keeps the averaged command
+      # inside the envelope instead of relying on clipping, which biases the mean.
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+      # RE-ENABLED, but treat its tuning as UNVERIFIED -- see the caveat at the end.
+      #
+      # WHAT IT DOES. CostCritic hard-fails any trajectory whose pose lands on a cell at
+      # LETHAL_OBSTACLE (254), and that verdict is independent of cost_weight: fail_flag
+      # comes from all_trajectories_collide, computed before the weight is applied. If
+      # every sample collides the optimizer retries retry_attempt_limit times and then
+      # throws NoValidControl("Optimizer fail to compute path"), aborting follow_path.
+      # Cost and Obstacles are the only critics in this list that can do that, so if you
+      # ever see that error, this is the critic to suspect and enabled: false is the only
+      # setting that silences it -- turning the weight down does nothing.
+      #
+      # consider_footprint false: the rover is circular (robot_radius 0.3) and the local
+      # costmap carries no inflation layer, so footprint checking buys nothing and costs a
+      # lot. THIS MAKES NAV2 LOG AN ERROR AT STARTUP -- "Inflation layer either not found
+      # or inflation is not set sufficiently for optimized non-circular collision
+      # checking", plus a matching WARN. Both are benign and expected: they only apply to
+      # SE2/non-circular checking, which is exactly what consider_footprint false turns
+      # off. Do not add an inflation layer to chase them; global_traversability already
+      # inflated the map upstream and a second inflation would double-count.
+      #
+      # CAVEAT, 2026-09-20. This critic was briefly disabled after it appeared to fail
+      # every trajectory in sim -- the local costmap showed the rover standing on a 254
+      # cell, with lethal cells directly adjacent to free ones and no inflation halo. That
+      # session turned out to be running navigation with use_sim_time:=false against a
+      # Gazebo sim publishing /clock, so nav2's clock was ~1.79e9 s ahead of every TF and
+      # sensor stamp and the local costmap was never updating at all. The costmap content
+      # that evidence rests on is therefore untrustworthy. Re-verify against a correctly
+      # clocked run before concluding anything about these weights.
+      #
+      # WEIGHT LOWERED 3.81 -> 1.0 BECAUSE IT AVOIDED TOO EARLY. Two effects compound.
+      # First, global_traversability already inflates every obstacle by robot_radius_m 0.5
+      # + inflation_radius_m 0.8, so cost starts climbing ~1.3 m before the obstacle, and
+      # the PLANNER already routed around that same inflated map -- re-scoring it here
+      # double-counts a decision that was already made upstream. Second, this critic sums
+      # over every sampled trajectory point, so raising time_steps 30 -> 56 doubled its
+      # contribution for free while the path critics stayed put. At 3.81 a trajectory
+      # crossing mid-gradient cost ~63, against PathAlignCritic's whole budget of ~14, and
+      # the rover swerved around obstacles roughly 2.4 m out. 1.0 puts it back in the same
+      # league as the path critics, so it trims a path that is genuinely tight instead of
+      # rewriting one that is merely near something. critical_cost is untouched: the
+      # close-in, inscribed-obstacle case should still dominate everything.
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 1.0
+        critical_cost: 300.0
+        consider_footprint: false
+        collision_cost: 1000000.0
+        near_goal_distance: 1.0
+        trajectory_point_step: 2
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        # Only bites inside this distance; must stay above goal_checker's
+        # xy_goal_tolerance (0.35) or it never engages before the goal is declared met.
+        threshold_to_consider: 1.4
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.0
+        threshold_to_consider: 0.5
+      # Keeps trajectories on the planned path. offset_from_furthest is in PATH POINTS,
+      # and ThetaStar interpolates to costmap resolution, so 8 points is ~0.8 m -- scaled
+      # down from nav2's default 20 (2.0 m) because that is more than our whole horizon.
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 14.0
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 4
+        threshold_to_consider: 0.5
+        offset_from_furthest: 8
+        use_path_orientations: false
+      # Drives progress ALONG the path rather than just near it -- the critic that stops
+      # it settling next to the path and stalling.
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        offset_from_furthest: 5
+        threshold_to_consider: 1.4
+      # THE CRITIC THAT ACTUALLY TURNS THE ROVER, and the second half of the oscillation
+      # fix. It scores heading error against the path -- but note the gate is inverted
+      # from what the name suggests: the critic returns early and contributes NOTHING when
+      # the heading error is BELOW max_angle_to_furthest. At 1.2 rad (69 deg), copied
+      # across from RPP's rotate_to_heading_min_angle, it was silent for most of every
+      # turn, leaving only the position-based critics to infer a direction. 0.6 rad
+      # (34 deg) keeps it active through the bulk of a turn. Weight raised 2.0 -> 8.0 so
+      # it can compete with PathAlignCritic's 14.0; at 2.0 it was audible but not decisive.
+      # mode 0 = forward preference, which pairs with vx_min 0.0 above.
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 8.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+        max_angle_to_furthest: 0.6
+        mode: 0
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.5
+      # STALL, and the reason MPPI needs a critic RPP did not. RPP has explicit floors
+      # (min_approach_linear_velocity, rotate_to_heading_angular_vel); MPPI commands a
+      # softmax-weighted average, which lands anywhere -- including under the ESCs'
+      # 0.05 m/s, where the wheels stop turning and the rover stalls silently.
+      #
+      # READ THIS BEFORE CHANGING deadband_velocities. The critic scores
+      # max(deadband - |v|, 0) per axis per timestep, so it penalises a command of ZERO
+      # HARDEST of all -- it is a gradient pushing |v| up and out of the deadband, not a
+      # notch filter around it. Two consequences:
+      #
+      #   * THETA MUST STAY 0.0 (0.0 disables an axis: max(0 - |v|, 0) is always 0). A
+      #     0.15 there would penalise wz = 0, i.e. driving in a straight line, harder than
+      #     it penalises turning -- the exact opposite of what is wanted, and it would bias
+      #     MPPI into permanent weaving. The theta stall floor does not need guarding
+      #     anyway: 0.14 rad/s of body yaw only stalls the wheels when vx is also ~0 (a
+      #     pure pivot). Under way, both wheels are already turning well above stall and a
+      #     small wz is just a differential between them.
+      #   * x at 0.06 therefore also penalises vx = 0, which biases MPPI toward arcing
+      #     rather than pivoting in place. That is mostly the direction this stack already
+      #     chose (see rotate_to_heading_min_angle raised to 1.2 under RPP), and it is why
+      #     the weight is 10 and not nav2's default 35: at 35 the pivot penalty (0.06 x 30
+      #     steps x 35 = 63) rivals PathAlignCritic's whole budget, and MPPI would rather
+      #     drive off the path than turn on the spot. 10 keeps it a tie-breaker.
+      #
+      # If it will not pivot for a sharp initial heading error, lower this weight before
+      # touching anything else. 0.06 matches DWB's min_speed_xy below.
+      #
+      # THE WEIGHT MUST BE RESCALED WITH time_steps. The penalty is summed over every
+      # timestep, so going 30 -> 56 steps nearly doubled it for free: at the old 10.0 a
+      # pivot (vx = 0) cost 0.06 x 56 x 10 = 33.6, enough to outweigh turning properly.
+      # 4.0 restores roughly the original magnitude (0.06 x 56 x 4 = 13.4).
+      VelocityDeadbandCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+        deadband_velocities: [0.06, 0.0, 0.0]
+    RPP:
+      # NO LONGER THE DEFAULT -- MPPI took the FollowPath name above. Kept loaded and
+      # selectable via /controller_selector as the known-good fallback, and as the
+      # reference every value in the MPPI block was scaled against. Follows the global
+      # path and regulates speed on curvature; it does not do its own obstacle avoidance,
+      # which is right because obstacle knowledge lives upstream. MPPI, with CostCritic
+      # disabled, now takes the same position for the same reason.
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # 0.28 = 0.4 * 0.7, a deliberate 30% reduction of autonomous cruise speed.
       # safe_speed.yaml is untouched, so teleop still has the full 0.8 m/s.
@@ -281,7 +535,7 @@ controller_server:
       max_allowed_time_to_collision_up_to_carrot: 1.0
       transform_tolerance: 0.2
     DWB:
-      # Loaded but NOT the BT default (see controller_plugins above) - selectable live for
+      # Loaded but NOT the default (see controller_plugins above) - selectable live for
       # comparison via `ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"`
       # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
@@ -336,6 +590,11 @@ controller_server:
 # Not a live sensor layer on purpose -- a voxel layer off the raw MID-360 would flag the
 # ground itself. The cost is latency: this is only as fresh as global_traversability's
 # 5 s update, so the rover cannot react to anything that appears in front of it.
+#
+# MPPI WOULD read this costmap, via CostCritic -- and that is exactly why CostCritic is
+# disabled. The false positives here flag the cell the rover is standing on, which MPPI
+# reads as "every trajectory I can sample starts in a collision". See the CostCritic note
+# above. Cleaning this up is the prerequisite for giving MPPI real local avoidance.
 local_costmap:
   local_costmap:
     ros__parameters:
@@ -458,11 +717,11 @@ velocity_smoother:
     # [x, y, theta]; y is zero because the rover cannot strafe. Theta must match
     # safe_speed.yaml or this becomes a second, hidden ceiling -- at 0.2 it silently fixed
     # the minimum turning radius at 0.4/0.2 = 2.0 m and no controller tuning could help.
-    # [0.28, 0.0, 0.28] = 30% off. This is the binding ceiling for BOTH controllers, so
-    # it is the one value to change if the reduction ever needs undoing in a hurry.
+    # [0.28, 0.0, 0.28] = 30% off. This is the binding ceiling for ALL THREE controllers,
+    # so it is the one value to change if the reduction ever needs undoing in a hurry.
     max_velocity: [0.28, 0.0, 0.28]
     min_velocity: [-0.28, 0.0, -0.28]
-    # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
+    # Theta matches RPP's max_angular_accel and MPPI's az_max; whichever is lower binds.
     max_accel: [1.0, 0.0, 3.2]
     max_decel: [-1.0, 0.0, -3.2]
     odom_topic: "/odom"
