@@ -1,19 +1,17 @@
 // comms_task.cpp
-//TODO: Potentially add dropped or corrupt MODBUS frame count, and other errors to status register
+// TODO: Potentially add dropped or corrupt MODBUS frame count, and other errors to status register
 
 #include "comms_task.hpp"
 
 #include <cstdio>
 
 #include "FreeRTOS.h"
-#include "task.h"
-
 #include "hardware/pio.h"
-#include "pico/time.h"
-
 #include "modbus_rtu.hpp"
+#include "pico/time.h"
 #include "rs485_transport.hpp"
 #include "shared_state.hpp"
+#include "task.h"
 
 // RS485/Modbus link -- see the class comment in rs485_transport.hpp for
 // why TX is on a PIO program rather than the hardware UART.
@@ -41,42 +39,42 @@ namespace
 
         switch (address)
         {
-            case kRegAngleRaw:
-            case kRegAngleDegreesX10:
-            {
-                EncoderSample sample;
-                if (xQueuePeek(shared->latest_sample, &sample, 0) != pdTRUE || !sample.valid)
-                    return false;
-                *out_value = (address == kRegAngleRaw)
-                                 ? sample.reading.raw_counts
-                                 : static_cast<uint16_t>(sample.reading.degrees * 10.0f);
-                return true;
-            }
-            case kRegStatus:
-            {
-                EncoderSample sample;
-                bool have_sample = (xQueuePeek(shared->latest_sample, &sample, 0) == pdTRUE);
+        case kRegAngleRaw:
+        case kRegAngleDegreesX10:
+        {
+            EncoderSample sample;
+            if (xQueuePeek(shared->latest_sample, &sample, 0) != pdTRUE || !sample.valid)
+                return false;
+            *out_value = (address == kRegAngleRaw)
+                             ? sample.reading.raw_counts
+                             : static_cast<uint16_t>(sample.reading.degrees * 10.0f);
+            return true;
+        }
+        case kRegStatus:
+        {
+            EncoderSample sample;
+            bool have_sample = (xQueuePeek(shared->latest_sample, &sample, 0) == pdTRUE);
 
-                HeartbeatState hb;
-                bool have_hb = (xQueuePeek(shared->heartbeat_state, &hb, 0) == pdTRUE);
+            HeartbeatState hb;
+            bool have_hb = (xQueuePeek(shared->heartbeat_state, &hb, 0) == pdTRUE);
 
-                uint16_t status = 0;
-                if (have_sample && sample.magnet_detected)
-                    status |= (1u << 0);
-                if (have_hb && hb.master_alive)
-                    status |= (1u << 1);
-                *out_value = status;
-                return true;
-            }
-            case kRegDiscovery:
-            {
-                bool active = false;
-                xQueuePeek(shared->discovery_active, &active, 0);
-                *out_value = active ? 1 : 0;
-                return true;
-            }
-            default:
-                return false;  // write-only or unknown register -> illegal data address
+            uint16_t status = 0;
+            if (have_sample && sample.magnet_detected)
+                status |= (1u << 0);
+            if (have_hb && hb.master_alive)
+                status |= (1u << 1);
+            *out_value = status;
+            return true;
+        }
+        case kRegDiscovery:
+        {
+            bool active = false;
+            xQueuePeek(shared->discovery_active, &active, 0);
+            *out_value = active ? 1 : 0;
+            return true;
+        }
+        default:
+            return false;  // write-only or unknown register -> illegal data address
         }
     }
 
@@ -86,25 +84,25 @@ namespace
 
         switch (address)
         {
-            case kRegZeroCommand:
-            {
-                if (value == 0)
-                    return true;  // 0 is a deliberate no-op, not an error
-                EncoderCommand cmd = EncoderCommand::kZero;
-                // Don't block the comms loop waiting on encoder_task; if
-                // the (length-4) queue is ever full, encoder_task has
-                // fallen badly behind and dropping a redundant zero
-                // request is the right failure mode anyway.
-                return xQueueSend(shared->encoder_commands, &cmd, 0) == pdTRUE;
-            }
-            case kRegDiscovery:
-            {
-                bool active = (value != 0);
-                xQueueOverwrite(shared->discovery_active, &active);
-                return true;
-            }
-            default:
-                return false;  // read-only or unknown register -> illegal data address
+        case kRegZeroCommand:
+        {
+            if (value == 0)
+                return true;  // 0 is a deliberate no-op, not an error
+            EncoderCommand cmd = EncoderCommand::kZero;
+            // Don't block the comms loop waiting on encoder_task; if
+            // the (length-4) queue is ever full, encoder_task has
+            // fallen badly behind and dropping a redundant zero
+            // request is the right failure mode anyway.
+            return xQueueSend(shared->encoder_commands, &cmd, 0) == pdTRUE;
+        }
+        case kRegDiscovery:
+        {
+            bool active = (value != 0);
+            xQueueOverwrite(shared->discovery_active, &active);
+            return true;
+        }
+        default:
+            return false;  // read-only or unknown register -> illegal data address
         }
     }
 }  // namespace

@@ -73,7 +73,9 @@ pico_sdk_init()
 # layout, where the RP2350 ARM port actually lives) -- so it fails to find
 # a real, present port. Pre-setting the path here makes it run its proper
 # two-pass check against a known-good directory instead of guessing at one.
-set(FREERTOS_KERNEL_PATH "${USERHOME}/.pico-sdk/sdk/FreeRTOS-Kernel" CACHE PATH "Path to the FreeRTOS Kernel")
+set(FREERTOS_KERNEL_PATH
+    "${USERHOME}/.pico-sdk/sdk/FreeRTOS-Kernel"
+    CACHE PATH "Path to the FreeRTOS Kernel")
 include(FreeRTOS_Kernel_import.cmake)
 
 # Project layout:
@@ -108,11 +110,13 @@ target_include_directories(${TARGET_NAME} PRIVATE drivers rtos)
 # ====================================================================================
 # Compile ws2812.pio (the PIO assembly that generates the WS2812 signal)
 # into ws2812.pio.h, available to drivers/ws2812.cpp via #include "ws2812.pio.h".
-pico_generate_pio_header(${TARGET_NAME} ${CMAKE_CURRENT_LIST_DIR}/drivers/ws2812.pio)
+pico_generate_pio_header(${TARGET_NAME}
+                         ${CMAKE_CURRENT_LIST_DIR}/drivers/ws2812.pio)
 
 # Compile uart_tx.pio (bit-banged UART TX for the RS485 link, see the class
 # comment in rs485_transport.hpp for why) into uart_tx.pio.h.
-pico_generate_pio_header(${TARGET_NAME} ${CMAKE_CURRENT_LIST_DIR}/drivers/uart_tx.pio)
+pico_generate_pio_header(${TARGET_NAME}
+                         ${CMAKE_CURRENT_LIST_DIR}/drivers/uart_tx.pio)
 
 pico_set_program_name(${TARGET_NAME} "${TARGET_NAME}")
 pico_set_program_version(${TARGET_NAME} "${TARGET_VERSION}")
@@ -178,7 +182,9 @@ pico_enable_stdio_usb(${TARGET_NAME} 1)
 # They are specific to boards with CyW43 radio, which the encoders do not include
 
 target_link_libraries(
-  ${TARGET_NAME} pico_stdlib hardware_i2c # talks to the AS5600 over I2C
+  ${TARGET_NAME}
+  pico_stdlib
+  hardware_i2c # talks to the AS5600 over I2C
   hardware_uart # RS485/Modbus link (rs485_transport.cpp)
   hardware_pio # drives ws2812.pio for the status LED
   FreeRTOS-Kernel-Heap4 # SMP kernel; the RP2350 port brings up core 1 itself

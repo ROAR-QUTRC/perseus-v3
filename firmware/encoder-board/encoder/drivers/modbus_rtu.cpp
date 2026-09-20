@@ -1,6 +1,6 @@
 // modbus_rtu.cpp
 
-//TODO: Make some mention of corrupt frames, modbus master will handle this but just for debugging or status might be useful
+// TODO: Make some mention of corrupt frames, modbus master will handle this but just for debugging or status might be useful
 
 #include "modbus_rtu.hpp"
 

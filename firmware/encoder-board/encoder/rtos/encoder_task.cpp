@@ -5,13 +5,11 @@
 #include <cstdio>
 
 #include "FreeRTOS.h"
-#include "task.h"
-
+#include "as5600.hpp"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
-
-#include "as5600.hpp"
 #include "shared_state.hpp"
+#include "task.h"
 
 // GPIOs wired to the AS5600's SDA/SCL lines. Overridable at build time, e.g.:
 //   target_compile_definitions(encoder PRIVATE AS5600_SDA_PIN=2 AS5600_SCL_PIN=3)

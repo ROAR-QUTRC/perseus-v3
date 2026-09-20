@@ -3,7 +3,7 @@
 What this board speaks over RS485, how to talk to it, and the sharp edges
 that cost real debugging time to find. Source of truth is always the code
 (`drivers/modbus_rtu.hpp`/`.cpp`, `drivers/rs485_transport.hpp`/`.cpp`,
-`rtos/comms_task.cpp`) — this doc explains the *why*, the code has the
+`rtos/comms_task.cpp`) — this doc explains the _why_, the code has the
 exact bytes.
 
 ## The short version
@@ -30,14 +30,14 @@ All registers are 16-bit holding registers, function codes 0x03 (read),
 0x06 (write single), 0x10 (write multiple — implemented, not currently
 used by anything in this repo).
 
-| Addr | Name | R/W | Meaning |
-|---|---|---|---|
-| 0 | `kRegAngleRaw` | R | AS5600 raw counts, 0-4095, after the board's zero offset is applied |
-| 1 | `kRegAngleDegreesX10` | R | Same angle in degrees × 10 (e.g. `1805` = 180.5°), for convenience |
-| 2 | `kRegZeroCommand` | W | Write any nonzero value to make the *current* position the new zero. Writing 0 is a deliberate no-op, not an error. |
-| 3 | `kRegHeartbeat` | W | Write any value to refresh this board's "master is alive" timer. Normally sent as a broadcast — see below. |
-| 4 | `kRegStatus` | R | Bitfield: bit0 = magnet detected, bit1 = master_alive (this board has seen a heartbeat within the last 3s) |
-| 5 | `kRegDiscovery` | R/W | Write nonzero → this board's LED goes solid bright white (identify beacon), overriding every other LED state. Write 0 → back to normal. Readable too, unlike zero/heartbeat, since it's a persistent mode rather than a one-shot trigger. |
+| Addr | Name                  | R/W | Meaning                                                                                                                                                                                                                                   |
+| ---- | --------------------- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | `kRegAngleRaw`        | R   | AS5600 raw counts, 0-4095, after the board's zero offset is applied                                                                                                                                                                       |
+| 1    | `kRegAngleDegreesX10` | R   | Same angle in degrees × 10 (e.g. `1805` = 180.5°), for convenience                                                                                                                                                                        |
+| 2    | `kRegZeroCommand`     | W   | Write any nonzero value to make the _current_ position the new zero. Writing 0 is a deliberate no-op, not an error.                                                                                                                       |
+| 3    | `kRegHeartbeat`       | W   | Write any value to refresh this board's "master is alive" timer. Normally sent as a broadcast — see below.                                                                                                                                |
+| 4    | `kRegStatus`          | R   | Bitfield: bit0 = magnet detected, bit1 = master_alive (this board has seen a heartbeat within the last 3s)                                                                                                                                |
+| 5    | `kRegDiscovery`       | R/W | Write nonzero → this board's LED goes solid bright white (identify beacon), overriding every other LED state. Write 0 → back to normal. Readable too, unlike zero/heartbeat, since it's a persistent mode rather than a one-shot trigger. |
 
 Reading a write-only register (2 or 3) or writing a read-only one
 correctly returns a Modbus exception (illegal data address), not silence
@@ -96,7 +96,7 @@ mechanism — don't conflate them:
    failed/timed-out polls per board, flag "stale" after ~3, require ~2
    consecutive good responses to un-flag. See the chat history around
    2026-09-19 for the full reasoning; short version is that the broadcast
-   heartbeat *cannot* be used for this, because broadcast frames never get
+   heartbeat _cannot_ be used for this, because broadcast frames never get
    a reply from anyone (see below) — per-board liveness has to come from
    the addressed angle/status polls you're already doing.
 
@@ -149,16 +149,16 @@ skip it, you will rediscover this exact bug.
 Priority order below is highest first — only one state shows at a time,
 and higher entries win when more than one would technically apply.
 
-| Priority | State | Color | Pattern |
-|---|---|---|---|
-| 1 | Discovery active (`kRegDiscovery` written nonzero) | White `(255,255,255)` | Solid on. The one color that isn't dimmed — deliberately unmissable, it's a manual "which physical board is this" beacon. |
-| 2 | Every 10th heartbeat to arrive (within 100ms of it) | Cyan | Brief blip, interrupts whatever else was showing, then reverts. Every single heartbeat was too frequent in practice; every 10th is a periodic "still alive" confirmation without being distracting. |
-| 3 | Never seen a heartbeat yet | Blue | Blink at the heartbeat rate, **plus** a quick triple-flash every 10 seconds — a board sitting untouched for a while still visibly confirms it's running, not just slow-blinking forever. |
-| 4 | Heartbeat previously seen, now lost (timed out) | Red | Blink at the heartbeat rate. |
-| 5 | Magnet not detected | Amber | Blink at the heartbeat rate. |
-| 6 | Magnet present, moving (velocity > 0) | Green | Rapid flash (4x heartbeat rate). |
-| 6 | Magnet present, moving (velocity < 0) | Green | Flash at 2x heartbeat rate. |
-| 7 | Magnet present, not moving | — | **Off.** Green is motion-only now; there's no separate "alive and idle" color — the cyan heartbeat blip already covers "still connected." |
+| Priority | State                                               | Color                 | Pattern                                                                                                                                                                                             |
+| -------- | --------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | Discovery active (`kRegDiscovery` written nonzero)  | White `(255,255,255)` | Solid on. The one color that isn't dimmed — deliberately unmissable, it's a manual "which physical board is this" beacon.                                                                           |
+| 2        | Every 10th heartbeat to arrive (within 100ms of it) | Cyan                  | Brief blip, interrupts whatever else was showing, then reverts. Every single heartbeat was too frequent in practice; every 10th is a periodic "still alive" confirmation without being distracting. |
+| 3        | Never seen a heartbeat yet                          | Blue                  | Blink at the heartbeat rate, **plus** a quick triple-flash every 10 seconds — a board sitting untouched for a while still visibly confirms it's running, not just slow-blinking forever.            |
+| 4        | Heartbeat previously seen, now lost (timed out)     | Red                   | Blink at the heartbeat rate.                                                                                                                                                                        |
+| 5        | Magnet not detected                                 | Amber                 | Blink at the heartbeat rate.                                                                                                                                                                        |
+| 6        | Magnet present, moving (velocity > 0)               | Green                 | Rapid flash (4x heartbeat rate).                                                                                                                                                                    |
+| 6        | Magnet present, moving (velocity < 0)               | Green                 | Flash at 2x heartbeat rate.                                                                                                                                                                         |
+| 7        | Magnet present, not moving                          | —                     | **Off.** Green is motion-only now; there's no separate "alive and idle" color — the cyan heartbeat blip already covers "still connected."                                                           |
 
 A couple of things follow from `encoder_task`'s own logic, not just LED
 priority: "magnet missing" and "moving" can never be true at the same
@@ -211,7 +211,7 @@ see `rtos/encoder_task.cpp`, `vTaskDelayUntil` locks this to exactly 1ms
 regardless of Modbus traffic. Nothing you do on the Modbus side changes
 this rate.
 
-What Modbus *can* deliver to a master polling over this link is a much
+What Modbus _can_ deliver to a master polling over this link is a much
 lower, protocol-limited number:
 
 - At 9600 baud: ~26-28ms per transaction (8-byte request + mandatory 3.5
@@ -228,7 +228,7 @@ lower, protocol-limited number:
   master + our own slaves, no need to interoperate with third-party
   Modbus masters). But `Rs485Transport`/`ModbusRtu` currently work in
   **millisecond** granularity, which creates its own ~1-2ms/transaction
-  floor — so a higher baud alone won't get past the *spec's* ~285Hz
+  floor — so a higher baud alone won't get past the _spec's_ ~285Hz
   ceiling without also tightening that timing to microsecond resolution.
 - Practical target actually in use: **50Hz per board** (150Hz aggregate
   across 3 boards) — comfortably achievable with a baud bump (e.g. to
@@ -265,11 +265,11 @@ Standard Modbus exception response: function code with the high bit set
 (e.g. `0x03` read request → `0x83` exception reply), followed by one
 reason byte.
 
-| Code | Name | When |
-|---|---|---|
-| 0x01 | Illegal function | Function code isn't 0x03/0x06/0x10 |
+| Code | Name                 | When                                                                                                                          |
+| ---- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 0x01 | Illegal function     | Function code isn't 0x03/0x06/0x10                                                                                            |
 | 0x02 | Illegal data address | Register is write-only (reading 2 or 3), read-only (writing 4), out of range, or (for angle) the AS5600 read genuinely failed |
-| 0x04 | Slave device failure | Defined in the register map but not currently returned by anything — reserved, not wired to a real failure path yet |
+| 0x04 | Slave device failure | Defined in the register map but not currently returned by anything — reserved, not wired to a real failure path yet           |
 
 CRC failures and address mismatches are **silent**, per spec — no
 exception, no reply at all. If a request just vanishes with zero

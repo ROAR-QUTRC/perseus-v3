@@ -9,9 +9,8 @@
 #pragma once
 
 #include "FreeRTOS.h"
-#include "queue.h"
-
 #include "as5600.hpp"
+#include "queue.h"
 
 // Published by encoder_task after every read; comms_task and led_task
 // read it with xQueuePeek() (never consume) since it's a length-1
@@ -19,7 +18,7 @@
 struct EncoderSample
 {
     bool magnet_detected = false;
-    bool valid = false;    // false if the last I2C read failed; reading is meaningless then
+    bool valid = false;  // false if the last I2C read failed; reading is meaningless then
     As5600::Reading reading{};
     int velocity_sign = 0;  // -1/0/1, computed by encoder_task from consecutive readings
 };

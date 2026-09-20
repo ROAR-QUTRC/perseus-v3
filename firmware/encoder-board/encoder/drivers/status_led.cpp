@@ -2,10 +2,13 @@
 
 #include "status_led.hpp"
 
-StatusLed::StatusLed(uint32_t heartbeat_period_ms) : heartbeat_period_ms_(heartbeat_period_ms) {}
+StatusLed::StatusLed(uint32_t heartbeat_period_ms)
+    : heartbeat_period_ms_(heartbeat_period_ms)
+{
+}
 
 void StatusLed::update_heartbeat_state(bool heartbeat_ever_seen, bool master_alive,
-                                        uint32_t last_heartbeat_ms)
+                                       uint32_t last_heartbeat_ms)
 {
     // A genuinely new heartbeat landed (not just another tick reflecting
     // the same one) whenever the timestamp moves. Counted here, rather
@@ -78,26 +81,26 @@ StatusLed::Rgb StatusLed::tick(uint32_t now_ms) const
 {
     switch (current_mode(now_ms))
     {
-        case Mode::kDiscovery:
-            return kColorDiscovery;
-        case Mode::kHeartbeatBlip:
-            return kColorHeartbeatBlip;
-        case Mode::kWaitingForHeartbeat:
-            return waiting_pattern_on(now_ms) ? kColorStartup : kColorOff;
-        case Mode::kHeartbeatLost:
-            return blink_on(now_ms, heartbeat_period_ms_) ? kColorLost : kColorOff;
-        case Mode::kMagnetMissing:
-            return blink_on(now_ms, heartbeat_period_ms_) ? kColorMagnetMissing : kColorOff;
-        case Mode::kVelocityPositive:
-            return blink_on(now_ms, heartbeat_period_ms_ / kPositiveVelocityMultiplier)
-                       ? kColorOk
-                       : kColorOff;
-        case Mode::kVelocityNegative:
-            return blink_on(now_ms, heartbeat_period_ms_ / kNegativeVelocityMultiplier)
-                       ? kColorOk
-                       : kColorOff;
-        case Mode::kIdle:
-            return kColorOff;
+    case Mode::kDiscovery:
+        return kColorDiscovery;
+    case Mode::kHeartbeatBlip:
+        return kColorHeartbeatBlip;
+    case Mode::kWaitingForHeartbeat:
+        return waiting_pattern_on(now_ms) ? kColorStartup : kColorOff;
+    case Mode::kHeartbeatLost:
+        return blink_on(now_ms, heartbeat_period_ms_) ? kColorLost : kColorOff;
+    case Mode::kMagnetMissing:
+        return blink_on(now_ms, heartbeat_period_ms_) ? kColorMagnetMissing : kColorOff;
+    case Mode::kVelocityPositive:
+        return blink_on(now_ms, heartbeat_period_ms_ / kPositiveVelocityMultiplier)
+                   ? kColorOk
+                   : kColorOff;
+    case Mode::kVelocityNegative:
+        return blink_on(now_ms, heartbeat_period_ms_ / kNegativeVelocityMultiplier)
+                   ? kColorOk
+                   : kColorOff;
+    case Mode::kIdle:
+        return kColorOff;
     }
     return kColorOff;
 }

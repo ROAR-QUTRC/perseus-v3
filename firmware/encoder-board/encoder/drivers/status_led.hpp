@@ -64,7 +64,7 @@ public:
     // but should look different. last_heartbeat_ms anchors both the
     // lost/waiting blink phase and the heartbeat-blip window.
     void update_heartbeat_state(bool heartbeat_ever_seen, bool master_alive,
-                                 uint32_t last_heartbeat_ms);
+                                uint32_t last_heartbeat_ms);
 
     // Sign of the AS5600 angular velocity; 0 = not moving (or below
     // whatever noise-floor threshold the caller applies).

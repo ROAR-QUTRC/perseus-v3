@@ -41,7 +41,9 @@ BAUD = 9600  # must match MODBUS_BAUD_HZ in CMakeLists.txt
 
 RUN_DURATION_S = 20
 HEARTBEAT_INTERVAL_S = 0.5  # well under kHeartbeatTimeoutMs (3s) in shared_state.hpp
-POLL_INTERVAL_S = 0.25  # ~4Hz -- comfortably sustainable at 9600 baud; see module docstring
+POLL_INTERVAL_S = (
+    0.25  # ~4Hz -- comfortably sustainable at 9600 baud; see module docstring
+)
 
 
 def sanity_checks(client, modbus_addr):
@@ -51,7 +53,9 @@ def sanity_checks(client, modbus_addr):
     print("  ok" if not wr.isError() else f"  failed: {wr}")
 
     time.sleep(0.2)
-    rr = client.read_holding_registers(address=REG_ANGLE_RAW, count=1, device_id=modbus_addr)
+    rr = client.read_holding_registers(
+        address=REG_ANGLE_RAW, count=1, device_id=modbus_addr
+    )
     if not rr.isError():
         print(f"  angle raw after zero: {rr.registers[0]} (should be near 0)")
 
@@ -65,7 +69,9 @@ def run_monitor(client, modbus_addr):
     heartbeat throughout so master_alive stays live for the whole run (the
     status LED's cyan blip should be visible on each heartbeat, per
     docs/modbus.md's LED reference)."""
-    print(f"-- monitoring for {RUN_DURATION_S}s, heartbeat every {HEARTBEAT_INTERVAL_S}s --")
+    print(
+        f"-- monitoring for {RUN_DURATION_S}s, heartbeat every {HEARTBEAT_INTERVAL_S}s --"
+    )
 
     start = time.monotonic()
     next_heartbeat = start
@@ -90,7 +96,10 @@ def run_monitor(client, modbus_addr):
             # reply that (correctly) never arrives.
             try:
                 client.write_register(
-                    address=REG_HEARTBEAT, value=1, device_id=0, no_response_expected=True
+                    address=REG_HEARTBEAT,
+                    value=1,
+                    device_id=0,
+                    no_response_expected=True,
                 )
                 # pyserial's write() (which pymodbus calls internally) returns
                 # once bytes are handed to the OS buffer, not once they've
@@ -110,7 +119,9 @@ def run_monitor(client, modbus_addr):
             # read succeeding -- master_alive/magnet_detected are relevant
             # even when there's no magnet on the bench and the angle read
             # itself is (correctly) returning an exception.
-            sr = client.read_holding_registers(address=REG_STATUS, count=1, device_id=modbus_addr)
+            sr = client.read_holding_registers(
+                address=REG_STATUS, count=1, device_id=modbus_addr
+            )
             status = sr.registers[0] if not sr.isError() else None
             last_status = status if status is not None else last_status
             status_str = (
@@ -119,23 +130,31 @@ def run_monitor(client, modbus_addr):
                 else "status read failed"
             )
 
-            rr = client.read_holding_registers(address=REG_ANGLE_RAW, count=2, device_id=modbus_addr)
+            rr = client.read_holding_registers(
+                address=REG_ANGLE_RAW, count=2, device_id=modbus_addr
+            )
             if rr.isError():
                 error_count += 1
                 print(f"  [{elapsed:5.1f}s] angle read failed: {rr}  {status_str}")
             else:
                 poll_count += 1
                 raw, deg_x10 = rr.registers
-                print(f"  [{elapsed:5.1f}s] angle raw={raw:4d} deg={deg_x10 / 10.0:6.1f}  {status_str}")
+                print(
+                    f"  [{elapsed:5.1f}s] angle raw={raw:4d} deg={deg_x10 / 10.0:6.1f}  {status_str}"
+                )
             next_poll += POLL_INTERVAL_S
 
         time.sleep(0.001)
 
     achieved_hz = poll_count / RUN_DURATION_S
-    print(f"-- done: {poll_count} successful polls, {error_count} errors, "
-          f"{achieved_hz:.1f} Hz achieved poll rate over {RUN_DURATION_S}s --")
+    print(
+        f"-- done: {poll_count} successful polls, {error_count} errors, "
+        f"{achieved_hz:.1f} Hz achieved poll rate over {RUN_DURATION_S}s --"
+    )
     if last_status is not None:
-        print(f"  final status: magnet_detected={bool(last_status & 1)} master_alive={bool(last_status & 2)}")
+        print(
+            f"  final status: magnet_detected={bool(last_status & 1)} master_alive={bool(last_status & 2)}"
+        )
 
 
 def main():

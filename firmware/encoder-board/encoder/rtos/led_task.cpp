@@ -3,13 +3,11 @@
 #include "led_task.hpp"
 
 #include "FreeRTOS.h"
-#include "task.h"
-
 #include "hardware/pio.h"
 #include "pico/time.h"
-
 #include "shared_state.hpp"
 #include "status_led.hpp"
+#include "task.h"
 #include "ws2812.hpp"
 
 #ifndef NEOPIXEL_PIN

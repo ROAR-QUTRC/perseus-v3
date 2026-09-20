@@ -27,40 +27,48 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("port", help="board's USB debug console, e.g. /dev/ttyACM0")
-    parser.add_argument("--duration", type=float, default=60, help="seconds to run (default 60)")
+    parser.add_argument(
+        "--duration", type=float, default=60, help="seconds to run (default 60)"
+    )
     args = parser.parse_args()
 
     deadline = time.monotonic() + args.duration
     print(f"-- watching {args.port} for up to {args.duration:.0f}s (Ctrl+C to stop) --")
-    print("-- power-cycle the board whenever you're ready; this will wait through it --")
+    print(
+        "-- power-cycle the board whenever you're ready; this will wait through it --"
+    )
 
-    ser = None
+    set = None
     try:
         while time.monotonic() < deadline:
-            if ser is None:
+            if set is None:
                 try:
-                    ser = serial.Serial(args.port, baudrate=115200, timeout=0.5)
+                    set = serial.Serial(args.port, baudrate=115200, timeout=0.5)
                     print(f"[{time.monotonic():7.1f}s] -- port open --")
                 except Exception:  # noqa: BLE001 -- keep retrying until it appears
                     time.sleep(0.2)
                     continue
             try:
-                raw = ser.readline()
+                raw = set.readline()
             except Exception as exc:  # noqa: BLE001 -- port vanished mid-read; wait and retry
                 print(f"[{time.monotonic():7.1f}s] -- port lost: {exc} --")
-                ser = None
+                set = None
                 time.sleep(0.2)
                 continue
             if not raw:
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip()
-            flag = "  <<< FAULT" if any(kw in line.lower() for kw in FAULT_KEYWORDS) else ""
+            flag = (
+                "  <<< FAULT"
+                if any(kw in line.lower() for kw in FAULT_KEYWORDS)
+                else ""
+            )
             print(f"[{time.monotonic():7.1f}s] {line}{flag}")
     except KeyboardInterrupt:
         print("\n-- stopped --")
     finally:
-        if ser:
-            ser.close()
+        if set:
+            set.close()
 
 
 if __name__ == "__main__":

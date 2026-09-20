@@ -13,16 +13,14 @@
 #include <cstdio>
 
 #include "FreeRTOS.h"
-#include "task.h"
-
-#include "hardware/gpio.h"
-#include "pico/stdlib.h"
-
 #include "board_id.hpp"
 #include "comms_task.hpp"
 #include "encoder_task.hpp"
+#include "hardware/gpio.h"
 #include "led_task.hpp"
+#include "pico/stdlib.h"
 #include "shared_state.hpp"
+#include "task.h"
 
 // Sets the AS5600's rotation-direction convention; has a light external
 // pull-up on the board (plus a 4th DIP switch position that can ground it),
@@ -36,7 +34,7 @@ namespace
     // Stack sizes are in words (4 bytes each on this target), not bytes.
     constexpr uint32_t kEncoderTaskStackWords = 1024;  // I2C + printf
     constexpr uint32_t kCommsTaskStackWords = 1024;    // RS485/Modbus dispatch + printf
-    constexpr uint32_t kLedTaskStackWords = 512;  // just tick() + set_pixel(), no printf
+    constexpr uint32_t kLedTaskStackWords = 512;       // just tick() + set_pixel(), no printf
 
     // See led_task.hpp for why led_task must outrank comms_task here.
     constexpr UBaseType_t kEncoderTaskPriority = tskIDLE_PRIORITY + 2;
@@ -99,11 +97,11 @@ int main()
 
     BaseType_t ok = pdPASS;
     ok &= xTaskCreateAffinitySet(encoder_task, "encoder", kEncoderTaskStackWords, &shared,
-                                  kEncoderTaskPriority, kCore1Affinity, nullptr);
+                                 kEncoderTaskPriority, kCore1Affinity, nullptr);
     ok &= xTaskCreateAffinitySet(comms_task, "comms", kCommsTaskStackWords, &shared,
-                                  kCommsTaskPriority, kCore0Affinity, nullptr);
+                                 kCommsTaskPriority, kCore0Affinity, nullptr);
     ok &= xTaskCreateAffinitySet(led_task, "led", kLedTaskStackWords, &shared, kLedTaskPriority,
-                                  kCore0Affinity, nullptr);
+                                 kCore0Affinity, nullptr);
     configASSERT(ok == pdPASS);
 
     vTaskStartScheduler();

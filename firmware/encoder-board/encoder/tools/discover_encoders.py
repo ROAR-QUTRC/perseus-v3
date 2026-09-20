@@ -32,7 +32,9 @@ MAX_ADDR = 8  # DIP switch 0-7 + 1; address 0 is reserved for broadcast
 
 IDENTIFY_FLASH_S = 0.6  # how long each found board's white LED stays on during the scan
 HEARTBEAT_INTERVAL_S = 0.5  # well under kHeartbeatTimeoutMs (3s) in shared_state.hpp
-POLL_INTERVAL_S = 0.25  # ~4Hz aggregate is safely sustainable at 9600 baud; see docs/modbus.md
+POLL_INTERVAL_S = (
+    0.25  # ~4Hz aggregate is safely sustainable at 9600 baud; see docs/modbus.md
+)
 
 
 def discover(client, identified):
@@ -48,7 +50,9 @@ def discover(client, identified):
         # waiting for a reply that's never coming. Both cases mean
         # "nothing here, move on."
         try:
-            rr = client.read_holding_registers(address=REG_STATUS, count=1, device_id=addr)
+            rr = client.read_holding_registers(
+                address=REG_STATUS, count=1, device_id=addr
+            )
         except Exception:  # noqa: BLE001 -- expected for every unpopulated address
             continue
         if rr.isError():
@@ -142,7 +146,13 @@ def main():
     # burn up to ~12s per unpopulated address, and most of the 1-8 range
     # is unpopulated on any bus with fewer than 8 boards.
     client = ModbusSerialClient(
-        port=port, baudrate=BAUD, bytesize=8, parity="N", stopbits=1, timeout=0.3, retries=1
+        port=port,
+        baudrate=BAUD,
+        bytesize=8,
+        parity="N",
+        stopbits=1,
+        timeout=0.3,
+        retries=1,
     )
     if not client.connect():
         print(f"couldn't open {port}")
