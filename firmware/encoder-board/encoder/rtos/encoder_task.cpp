@@ -11,8 +11,7 @@
 #include "shared_state.hpp"
 #include "task.h"
 
-// GPIOs wired to the AS5600's SDA/SCL lines. Overridable at build time, e.g.:
-//   target_compile_definitions(encoder PRIVATE AS5600_SDA_PIN=2 AS5600_SCL_PIN=3)
+// AS5600 SDA/SCL pins, overridable at build time.
 #ifndef AS5600_SDA_PIN
 #define AS5600_SDA_PIN 2
 #endif
@@ -23,35 +22,22 @@
 
 namespace
 {
-    // GPIO2/3 fall on the I2C1 pin pair, not I2C0
+    // GPIO2/3 are the I2C1 pin pair.
     i2c_inst_t* const kI2cPort = i2c1;
     constexpr uint kI2cBaudHz = 400000;  // AS5600 supports Fast mode, up to 1MHz
 
-    // Angle sampling/publishing runs at this rate -- 1kHz. I2C at 400kHz
-    // comfortably fits a magnet_detected() + read() cycle inside 1ms.
+    // 1kHz; a magnet_detected() + read() cycle at 400kHz I2C fits inside 1ms.
     constexpr uint32_t kSamplePeriodMs = 1;
 
-    // Velocity direction is deliberately NOT computed from consecutive
-    // 1ms samples: a real rotation that produces a clear multi-count
-    // delta over 50ms often produces a sub-1-count delta over 1ms --
-    // below the AS5600's resolution, so an instantaneous 1ms delta would
-    // just be noise most of the time. Instead, the reference sample used
-    // for the delta only advances every kVelocityWindowSamples samples,
-    // giving the same effective ~50ms window (and therefore the same
-    // deadband tuning) as before this was 1kHz, while every single 1ms
-    // sample still gets read, published, and available to comms_task.
+    // Velocity direction is taken over a 50ms window, not between consecutive
+    // 1ms samples: real motion is often under one count per ms, which is
+    // noise at the AS5600's resolution. Every 1ms sample is still published.
     constexpr int kVelocityWindowSamples = 50;  // 50 samples @ 1kHz = 50ms
 
-    // Ignore raw-count deltas at or below this across one velocity
-    // window; the AS5600's last bit or two of noise would otherwise make
-    // the status LED flicker between velocity states while the magnet is
-    // actually still.
+    // Deltas at or below this are noise; without it the LED flickers while the magnet is still.
     constexpr int32_t kVelocityDeadbandCounts = 2;
 
-    // Only printed every this many samples (@ 1kHz, 200 samples = 200ms,
-    // ~5Hz) -- printing every 1ms sample would flood the terminal and
-    // risk stdio_usb backpressure blowing the 1kHz timing budget if
-    // nothing's reading the port.
+    // Print at ~5Hz: printing every sample would risk stdio_usb backpressure breaking the 1kHz timing.
     constexpr int kPrintEverySamples = 200;
 
     int velocity_sign(uint16_t previous_counts, uint16_t current_counts)
@@ -93,9 +79,7 @@ void encoder_task(void* parameter)
 
     for (;;)
     {
-        // Drain any pending commands before this cycle's read, so a zero
-        // request takes effect on the very next reading rather than a
-        // stale one.
+        // Drain commands first so a zero takes effect on this cycle's reading.
         EncoderCommand cmd;
         while (xQueueReceive(shared->encoder_commands, &cmd, 0) == pdTRUE)
         {

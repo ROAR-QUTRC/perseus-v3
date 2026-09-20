@@ -7,6 +7,7 @@
 #include <optional>
 #include <thread>
 
+#include "encoder_bus.hpp"
 #include "hi_can_address.hpp"
 #include "motor_bank.hpp"
 #include "motor_bank_parameter_group.hpp"
@@ -90,10 +91,13 @@ void setup()
     packet_manager->add_group(motor_bank_lift_parameter_group.value());
     packet_manager->add_group(motor_bank_jaws_parameter_group.value());
     packet_manager->add_group(motor_bank_tilt_parameter_group.value());
+
+    // Failure is logged inside begin(); the motor banks work without encoder data.
+    encoder_bus().begin();
 }
 
 void loop()
 {
     packet_manager->handle();
-    delay(1);
+    delay(1);  // change to consistent time step with vTaskDelayUntil as PID or closed loop feedback would jitter, at the very least time drift
 }

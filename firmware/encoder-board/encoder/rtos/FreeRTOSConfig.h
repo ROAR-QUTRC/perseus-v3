@@ -1,13 +1,7 @@
 // FreeRTOSConfig.h
 //
-// Adapted from pico-sdk 2.3.1's own freertos_sync_alias_test config (the
-// current, known-working RP2350 + SMP reference for this exact SDK
-// version), for this board's split: core 0 runs comms_task (Modbus RTU)
-// and led_task (status LED), core 1 runs encoder_task (AS5600 + velocity).
-// configNUMBER_OF_CORES=2 and configUSE_CORE_AFFINITY are set via
-// target_compile_definitions in CMakeLists.txt rather than hardcoded here,
-// so both live next to the rest of this project's build-time pin/option
-// definitions.
+// Adapted from pico-sdk 2.3.1's freertos_sync_alias_test config (RP2350 + SMP).
+// configNUMBER_OF_CORES is set in CMakeLists.txt.
 
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
@@ -38,9 +32,8 @@
 #define configTOTAL_HEAP_SIZE            (64 * 1024)
 #define configAPPLICATION_ALLOCATED_HEAP 0
 
-/* Hooks / stats -- stack overflow checking left on deliberately (the
-   pico-sdk reference this is based on leaves it off): worth the small
-   runtime cost while this task/queue structure is still new. */
+/* Stack overflow checking is on (the pico-sdk reference leaves it off) while
+   the task structure is still new. */
 #define configCHECK_FOR_STACK_OVERFLOW       2
 #define configUSE_MALLOC_FAILED_HOOK         0
 #define configGENERATE_RUN_TIME_STATS        0
@@ -67,9 +60,8 @@
 #define configUSE_PASSIVE_IDLE_HOOK 0
 #endif
 
-/* Lets pico-sdk's own sleep_ms()/sleep_us()/mutex calls (used inside
-   as5600.cpp, rs485_transport.cpp, etc.) cooperate with the scheduler
-   instead of busy-waiting a whole core when called from task context. */
+/* Lets pico-sdk sleep_ms()/sleep_us()/mutex calls yield to the scheduler
+   instead of spinning a core. */
 #define configSUPPORT_PICO_SYNC_INTEROP 1
 #define configSUPPORT_PICO_TIME_INTEROP 1
 

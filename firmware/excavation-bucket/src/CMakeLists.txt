@@ -9,6 +9,8 @@ idf_component_register(
   REQUIRES
   board-support
   hi-can
+  modbus-core
+  rs485
   PRIV_REQUIRES
   esp_driver_sdm)
 

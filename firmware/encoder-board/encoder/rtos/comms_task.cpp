@@ -1,5 +1,6 @@
 // comms_task.cpp
 // TODO: Potentially add dropped or corrupt MODBUS frame count, and other errors to status register
+// TODO: Make some mention of corrupt frames, modbus master will handle this but just for debugging or status might be useful
 
 #include "comms_task.hpp"
 
@@ -7,14 +8,15 @@
 
 #include "FreeRTOS.h"
 #include "hardware/pio.h"
-#include "modbus_rtu.hpp"
+#include "modbus/heartbeat.hpp"
+#include "modbus/profiles/encoder.hpp"
+#include "modbus/slave.hpp"
 #include "pico/time.h"
-#include "rs485_transport.hpp"
+#include "rs485/rp2350.hpp"
 #include "shared_state.hpp"
 #include "task.h"
 
-// RS485/Modbus link -- see the class comment in rs485_transport.hpp for
-// why TX is on a PIO program rather than the hardware UART.
+// RS485 pins; see rs485/rp2350.hpp for why TX is a PIO program.
 #ifndef RS485_RX_PIN
 #define RS485_RX_PIN 5
 #endif
@@ -28,14 +30,22 @@
 #endif
 
 #ifndef MODBUS_BAUD_HZ
-#define MODBUS_BAUD_HZ 9600
+#define MODBUS_BAUD_HZ 115200
 #endif
 
 namespace
 {
+    using namespace modbus::profiles::encoder;
+
+    struct CommsContext
+    {
+        SharedState* shared;
+        modbus::HeartbeatTracker heartbeat;
+    };
+
     bool modbus_read_register(uint16_t address, uint16_t* out_value, void* context)
     {
-        auto* shared = static_cast<SharedState*>(context);
+        auto* shared = static_cast<CommsContext*>(context)->shared;
 
         switch (address)
         {
@@ -60,9 +70,9 @@ namespace
 
             uint16_t status = 0;
             if (have_sample && sample.magnet_detected)
-                status |= (1u << 0);
+                status |= kStatusMagnetDetected;
             if (have_hb && hb.master_alive)
-                status |= (1u << 1);
+                status |= kStatusMasterAlive;
             *out_value = status;
             return true;
         }
@@ -80,19 +90,22 @@ namespace
 
     bool modbus_write_register(uint16_t address, uint16_t value, void* context)
     {
-        auto* shared = static_cast<SharedState*>(context);
+        auto* comms = static_cast<CommsContext*>(context);
+        SharedState* shared = comms->shared;
 
         switch (address)
         {
+        case kRegHeartbeat:
+            // Any value counts. Heartbeat is this board's convention, so it is
+            // handled here rather than in the modbus core.
+            comms->heartbeat.note(to_ms_since_boot(get_absolute_time()));
+            return true;
         case kRegZeroCommand:
         {
             if (value == 0)
                 return true;  // 0 is a deliberate no-op, not an error
             EncoderCommand cmd = EncoderCommand::kZero;
-            // Don't block the comms loop waiting on encoder_task; if
-            // the (length-4) queue is ever full, encoder_task has
-            // fallen badly behind and dropping a redundant zero
-            // request is the right failure mode anyway.
+            // Never block comms on encoder_task: if the queue is full, dropping a redundant zero is fine.
             return xQueueSend(shared->encoder_commands, &cmd, 0) == pdTRUE;
         }
         case kRegDiscovery:
@@ -111,33 +124,33 @@ void comms_task(void* parameter)
 {
     auto* shared = static_cast<SharedState*>(parameter);
 
-    // pio1, not pio0 (which the status LED owns), so the two PIO users
-    // don't compete for program space or state machines.
-    Rs485Transport rs485(uart1, RS485_RX_PIN, RS485_DIR_PIN, pio1, 0, RS485_TX_PIN, MODBUS_BAUD_HZ);
-    rs485.init();
+    // pio1: pio0 belongs to the status LED.
+    rs485::Rp2350Port port(uart1, RS485_RX_PIN, RS485_DIR_PIN, pio1, 0, RS485_TX_PIN, MODBUS_BAUD_HZ);
+    port.init();
 
-    // Modbus address = DIP-switch device ID + 1 (1-8) -- address 0 is
-    // reserved for broadcast, see the class comment in modbus_rtu.hpp.
-    ModbusRtu modbus(&rs485, static_cast<uint8_t>(shared->device_id + 1));
-    modbus.set_read_handler(&modbus_read_register, shared);
-    modbus.set_write_handler(&modbus_write_register, shared);
+    CommsContext comms{shared, {}};
+
+    // Slave address = DIP ID + 1: address 0 is broadcast, so ID 0 still needs
+    // a real address. Applied here, not in read_board_id().
+    modbus::Slave modbus(port, static_cast<uint8_t>(shared->device_id + 1));
+    modbus.set_read_handler(&modbus_read_register, &comms);
+    modbus.set_write_handler(&modbus_write_register, &comms);
 
     printf("modbus: slave address %u, %u baud\n", shared->device_id + 1, MODBUS_BAUD_HZ);
 
     for (;;)
     {
-        // Blocks for up to ~3.5 character times if no frame is arriving --
-        // see the note on Rs485Transport::receive(). That's this task's
-        // whole pacing; no extra vTaskDelay() needed. It never blocks
-        // cooperatively though (busy-waits instead), which is why
-        // led_task on this same core needs to sit at a strictly higher
-        // priority -- see led_task.hpp.
+        // Waits up to ~3.5 character times for a frame; that is this task's
+        // pacing. It busy-waits, so led_task on this core must outrank it
+        // (see led_task.hpp).
         modbus.poll();
 
+        // Snapshot for led_task, so the board still shows "lost" if the master
+        // stops addressing it.
         HeartbeatState hb;
-        hb.heartbeat_ever_seen = modbus.heartbeat_ever_seen();
-        hb.master_alive = modbus.master_alive(to_ms_since_boot(get_absolute_time()), kHeartbeatTimeoutMs);
-        hb.last_heartbeat_ms = modbus.last_heartbeat_ms();
+        hb.heartbeat_ever_seen = comms.heartbeat.ever_seen();
+        hb.master_alive = comms.heartbeat.alive(to_ms_since_boot(get_absolute_time()), kHeartbeatTimeoutMs);
+        hb.last_heartbeat_ms = comms.heartbeat.last_ms();
         xQueueOverwrite(shared->heartbeat_state, &hb);
     }
 }

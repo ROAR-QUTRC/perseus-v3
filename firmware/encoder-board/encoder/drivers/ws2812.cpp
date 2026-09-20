@@ -26,9 +26,7 @@ void Ws2812::init()
 
 void Ws2812::set_pixel(uint8_t r, uint8_t g, uint8_t b)
 {
-    // WS2812s receive colour data as Green, Red, Blue -- not RGB order.
-    // Data is packed into the top 24 bits of the 32-bit word the PIO's
-    // FIFO expects (hence the final <<8).
+    // WS2812s want GRB, packed into the top 24 bits of the FIFO word (hence <<8).
     uint32_t grb = (static_cast<uint32_t>(g) << 16) | (static_cast<uint32_t>(r) << 8) |
                    static_cast<uint32_t>(b);
     pio_sm_put_blocking(pio_, sm_, grb << 8u);

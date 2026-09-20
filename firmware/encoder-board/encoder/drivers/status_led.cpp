@@ -10,10 +10,7 @@ StatusLed::StatusLed(uint32_t heartbeat_period_ms)
 void StatusLed::update_heartbeat_state(bool heartbeat_ever_seen, bool master_alive,
                                        uint32_t last_heartbeat_ms)
 {
-    // A genuinely new heartbeat landed (not just another tick reflecting
-    // the same one) whenever the timestamp moves. Counted here, rather
-    // than in ModbusRtu, so the every-Nth blip logic stays entirely
-    // self-contained in this class.
+    // A moving timestamp means a new heartbeat; counted here so the every-Nth blip stays self-contained.
     if (heartbeat_ever_seen && last_heartbeat_ms != last_heartbeat_ms_)
         ++heartbeat_count_;
 

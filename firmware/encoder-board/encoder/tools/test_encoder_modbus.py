@@ -6,14 +6,14 @@ Usage:
 
 device_id is the DIP-switch value printed by the board at boot
 ("device id: N, direction: ..."); the Modbus slave address is device_id + 1
-(see the class comment in modbus_rtu.hpp for why).
+(see the comment where the slave is constructed in rtos/comms_task.cpp for why).
 
 Note on sample rate: the firmware's encoder_task samples the AS5600 over
 I2C at 1kHz internally (see encoder_task.cpp), but that's not the same as
 how fast *this script* can poll it over Modbus RTU -- a single register
-read round-trip at 9600 baud (request + response + RS485 turnaround) takes
-on the order of 20ms, putting a hard ceiling around 40-50Hz on this side of
-the link regardless of the firmware's internal rate. This script polls at
+read round-trip at 115200 baud (request + response + RS485 turnaround) takes
+a few milliseconds, plus USB-serial adapter and pymodbus overhead, so the
+rate on this side of the link is well below the firmware's internal rate. This script polls at
 a safely sustainable rate and reports what it actually achieved rather
 than claiming a number the bus can't deliver.
 
@@ -30,19 +30,19 @@ import time
 
 from pymodbus.client import ModbusSerialClient
 
-# Register map -- must match include/modbus_rtu.hpp's ModbusRegister enum.
+# Register map -- must match modbus::profiles::encoder::Register in firmware/shared/modbus-core/include/modbus/profiles/encoder.hpp.
 REG_ANGLE_RAW = 0
 REG_ANGLE_DEGREES_X10 = 1
 REG_ZERO_COMMAND = 2
 REG_HEARTBEAT = 3
 REG_STATUS = 4
 
-BAUD = 9600  # must match MODBUS_BAUD_HZ in CMakeLists.txt
+BAUD = 115200  # must match MODBUS_BAUD_HZ in rtos/comms_task.cpp
 
 RUN_DURATION_S = 20
 HEARTBEAT_INTERVAL_S = 0.5  # well under kHeartbeatTimeoutMs (3s) in shared_state.hpp
 POLL_INTERVAL_S = (
-    0.25  # ~4Hz -- comfortably sustainable at 9600 baud; see module docstring
+    0.25  # ~4Hz -- comfortably sustainable at 115200 baud; see module docstring
 )
 
 
@@ -103,8 +103,8 @@ def run_monitor(client, modbus_addr):
                 )
                 # pyserial's write() (which pymodbus calls internally) returns
                 # once bytes are handed to the OS buffer, not once they've
-                # actually finished transmitting on the wire (~8.3ms for this
-                # 8-byte frame at 9600 baud). Firing the next request
+                # actually finished transmitting on the wire (~0.8ms for this
+                # 8-byte frame at 115200 baud, plus adapter latency). Firing the next request
                 # immediately corrupts its timing at the wire -- confirmed by
                 # direct testing: without this delay, the very next request
                 # gets no response and pymodbus burns a full retry timeout

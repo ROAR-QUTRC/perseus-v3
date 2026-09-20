@@ -18,7 +18,7 @@ import time
 
 from pymodbus.client import ModbusSerialClient
 
-# Register map -- must match drivers/modbus_rtu.hpp's ModbusRegister enum.
+# Register map -- must match modbus::profiles::encoder::Register in firmware/shared/modbus-core/include/modbus/profiles/encoder.hpp.
 REG_ANGLE_RAW = 0
 REG_ANGLE_DEGREES_X10 = 1
 REG_ZERO_COMMAND = 2
@@ -26,14 +26,14 @@ REG_HEARTBEAT = 3
 REG_STATUS = 4
 REG_DISCOVERY = 5
 
-BAUD = 9600  # must match MODBUS_BAUD_HZ in CMakeLists.txt
+BAUD = 115200  # must match MODBUS_BAUD_HZ in rtos/comms_task.cpp
 MIN_ADDR = 1
 MAX_ADDR = 8  # DIP switch 0-7 + 1; address 0 is reserved for broadcast
 
 IDENTIFY_FLASH_S = 0.6  # how long each found board's white LED stays on during the scan
 HEARTBEAT_INTERVAL_S = 0.5  # well under kHeartbeatTimeoutMs (3s) in shared_state.hpp
 POLL_INTERVAL_S = (
-    0.25  # ~4Hz aggregate is safely sustainable at 9600 baud; see docs/modbus.md
+    0.25  # ~4Hz aggregate, well within what the bus can sustain at 115200 baud
 )
 
 
@@ -80,8 +80,9 @@ def send_heartbeat(client):
     # docs/modbus.md), so no_response_expected=True is required -- without
     # it pymodbus sits out a full timeout waiting for a reply that never
     # comes. The 20ms sleep afterward is not optional either: it's the
-    # time the 8-byte broadcast frame needs to actually finish
-    # transmitting at 9600 baud. Skip it and the *next* request gets
+    # time the broadcast frame needs to actually finish transmitting
+    # (~0.8ms on the wire at 115200 baud, plus USB-serial adapter
+    # latency). Skip it and the *next* request gets
     # corrupted at the wire and silently fails -- this cost real debugging
     # time to track down once already, see docs/modbus.md for the full story.
     try:
@@ -140,7 +141,7 @@ def main():
         sys.exit(1)
 
     port = sys.argv[1]
-    # timeout=0.3, retries=1: a real 9600-baud round trip is ~25-30ms, so
+    # timeout=0.3, retries=1: a real round trip at 115200 baud is ~5ms, so
     # this is still generous for boards that are actually there, but keeps
     # the scan fast -- pymodbus's default (timeout=3, retries=3) would
     # burn up to ~12s per unpopulated address, and most of the 1-8 range

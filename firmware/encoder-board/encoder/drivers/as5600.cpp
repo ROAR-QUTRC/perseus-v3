@@ -12,9 +12,7 @@ As5600::As5600(i2c_inst_t* i2c_port, uint8_t addr)
 
 bool As5600::read_register(uint8_t reg, uint8_t* dst, size_t len) const
 {
-    // Writes the register pointer, then reads `len` bytes from it into `dst`.
-    // AS5600 auto-increments the pointer, so multi-byte registers can be
-    // read in one shot.
+    // Write the register pointer, then read len bytes (the AS5600 auto-increments it).
     if (i2c_write_blocking(i2c_port_, addr_, &reg, 1, true) < 0)
         return false;  // NAK -- sensor not responding on the bus
     return i2c_read_blocking(i2c_port_, addr_, dst, len, false) == static_cast<int>(len);
@@ -22,8 +20,7 @@ bool As5600::read_register(uint8_t reg, uint8_t* dst, size_t len) const
 
 bool As5600::read_raw_angle(uint16_t* counts) const
 {
-    // Reads a 12-bit big-endian register pair. The top 4 bits of the high
-    // byte are unused and always read back as 0.
+    // 12-bit big-endian; the top 4 bits of the high byte are unused (read 0).
     uint8_t buf[2];
     if (!read_register(kRegAngle, buf, sizeof(buf)))
         return false;

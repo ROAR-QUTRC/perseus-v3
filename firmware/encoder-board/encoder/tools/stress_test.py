@@ -40,7 +40,7 @@ import time
 
 from pymodbus.client import ModbusSerialClient
 
-# Register map -- must match drivers/modbus_rtu.hpp's ModbusRegister enum.
+# Register map -- must match modbus::profiles::encoder::Register in firmware/shared/modbus-core/include/modbus/profiles/encoder.hpp.
 REG_ANGLE_RAW = 0
 REG_ANGLE_DEGREES_X10 = 1
 REG_ZERO_COMMAND = 2
@@ -49,7 +49,7 @@ REG_STATUS = 4
 REG_DISCOVERY = 5
 REG_OUT_OF_RANGE = 99
 
-BAUD = 9600  # must match MODBUS_BAUD_HZ in CMakeLists.txt
+BAUD = 115200  # must match MODBUS_BAUD_HZ in rtos/comms_task.cpp
 MIN_ADDR = 1
 MAX_ADDR = 8  # DIP switch 0-7 + 1; address 0 is reserved for broadcast
 
@@ -421,7 +421,7 @@ def main():
     # timeout=0.3, retries=1: fast enough to make scanning/verifying
     # practical -- pymodbus's defaults (timeout=3, retries=3) would burn
     # up to ~12s per address with nothing attached. Still generous for a
-    # real ~25-30ms round trip at 9600 baud.
+    # real ~5ms round trip at 115200 baud.
     client = ModbusSerialClient(
         port=args.port,
         baudrate=BAUD,
