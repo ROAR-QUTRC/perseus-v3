@@ -66,6 +66,14 @@
       <child link="${prefix}bucket_lift_arm_pivot_right_lower"/>
       <origin xyz="${bucket_lift_arm_pivot_x} ${-bucket_lift_arm_pivot_y} ${-bucket_lift_arm_pivot_z}" rpy="0.0 0.0 0.0"/>
     </joint>
+
+    <!--
+      The moving parts - lift arms, bucket, jaw, rams and encoder frames - hang off
+      bucket_mount above; see bucket_linkage.urdf.xacro. Included here rather than at
+      the top of the file so that payload:=none does not even define its materials.
+    -->
+    <xacro:include filename="$(find description)/urdf/bucket_linkage.urdf.xacro"/>
+    <xacro:bucket_linkage prefix="${prefix}"/>
   </xacro:macro>
 
 </robot>
