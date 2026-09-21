@@ -39,7 +39,7 @@ public:
 
 private:
     static constexpr uint8_t kRegStatus = 0x0B;
-    static constexpr uint8_t kRegAngle = 0x0E;  // 12-bit angle, high byte first
+    static constexpr uint8_t kRegAngle = 0x0E;        // 12-bit angle, high byte first
     static constexpr uint8_t kStatusMdBit = 1u << 5;  // MD: magnet detected
     static constexpr uint16_t kCountsRange = 4096;
     static constexpr float kCountsToDegrees = 360.0f / kCountsRange;

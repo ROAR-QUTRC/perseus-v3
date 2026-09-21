@@ -29,7 +29,12 @@ namespace
     };
 
     const char* const kNames[kEncoderCount] = {
-        "lift_left", "lift_right", "tilt_left", "tilt_right", "jaws_left", "jaws_right",
+        "lift_left",
+        "lift_right",
+        "tilt_left",
+        "tilt_right",
+        "jaws_left",
+        "jaws_right",
     };
 
     constexpr uint32_t kBusTaskStackBytes = 4096;

@@ -5,13 +5,13 @@ firmware task structure. The source is authoritative; this document summarises i
 
 ## 1. Overview
 
-| Item           | Value                                                    |
-| -------------- | -------------------------------------------------------- |
-| Protocol       | Modbus RTU slave, function codes 0x03, 0x06, 0x10        |
-| Physical layer | RS485, half-duplex, 115200 baud, 8N1 (`MODBUS_BAUD_HZ`)  |
-| Pins           | RX GPIO5 (UART1), DIR GPIO6 (DE/~RE), TX GPIO7 (PIO)     |
+| Item           | Value                                                          |
+| -------------- | -------------------------------------------------------------- |
+| Protocol       | Modbus RTU slave, function codes 0x03, 0x06, 0x10              |
+| Physical layer | RS485, half-duplex, 115200 baud, 8N1 (`MODBUS_BAUD_HZ`)        |
+| Pins           | RX GPIO5 (UART1), DIR GPIO6 (DE/~RE), TX GPIO7 (PIO)           |
 | Slave address  | DIP switch value (0-7) + 1, giving 1-8. Address 0 is broadcast |
-| Broadcast      | Executed by every board; no board replies                |
+| Broadcast      | Executed by every board; no board replies                      |
 
 TX is driven by a PIO program (`uart_tx.pio`) because GPIO7 has no `uart1_tx`
 function on the RP2350 and GPIO4 is used by the status LED.
@@ -27,7 +27,8 @@ other controllers, for example the ESP32 master on the SBB:
 |                               | `modbus/profiles/encoder.hpp`: the register map below, the single source of truth                 |
 | `firmware/shared/rs485`       | `rs485::Port` interface and the RP2350 backend `rs485::Rp2350Port` (UART RX, PIO TX, DIR control) |
 
-The Python tools in `tools/` mirror the register map by hand.
+The Python tools in `tools/` mirror the register map by hand. The API, the
+health model and worked examples are in `firmware/shared/modbus-core/README.md`.
 
 ## 2. Register Map
 
@@ -119,9 +120,9 @@ checking enabled.
 
 ## 5. Tools
 
-| Script                   | Purpose                                                                    |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `test_encoder_modbus.py` | Bring-up test: reads angle and status from one board                       |
-| `discover_encoders.py`   | Scans addresses 1-8, flashes each board's LED white, then polls them       |
-| `stress_test.py`         | Long-running multi-board stress test with per-board crash detection        |
-| `watch_boot.py`          | Streams the USB debug console and flags faults, across power cycles        |
+| Script                   | Purpose                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| `test_encoder_modbus.py` | Bring-up test: reads angle and status from one board                 |
+| `discover_encoders.py`   | Scans addresses 1-8, flashes each board's LED white, then polls them |
+| `stress_test.py`         | Long-running multi-board stress test with per-board crash detection  |
+| `watch_boot.py`          | Streams the USB debug console and flags faults, across power cycles  |
