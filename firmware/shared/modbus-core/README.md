@@ -78,6 +78,7 @@ Both ends of a bus must use the same baud rate.
 - **Slave errors.** A bad CRC, a short frame or another slave's address gets no
   reply. An unknown function returns exception 0x01. Anything else a slave rejects
   (unreadable or unwritable register, malformed request) returns 0x02.
+- **Example.** A complete angle read, byte by byte, is in section 8.
 
 ## 4. Slave
 
@@ -216,6 +217,46 @@ Constraints on the core: C++17; no heap, no exceptions and no RTTI (fixed buffer
 and result codes); warning-free with `-Wall -Wextra` on GCC and Clang.
 
 ## 8. Examples
+
+### On the wire: reading the angle
+
+Slave address 1, encoder at 2048 counts (180.0 degrees), 115200 baud. The bytes are
+asserted by `test_documented_angle_frames` in `tests/`, so they cannot drift from the
+implementation.
+
+| Frame               | Bytes                        | Meaning                                                                                                                     |
+| ------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Request (8 bytes)   | `01 03 00 00 00 02 C4 0B`    | address 1, function 0x03 (read), start register `0000`, count `0002`, CRC                                                   |
+| Reply (9 bytes)     | `01 03 04 08 00 07 08 FB A5` | address 1, function 0x03, 4 data bytes, register 0 = `0800` (2048 counts), register 1 = `0708` (1800 = 180.0 degrees), CRC  |
+| Exception (5 bytes) | `01 83 02 C0 F1`             | function 0x83 (0x03 with the high bit set), code 0x02: the angle is unavailable (no magnet) or the register is rejected, CRC |
+
+Registers are big-endian and the CRC is sent low byte first. The 17 bytes of a
+successful read take about 1.6 ms of wire time at 115200 baud; the frame gaps and the
+slave's gap detection add to that.
+
+The master call that produces this exchange:
+
+```cpp
+modbus::Response r = master.read_holding(1, enc::kRegAngleRaw, 2);
+enc::Angle a;
+if (enc::decode_angle(r, &a))
+    use(a.raw_counts, a.degrees_x10);  // 2048 and 1800
+// otherwise r.result is ExceptionReply (exception_code 0x02), Timeout, CrcError, ...
+```
+
+In the bucket the master never makes this call directly. `MBUS` issues it as a poll
+job, and the result travels:
+
+```
+MBUS::step() -> Master::read_holding() -> Port::send() / receive()
+  -> Response -> on_angle() -> decode_angle() -> EncoderReading (under a mutex)
+  -> control code: encoder_bus().get(EncoderId::LiftLeft, &reading)
+```
+
+On the encoder board, `Slave::poll()` receives the frame, checks the CRC and address,
+and calls `read_register` for registers 0 and 1. The handler returns the latest sample
+that `encoder_task` published at 1 kHz, so the angle is the last published sample, not a
+live sensor read.
 
 ### Master: polling an encoder
 

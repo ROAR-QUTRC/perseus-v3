@@ -548,6 +548,33 @@ static void test_encoder_profile()
     CHECK(board.last_write_reg == enc::kRegHeartbeat);
 }
 
+// The byte-for-byte example in README.md and the encoder's docs/modbus.md; keep them in step.
+static void test_documented_angle_frames()
+{
+    Bus bus;
+    Endpoint m(bus, true);
+    FakeDevice dev(bus, 1);
+    dev.regs[0] = 2048;
+    dev.regs[1] = 1800;
+
+    const uint8_t request[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B};
+    uint8_t built[8];
+    CHECK(build_read_request(built, 1, 0, 2) == sizeof(request));
+    CHECK(std::memcmp(built, request, sizeof(request)) == 0);
+
+    m.send(request, sizeof(request));
+    const std::vector<uint8_t> reply(m.inbound.begin(), m.inbound.end());
+    const std::vector<uint8_t> expected_reply = {0x01, 0x03, 0x04, 0x08, 0x00, 0x07, 0x08, 0xFB, 0xA5};
+    CHECK(reply == expected_reply);
+
+    // Any rejected register (here the write-only registers 2-3) gives the same exception frame.
+    m.inbound.clear();
+    const size_t n = build_read_request(built, 1, 2, 2);
+    m.send(built, n);
+    const std::vector<uint8_t> expected_exception = {0x01, 0x83, 0x02, 0xC0, 0xF1};
+    CHECK(std::vector<uint8_t>(m.inbound.begin(), m.inbound.end()) == expected_exception);
+}
+
 static void test_heartbeat_tracker()
 {
     HeartbeatTracker hb;
@@ -568,6 +595,7 @@ int main()
     test_exception_is_not_a_link_failure();
     test_one_shot_requests();
     test_encoder_profile();
+    test_documented_angle_frames();
     test_heartbeat_tracker();
 
     if (g_failures == 0)

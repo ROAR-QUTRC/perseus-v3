@@ -64,6 +64,19 @@ All registers are 16-bit holding registers.
 Frames with a bad CRC or another slave's address receive no reply. Broadcast
 requests never receive a reply, including exceptions.
 
+### Example: reading the angle
+
+Address 1, encoder at 2048 counts (180.0 degrees), reading registers 0 and 1:
+
+| Frame     | Bytes                        | Meaning                                                                        |
+| --------- | ---------------------------- | ------------------------------------------------------------------------------ |
+| Request   | `01 03 00 00 00 02 C4 0B`    | address 1, read (0x03), start register 0, count 2, CRC                         |
+| Reply     | `01 03 04 08 00 07 08 FB A5` | 4 data bytes: register 0 = 2048 counts, register 1 = 1800 (180.0 degrees), CRC |
+| No magnet | `01 83 02 C0 F1`             | exception (0x83), code 0x02: angle unavailable                                 |
+
+Registers are big-endian; the CRC is sent low byte first. The code path is described
+in `firmware/shared/modbus-core/README.md`.
+
 ### Master requirements
 
 - Wait at least the RTU frame gap (3.5 character times) between frames. The shared
