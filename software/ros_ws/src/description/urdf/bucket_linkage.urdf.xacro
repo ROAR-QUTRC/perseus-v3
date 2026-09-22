@@ -27,10 +27,18 @@
   <!-- Arm-pivot midpoint relative to bucket_mount's origin, the centre of the frame's
        front face (frame-mesh coordinates: face centre (0.0174, 0.4607, 0.093), pivot
        midpoint (0.0591, 0.44071, 0.213)). x and z agree with the +0.042 / +-0.12 that
-       bucket.urdf.xacro puts its lift pivot frames at. y is -0.020, not 0: in the CAD
-       the arm pivots sit at -0.12 and +0.08 from the face centre, not symmetrically. -->
+       bucket.urdf.xacro puts its lift pivot frames at.
+
+       y is 0: bucket_frame, bucket_lift_arm, bucket_body and bucket_jaw all sit on the
+       machine centre line, like bucket_mount, so a frame's y tells you how far off
+       centre a part is rather than where the CAD happened to put its origin. The CAD is
+       offset - its arm pivots are at -0.12 and +0.08 from the face centre, and the
+       bucket hangs off one arm - and that offset now lives in the child origins inside
+       each link instead of in the frame itself. Nothing moves: lift, tilt and jaw all
+       turn about y, so sliding a frame along y leaves its axis line exactly where it
+       was, at any joint angle. -->
   <xacro:property name="bucket_frame_x" value="0.0417"/>
-  <xacro:property name="bucket_frame_y" value="-0.020"/>
+  <xacro:property name="bucket_frame_y" value="0.0"/>
   <xacro:property name="bucket_frame_z" value="0.120"/>
 
   <!-- ══ Density ═════════════════════════════════════════════════════════
@@ -57,9 +65,6 @@
        by the export's broken mass properties. -->
   <!-- arm pivot -> bucket pivot, along the arm -->
   <xacro:property name="arm_length" value="0.70004"/>
-  <!-- lateral offset from the arm-pivot midpoint to the bucket pivot: the
-       bucket hangs off ONE arm (Revolute_2 on Square_Tube_2), not both -->
-  <xacro:property name="bucket_pivot_y" value="-0.10200"/>
   <!-- arm pivot -> lift-actuator bracket, along the arm (Fastened_2) -->
   <xacro:property name="lift_rod_offset" value="0.59712"/>
   <!-- arm pivot above the lift-actuator pivot -->
@@ -352,7 +357,7 @@
          is drawn by bucket_mount. Mass is the frame plus half of each lift ram. -->
     <link name="${prefix}bucket_frame">
       <inertial>
-        <origin xyz="-0.033899 0.019998 -0.155044" rpy="0 0 0"/>
+        <origin xyz="-0.033899 -0.000002 -0.155044" rpy="0 0 0"/>
         <mass value="${4.2099*k}"/>
         <inertia ixx="${0.114994*k}" ixy="${0.0*k}"      ixz="${0.001957*k}"
                                      iyy="${0.060850*k}" iyz="${0.0*k}"
@@ -378,7 +383,7 @@
          ═══════════════════════════════════════════════════════════════════ -->
     <link name="${prefix}bucket_lift_arm">
       <inertial>
-        <origin xyz="0.407179 0.019695 -0.000497" rpy="0 0 0"/>
+        <origin xyz="0.407179 -0.000305 -0.000497" rpy="0 0 0"/>
         <mass value="${2.8599*k}"/>
         <inertia ixx="${0.022280*k}" ixy="${0.000424*k}" ixz="${0.004437*k}"
                                      iyy="${0.125578*k}" iyz="${0.000055*k}"
@@ -386,48 +391,48 @@
       </inertial>
 
       <visual>
-        <origin xyz="0.00004  0.10000 -0.00001" rpy="1.5707963 0 0"/>
+        <origin xyz="0.00004 0.08 -0.00001" rpy="1.5707963 0 0"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/lift_arm_left.dae"/></geometry>
         <material name="bucket_arm_blue"/>
       </visual>
       <visual>
-        <origin xyz="0.00004 -0.10000 -0.00001" rpy="1.5707963 0 0"/>
+        <origin xyz="0.00004 -0.12 -0.00001" rpy="1.5707963 0 0"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/lift_arm_right.dae"/></geometry>
         <material name="bucket_arm_blue"/>
       </visual>
       <visual>
-        <origin xyz="0.59704 -0.08000 -0.01001" rpy="0 0 -1.5707963"/>
+        <origin xyz="0.59704 -0.1 -0.01001" rpy="0 0 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/lift_ram_bracket_right.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.59704  0.12000 -0.01001" rpy="0 0 -1.5707963"/>
+        <origin xyz="0.59704 0.1 -0.01001" rpy="0 0 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/lift_ram_bracket_left.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.22674 -0.08000  0.00999" rpy="3.1415927 0 0"/>
+        <origin xyz="0.22674 -0.1 0.00999" rpy="3.1415927 0 0"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_ram_mount_outboard.dae"/></geometry>
         <material name="bucket_steel"/>
       </visual>
       <visual>
-        <origin xyz="0.17904 -0.08000  0.01199" rpy="0 0 0"/>
+        <origin xyz="0.17904 -0.1 0.01199" rpy="0 0 0"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_ram_mount_inboard.dae"/></geometry>
         <material name="bucket_steel"/>
       </visual>
       <visual>
-        <origin xyz="0.18674  0.02000  0.01399" rpy="-3.1415927 0 -1.5707963"/>
+        <origin xyz="0.18674 0 0.01399" rpy="-3.1415927 0 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_ram_bracket.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
 
       <!-- one box per tube, sized from the measured 750 x 40 x 20 extents -->
       <collision name="${prefix}bucket_lift_arm_left_collision">
-        <origin xyz="0.35200 0.12000 0.00000" rpy="0 0 0"/>
+        <origin xyz="0.35200 0.1 0.00000" rpy="0 0 0"/>
         <geometry><box size="0.750 0.040 0.020"/></geometry>
       </collision>
       <collision name="${prefix}bucket_lift_arm_right_collision">
-        <origin xyz="0.35200 -0.08000 0.00000" rpy="0 0 0"/>
+        <origin xyz="0.35200 -0.1 0.00000" rpy="0 0 0"/>
         <geometry><box size="0.750 0.040 0.020"/></geometry>
       </collision>
     </link>
@@ -460,7 +465,7 @@
          ═══════════════════════════════════════════════════════════════════ -->
     <link name="${prefix}bucket_body">
       <inertial>
-        <origin xyz="0.021877 0.111881 0.038577" rpy="0 0 0"/>
+        <origin xyz="0.021877 -0.010119 0.038577" rpy="0 0 0"/>
         <mass value="${3.3886*k}"/>
         <inertia ixx="${0.079246*k}" ixy="${0.000096*k}" ixz="${-0.001948*k}"
                                      iyy="${0.014632*k}" iyz="${-0.000370*k}"
@@ -468,72 +473,72 @@
       </inertial>
 
       <visual>
-        <origin xyz="0.000003 -0.000002 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
+        <origin xyz="0.000003 -0.122002 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_block_right.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.041739 -0.024002 -0.020065" rpy="-1.5707964 -0.0000000 -1.5707963"/>
+        <origin xyz="0.041739 -0.146002 -0.020065" rpy="-1.5707964 -0.0000000 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/bucket_body.dae"/></geometry>
         <material name="bucket_steel"/>
       </visual>
       <visual>
-        <origin xyz="0.000003 -0.003002 -0.000004" rpy="0.0000000 -1.5707963 1.5707964"/>
+        <origin xyz="0.000003 -0.125002 -0.000004" rpy="0.0000000 -1.5707963 1.5707964"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_right_1.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.000003 0.046998 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
+        <origin xyz="0.000003 -0.075002 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_right_4.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.041739 0.138498 0.086935" rpy="-1.5707964 -0.0000000 -1.5707963"/>
+        <origin xyz="0.041739 0.016498 0.086935" rpy="-1.5707964 -0.0000000 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/bucket_vslot_mount.dae"/></geometry>
         <material name="bucket_steel"/>
       </visual>
       <visual>
-        <origin xyz="0.041739 0.175998 -0.020065" rpy="-1.5707964 -0.0000000 -1.5707963"/>
+        <origin xyz="0.041739 0.053998 -0.020065" rpy="-1.5707964 -0.0000000 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_block_left.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.000003 -0.009002 -0.000004" rpy="0.0000000 -1.5707963 1.5707964"/>
+        <origin xyz="0.000003 -0.131002 -0.000004" rpy="0.0000000 -1.5707963 1.5707964"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_right_2.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.000003 0.052998 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
+        <origin xyz="0.000003 -0.069002 -0.000004" rpy="0.0000000 -1.5707963 -1.5707963"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_right_3.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.044413 0.109998 0.123301" rpy="-1.5707963 -0.0000000 -3.1415926"/>
+        <origin xyz="0.044413 -0.012002 0.123301" rpy="-1.5707963 -0.0000000 -3.1415926"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/bucket_vslot_bearing_1.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.044413 0.133998 0.123301" rpy="1.5707964 -0.0000000 -3.1415926"/>
+        <origin xyz="0.044413 0.011998 0.123301" rpy="1.5707964 -0.0000000 -3.1415926"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/bucket_vslot_bearing_2.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.046739 0.175998 -0.020065" rpy="0.0000000 1.5707963 0.0000000"/>
+        <origin xyz="0.046739 0.053998 -0.020065" rpy="0.0000000 1.5707963 0.0000000"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_left_1.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="-0.003261 0.175998 -0.020065" rpy="0.0000000 1.5707963 -3.1415927"/>
+        <origin xyz="-0.003261 0.053998 -0.020065" rpy="0.0000000 1.5707963 -3.1415927"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_left_4.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="0.052739 0.175998 -0.020065" rpy="0.0000000 1.5707963 0.0000000"/>
+        <origin xyz="0.052739 0.053998 -0.020065" rpy="0.0000000 1.5707963 0.0000000"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_left_2.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
       <visual>
-        <origin xyz="-0.009261 0.175998 -0.020065" rpy="0.0000000 1.5707963 -3.1415927"/>
+        <origin xyz="-0.009261 0.053998 -0.020065" rpy="0.0000000 1.5707963 -3.1415927"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/tilt_bearing_left_3.dae"/></geometry>
         <material name="bucket_dark"/>
       </visual>
@@ -541,7 +546,7 @@
       <!-- The back plate, as a box. The tray and side structures are on the jaw
            link below, because they swing with it. -->
       <collision name="${prefix}bucket_body_collision">
-        <origin xyz="0.04500 0.12200 0.03300" rpy="0 0 0"/>
+        <origin xyz="0.04500 0 0.03300" rpy="0 0 0"/>
         <geometry><box size="0.010 0.460 0.145"/></geometry>
       </collision>
     </link>
@@ -551,7 +556,11 @@
     <joint name="${prefix}bucket_tilt_joint" type="revolute">
       <parent link="${prefix}bucket_lift_arm"/>
       <child link="${prefix}bucket_body"/>
-      <origin xyz="${arm_length} ${bucket_pivot_y} -0.00001" rpy="0 0 0"/>
+      <!-- y is 0 so bucket_body lands on the centre line. The bucket really hangs
+           off ONE arm (Revolute_2 on Square_Tube_2), 0.102 m to the right of the arm
+           pivot midpoint; that offset is carried by bucket_body's own origins. Sliding
+           this joint along its own y axis does not move the axis line. -->
+      <origin xyz="${arm_length} ${bucket_frame_y} -0.00001" rpy="0 0 0"/>
       <axis xyz="0 -1 0"/>
       <limit lower="${tilt_lower}" upper="${tilt_upper}"
              effort="${tilt_effort}" velocity="${tilt_velocity}"/>
@@ -574,7 +583,7 @@
     <joint name="${prefix}bucket_jaw_joint" type="revolute">
       <parent link="${prefix}bucket_body"/>
       <child link="${prefix}bucket_jaw"/>
-      <origin xyz="0.076453 0.348498 0.158935" rpy="0 0 0"/>
+      <origin xyz="0.076453 0 0.158935" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
       <limit lower="${jaw_lower}" upper="${jaw_upper}"
              effort="${jaw_effort}" velocity="${jaw_velocity}"/>
@@ -583,7 +592,7 @@
 
     <link name="${prefix}bucket_jaw">
       <inertial>
-        <origin xyz="0.021080 -0.226498 -0.132757" rpy="0 0 0"/>
+        <origin xyz="0.021080 0 -0.132757" rpy="0 0 0"/>
         <mass value="${0.6777*k}"/>
         <inertia ixx="${0.024905*k}" ixy="${0.000000*k}" ixz="${0.001904*k}"
                                      iyy="${0.006139*k}" iyz="${-0.000000*k}"
@@ -591,7 +600,7 @@
       </inertial>
 
       <visual>
-        <origin xyz="0.000000 0.000000 0.000000" rpy="1.5707963 0.0000000 0.0000000"/>
+        <origin xyz="0.000000 0.226498 0.000000" rpy="1.5707963 0.0000000 0.0000000"/>
         <geometry><mesh scale="1.0 1.0 1.0" filename="${M}/bucket_jaw.dae"/></geometry>
         <material name="bucket_steel"/>
       </visual>
@@ -601,15 +610,15 @@
            scoop concave to the physics engine. Centres are the earlier
            bucket-frame values minus the hinge position. -->
       <collision name="${prefix}bucket_floor_collision">
-        <origin xyz="0.04855 -0.22650 -0.19794" rpy="0 0 0"/>
+        <origin xyz="0.04855 -0.000002 -0.19794" rpy="0 0 0"/>
         <geometry><box size="0.170 0.460 0.010"/></geometry>
       </collision>
       <collision name="${prefix}bucket_side_left_collision">
-        <origin xyz="0.04855 -0.02150 -0.12294" rpy="0 0 0"/>
+        <origin xyz="0.04855 0.204998 -0.12294" rpy="0 0 0"/>
         <geometry><box size="0.170 0.049 0.150"/></geometry>
       </collision>
       <collision name="${prefix}bucket_side_right_collision">
-        <origin xyz="0.04855 -0.44450 -0.12294" rpy="0 0 0"/>
+        <origin xyz="0.04855 -0.218002 -0.12294" rpy="0 0 0"/>
         <geometry><box size="0.170 0.023 0.150"/></geometry>
       </collision>
     </link>
@@ -627,10 +636,10 @@
          block rather than showing as a gap at the visible rod end. Verified
          over the whole workspace: rod end lands within 0.01 mm. -->
     <xacro:bucket_ram name="bucket_ram_lift_left"  parent="bucket_frame" mesh="lift_ram_left"
-                      xyz="0.00004 0.119074 -0.24001"
+                      xyz="0.00004 0.099074 -0.24001"
                       mesh_rpy="0 -1.5707963 -1.5707963" axis="1 0 0" phi="0"/>
     <xacro:bucket_ram name="bucket_ram_lift_right" parent="bucket_frame" mesh="lift_ram_right"
-                      xyz="0.00004 -0.079074 -0.24001"
+                      xyz="0.00004 -0.099074 -0.24001"
                       mesh_rpy="0 -1.5707963 1.5707963" axis="1 0 0" phi="0"/>
     <!-- The tilt ram's barrel is bolted to the plate on the ARMS (the
          tilt_ram_mount pair, via tilt_ram_bracket) and its rod reaches
@@ -643,17 +652,17 @@
          mesh_xyz places the actuator mesh so its arm-side pin sits on the joint
          rather than its origin. -->
     <xacro:bucket_ram name="bucket_ram_tilt" parent="bucket_lift_arm" mesh="tilt_ram"
-                      xyz="0.18674 0.030248 0.01399"
+                      xyz="0.18674 0.010248 0.01399"
                       mesh_xyz="0.365 -0.02025 0"
                       mesh_rpy="0 1.5707963 -1.5707963" axis="1 0 0" phi="0"/>
 
     <!-- The two 50 mm jaw actuators. Right side is -y (act 1), left is +y (act 2). -->
-    <xacro:bucket_jaw_ram name="bucket_ram_jaw_right" y="-0.08137"
+    <xacro:bucket_jaw_ram name="bucket_ram_jaw_right" y="-0.20337"
         base_mesh="jaw_ram_right_barrel"
         shaft_mesh="jaw_ram_right_shaft"
         barrel_xyz="0 0.02287 0" barrel_rpy="0 1.5707963 -1.5707963"
         shaft_xyz="0.20681 -0.02013 0" shaft_rpy="0 1.5707963 1.5707963"/>
-    <xacro:bucket_jaw_ram name="bucket_ram_jaw_left" y="0.32537"
+    <xacro:bucket_jaw_ram name="bucket_ram_jaw_left" y="0.20337"
         base_mesh="jaw_ram_left_barrel"
         shaft_mesh="jaw_ram_left_shaft"
         barrel_xyz="0 0.0092 0" barrel_rpy="0 1.5707963 1.5707963"
@@ -666,12 +675,12 @@
          offset); jaw ends are the two hinge bosses on the FRONT frame, 0.453 m
          apart, measured from its mesh.
          ═══════════════════════════════════════════════════════════════════ -->
-    <xacro:bucket_encoder name="bucket_lift_encoder_left"  parent="bucket_frame" xyz="0 0.1 0"/>
-    <xacro:bucket_encoder name="bucket_lift_encoder_right" parent="bucket_frame" xyz="0 -0.1 0"/>
-    <xacro:bucket_encoder name="bucket_tilt_encoder_left"  parent="bucket_lift_arm"   xyz="${arm_length} 0.100 -0.00001"/>
-    <xacro:bucket_encoder name="bucket_tilt_encoder_right" parent="bucket_lift_arm"   xyz="${arm_length} ${bucket_pivot_y} -0.00001"/>
-    <xacro:bucket_encoder name="bucket_jaw_encoder_left"   parent="bucket_body"       xyz="0.076453 0.348498 0.158935"/>
-    <xacro:bucket_encoder name="bucket_jaw_encoder_right"  parent="bucket_body"       xyz="0.076453 -0.104502 0.158935"/>
+    <xacro:bucket_encoder name="bucket_lift_encoder_left"  parent="bucket_frame" xyz="0 0.08 0"/>
+    <xacro:bucket_encoder name="bucket_lift_encoder_right" parent="bucket_frame" xyz="0 -0.12 0"/>
+    <xacro:bucket_encoder name="bucket_tilt_encoder_left"  parent="bucket_lift_arm"   xyz="${arm_length} 0.080 -0.00001"/>
+    <xacro:bucket_encoder name="bucket_tilt_encoder_right" parent="bucket_lift_arm"   xyz="${arm_length} -0.122 -0.00001"/>
+    <xacro:bucket_encoder name="bucket_jaw_encoder_left"   parent="bucket_body"       xyz="0.076453 0.226498 0.158935"/>
+    <xacro:bucket_encoder name="bucket_jaw_encoder_right"  parent="bucket_body"       xyz="0.076453 -0.226498 0.158935"/>
 
   </xacro:macro>
 
