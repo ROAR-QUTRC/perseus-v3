@@ -4,9 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
-#include <hi_can.hpp>  // PacketManager, addressing::*  // TODO: verify header name/path
-#include <hi_can_address.hpp>
-#include <hi_can_raw.hpp>  // RawCanInterface, Packet
+#include <hi_can_raw.hpp>  // RawCanInterface, Packet, PacketManager
 #include <memory>
 #include <mutex>
 #include <string>
@@ -49,9 +47,14 @@ namespace payload
 
     /// One encoder's last known reading (encoder_group::GET_ANGLE).
     /// This is the authoritative per-side position, used for each joint's `position`
-    /// state interface. There is no hardware velocity readback; differentiate
-    /// successive (position, timestamp) samples in bucket_hardware.cpp if a velocity
-    /// state interface is needed OR add it into CAN message options if firmware side.
+    /// state interface.
+    ///
+    /// `\position` is in RADIANS (or other linear unit as specified), already
+    /// converted from the raw uint16_t encoder count on the wire
+    ///
+    /// There is no hardware velocity readback; differentiate successive (position,
+    /// timestamp) samples in bucket_hardware.cpp if a velocity state interface is
+    /// needed OR add it into CAN message options if firmware side.
     struct EncoderState
     {
         double position = 0.0;  // rad/degree/m, per joint convention
@@ -66,11 +69,16 @@ namespace payload
     /// reports as the average of that bank's two encoders. It is NOT a substitute
     /// for the per-side EncoderState readings. It should be used as a diagnostic
     /// cross-check (flagging skew, webui, etc.), never as a joint's position source
+    ///
+    /// `fault` is a plain bool (matches
+    /// hi_can::parameters::excavation::bucket::controller_board::status_t,
+    /// which wraps a single bool), not a bitfield. If the firmware needs to reports
+    /// more than one fault condition, status_t will change upstream first.
     struct BankState
     {
         double average_position = 0.0;  // rad/degree/m, bank_parameter::GET_ANGLE
         double current = 0.0;           // amps, bank_parameter::GET_CURRENT
-        uint8_t fault = 0;              // TODO: define fault bitfield, bank_parameter::GET_FAULT
+        bool fault = 0;                 // bank_parameter::GET_FAULT
         bool stale = true;
     };
 
@@ -113,9 +121,9 @@ namespace payload
         void disconnect();
 
         /// Pump receive processing. MUST be called once per control cycle (from
-        /// BucketHardware::read()) - this is what actually decodes incoming
-        /// frames and fires on_encoder_received()/on_bank_received() /
-        /// PacketManager's timeout callbacks. Does nothing if not connected.
+        /// BucketHardware::read()) - this decodes incoming frames and fires
+        /// on_encoder_received()/on_bank_received() and PacketManager's timeout
+        /// callbacks. Does nothing if not connected.
         void poll();
 
         /// Register the function called whenever a new per-encoder angle frame is
@@ -163,9 +171,7 @@ namespace payload
         // Registers one hi_can::PacketManager::set_callback() per encoder (6) and
         // per bank read-parameter (3 axes x {GET_CURRENT, GET_FAULT, GET_ANGLE} =
         // 9), wired to on_encoder_received()/on_bank_received(). Called once from
-        // connect(). Split out because there isn't a good single call for "give me
-        // every GET_* frame this device sends" - each parameter needs its own
-        // filter/callback_config.
+        // connect().
         void register_receive_filters();
 
         void on_encoder_received(Axis axis, Side side, const EncoderState& state);
