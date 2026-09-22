@@ -53,7 +53,7 @@ namespace payloads
     /// with "axis" (lift|tilt|jaws) and "side" (left|right) parameters. See
     /// description/bucket.ros2_control.xacro for the expected format.
     /// Exactly one joint per axis must declare command_interfaces (position +
-    /// velocity), the other must declare state_interfaces only. This mirros the CAN
+    /// velocity), the other must declare state_interfaces only. This mirrors the CAN
     /// only accepting bank-level commands.
     /// Main software/ros_ws/desrciption/ros2_control.xacro URDF file imports
     /// the bucket.xacro, while maintaining the same names/details for all joints

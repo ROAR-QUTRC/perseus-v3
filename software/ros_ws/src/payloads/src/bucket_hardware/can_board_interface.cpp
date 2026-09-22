@@ -5,7 +5,7 @@
 #include <hi_can_parameter.hpp>
 #include <iostream>
 
-namespace payload
+namespace payloads
 {
 
     namespace
@@ -361,4 +361,4 @@ namespace payload
         }
     }
 
-}  // namespace payload
+}  // namespace payloads

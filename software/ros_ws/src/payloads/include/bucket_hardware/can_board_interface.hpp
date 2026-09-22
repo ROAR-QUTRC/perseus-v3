@@ -9,7 +9,7 @@
 #include <mutex>
 #include <string>
 
-namespace payload
+namespace payloads
 {
 
     // Bank = one CAN-addressable actuator group.
@@ -190,6 +190,6 @@ namespace payload
         bool connected_ = false;
     };
 
-}  // namespace payload
+}  // namespace payloads
 
 #endif  // BUCKET_HARDWARE__CAN_BOARD_INTERFACE_HPP_

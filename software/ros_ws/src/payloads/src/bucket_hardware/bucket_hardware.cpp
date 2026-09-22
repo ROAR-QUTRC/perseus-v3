@@ -1,13 +1,14 @@
-#include "bucket_hardware/can_board_interface.hpp"
+#include "bucket_hardware/bucket_hardware.hpp"
+
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
-namespace payload
+namespace payloads
 {
 
     namespace
     {
-        rclcpp::Logger logger() { return rclcpp::get_logger("bucket_hardware"); }
+        rclcpp::Logger logger() { return rclcpp::get_logger("payload"); }
     }  // namespace
 
     bool BucketHardware::parse_axis(const std::string& value, Axis& out)
@@ -303,6 +304,6 @@ namespace payload
         return hardware_interface::return_type::OK;
     }
 
-}  // namespace payload
+}  // namespace payloads
 
-PLUGINLIB_EXPORT_CLASS(bucket_hardware::BucketHardware, hardware_interface::SystemInterface)
+PLUGINLIB_EXPORT_CLASS(payloads::BucketHardware, hardware_interface::SystemInterface)
