@@ -14,7 +14,11 @@ def generate_launch_description():
         [
             "xacro ",
             PathJoinSubstitution(
-                [FindPackageShare("payloads"), "description", "bucket.ros2_control.xacro"]
+                [
+                    FindPackageShare("payloads"),
+                    "description",
+                    "bucket.ros2_control.xacro",
+                ]
             ),
         ]
     )
@@ -36,7 +40,11 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         namespace="payloads",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/payloads/controller_manager"],
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-manager",
+            "/payloads/controller_manager",
+        ],
     )
 
     # Only spawn ONE of position/velocity to start with - see the note in
@@ -45,7 +53,11 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         namespace="payloads",
-        arguments=["bucket_position_controller", "--controller-manager", "/payloads/controller_manager"],
+        arguments=[
+            "bucket_position_controller",
+            "--controller-manager",
+            "/payloads/controller_manager",
+        ],
     )
 
     delay_controller_after_broadcaster = RegisterEventHandler(
@@ -63,10 +75,10 @@ def generate_launch_description():
     # )
 
     nodes = [
-        control_node, 
-        robot_state_pub_node, 
-        joint_state_broadcaster_spawner, 
-        delay_controller_after_broadcaster
+        control_node,
+        robot_state_pub_node,
+        joint_state_broadcaster_spawner,
+        delay_controller_after_broadcaster,
     ]
 
     return LaunchDescription(nodes)
