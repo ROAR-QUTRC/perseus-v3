@@ -79,9 +79,9 @@ RAM_STROKE = 0.250
 # Tilt, solved in the ARM frame: the ram's barrel is bolted to the plate on the
 # arms, and its rod reaches forward to a pin on the bucket. So the anchor is
 # fixed in the arm and the target swings with the bucket.
-TILT_ANCHOR_X = 0.18674  # Actuator_Bracket_4, in the bucket_arm frame
+TILT_ANCHOR_X = 0.18674  # tilt_ram_bracket, in the bucket_lift_arm frame
 TILT_ANCHOR_Z = 0.01399
-TILT_PIVOT_X = 0.70004  # bucket pivot, in the bucket_arm frame
+TILT_PIVOT_X = 0.70004  # bucket pivot, in the bucket_lift_arm frame
 TILT_PIVOT_Z = -0.00001
 TILT_PIN_X = 0.04441  # ram pin, in the bucket frame
 TILT_PIN_Z = 0.12331
@@ -133,17 +133,17 @@ def jaw_ram(q_jaw):
 # the ten ram joints, in the order ram_values() returns them per ram group
 RAM_JOINTS = {
     "lift": (
-        "ram_lift_left_pitch_joint",
-        "ram_lift_left_extend_joint",
-        "ram_lift_right_pitch_joint",
-        "ram_lift_right_extend_joint",
+        "bucket_ram_lift_left_pitch_joint",
+        "bucket_ram_lift_left_extend_joint",
+        "bucket_ram_lift_right_pitch_joint",
+        "bucket_ram_lift_right_extend_joint",
     ),
-    "tilt": ("ram_tilt_pitch_joint", "ram_tilt_extend_joint"),
+    "tilt": ("bucket_ram_tilt_pitch_joint", "bucket_ram_tilt_extend_joint"),
     "jaw": (
-        "ram_jaw_right_pitch_joint",
-        "ram_jaw_right_extend_joint",
-        "ram_jaw_left_pitch_joint",
-        "ram_jaw_left_extend_joint",
+        "bucket_ram_jaw_right_pitch_joint",
+        "bucket_ram_jaw_right_extend_joint",
+        "bucket_ram_jaw_left_pitch_joint",
+        "bucket_ram_jaw_left_extend_joint",
     ),
 }
 
