@@ -36,6 +36,7 @@ namespace payloads
                 /* TILT */ {bucket_addr::encoder_group::TILT_L, bucket_addr::encoder_group::TILT_R},
                 /* JAWS */ {bucket_addr::encoder_group::JAWS_L, bucket_addr::encoder_group::JAWS_R},
             };
+            return kTable[static_cast<size_t>(axis)][static_cast<size_t>(side)];
         }
 
         addressing::standard_address_t bank_address(Axis axis, bucket_addr::bank_parameter parameter)
