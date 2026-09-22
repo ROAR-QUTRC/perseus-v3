@@ -1,5 +1,4 @@
 #include "bucket_hardware/can_board_interface.hpp"
-
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
@@ -261,8 +260,8 @@ namespace payload
     hardware_interface::return_type BucketHardware::read(
         const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
     {
-        // hi_can::PacketManager is polled, decoding buffered frames. Fires 
-        // the encoder/bank callbacks registered in on_configure(). 
+        // hi_can::PacketManager is polled, decoding buffered frames. Fires
+        // the encoder/bank callbacks registered in on_configure().
         // Must run before joint state is considered current.
         can_->poll();
 

@@ -27,26 +27,26 @@ and the SBB (ESP32-S3, master). The two libraries live side by side:
 Dependencies point downwards only. `modbus-core` never includes a profile or any
 platform code, and `rs485` knows nothing about Modbus.
 
-| Path                                             | Contents                                                        |
-| ------------------------------------------------ | --------------------------------------------------------------- |
-| `rs485/include/rs485/port.hpp`                   | `rs485::Port` interface                                         |
-| `rs485/include/rs485/rp2350.hpp`, `src/rp2350.cpp`, `src/uart_tx.pio` | RP2350 backend                            |
-| `rs485/include/rs485/esp32.hpp`, `src/esp32.cpp` | ESP32 backend                                                   |
-| `modbus-core/include/modbus/`                    | `protocol.hpp` (CRC, frames), `slave.hpp`, `master.hpp`, `mbus.hpp`, `clock.hpp`, `heartbeat.hpp` |
-| `modbus-core/include/modbus/profiles/`           | Per-device profiles (`encoder.hpp`)                             |
-| `modbus-core/tests/`                             | Host unit tests                                                 |
-| `firmware/components/rs485`, `modbus-core`       | ESP-IDF component wrappers, plus `modbus/esp32_clock.hpp`       |
+| Path                                                                  | Contents                                                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `rs485/include/rs485/port.hpp`                                        | `rs485::Port` interface                                                                           |
+| `rs485/include/rs485/rp2350.hpp`, `src/rp2350.cpp`, `src/uart_tx.pio` | RP2350 backend                                                                                    |
+| `rs485/include/rs485/esp32.hpp`, `src/esp32.cpp`                      | ESP32 backend                                                                                     |
+| `modbus-core/include/modbus/`                                         | `protocol.hpp` (CRC, frames), `slave.hpp`, `master.hpp`, `mbus.hpp`, `clock.hpp`, `heartbeat.hpp` |
+| `modbus-core/include/modbus/profiles/`                                | Per-device profiles (`encoder.hpp`)                                                               |
+| `modbus-core/tests/`                                                  | Host unit tests                                                                                   |
+| `firmware/components/rs485`, `modbus-core`                            | ESP-IDF component wrappers, plus `modbus/esp32_clock.hpp`                                         |
 
 ## 2. Platform Interfaces
 
 ### `rs485::Port`
 
-| Method                                                    | Contract                                                                                                                       |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `send(data, len)`                                         | Blocks until the last stop bit is on the wire and the transceiver is back in receive mode. Returns false on failure.           |
-| `receive(buf, cap, first_byte_timeout_us, frame_gap_us)`  | Waits up to `first_byte_timeout_us` for a byte, then reads until `frame_gap_us` of silence or `cap` bytes. 0 means nothing arrived. |
-| `flush_rx()`                                              | Discards buffered input. The master calls it before every request so a late reply is never mistaken for the current one.       |
-| `baud_hz()`                                               | Line rate, used to derive the frame gap.                                                                                       |
+| Method                                                   | Contract                                                                                                                            |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `send(data, len)`                                        | Blocks until the last stop bit is on the wire and the transceiver is back in receive mode. Returns false on failure.                |
+| `receive(buf, cap, first_byte_timeout_us, frame_gap_us)` | Waits up to `first_byte_timeout_us` for a byte, then reads until `frame_gap_us` of silence or `cap` bytes. 0 means nothing arrived. |
+| `flush_rx()`                                             | Discards buffered input. The master calls it before every request so a late reply is never mistaken for the current one.            |
+| `baud_hz()`                                              | Line rate, used to derive the frame gap.                                                                                            |
 
 ### `modbus::Clock`
 
@@ -55,11 +55,11 @@ platform code, and `rs485` knows nothing about Modbus.
 
 ### Backends
 
-| Backend              | Construction                                                       | Behaviour                                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rs485::Rp2350Port`  | `(uart, rx_pin, dir_pin, pio, sm, tx_pin, baud)`, then `init()`    | UART RX, PIO TX (`uart_tx.pio`), GPIO for DE/~RE. `receive()` busy-waits and rounds both timeouts up to whole milliseconds.                         |
-| `rs485::Esp32Port`   | `(uart_port, tx, rx, dir, baud)`, then `init()` (returns bool)     | One UART for both directions. DIR is the UART's RTS in RS485 half-duplex mode. `receive()` sleeps until the first byte; the gap is timed in microseconds. Use UART1 or UART2. |
-| `modbus::Esp32Clock` | default constructed                                                | `esp_timer` based. Lives in `firmware/components/modbus-core/include/modbus/esp32_clock.hpp`.                                                       |
+| Backend              | Construction                                                    | Behaviour                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rs485::Rp2350Port`  | `(uart, rx_pin, dir_pin, pio, sm, tx_pin, baud)`, then `init()` | UART RX, PIO TX (`uart_tx.pio`), GPIO for DE/~RE. `receive()` busy-waits and rounds both timeouts up to whole milliseconds.                                                   |
+| `rs485::Esp32Port`   | `(uart_port, tx, rx, dir, baud)`, then `init()` (returns bool)  | One UART for both directions. DIR is the UART's RTS in RS485 half-duplex mode. `receive()` sleeps until the first byte; the gap is timed in microseconds. Use UART1 or UART2. |
+| `modbus::Esp32Clock` | default constructed                                             | `esp_timer` based. Lives in `firmware/components/modbus-core/include/modbus/esp32_clock.hpp`.                                                                                 |
 
 A new chip needs the four `Port` methods, and a `Clock` if it will act as a master.
 Both ends of a bus must use the same baud rate.
@@ -115,15 +115,15 @@ modbus::Response r = master.read_holding(slave, start_reg, count);
 modbus::Response w = master.write_single(slave, reg, value);   // slave 0 = broadcast
 ```
 
-| `Result`         | Meaning                                              | Counts as a link failure |
-| ---------------- | ---------------------------------------------------- | ------------------------ |
-| `Ok`             | Valid reply; `r.regs[]` and `r.reg_count` are filled | No                       |
-| `ExceptionReply` | The slave answered with an exception (`exception_code`) | No: the board is alive |
-| `Timeout`        | Nothing came back                                    | Yes                      |
-| `CrcError`       | A reply arrived but was corrupt                      | Yes                      |
-| `BadFrame`       | Valid CRC, wrong address, function or length         | Yes                      |
-| `TransportError` | The port failed to send                              | Yes                      |
-| `InvalidRequest` | Rejected locally (for example count 0); nothing sent | Ignored                  |
+| `Result`         | Meaning                                                 | Counts as a link failure |
+| ---------------- | ------------------------------------------------------- | ------------------------ |
+| `Ok`             | Valid reply; `r.regs[]` and `r.reg_count` are filled    | No                       |
+| `ExceptionReply` | The slave answered with an exception (`exception_code`) | No: the board is alive   |
+| `Timeout`        | Nothing came back                                       | Yes                      |
+| `CrcError`       | A reply arrived but was corrupt                         | Yes                      |
+| `BadFrame`       | Valid CRC, wrong address, function or length            | Yes                      |
+| `TransportError` | The port failed to send                                 | Yes                      |
+| `InvalidRequest` | Rejected locally (for example count 0); nothing sent    | Ignored                  |
 
 `Response` also carries `timestamp_ms` (when the transaction finished) and
 `latency_us` (request start to reply).
@@ -134,12 +134,12 @@ The master-side bus manager, the Modbus counterpart of Hi-CAN's `PacketManager`.
 It owns one bus; one task calls `step()` in a loop. Capacity is fixed at compile
 time and nothing allocates.
 
-| Concept   | Type          | Meaning                                                                                              |
-| --------- | ------------- | ---------------------------------------------------------------------------------------------------- |
-| Device    | `Device`      | One slave: address, up to 2 poll jobs, a `HealthPolicy` and a state-change callback                  |
-| Poll job  | `PollJob`     | Standing order: read `count` registers from `start_reg` every `period_ms`; `on_result` runs after every attempt |
-| Request   | `Request`     | One-shot read or write (slave 0 = broadcast) with optional `retries` and an `on_done` callback       |
-| Stats     | `DeviceStats` | Counters, consecutive failures, a 32-transaction history, latency and the health state               |
+| Concept  | Type          | Meaning                                                                                                         |
+| -------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| Device   | `Device`      | One slave: address, up to 2 poll jobs, a `HealthPolicy` and a state-change callback                             |
+| Poll job | `PollJob`     | Standing order: read `count` registers from `start_reg` every `period_ms`; `on_result` runs after every attempt |
+| Request  | `Request`     | One-shot read or write (slave 0 = broadcast) with optional `retries` and an `on_done` callback                  |
+| Stats    | `DeviceStats` | Counters, consecutive failures, a 32-transaction history, latency and the health state                          |
 
 - **Scheduling.** `step()` runs at most one transaction and returns false when
   nothing is due; the caller then sleeps (`ms_until_next_due()` gives the wait).
@@ -156,13 +156,13 @@ time and nothing allocates.
 **Health.** Each device is `Unknown`, `Ok`, `Degraded` (flaky) or `Lost` (sustained
 silence). Transitions with the `HealthPolicy` defaults:
 
-| Transition             | Condition                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------- |
-| `Unknown` to `Ok`      | First good reply                                                                                   |
-| to `Degraded`          | 2 consecutive failures, or an error rate of 20% or more over the last 32 (after 16 samples)        |
-| to `Lost`              | 10 consecutive failures                                                                            |
-| `Lost` to `Degraded`   | First good reply                                                                                   |
-| `Degraded` to `Ok`     | 10 consecutive good replies, error rate below the threshold, and not latched                       |
+| Transition           | Condition                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `Unknown` to `Ok`    | First good reply                                                                            |
+| to `Degraded`        | 2 consecutive failures, or an error rate of 20% or more over the last 32 (after 16 samples) |
+| to `Lost`            | 10 consecutive failures                                                                     |
+| `Lost` to `Degraded` | First good reply                                                                            |
+| `Degraded` to `Ok`   | 10 consecutive good replies, error rate below the threshold, and not latched                |
 
 With `latch_degraded` set, a `Degraded` device stays there until `clear_latch()`.
 
@@ -224,10 +224,10 @@ Slave address 1, encoder at 2048 counts (180.0 degrees), 115200 baud. The bytes 
 asserted by `test_documented_angle_frames` in `tests/`, so they cannot drift from the
 implementation.
 
-| Frame               | Bytes                        | Meaning                                                                                                                     |
-| ------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Request (8 bytes)   | `01 03 00 00 00 02 C4 0B`    | address 1, function 0x03 (read), start register `0000`, count `0002`, CRC                                                   |
-| Reply (9 bytes)     | `01 03 04 08 00 07 08 FB A5` | address 1, function 0x03, 4 data bytes, register 0 = `0800` (2048 counts), register 1 = `0708` (1800 = 180.0 degrees), CRC  |
+| Frame               | Bytes                        | Meaning                                                                                                                      |
+| ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Request (8 bytes)   | `01 03 00 00 00 02 C4 0B`    | address 1, function 0x03 (read), start register `0000`, count `0002`, CRC                                                    |
+| Reply (9 bytes)     | `01 03 04 08 00 07 08 FB A5` | address 1, function 0x03, 4 data bytes, register 0 = `0800` (2048 counts), register 1 = `0708` (1800 = 180.0 degrees), CRC   |
 | Exception (5 bytes) | `01 83 02 C0 F1`             | function 0x83 (0x03 with the high bit set), code 0x02: the angle is unavailable (no magnet) or the register is rejected, CRC |
 
 Registers are big-endian and the CRC is sent low byte first. The 17 bytes of a
