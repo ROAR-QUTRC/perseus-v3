@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!--
-    Include this file from your main URDF/xacro with:
+    Include this file from the main URDF/xacro with:
       <xacro:include filename="$(find bucket_hardware)/description/bucket.ros2_control.xacro"/>
       <xacro:bucket_ros2_control can_interface="can0"/>
 
@@ -16,10 +16,6 @@
     declares command_interfaces; its pair declares state_interfaces only.
     BucketHardware::on_init() enforces this 1-commandable-joint-per-axis
     invariant and will refuse to configure otherwise.
-
-    To add a joint (e.g. a 4th "extend" axis), copy one command + one
-    state-only <joint> block, give them a new axis name, and add that name
-    to BucketHardware::parse_axis().
   -->
   <xacro:macro name="bucket_ros2_control" params="can_interface:='can0'">
     <ros2_control name="BucketSystem" type="system">
@@ -42,7 +38,7 @@
       </xacro:macro>
 
       <!--
-        Its pair: still a real, independently-encoded joint (needed for
+        Its pair: a real, independently-encoded joint (needed for
         state/skew feedback and TF), but not independently commandable, so
         no command_interfaces here.
       -->
