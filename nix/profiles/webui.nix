@@ -33,7 +33,7 @@
     };
   };
 
-  enterShell = "cd ${config.env.DEVENV_ROOT}/software/web_ui";
+  # enterShell = "cd ${config.env.DEVENV_ROOT}/software/web_ui";
 
   tasks = {
     "web-ui:init" = {
