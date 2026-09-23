@@ -1,0 +1,62 @@
+# Every machine on the ROAR network, keyed by `hostname`.
+#
+# This is the one place a device's network details live. nix/profiles/cyclonedds.nix
+# builds the CycloneDDS config from it -- every enabled device becomes a unicast peer --
+# and nix/profiles/hostnames.nix binds Cyclone to `interface` on the host it runs on.
+#
+# `interface` has to exist on that machine: Cyclone 0.10 takes exactly one interface
+# name, and one that does not resolve stops every ROS node from starting. Check it with
+# `ip -brief addr`, which also shows whether `ip` is really the address it holds.
+#
+# `enabled` defaults to true. Set it to false to drop a machine from the peer list
+# without losing its details.
+
+# ── Rover ─────────────────────────────────────────────────────────────────────
+# Jetson carrier boards tend to name the port after its PCIe address rather than eth0,
+# so check `ip -brief link` on any of these before assuming the default.
+
+[big-brain]
+interface = "eth0"
+ip = "192.168.2.11"
+
+[medium-brain]
+interface = "eth0"
+ip = "192.168.2.12"
+
+[small-brain]
+interface = "eth0"
+ip = "192.168.2.15"
+
+# The other up interface, enP3p49s0, carries no IPv4 address.
+[autonomy-brain]
+interface = "enP4p65s0"
+ip = "192.168.2.18"
+
+# ── Base station ──────────────────────────────────────────────────────────────
+
+# Kelvin's laptop, on wifi. It has also been wired as enp12s0 on 192.168.2.21, and both
+# have sat on 192.168.2.0/24 at once -- which is why the interface is pinned rather than
+# left to Cyclone's autodetection. When docked: interface = "enp12s0", ip = "192.168.2.21".
+[BoMachine]
+interface = "wlp18s0"
+ip = "192.168.2.13"
+
+# The hostnames below are placeholders; replace each with that machine's `hostname`.
+
+# Luca's machine
+[luca-laptop]
+interface = "eth0"
+ip = "192.168.2.14"
+enabled = false
+
+# Dan's machine
+[dan-laptop]
+interface = "eth0"
+ip = "192.168.2.50"
+enabled = false
+
+# Shaan's machine
+[shaan-laptop]
+interface = "eth0"
+ip = "192.168.2.140"
+enabled = false
