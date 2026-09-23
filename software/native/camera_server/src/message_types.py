@@ -1,15 +1,25 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel
 from typing import Literal, TypedDict, Optional
 
-
 VideoTransformType = Literal[
-    "none", "clockwise", "counterclockwise", "rotate-180", "horizontal-flip",
-    "vertical-flip", "upper-left-diagonal", "upper-right-diagonal", "automatic",
+    "none",
+    "clockwise",
+    "counterclockwise",
+    "rotate-180",
+    "horizontal-flip",
+    "vertical-flip",
+    "upper-left-diagonal",
+    "upper-right-diagonal",
+    "automatic",
 ]
 
 CameraAction = Literal[
-    "group-description", "kill", "request-groups", "request-stream",
-    "group-terminated", "device-disconnect",
+    "group-description",
+    "kill",
+    "request-groups",
+    "request-stream",
+    "group-terminated",
+    "device-disconnect",
 ]
 
 
@@ -18,27 +28,22 @@ class Resolution(TypedDict):
     height: int
 
 
+class Device(BaseModel):
+    dev: str
+    name: Optional[str] = None
+    serverName: str
+
+
 class CameraEventData(BaseModel):
-    devices: Optional[list[str]] = None
-    deviceNames: Optional[dict[str, str]] = None
     resolution: Optional[Resolution] = None
     transform: Optional[VideoTransformType] = None
     forceRestart: Optional[bool] = None
     file: Optional[str] = None
-    convertFromJpeg: Optional[bool] = None
 
 
 class CameraEventType(BaseModel):
     type: Literal["camera"]
     action: CameraAction
-    data: CameraEventData
-
-
-# Tracking Gst Object Instances
-class GstInstance(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    device: str
-    resolution: Resolution
-    transform: VideoTransformType
-    gst_object: object = Field(repr=False)  # hide the actual Gst object from repr
+    target: Optional[Device] = None
+    devices: Optional[list[Device]] = None
+    data: Optional[CameraEventData] = None
