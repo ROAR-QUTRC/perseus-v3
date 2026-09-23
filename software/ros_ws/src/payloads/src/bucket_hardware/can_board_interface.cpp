@@ -12,8 +12,8 @@ namespace payloads
     {
 
         using namespace hi_can;  // NOLINT
-        namespace bucket_addr = addressing::excavation::bucket::controller_board;
-        namespace bucket_param = parameters::excavation::bucket::controller_board;
+        namespace bucket_addr = addressing::excavation::bucket::controller;
+        namespace bucket_param = parameters::excavation::bucket::controller;
 
         const uint8_t CAN_TIMEOUT_INTERVAL = 100;  // in milliseconds
 

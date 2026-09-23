@@ -19,7 +19,7 @@ namespace payloads
     // TILT has one actuator but is still read from two encoders across its axle.
     //
     // Values here should match
-    // excavation::bucket::controller_board::bank_group's underlying values
+    // excavation::bucket::controller::bank_group's underlying values
     // (LIFT=0x00, TILT=0x01, JAWS=0x02) so casts between the two are direct.
     enum class Axis : uint8_t
     {
@@ -71,7 +71,7 @@ namespace payloads
     /// cross-check (flagging skew, webui, etc.), never as a joint's position source
     ///
     /// `fault` is a plain bool (matches
-    /// hi_can::parameters::excavation::bucket::controller_board::status_t,
+    /// hi_can::parameters::excavation::bucket::controller::status_t,
     /// which wraps a single bool), not a bitfield. If the firmware needs to reports
     /// more than one fault condition, status_t will change upstream first.
     struct BankState

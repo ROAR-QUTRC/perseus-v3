@@ -18,7 +18,7 @@
 #include "modbus/mbus.hpp"
 #include "rs485/esp32.hpp"
 
-// Same order as hi_can::addressing::excavation::bucket::controller_board::encoder_group.
+// Same order as hi_can::addressing::excavation::bucket::controller::encoder_group.
 enum class EncoderId : uint8_t
 {
     LiftLeft,
