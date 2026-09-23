@@ -5,22 +5,22 @@
 
 #pragma once
 
+#include "encoder_bus.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-
-#include "encoder_bus.hpp"
 #include "hi_can_parameter.hpp"
 
-/** 
+/**
  * @brief Reusable RAII Lock guard for FreeRTOS semaphores/mutexes.
  * @details Automatically takes the mutex on construction and releases it on destruction.
  */
 
- // TODO: this is a copy of Mozz's lock, consider refactoring or using a common implementation if available.
- class Lock
+// TODO: this is a copy of Mozz's lock, consider refactoring or using a common implementation if available.
+class Lock
 {
 public:
-    explicit Lock(SemaphoreHandle_t mutex) : _mutex(mutex)
+    explicit Lock(SemaphoreHandle_t mutex)
+        : _mutex(mutex)
     {
         if (_mutex != nullptr)
         {
@@ -43,7 +43,7 @@ private:
     SemaphoreHandle_t _mutex;
 };
 
-/** 
+/**
  * @brief Abstract class to represent a generic excavation joint in shared memory.
  */
 class ExcavationJoint
@@ -65,7 +65,9 @@ class MotorMemory : public ExcavationJoint
 {
 public:
     MotorMemory(EncoderId encoder_id, uint8_t encoder_group_id, EncoderBus* encoder_bus)
-        : _encoder_id(encoder_id), _encoder_group_id(encoder_group_id), _encoder_bus(encoder_bus)
+        : _encoder_id(encoder_id),
+          _encoder_group_id(encoder_group_id),
+          _encoder_bus(encoder_bus)
     {
         _mutex = xSemaphoreCreateMutex();
     }

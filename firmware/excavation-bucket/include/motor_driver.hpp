@@ -1,6 +1,7 @@
 #pragma once
 
 #include <board_support.hpp>
+
 #include "shared_memory.hpp"
 
 /**

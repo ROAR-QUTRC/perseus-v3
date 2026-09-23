@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <driver/gpio.h>
 #include <driver/sdm.h>
 
 #include <chrono>
@@ -8,15 +9,13 @@
 
 #include "encoder_bus.hpp"
 #include "encoder_parameter_group.hpp"
+#include "excavation_config.hpp"
 #include "hi_can_address.hpp"
 #include "motor_bank.hpp"
 #include "motor_bank_parameter_group.hpp"
 #include "motor_driver.hpp"
-
 #include "motor_parameter_group.hpp"
 #include "shared_memory.hpp"
-#include "excavation_config.hpp"
-#include <driver/gpio.h>
 
 static constexpr gpio_num_t NSLEEP = GPIO_NUM_40;
 

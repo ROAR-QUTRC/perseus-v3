@@ -1,13 +1,13 @@
 #pragma once
 
 #include <driver/sdm.h>
-#include "shared_memory.hpp"
 
 #include <board_support.hpp>
 #include <cstdint>
 
 #include "hi_can_packet.hpp"
 #include "motor_driver.hpp"
+#include "shared_memory.hpp"
 
 /**
  * @brief A class responsible for managing pair of motors (Left = A, Right = B) (TODO: check this and update)
@@ -41,7 +41,7 @@ public:
 
     // the function to be continually called to update motor status and control signals
     void monitor_and_move(void) override;
-    
+
     // whole bank setting (applies to both motors)
     void set_speed(const int16_t speed) override;
     void set_target_position(const int16_t position) override;
