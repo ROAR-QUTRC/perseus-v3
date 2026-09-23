@@ -65,7 +65,7 @@ namespace payloads
     /// exactly one of each per axis (not per side). Both side of LIFT/JAWS should
     /// readthe same BankState
     ///
-    /// average_position comes from bank_parameter::GET_ANGLE, which the firmware
+    /// average_position comes from bank_parameter::GET_POSITION, which the firmware
     /// reports as the average of that bank's two encoders. It is NOT a substitute
     /// for the per-side EncoderState readings. It should be used as a diagnostic
     /// cross-check (flagging skew, webui, etc.), never as a joint's position source
@@ -76,7 +76,7 @@ namespace payloads
     /// more than one fault condition, status_t will change upstream first.
     struct BankState
     {
-        double average_position = 0.0;  // rad/degree/m, bank_parameter::GET_ANGLE
+        double average_position = 0.0;  // rad/degree/m, bank_parameter::GET_POSITION
         double current = 0.0;           // amps, bank_parameter::GET_CURRENT
         bool fault = 0;                 // bank_parameter::GET_FAULT
         bool stale = true;
@@ -87,7 +87,7 @@ namespace payloads
         std::function<void(Axis axis, Side side, const EncoderState& state)>;
 
     /// Invoked whenever the board decodes a new bank-level frame
-    /// (GET_CURRENT / GET_FAULT / GET_ANGLE-as-average)
+    /// (GET_CURRENT / GET_FAULT / GET_POSITION-as-average)
     using BankUpdateCallback = std::function<void(Axis axis, const BankState& state)>;
 
     /// Thin adapter between ros2_control's read()/write() and hi-can.
@@ -134,7 +134,7 @@ namespace payloads
         /// (current/fault/average-angle) frame is decoded, or when one goes stale.
         void register_bank_callback(BankUpdateCallback callback);
 
-        /// Command a bank to a target position, via bank_parameter::SET_ANGLE.
+        /// Command a bank to a target position, via bank_parameter::SET_POSITION.
         /// There is intentionally no per-side overload - both actuators in a bank
         /// always receive the same setpoint. Called from BucketHardware::write()
         /// when the position command interface is claimed.
@@ -169,7 +169,7 @@ namespace payloads
 
     private:
         // Registers one hi_can::PacketManager::set_callback() per encoder (6) and
-        // per bank read-parameter (3 axes x {GET_CURRENT, GET_FAULT, GET_ANGLE} =
+        // per bank read-parameter (3 axes x {GET_CURRENT, GET_FAULT, GET_POSITION} =
         // 9), wired to on_encoder_received()/on_bank_received(). Called once from
         // connect().
         void register_receive_filters();

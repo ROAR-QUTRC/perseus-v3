@@ -50,6 +50,23 @@ namespace can_diag
                 return std::string("<decode error: ") + e.what() + ">";
             }
         }
+
+        // pid_params_t has no single .value - decode all three fixed-point gains.
+        inline std::string decode_pid_params(const std::vector<uint8_t>& data)
+        {
+            try
+            {
+                hi_can::parameters::excavation::bucket::controller::pid_params_t value{data};
+                const double scale = hi_can::parameters::excavation::bucket::controller::PID_GAIN_SCALE;
+                return "Kp=" + std::to_string(value.K_p / scale) +
+                       " Ki=" + std::to_string(value.K_i / scale) +
+                       " Kd=" + std::to_string(value.K_d / scale);
+            }
+            catch (const std::exception& e)
+            {
+                return std::string("<decode error: ") + e.what() + ">";
+            }
+        }
     }  // namespace detail
 
     inline const std::vector<known_packet_t>& known_packets()
@@ -125,6 +142,40 @@ namespace can_diag
                     /*request_is_rtr=*/false,
                     std::string(b.name) + " motor bank speed (send with --data)",
                     detail::decode_wrapped<bucket_param::controller::speed_t>,
+                });
+                t.push_back({
+                    std::string("excavation.bucket.motor_bank.") + b.name + ".get_position",
+                    addr(static_cast<uint8_t>(b.group),
+                         static_cast<uint8_t>(bucket_addr::controller::bank_parameter::GET_POSITION)),
+                    /*request_is_rtr=*/false,
+                    std::string(b.name) +
+                        " motor bank averaged position (periodic broadcast only - use --listen, not --rtr)",
+                    detail::decode_wrapped<bucket_param::controller::position_t>,
+                });
+                t.push_back({
+                    std::string("excavation.bucket.motor_bank.") + b.name + ".set_position",
+                    addr(static_cast<uint8_t>(b.group),
+                         static_cast<uint8_t>(bucket_addr::controller::bank_parameter::SET_POSITION)),
+                    /*request_is_rtr=*/false,
+                    std::string(b.name) + " motor bank position setpoint (send with --data)",
+                    detail::decode_wrapped<bucket_param::controller::position_t>,
+                });
+                t.push_back({
+                    std::string("excavation.bucket.motor_bank.") + b.name + ".get_fault",
+                    addr(static_cast<uint8_t>(b.group),
+                         static_cast<uint8_t>(bucket_addr::controller::bank_parameter::GET_FAULT)),
+                    /*request_is_rtr=*/false,
+                    std::string(b.name) +
+                        " motor bank fault status (periodic broadcast only - use --listen, not --rtr)",
+                    detail::decode_wrapped<bucket_param::controller::status_t>,
+                });
+                t.push_back({
+                    std::string("excavation.bucket.motor_bank.") + b.name + ".set_pid_params",
+                    addr(static_cast<uint8_t>(b.group),
+                         static_cast<uint8_t>(bucket_addr::controller::bank_parameter::SET_PID_PARAMS)),
+                    /*request_is_rtr=*/false,
+                    std::string(b.name) + " motor bank PID gains (send with --data)",
+                    detail::decode_pid_params,
                 });
             }
 

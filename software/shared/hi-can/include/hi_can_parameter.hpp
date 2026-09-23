@@ -332,11 +332,16 @@ namespace hi_can::parameters
 #pragma pack(push, 1)
                 struct _pid_params_t
                 {
-                    double K_p = 0;
-                    double K_i = 0;
-                    double K_d = 0;
+                    // Fixed-point gains scaled by PID_GAIN_SCALE so the struct
+                    // fits in one classic-CAN frame (MAX_PACKET_LEN=8); a
+                    // double-based version is 24 bytes. dt is never carried
+                    // here - it's implicit from the control task's fixed period.
+                    int16_t K_p = 0;
+                    int16_t K_i = 0;
+                    int16_t K_d = 0;
                 };
 #pragma pack(pop)
+                constexpr double PID_GAIN_SCALE = 1000.0;  // wire value = gain * PID_GAIN_SCALE
                 typedef SimpleSerializable<wrapped_value_t<uint16_t>> current_t;
                 typedef SimpleSerializable<wrapped_value_t<int16_t>> position_t;
                 typedef SimpleSerializable<_pid_params_t> pid_params_t;

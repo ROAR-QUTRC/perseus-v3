@@ -219,7 +219,7 @@ namespace payloads
             }
         }
 
-        // --- Per-bank GET_CURRENT / GET_FAULT / GET_ANGLE(average) frames ---
+        // --- Per-bank GET_CURRENT / GET_FAULT / GET_POSITION(average) frames ---
         for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
         {
             const auto axis = static_cast<Axis>(axis_idx);
@@ -251,12 +251,12 @@ namespace payloads
                 });
 
             set_frame_callback(
-                *packet_manager_, bank_address(axis, bucket_addr::bank_parameter::GET_ANGLE),
+                *packet_manager_, bank_address(axis, bucket_addr::bank_parameter::GET_POSITION),
                 [update_bank](const Packet& frame)
                 {
-                    const double angle = decode_position(frame.get_data());
-                    update_bank([angle](BankState& s)
-                                { s.average_position = angle; });
+                    const double position = decode_position(frame.get_data());
+                    update_bank([position](BankState& s)
+                                { s.average_position = position; });
                 });
         }
     }  // register_receive_filters()
@@ -267,7 +267,7 @@ namespace payloads
         {
             return;
         }
-        const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_ANGLE);
+        const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_POSITION);
         Packet packet(addressing::flagged_address_t(address), encode_position(position));
         can_interface_->transmit(packet);
     }

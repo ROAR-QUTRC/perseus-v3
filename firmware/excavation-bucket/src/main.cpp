@@ -7,6 +7,8 @@
 #include <optional>
 #include <thread>
 
+#include "bank_control_task.hpp"
+#include "bank_encoder_map.hpp"
 #include "encoder_bus.hpp"
 #include "encoder_parameter_group.hpp"
 #include "hi_can_address.hpp"
@@ -78,12 +80,19 @@ void setup()
     delay(100);
     digitalWrite(NSLEEP, HIGH);
 
+    constexpr auto LIFT_ENCODERS = encoder_pair_for(bucket::controller::bank_group::LIFT);
+    constexpr auto JAWS_ENCODERS = encoder_pair_for(bucket::controller::bank_group::JAWS);
+    constexpr auto TILT_ENCODERS = encoder_pair_for(bucket::controller::bank_group::TILT);
+
     motor_bank_lift.emplace(DRIVER_1_PINS, DRIVER_2_PINS,
-                            BANK_1_CURRENT_SENSE, BANK_1_FAULT);
+                            BANK_1_CURRENT_SENSE, BANK_1_FAULT,
+                            LIFT_ENCODERS.left, LIFT_ENCODERS.right);
     motor_bank_jaws.emplace(DRIVER_3_PINS, DRIVER_4_PINS,
-                            BANK_2_CURRENT_SENSE, BANK_2_FAULT);
+                            BANK_2_CURRENT_SENSE, BANK_2_FAULT,
+                            JAWS_ENCODERS.left, JAWS_ENCODERS.right);
     motor_bank_tilt.emplace(DRIVER_5_PINS, DRIVER_6_PINS,
-                            BANK_3_CURRENT_SENSE, BANK_3_FAULT);
+                            BANK_3_CURRENT_SENSE, BANK_3_FAULT,
+                            TILT_ENCODERS.left, TILT_ENCODERS.right);
 
     motor_bank_lift_parameter_group.emplace(bucket::controller::bank_group::LIFT, motor_bank_lift.value());
     motor_bank_jaws_parameter_group.emplace(bucket::controller::bank_group::JAWS, motor_bank_jaws.value());
@@ -123,10 +132,15 @@ void setup()
 
     packet_manager->add_group(encoder_tilt_1_group.value());
     packet_manager->add_group(encoder_tilt_2_group.value());
+
+    // Fixed-period closed-loop position control for SET_POSITION, running on
+    // its own pinned task rather than loop()'s CAN-driven delay(1) (see loop()
+    // below).
+    start_bank_control_task({&motor_bank_lift.value(), &motor_bank_jaws.value(), &motor_bank_tilt.value()});
 }
 
 void loop()
 {
     packet_manager->handle();
-    delay(1);  // change to consistent time step with vTaskDelayUntil as PID or closed loop feedback would jitter, at the very least time drift
+    delay(1);
 }
