@@ -399,7 +399,7 @@ namespace hi_can
                 /// @brief The bucket subsystem ID
                 constexpr uint8_t SUBSYSTEM_ID = 0x00;
                 /// @brief Namespace containing all addresses for the bucket controller
-                namespace controller_board
+                namespace controller
                 {
                     /// @brief The bucket controller device ID
                     constexpr uint8_t DEVICE_ID = 0x00;

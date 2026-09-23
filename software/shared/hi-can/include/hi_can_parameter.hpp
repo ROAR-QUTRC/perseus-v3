@@ -327,7 +327,7 @@ namespace hi_can::parameters
     {
         namespace bucket
         {
-            namespace controller_board
+            namespace controller
             {
 #pragma pack(push, 1)
                 struct _pid_params_t

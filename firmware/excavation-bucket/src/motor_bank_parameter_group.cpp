@@ -16,15 +16,15 @@ constexpr standard_address_t DEVICE_ADDRESS{
     excavation::bucket::controller::DEVICE_ID,
 };
 
-MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excavation::bucket::controller::group bank_group,
+MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excavation::bucket::controller::bank_group bank_group,
                                                  MotorBank& motor_bank)
     : _bank_group(bank_group),
       _motor_bank(motor_bank)
 {
     _transmissions = {
         {static_cast<flagged_address_t>(standard_address_t{
-             DEVICE_ADDRESS, static_cast<uint8_t>(group::LIFT),
-             static_cast<uint8_t>(bank_parameter::CURRENT)}),
+             DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
+             static_cast<uint8_t>(bank_parameter::GET_CURRENT)}),
          PacketManager::transmission_config_t{
              .generator = ([this]()
                            { return this->_motor_bank.get_current(); }),
@@ -34,7 +34,7 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
         std::make_pair(
             filter_t{
                 static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group), static_cast<uint8_t>(bank_parameter::SPEED)}),
+                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group), static_cast<uint8_t>(bank_parameter::SET_SPEED)}),
             },
             PacketManager::callback_config_t{
                 .data_callback = ([this](const Packet& packet)

@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "encoder_bus.hpp"
+#include "encoder_parameter_group.hpp"
 #include "hi_can_address.hpp"
 #include "motor_bank.hpp"
 #include "motor_bank_parameter_group.hpp"
@@ -56,6 +57,13 @@ std::optional<MotorBankParameterGroup> motor_bank_lift_parameter_group;
 std::optional<MotorBankParameterGroup> motor_bank_jaws_parameter_group;
 std::optional<MotorBankParameterGroup> motor_bank_tilt_parameter_group;
 
+std::optional<EncoderParameterGroup> encoder_lift_1_group;  // LiftLeft
+std::optional<EncoderParameterGroup> encoder_lift_2_group;  // LiftRight
+std::optional<EncoderParameterGroup> encoder_jaws_1_group;  // JawsLeft
+std::optional<EncoderParameterGroup> encoder_jaws_2_group;  // JawsRight
+std::optional<EncoderParameterGroup> encoder_tilt_1_group;  // TiltLeft
+std::optional<EncoderParameterGroup> encoder_tilt_2_group;  // TiltRight
+
 constexpr standard_address_t DEVICE_ADDRESS{
     SYSTEM_ID,
     bucket::SUBSYSTEM_ID,
@@ -77,9 +85,9 @@ void setup()
     motor_bank_tilt.emplace(DRIVER_5_PINS, DRIVER_6_PINS,
                             BANK_3_CURRENT_SENSE, BANK_3_FAULT);
 
-    motor_bank_lift_parameter_group.emplace(bucket::controller::group::LIFT, motor_bank_lift.value());
-    motor_bank_jaws_parameter_group.emplace(bucket::controller::group::JAWS, motor_bank_jaws.value());
-    motor_bank_tilt_parameter_group.emplace(bucket::controller::group::TILT, motor_bank_tilt.value());
+    motor_bank_lift_parameter_group.emplace(bucket::controller::bank_group::LIFT, motor_bank_lift.value());
+    motor_bank_jaws_parameter_group.emplace(bucket::controller::bank_group::JAWS, motor_bank_jaws.value());
+    motor_bank_tilt_parameter_group.emplace(bucket::controller::bank_group::TILT, motor_bank_tilt.value());
 
     auto& interface = TwaiInterface::get_instance(
         std::make_pair(bsp::CAN_TX_PIN, bsp::CAN_RX_PIN), 0,
@@ -88,12 +96,33 @@ void setup()
             .mask = DEVICE_MASK,
         });
     packet_manager.emplace(interface);
+
+    // Add the CAN motor groups
     packet_manager->add_group(motor_bank_lift_parameter_group.value());
     packet_manager->add_group(motor_bank_jaws_parameter_group.value());
     packet_manager->add_group(motor_bank_tilt_parameter_group.value());
 
     // Failure is logged inside begin(); the motor banks work without encoder data.
     encoder_bus().begin();
+
+    // Each replies to a GET_ANGLE request (RTR) with that encoder's latest
+    // cached reading - nothing is sent until asked.
+    encoder_lift_1_group.emplace(EncoderId::LiftLeft, bucket::controller::encoder_group::LIFT_L, interface);
+    encoder_lift_2_group.emplace(EncoderId::LiftRight, bucket::controller::encoder_group::LIFT_R, interface);
+    encoder_jaws_1_group.emplace(EncoderId::JawsLeft, bucket::controller::encoder_group::JAWS_L, interface);
+    encoder_jaws_2_group.emplace(EncoderId::JawsRight, bucket::controller::encoder_group::JAWS_R, interface);
+    encoder_tilt_1_group.emplace(EncoderId::TiltLeft, bucket::controller::encoder_group::TILT_L, interface);
+    encoder_tilt_2_group.emplace(EncoderId::TiltRight, bucket::controller::encoder_group::TILT_R, interface);
+
+    // Add the CAN encoder groups
+    packet_manager->add_group(encoder_lift_1_group.value());
+    packet_manager->add_group(encoder_lift_2_group.value());
+
+    packet_manager->add_group(encoder_jaws_1_group.value());
+    packet_manager->add_group(encoder_jaws_2_group.value());
+
+    packet_manager->add_group(encoder_tilt_1_group.value());
+    packet_manager->add_group(encoder_tilt_2_group.value());
 }
 
 void loop()

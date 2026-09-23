@@ -1,26 +1,19 @@
-
-Bucket controllers · YAML
 controller_manager:
   ros__parameters:
-    update_rate: 20  # Hz - how often controller_manager calls read()/update()/write()
- 
+    update_rate: 20 # Hz - how often controller_manager calls read()/update()/write()
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
- 
     # Position control example. Sends a target position per joint; the
     # hardware interface's write() forwards it straight to CAN.
     # Use this OR the velocity controller below, not both at once - only one
     # controller may claim a given command interface at a time.
     bucket_position_controller:
       type: position_controllers/JointGroupPositionController
- 
     # Velocity control example - same joints, velocity command interface.
     bucket_velocity_controller:
       type: velocity_controllers/JointGroupVelocityController
- 
 # joint_state_broadcaster takes no further parameters - it publishes
 # /joint_states from whatever state interfaces exist automatically.
- 
 bucket_position_controller:
   ros__parameters:
     # Only the commandable joint per axis - lift_right/tilt_right/jaws_right
@@ -31,7 +24,6 @@ bucket_position_controller:
       - tilt_left
       - jaws_left
     interface_name: position
- 
 bucket_velocity_controller:
   ros__parameters:
     joints:
@@ -39,8 +31,7 @@ bucket_velocity_controller:
       - tilt_left
       - jaws_left
     interface_name: velocity
- 
+
 # For coordinated multi-axis motion, replace JointGroupPositionController
 # with joint_trajectory_controller/JointTrajectoryController (still only
 # listing the 3 commandable joints above).
- 
