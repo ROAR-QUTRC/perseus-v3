@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <driver/sdm.h>
 
-#include <board_support.hpp>
 #include <chrono>
 #include <hi_can_twai.hpp>
 #include <optional>
@@ -14,25 +13,10 @@
 #include "motor_bank_parameter_group.hpp"
 #include "motor_driver.hpp"
 
-using namespace bsp;
-
-static constexpr pin_pair_t DRIVER_1_PINS{GPIO_NUM_15, GPIO_NUM_16};
-static constexpr pin_pair_t DRIVER_2_PINS{GPIO_NUM_42, GPIO_NUM_41};
-static constexpr pin_pair_t DRIVER_3_PINS{GPIO_NUM_38, GPIO_NUM_37};
-static constexpr pin_pair_t DRIVER_4_PINS{GPIO_NUM_45, GPIO_NUM_48};
-static constexpr pin_pair_t DRIVER_5_PINS{GPIO_NUM_47, GPIO_NUM_21};
-static constexpr pin_pair_t DRIVER_6_PINS{GPIO_NUM_14, GPIO_NUM_13};
-
-// We're only using the analog functions on the current sense pins,
-// so these are the only ones named with analog numbers
-// even though all the pins can do analog and digital IO
-static constexpr gpio_num_t BANK_1_CURRENT_SENSE = bsp::A1;
-static constexpr gpio_num_t BANK_2_CURRENT_SENSE = bsp::A3;
-static constexpr gpio_num_t BANK_3_CURRENT_SENSE = bsp::A5;
-
-static constexpr gpio_num_t BANK_1_FAULT = GPIO_NUM_2;
-static constexpr gpio_num_t BANK_2_FAULT = GPIO_NUM_4;
-static constexpr gpio_num_t BANK_3_FAULT = GPIO_NUM_6;
+#include "motor_parameter_group.hpp"
+#include "shared_memory.hpp"
+#include "excavation_config.hpp"
+#include <driver/gpio.h>
 
 static constexpr gpio_num_t NSLEEP = GPIO_NUM_40;
 
@@ -53,9 +37,16 @@ std::optional<PacketManager> packet_manager;
 std::optional<MotorBank> motor_bank_lift;  // Bank 1
 std::optional<MotorBank> motor_bank_jaws;  // Bank 2
 std::optional<MotorBank> motor_bank_tilt;  // Bank 3
+
 std::optional<MotorBankParameterGroup> motor_bank_lift_parameter_group;
 std::optional<MotorBankParameterGroup> motor_bank_jaws_parameter_group;
 std::optional<MotorBankParameterGroup> motor_bank_tilt_parameter_group;
+std::optional<MotorParameterGroup> motor_lift_l_parameter_group;
+std::optional<MotorParameterGroup> motor_lift_r_parameter_group;
+std::optional<MotorParameterGroup> motor_tilt_l_parameter_group;
+std::optional<MotorParameterGroup> motor_tilt_r_parameter_group;
+std::optional<MotorParameterGroup> motor_jaws_l_parameter_group;
+std::optional<MotorParameterGroup> motor_jaws_r_parameter_group;
 
 std::optional<EncoderParameterGroup> encoder_lift_1_group;  // LiftLeft
 std::optional<EncoderParameterGroup> encoder_lift_2_group;  // LiftRight
@@ -78,12 +69,17 @@ void setup()
     delay(100);
     digitalWrite(NSLEEP, HIGH);
 
-    motor_bank_lift.emplace(DRIVER_1_PINS, DRIVER_2_PINS,
-                            BANK_1_CURRENT_SENSE, BANK_1_FAULT);
-    motor_bank_jaws.emplace(DRIVER_3_PINS, DRIVER_4_PINS,
-                            BANK_2_CURRENT_SENSE, BANK_2_FAULT);
-    motor_bank_tilt.emplace(DRIVER_5_PINS, DRIVER_6_PINS,
-                            BANK_3_CURRENT_SENSE, BANK_3_FAULT);
+    EncoderBus& encoderBusInstance = encoder_bus();
+
+    motor_bank_lift.emplace(LIFT::DRIVER_A::DRIVER_PINS, LIFT::DRIVER_A::ENCODER_ID, LIFT::DRIVER_A::GROUP_ID,
+                            LIFT::DRIVER_B::DRIVER_PINS, LIFT::DRIVER_B::ENCODER_ID, LIFT::DRIVER_B::GROUP_ID,
+                            LIFT::CURRENT_SENSE, LIFT::FAULT, &encoderBusInstance);
+    motor_bank_jaws.emplace(JAWS::DRIVER_A::DRIVER_PINS, JAWS::DRIVER_A::ENCODER_ID, JAWS::DRIVER_A::GROUP_ID,
+                            JAWS::DRIVER_B::DRIVER_PINS, JAWS::DRIVER_B::ENCODER_ID, JAWS::DRIVER_B::GROUP_ID,
+                            JAWS::CURRENT_SENSE, JAWS::FAULT, &encoderBusInstance);
+    motor_bank_tilt.emplace(TILT::DRIVER_A::DRIVER_PINS, TILT::DRIVER_A::ENCODER_ID, TILT::DRIVER_A::GROUP_ID,
+                            TILT::DRIVER_B::DRIVER_PINS, TILT::DRIVER_B::ENCODER_ID, TILT::DRIVER_B::GROUP_ID,
+                            TILT::CURRENT_SENSE, TILT::FAULT, &encoderBusInstance);
 
     motor_bank_lift_parameter_group.emplace(bucket::controller::bank_group::LIFT, motor_bank_lift.value());
     motor_bank_jaws_parameter_group.emplace(bucket::controller::bank_group::JAWS, motor_bank_jaws.value());
@@ -102,31 +98,30 @@ void setup()
     packet_manager->add_group(motor_bank_jaws_parameter_group.value());
     packet_manager->add_group(motor_bank_tilt_parameter_group.value());
 
-    // Failure is logged inside begin(); the motor banks work without encoder data.
-    encoder_bus().begin();
+    motor_lift_l_parameter_group.emplace(bucket::controller::encoder_group::LIFT_L, motor_bank_lift->get_driver_A());
+    motor_lift_r_parameter_group.emplace(bucket::controller::encoder_group::LIFT_R, motor_bank_lift->get_driver_B());
+    motor_tilt_l_parameter_group.emplace(bucket::controller::encoder_group::TILT_L, motor_bank_tilt->get_driver_A());
+    motor_tilt_r_parameter_group.emplace(bucket::controller::encoder_group::TILT_R, motor_bank_tilt->get_driver_B());
+    motor_jaws_l_parameter_group.emplace(bucket::controller::encoder_group::JAWS_L, motor_bank_jaws->get_driver_A());
+    motor_jaws_r_parameter_group.emplace(bucket::controller::encoder_group::JAWS_R, motor_bank_jaws->get_driver_B());
 
-    // Each replies to a GET_ANGLE request (RTR) with that encoder's latest
-    // cached reading - nothing is sent until asked.
-    encoder_lift_1_group.emplace(EncoderId::LiftLeft, bucket::controller::encoder_group::LIFT_L, interface);
-    encoder_lift_2_group.emplace(EncoderId::LiftRight, bucket::controller::encoder_group::LIFT_R, interface);
-    encoder_jaws_1_group.emplace(EncoderId::JawsLeft, bucket::controller::encoder_group::JAWS_L, interface);
-    encoder_jaws_2_group.emplace(EncoderId::JawsRight, bucket::controller::encoder_group::JAWS_R, interface);
-    encoder_tilt_1_group.emplace(EncoderId::TiltLeft, bucket::controller::encoder_group::TILT_L, interface);
-    encoder_tilt_2_group.emplace(EncoderId::TiltRight, bucket::controller::encoder_group::TILT_R, interface);
+    packet_manager->add_group(motor_lift_l_parameter_group.value());
+    packet_manager->add_group(motor_lift_r_parameter_group.value());
+    packet_manager->add_group(motor_tilt_l_parameter_group.value());
+    packet_manager->add_group(motor_tilt_r_parameter_group.value());
+    packet_manager->add_group(motor_jaws_l_parameter_group.value());
+    packet_manager->add_group(motor_jaws_r_parameter_group.value());
 
-    // Add the CAN encoder groups
-    packet_manager->add_group(encoder_lift_1_group.value());
-    packet_manager->add_group(encoder_lift_2_group.value());
-
-    packet_manager->add_group(encoder_jaws_1_group.value());
-    packet_manager->add_group(encoder_jaws_2_group.value());
-
-    packet_manager->add_group(encoder_tilt_1_group.value());
-    packet_manager->add_group(encoder_tilt_2_group.value());
+    // Failure is logged inside begin();
+    encoderBusInstance.begin();
 }
 
 void loop()
 {
+    // TODO: will this be fast enough?
+    motor_bank_lift->monitor_and_move();
+    motor_bank_jaws->monitor_and_move();
+    motor_bank_tilt->monitor_and_move();
     packet_manager->handle();
     delay(1);  // change to consistent time step with vTaskDelayUntil as PID or closed loop feedback would jitter, at the very least time drift
 }
