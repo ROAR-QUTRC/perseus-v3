@@ -22,39 +22,38 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
       _motor_bank(motor_bank)
 {
     _transmissions = {
-        {static_cast<flagged_address_t>(standard_address_t{
-             DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-             static_cast<uint8_t>(bank_parameter::GET_CURRENT)}),
-         PacketManager::transmission_config_t{
-             .generator = ([this]()
-                           { return this->_motor_bank.get_current(); }),
-             .interval = 500ms}},
-        {static_cast<flagged_address_t>(standard_address_t{
-             DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-             static_cast<uint8_t>(bank_parameter::GET_POSITION)}),
-         PacketManager::transmission_config_t{
-             .generator = ([this]()
-                           { return this->_motor_bank.get_position(); }),
-             .interval = 500ms}},
-        {static_cast<flagged_address_t>(standard_address_t{
-             DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-             static_cast<uint8_t>(bank_parameter::GET_FAULT)}),
-         PacketManager::transmission_config_t{
-             .generator = ([this]()
-                           { return this->_motor_bank.get_fault(); }),
-             .interval = 500ms}},
+        std::make_pair(
+            static_cast<flagged_address_t>(standard_address_t{
+                DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
+                static_cast<uint8_t>(bank_parameter::GET_CURRENT)}),
+            PacketManager::transmission_config_t{
+                .generator = ([this]()
+                              { return this->_motor_bank.get_current(); }),
+                .interval = 500ms}),
+        std::make_pair(
+            static_cast<flagged_address_t>(standard_address_t{
+                DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
+                static_cast<uint8_t>(bank_parameter::GET_ANGLE)}),
+            PacketManager::transmission_config_t{.generator = ([this]()
+                                                               {
+                                                                    parameters::excavation::bucket::controller::position_t position{this->_motor_bank.get_current_position()};
+                                                                    return position.serialize_data(); }),
+                                                 .interval = 50ms}),
     };
     _callbacks = {
         std::make_pair(
             filter_t{
                 static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group), static_cast<uint8_t>(bank_parameter::SET_SPEED)}),
+                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
+                    static_cast<uint8_t>(bank_parameter::SET_SPEED)}),
             },
             PacketManager::callback_config_t{
                 .data_callback = ([this](const Packet& packet)
                                   {
-                 parameters::excavation::bucket::controller::speed_t speed{packet.get_data()};
-                 this->_motor_bank.set_speed(speed.value); }),
+                                    const auto& raw_data = packet.get_data();
+                                    parameters::excavation::bucket::controller::speed_t speed;
+                                    speed.deserialize_data(raw_data);
+                                    this->_motor_bank.set_speed(speed.value); }),
                 .timeout_callback = [this]()
                 { this->_motor_bank.set_speed(0); },
                 .timeout = 200ms,
@@ -62,33 +61,17 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
         std::make_pair(
             filter_t{
                 static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group), static_cast<uint8_t>(bank_parameter::SET_POSITION)}),
+                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
+                    static_cast<uint8_t>(bank_parameter::SET_ANGLE)}),
             },
             PacketManager::callback_config_t{
                 .data_callback = ([this](const Packet& packet)
                                   {
-                 parameters::excavation::bucket::controller::position_t position{packet.get_data()};
-                 this->_motor_bank.set_position_setpoint(position.value); }),
-                .timeout_callback = [this]()
-                { this->_motor_bank.set_speed(0); },
+                                    const auto& raw_data = packet.get_data();
+                                    parameters::excavation::bucket::controller::position_t position;
+                                    position.deserialize_data(raw_data);
+                                    this->_motor_bank.set_target_position(position.value); }),
                 .timeout = 200ms,
-            }),
-        std::make_pair(
-            filter_t{
-                static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group), static_cast<uint8_t>(bank_parameter::SET_PID_PARAMS)}),
-            },
-            PacketManager::callback_config_t{
-                // No .timeout_callback/.timeout - gains are config, not a
-                // keep-alive setpoint; a stale value just means the loop keeps
-                // using the last-configured gains.
-                .data_callback = ([this](const Packet& packet)
-                                  {
-                 parameters::excavation::bucket::controller::pid_params_t params{packet.get_data()};
-                 this->_motor_bank.set_pid_gains(PidController::Gains{
-                     static_cast<double>(params.K_p) / parameters::excavation::bucket::controller::PID_GAIN_SCALE,
-                     static_cast<double>(params.K_i) / parameters::excavation::bucket::controller::PID_GAIN_SCALE,
-                     static_cast<double>(params.K_d) / parameters::excavation::bucket::controller::PID_GAIN_SCALE}); }),
             }),
     };
 }

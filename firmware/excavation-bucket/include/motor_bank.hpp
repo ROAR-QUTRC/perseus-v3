@@ -10,9 +10,13 @@
 #include "freertos/semphr.h"
 #include "hi_can_packet.hpp"
 #include "motor_driver.hpp"
-#include "pid_controller.hpp"
+#include "shared_memory.hpp"
 
-class MotorBank
+/**
+ * @brief A class responsible for managing pair of motors (Left = A, Right = B) (TODO: check this and update)
+ * @details This class provides an interface to control both motors as a pair and the individual motors separately.
+ */
+class MotorBank : public ExcavationJoint
 {
 public:
     static constexpr uint16_t CURRENT_SENSE_RESISTOR = 1000;        // ohms
@@ -35,10 +39,9 @@ public:
     // drive on stale data. 5x EncoderBus::kAnglePeriodMs.
     static constexpr uint32_t kFeedbackStaleMs = 100;
 
-    MotorBank(const bsp::pin_pair_t& driver_A_pins,
-              const bsp::pin_pair_t& driver_B_pins,
-              const gpio_num_t& current_sense_pin, const gpio_num_t& fault_pin,
-              EncoderId encoder_left, EncoderId encoder_right);
+    MotorBank(const bsp::pin_pair_t& driver_A_pins, EncoderId driver_A_encoder_id, uint8_t driver_A_encoder_group_id,
+              const bsp::pin_pair_t& driver_B_pins, EncoderId driver_B_encoder_id, uint8_t driver_B_encoder_group_id,
+              const gpio_num_t& current_sense_pin, const gpio_num_t& fault_pin, EncoderBus* encoder_bus);
 
     // delete copy/move semantics
     MotorBank(const MotorBank&) = delete;
@@ -48,24 +51,23 @@ public:
 
     virtual ~MotorBank();
 
-    // Open-loop: forces the bank out of closed-loop position hold (if active)
-    // and drives both actuators directly. Always wins immediately - this is
-    // the same fail-safe path both CAN watchdogs (SET_SPEED, SET_POSITION)
-    // and control_tick()'s own feedback-fault handling converge on.
-    void set_speed(const int16_t speed);
-    void set_speed_a(const int16_t speed) { _driver_A.set_speed(speed); }
-    void set_speed_b(const int16_t speed) { _driver_B.set_speed(speed); }
+    // the function to be continually called to update motor status and control signals
+    void monitor_and_move(void) override;
 
-    // Closed-loop: switches the bank into position hold (resetting the PID's
-    // integrator on entry) and stores the target. Actual motor output only
-    // ever happens inside control_tick().
-    void set_position_setpoint(int16_t setpoint);
-    void set_pid_gains(const PidController::Gains& gains);
+    // whole bank setting (applies to both motors)
+    void set_speed(const int16_t speed) override;
+    void set_target_position(const int16_t position) override;
+    int16_t get_current_position() const override;
 
-    // Runs one control-loop iteration; a no-op unless currently in
-    // closed-loop position mode. Must only be called from the bank control
-    // task (see bank_control_task.hpp).
-    void control_tick(uint32_t now_ms);
+    // individual motors
+    void set_speed_a(const int16_t speed);
+    void set_speed_b(const int16_t speed);
+    void set_target_position_a(const int16_t position);
+    void set_target_position_b(const int16_t position);
+    int16_t get_current_position_a() const;
+    int16_t get_current_position_b() const;
+    MotorDriver& get_driver_A(void);
+    MotorDriver& get_driver_B(void);
 
     std::vector<uint8_t> get_current();
     float get_average_current();

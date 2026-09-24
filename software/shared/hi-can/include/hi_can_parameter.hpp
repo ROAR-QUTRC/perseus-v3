@@ -2,6 +2,14 @@
 
 #include <netinet/in.h>
 
+// TODO: investigate why either add this or put Arduino.h before the other includes in motor_driver.cpp and motor_bank.cpp
+#ifdef INADDR_NONE
+#undef INADDR_NONE
+#endif
+#ifdef IPADDR_NONE
+#undef IPADDR_NONE
+#endif
+
 #include <chrono>
 #include <cmath>
 #include <cstdint>

@@ -2,16 +2,19 @@
 
 #include <Arduino.h>
 
+#include "encoder_bus.hpp"
 #include "hi_can_parameter.hpp"
 
 MotorBank::MotorBank(const bsp::pin_pair_t& driver_A_pins,
+                     EncoderId driver_A_encoder_id,
+                     uint8_t driver_A_encoder_group_id,
                      const bsp::pin_pair_t& driver_B_pins,
+                     EncoderId driver_B_encoder_id,
+                     uint8_t driver_B_encoder_group_id,
                      const gpio_num_t& current_sense_pin,
-                     const gpio_num_t& fault_pin,
-                     const EncoderId encoder_left,
-                     const EncoderId encoder_right)
-    : _driver_A(driver_A_pins),
-      _driver_B(driver_B_pins),
+                     const gpio_num_t& fault_pin, EncoderBus* encoder_bus)
+    : _driver_A(driver_A_pins, driver_A_encoder_id, driver_A_encoder_group_id, encoder_bus),
+      _driver_B(driver_B_pins, driver_B_encoder_id, driver_B_encoder_group_id, encoder_bus),
       _current_sense_pin(current_sense_pin),
       _fault_pin(fault_pin),
       _encoder_left(encoder_left),
@@ -32,6 +35,12 @@ MotorBank::~MotorBank()
     vSemaphoreDelete(_mutex);
 }
 
+void MotorBank::monitor_and_move(void)
+{
+    _driver_A.monitor_and_move();
+    _driver_B.monitor_and_move();
+}
+
 void MotorBank::set_speed(const int16_t speed)
 {
     Lock lock(_mutex);
@@ -40,72 +49,28 @@ void MotorBank::set_speed(const int16_t speed)
     _driver_B.set_speed(speed);
 }
 
-void MotorBank::set_position_setpoint(const int16_t setpoint)
+void MotorBank::set_target_position(const int16_t position)
 {
-    Lock lock(_mutex);
-    if (_mode != ControlMode::CLOSED_LOOP_POSITION)
-    {
-        _position_pid.reset();
-        _mode = ControlMode::CLOSED_LOOP_POSITION;
-    }
-    _position_setpoint = setpoint;
+    _driver_A.set_target_position(position);
+    _driver_B.set_target_position(position);
 }
 
-void MotorBank::set_pid_gains(const PidController::Gains& gains)
+int16_t MotorBank::get_current_position() const
 {
-    _position_pid.set_gains(gains);
+    int16_t A_position = _driver_A.get_current_position();
+    int16_t B_position = _driver_B.get_current_position();
+
+    return static_cast<int16_t>((A_position + B_position) / 2);
 }
 
-void MotorBank::control_tick(const uint32_t now_ms)
-{
-    Lock lock(_mutex);
-    if (_mode != ControlMode::CLOSED_LOOP_POSITION)
-        return;
-
-    int16_t measured;
-    if (!average_raw_counts(now_ms, &measured))
-    {
-        // Feedback fault: neither encoder has fresh, valid data. Fail safe
-        // exactly like the SET_SPEED/SET_POSITION CAN watchdogs do on a stale
-        // command.
-        _position_pid.reset();
-        _mode = ControlMode::OPEN_LOOP_SPEED;
-        _driver_A.set_speed(0);
-        _driver_B.set_speed(0);
-        return;
-    }
-
-    const int16_t output = _position_pid.compute(_position_setpoint, measured);
-    _driver_A.set_speed(output);
-    _driver_B.set_speed(output);
-}
-
-bool MotorBank::average_raw_counts(const uint32_t now_ms, int16_t* out) const
-{
-    EncoderReading left{};
-    EncoderReading right{};
-    const bool have_left = encoder_bus().get(_encoder_left, &left) && left.angle_age_ms(now_ms) < kFeedbackStaleMs;
-    const bool have_right = encoder_bus().get(_encoder_right, &right) && right.angle_age_ms(now_ms) < kFeedbackStaleMs;
-
-    if (!have_left && !have_right)
-        return false;
-
-    uint32_t sum = 0;
-    uint32_t count = 0;
-    if (have_left)
-    {
-        sum += left.raw_counts;
-        ++count;
-    }
-    if (have_right)
-    {
-        sum += right.raw_counts;
-        ++count;
-    }
-
-    *out = static_cast<int16_t>(sum / count);
-    return true;
-}
+void MotorBank::set_speed_a(const int16_t speed) { _driver_A.set_speed(speed); }
+void MotorBank::set_speed_b(const int16_t speed) { _driver_B.set_speed(speed); }
+void MotorBank::set_target_position_a(const int16_t position) { _driver_A.set_target_position(position); }
+void MotorBank::set_target_position_b(const int16_t position) { _driver_B.set_target_position(position); }
+int16_t MotorBank::get_current_position_a() const { return _driver_A.get_current_position(); }
+int16_t MotorBank::get_current_position_b() const { return _driver_B.get_current_position(); }
+MotorDriver& MotorBank::get_driver_A() { return _driver_A; }
+MotorDriver& MotorBank::get_driver_B() { return _driver_B; }
 
 float MotorBank::get_average_current()
 {
