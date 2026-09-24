@@ -50,10 +50,10 @@ ip = "192.168.2.14"
 enabled = false
 
 # Dan's machine
-[dan-laptop]
-interface = "eth0"
-ip = "192.168.2.50"
-enabled = false
+[cookie]
+interface = "wlp3s0"
+ip = "192.168.2.117"
+enabled = true
 
 # Shaan's machine
 [shaan-laptop]
