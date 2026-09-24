@@ -8,6 +8,8 @@ final: prev: {
   hardware = final.callPackage ./hardware.nix { };
   health-check = final.callPackage ./health-check.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
+  local-traversability = final.callPackage ./local-traversability.nix { };
+  mission-bt-server = final.callPackage ./mission-bt-server.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };
   rviz-plugins = final.callPackage ./rviz-plugins.nix { };

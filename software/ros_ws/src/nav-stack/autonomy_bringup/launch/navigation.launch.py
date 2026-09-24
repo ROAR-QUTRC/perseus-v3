@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Launch the terrain costmap and the full nav2 stack that drives to a goal.
+"""Launch the terrain costmaps and the full nav2 stack that drives to a goal.
 
-    /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
-                                                    -> smoother_server
-                                                    -> controller_server -> /cmd_vel
-                                                    -> velocity_smoother -> /cmd_vel_nav_stamped
+    /Laser_map   -> global_traversability -> /costmap ---------------> planner_server   -> /plan
+                                                       |                smoother_server
+    /livox/lidar -> local_traversability                -> controller_server -> /cmd_vel
+                    -> /local_costmap_terrain --------/                 velocity_smoother
+                                                                          -> /cmd_vel_nav_stamped
+
+TWO TERRAIN COSTMAPS, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE. global_traversability reads
+the accumulated LIO map every 5 s and covers the whole arena, so it is what the planner plans
+on. local_traversability reads the raw Livox scan at sensor rate over an 8 m window, so it is
+what the controller reacts to. Both land in the controller's local costmap, the local one
+layered on top with use_maximum -- see local_costmap in config/navigation.yaml.
 
 THIS LAUNCH FILE MOVES THE ROVER. An rviz "2D Goal Pose" makes it drive: bt_navigator
 subscribes to /goal_pose directly, so the button works without the nav2 rviz panel.
@@ -38,6 +45,10 @@ def generate_launch_description():
     # own tree is what actually enables smoother_server. An absolute path into the share
     # directory, which is why it cannot live in navigation.yaml.
     bt_xml = os.path.join(share, "behavior_trees", "navigate_to_pose_w_smoothing.xml")
+    # mission_bt_server's own small tree: request a safe zone waypoint from arena_server,
+    # then hand it to bt_navigator's own /navigate_to_pose action - i.e. the tree above,
+    # unmodified. Same reason this path cannot live in navigation.yaml either.
+    mission_bt_xml = os.path.join(share, "behavior_trees", "go_to_zone_waypoint.xml")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -65,6 +76,21 @@ def generate_launch_description():
             parameters=[config_file, use_sim_time],
             output="screen",
         ),
+        # The reactive half. Not a lifecycle node and not in lifecycle_manager's
+        # node_names below: it is a plain publisher, so it comes up with the process and
+        # the local costmap picks its grid up whenever it appears. It needs TF
+        # (odom -> livox_frame and odom -> base_footprint) and the raw Livox scan, both
+        # of which come from localisation.launch.py and the sensor drivers -- without
+        # them it logs a throttled "Dropping scan" and publishes nothing, which is the
+        # intended failure: nav2 then runs on the global terrain map alone, exactly as
+        # it did before this node existed.
+        Node(
+            package="local_traversability",
+            executable="local_traversability",
+            name="local_traversability",
+            parameters=[config_file, use_sim_time],
+            output="screen",
+        ),
         nav2_node("nav2_controller", "controller_server", "controller_server"),
         nav2_node("nav2_smoother", "smoother_server", "smoother_server"),
         nav2_node("nav2_planner", "planner_server", "planner_server"),
@@ -76,6 +102,16 @@ def generate_launch_description():
             extra_params=[{"default_nav_to_pose_bt_xml": bt_xml}],
         ),
         nav2_node("nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"),
+        # Behind the RViz mission panel's two buttons. Brought up here rather than with
+        # localisation (where arena_server lives): it needs bt_navigator's
+        # /navigate_to_pose action, which only exists once this file's nodes are active.
+        Node(
+            package="mission_bt_server",
+            executable="mission_bt_server",
+            name="mission_bt_server",
+            parameters=[{"bt_xml_path": mission_bt_xml}, use_sim_time],
+            output="screen",
+        ),
         # THE ONE REMAP THAT CONNECTS NAV2 TO THIS ROVER. The smoother's output is nav2's
         # last word on velocity; twist_mux's navigation input is cmd_vel_nav_stamped
         # (perseus/config/twist_mux.yaml). Without this the stack runs perfectly and the

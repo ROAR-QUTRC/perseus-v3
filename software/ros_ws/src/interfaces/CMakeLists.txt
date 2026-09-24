@@ -56,6 +56,7 @@ rosidl_generate_interfaces(
   ${PROJECT_NAME}
   "srv/GetFrontierGoal.srv"
   "srv/LocaliseInArena.srv"
+  "srv/RequestZoneWaypoint.srv"
   "msg/Detection.msg"
   "msg/DetectionArray.msg"
   "srv/DetectObjects.srv"
@@ -65,6 +66,7 @@ rosidl_generate_interfaces(
   "msg/MobilityStatus.msg"
   "msg/TopicHealth.msg"
   "msg/SystemHealth.msg"
+  "msg/StereoOdometryInfo.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs

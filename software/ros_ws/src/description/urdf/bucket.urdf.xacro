@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot name="bucket" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="bucket" params="prefix:=^">
+    <!--
+      bucket_mount.dae's own origin sits at the back of the frame body (the flat face
+      that bolts to the chassis, at mesh x = -0.2374). The mesh's front face, where the
+      4 bearing blocks for the bucket linkage stick out (at mesh x = 0.02259372), is
+      offset here so the link origin instead sits at the centre of that front face,
+      matching the same front-face-centre convention chassis and sensor_mount use.
+    -->
+    <link name="${prefix}bucket_mount">
+      <visual>
+        <origin xyz="-0.022594 0.050708 -0.016954" rpy="0.0 0.0 0.0"/>
+        <geometry>
+          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/bucket_mount.dae"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="${prefix}bucket_mount_joint" type="fixed">
+      <parent link="${prefix}chassis"/>
+      <child link="${prefix}bucket_mount"/>
+      <origin xyz="0.025 0.0 0.05" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <!--
+      The 4 bearing blocks moulded into bucket_mount.dae's front face are where the
+      bucket's 4 lift arms pivot (2 sides, each with an upper and lower pivot). Their
+      centres, worked out from the mesh vertices the same way as the front-face offset
+      above, land on bucket_mount at x=0.03, y=+-0.10, z=+-0.12 (+y is left and +z is
+      up, per REP103). Each is a pure frame, like livox_imu_frame: no visual/collision
+      of its own since the bearing block geometry is already part of the bucket_mount
+      mesh, it just gives each lift arm somewhere to attach. Named _pivot_ rather than
+      _hinge_ to leave "hinge" free for other bucket joints (tilt hinge, actuator
+      pivots) added later.
+    -->
+    <xacro:property name="bucket_lift_arm_pivot_x" value="0.042"/>
+    <xacro:property name="bucket_lift_arm_pivot_y" value="0.10"/>
+    <xacro:property name="bucket_lift_arm_pivot_z" value="0.12"/>
+
+    <link name="${prefix}bucket_lift_arm_pivot_left_upper"/>
+    <joint name="${prefix}bucket_lift_arm_pivot_left_upper_joint" type="fixed">
+      <parent link="${prefix}bucket_mount"/>
+      <child link="${prefix}bucket_lift_arm_pivot_left_upper"/>
+      <origin xyz="${bucket_lift_arm_pivot_x} ${bucket_lift_arm_pivot_y} ${bucket_lift_arm_pivot_z}" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <link name="${prefix}bucket_lift_arm_pivot_left_lower"/>
+    <joint name="${prefix}bucket_lift_arm_pivot_left_lower_joint" type="fixed">
+      <parent link="${prefix}bucket_mount"/>
+      <child link="${prefix}bucket_lift_arm_pivot_left_lower"/>
+      <origin xyz="${bucket_lift_arm_pivot_x} ${bucket_lift_arm_pivot_y} ${-bucket_lift_arm_pivot_z}" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <link name="${prefix}bucket_lift_arm_pivot_right_upper"/>
+    <joint name="${prefix}bucket_lift_arm_pivot_right_upper_joint" type="fixed">
+      <parent link="${prefix}bucket_mount"/>
+      <child link="${prefix}bucket_lift_arm_pivot_right_upper"/>
+      <origin xyz="${bucket_lift_arm_pivot_x} ${-bucket_lift_arm_pivot_y} ${bucket_lift_arm_pivot_z}" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <link name="${prefix}bucket_lift_arm_pivot_right_lower"/>
+    <joint name="${prefix}bucket_lift_arm_pivot_right_lower_joint" type="fixed">
+      <parent link="${prefix}bucket_mount"/>
+      <child link="${prefix}bucket_lift_arm_pivot_right_lower"/>
+      <origin xyz="${bucket_lift_arm_pivot_x} ${-bucket_lift_arm_pivot_y} ${-bucket_lift_arm_pivot_z}" rpy="0.0 0.0 0.0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

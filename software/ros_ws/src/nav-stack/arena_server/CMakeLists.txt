@@ -40,6 +40,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(THIS_PACKAGE_INCLUDE_DEPENDS
     rclcpp
     geometry_msgs
+    nav_msgs
     visualization_msgs
     tf2
     tf2_ros

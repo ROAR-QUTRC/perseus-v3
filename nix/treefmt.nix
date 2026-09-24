@@ -76,6 +76,11 @@
           "*.onnx"
           # PCBs (KiCAD)
           "hardware/**"
+          # Vendored upstream code, kept byte-for-byte diffable against its source (see
+          # each third_party/*/NOTICE.md) -- not reformatted, not spell-checked, not
+          # touched by any formatter here, the same reasoning CMakeLists.txt already
+          # applies to compiler warnings for it.
+          "**/third_party/**"
           # miscellaneous
           "*.lock"
           "*.patch"

@@ -20,6 +20,7 @@ install/
 generated/
 build/
 public/
+site/
 # draw.io stuff
 .$*
 
@@ -372,3 +373,5 @@ Temporary Items
 
 # Ignore generated models, which are too large
 /software/ros_ws/src/vision/models/
+
+/bags

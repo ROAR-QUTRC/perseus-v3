@@ -1,11 +1,13 @@
-# Everything navigation.launch.py brings up: the terrain costmap, the global planner, and
-# the nav2 stack that drives to a goal.
+# Everything navigation.launch.py brings up: the two terrain costmaps, the global planner,
+# and the nav2 stack that drives to a goal.
 #
 #   /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
 #                                                   -> smoother_server
 #                                                   -> controller_server -> /cmd_vel
 #                                                   -> velocity_smoother -> /cmd_vel_nav_stamped
 #                                                   -> twist_mux -> diff drive -> VESCs
+#
+#   /livox/lidar -> local_traversability -> /local_costmap_terrain -> controller_server
 #
 # THREE THINGS THAT ARE NOT OBVIOUS AND WILL COST YOU AN AFTERNOON:
 #   * There is no map frame. BIEVR-LIO's world frame is odom; nothing publishes map->odom.
@@ -69,9 +71,127 @@ global_traversability:
     treat_unknown_as_obstacle: false
     # Inflation, same semantics as nav2's InflationLayer. nav2 does NOT inflate on top of
     # this -- neither costmap loads an inflation layer.
-    robot_radius_m: 0.35
-    inflation_radius_m: 0.6
-    cost_scaling_factor: 3.5
+    robot_radius_m: 0.5
+    inflation_radius_m: 0.8
+    cost_scaling_factor: 3.2
+# ============================================================================
+# REACTIVE TERRAIN COSTMAP -- local_traversability
+# ============================================================================
+# The other half of the terrain analysis: an 8 m window around the rover, rebuilt from the
+# RAW Livox scan at 10 Hz. It does not replace global_traversability -- it is layered on top
+# of it in local_costmap below, so the controller sees map-wide terrain plus whatever the
+# lidar is looking at right now. Everything the global node's 5 s update cannot do (react to
+# something that appeared, to something that moved, to a rock in an occlusion shadow the map
+# never filled) is this node's job.
+#
+# WHY HEIGHT DIFFERENCE HERE AND RANSAC UP THERE. The global node fits ground planes by
+# RANSAC because its input is the accumulated LIO map, where the same floor appears at
+# several heights at once (ground_margin_m above) and no local minimum can be trusted as
+# "the ground". A raw scan was measured in one sweep and has no such layering, so the lowest
+# return near a cell IS the ground near it, and a windowed height difference answers the same
+# question for a fraction of the cost -- which is the only reason a 10 Hz update fits on the
+# Orange Pi at all. It is also deterministic, where RANSAC needs a fixed seed to be.
+local_traversability:
+  ros__parameters:
+    # Raw, not /Laser_map. Point this at /livox/lidar/filtered to run behind the dust
+    # filter (sensors/config/dust_filter.yaml) if dust starts producing false obstacles.
+    pointcloud_topic: "/livox/lidar"
+    # Must match local_costmap's global_frame below, or its static layer silently drops
+    # every grid this publishes. There is no map frame -- see the header of this file.
+    global_frame: "odom"
+    robot_frame: "base_footprint"
+    resolution_m: 0.1
+    # Square window side, and it should comfortably exceed local_costmap's 6 m width below
+    # so the costmap is never reaching past the edge of what this publishes.
+    map_length_m: 8.0
+    # 10 Hz, matching the MID-360's own rate. Raise to 0.2 first if the Orange Pi is
+    # struggling -- the ground pass below is the expensive part and it scales with this.
+    update_period_s: 0.1
+    # THE DENSITY/STALENESS TRADE, and the only state this node keeps. A single MID-360
+    # sweep leaves most 0.1 m cells empty, so scans are pooled over this window; it is also
+    # exactly how long something that has moved out of the way stays on the map. Shorten it
+    # if the rover reacts to things that are no longer there, lengthen it if the grid is too
+    # sparse to see obstacles at range.
+    point_buffer_s: 1.0
+    # Range gate, applied in the SENSOR frame before anything else. Below min_range the scan
+    # is hitting the rover itself; max_range is kept inside map_length_m / 2 plus a margin
+    # because returns outside the window are binned into nothing anyway.
+    min_range_m: 1.0
+    max_range_m: 6.0
+    # Also in the sensor frame, so it is immune to LIO z-drift: drop anything this far above
+    # the lidar. Canopy/ceiling returns would otherwise become a cell's maximum height.
+    max_sensor_height_m: 1.5
+    # THE GROUND REFERENCE. Radius of the window each cell's ground is taken from. Same trade
+    # as the global node's ransac_patch_m: must be well clear of the 30-40 cm boulders or one
+    # becomes its own ground and vanishes, small enough that real terrain inside is planar.
+    # It is also the node's dominant cost -- the pass is O(cells * (2 * radius / res + 1)^2),
+    # i.e. 121 neighbours per cell at 0.5 m and 0.1 m -- so this is the first dial to drop if
+    # the update period cannot be met.
+    ground_window_m: 0.5
+    # NOT an obstacle test. It is the allowance subtracted from every height difference, so
+    # ground legitimately rising at this rate reads as flat: a neighbour d metres away lets
+    # this cell's ground sit d * tan(30 deg) higher without that counting as a step. Raising
+    # it hides real steps at the window edge; lowering it flags open ground on a gradient.
+    # Same 40 deg the global node uses for max_slope_deg, so the two agree on what a
+    # drivable gradient is.
+    max_slope_deg: 40.0
+    # THE THREE VERTICAL TESTS, all height differences against that ground reference:
+    #   max_step_up_m             the cell's own floor stands above surrounding ground --
+    #                             a kerb, a rock the wheels would have to climb.
+    #   max_height_above_ground_m something STANDS in the cell while its floor is still at
+    #                             ground level -- a pole, a wall face, a thin obstacle. This
+    #                             is the one that catches what step_up alone misses.
+    #   max_step_down_m           the cell sits below surrounding ground -- a hole or a
+    #                             drop-off. Weakest of the three: a real drop-off usually
+    #                             shows as NO returns rather than low ones, so treat this as
+    #                             a bonus and not as fall protection. Set 0.0 to disable.
+    # Start looser than the global node's 0.20 would suggest and tighten: raw scans have no
+    # map layering inflating these, so a real 0.12 m step here is a real 0.12 m step.
+    max_step_up_m: 0.2
+    max_height_above_ground_m: 0.2
+    max_step_down_m: 0.15
+    # Above this height a return is overhead structure and is left out of the height test
+    # entirely, so the rover can drive under it. Whether it actually fits is min_clearance_m
+    # below, which is a separate question and a separate test.
+    obstacle_height_cap_m: 1.0
+    # Overhead clearance. DISABLED (0.0), and not as a workaround -- given the other two
+    # values it is arithmetically incapable of doing anything except generate noise.
+    #
+    # The test fires when some return sits between ground_margin_m (0.10) and
+    # min_clearance_m above the ground. But any return below obstacle_height_cap_m (1.0)
+    # already sets height_above_ground, which flags the cell above 0.12. So the only band
+    # where clearance fires and the height test does not is 0.10 to 0.12 -- a 2 cm sliver
+    # that contains nothing but sand roughness and LIO noise. Everything genuinely low
+    # enough to hit is caught by the height test; everything high enough to drive under is
+    # excluded by the cap.
+    #
+    # Measured, not assumed. An ablation over the live layers: of 37 flagged cells,
+    # clearance fired on all 37 and was the SOLE cause on 35, with every value between
+    # 0.10 and 0.12 -- i.e. entirely inside that sliver. step_up and step_down fired on
+    # zero. Same failure the global node has (-1079 cells there), for a different reason.
+    #
+    # To give this test real work to do, lower obstacle_height_cap_m below min_clearance_m
+    # so a band exists that only clearance covers. Do not simply re-enable it.
+    ground_margin_m: 0.10
+    min_clearance_m: 0.0
+    # 1, against the global node's 2. One sweep over a 0.1 m grid is sparse enough that
+    # demanding a second return mostly erases real, distant ground.
+    min_points_per_cell: 1
+    # Erase obstacle blobs smaller than this (8-connected). Needed for the opposite reason to
+    # the global node's: not map layering, but the single spurious returns (dust, rain, a
+    # specular surface) a raw scan has and an accumulated map has already averaged away.
+    min_obstacle_cells: 2
+    # false, and it matters more here than globally: most of a local window is unobserved at
+    # any instant (occlusion, beyond range, behind the rover), and publishing that as lethal
+    # would box the rover in every cycle. Unobserved cells publish -1, which reaches the
+    # local costmap as free (track_unknown_space false) and, under use_maximum, leaves
+    # whatever the global terrain map said about that cell untouched.
+    treat_unknown_as_obstacle: false
+    # Same inflation semantics and the same values as the global node, so a cell does not
+    # change cost depending on which of the two saw it.
+    robot_radius_m: 0.5
+    inflation_radius_m: 0.8
+    cost_scaling_factor: 3.2
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
@@ -79,7 +199,13 @@ planner_server:
   ros__parameters:
     # Only warns if planning is slower than this; nothing plans on a timer.
     expected_planner_frequency: 1.0
-    planner_plugins: ["GridBased"]
+    # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
+    # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
+    # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
+    # switch back to GridBased, or override live by publishing the name to /planner_selector,
+    # e.g. `ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"` before
+    # sending the next goal.
+    planner_plugins: ["GridBased", "ThetaStar"]
     GridBased:
       # NavFn ignores heading, which suits a skid-steer that can turn on the spot. It also
       # plans on the grid, so its paths turn in 45/90 deg steps -- see smoother_server.
@@ -91,6 +217,25 @@ planner_server:
       # treat_unknown_as_obstacle is false upstream. With it false the planner refused any
       # route touching an occlusion shadow and reported NO_VALID_PATH instead of the cause.
       # The risk is real: the rover cannot tell open sand from a drop-off out there.
+      allow_unknown: true
+    ThetaStar:
+      # Any-angle alternative to GridBased: takes line-of-sight shortcuts across the grid
+      # instead of being locked to 8-connected moves, so the raw path already has fewer and
+      # gentler direction changes for smoother_server to clean up - and, downstream, fewer
+      # corners sharp enough to trip FollowPath's rotate_to_heading_min_angle into a full
+      # stop-and-pivot. Does NOT reason about robot heading/turning radius the way
+      # Hybrid-A*/SMAC would; irrelevant here since this skid-steer can pivot on the spot.
+      plugin: "nav2_theta_star_planner::ThetaStarPlanner"
+      how_many_corners: 8
+      # Weights the search cost between the straight-line (euclidean) distance and the
+      # costmap's own traversal cost - nav2's defaults, unchanged: favour a shorter path but
+      # let real cost still steer it around expensive terrain, same balance GridBased's
+      # Dijkstra gets for free from the costmap values it searches over directly.
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+      # Same reasoning and same value as GridBased's allow_unknown above (UNMAPPED, 2 of 3):
+      # this reads the same costmap under the same track_unknown_space: false regime, so it
+      # needs the same policy on routing through ground the lidar has not seen yet.
       allow_unknown: true
 # The planner's costmap. Doubled key because Costmap2DROS runs as its own node named
 # global_costmap inside planner_server. Required, not stylistic.
@@ -159,7 +304,19 @@ controller_server:
   ros__parameters:
     # 20.0 is nav2's default; halved for the Orange Pi, which also runs BIEVR-LIO.
     controller_frequency: 10.0
-    odom_topic: /odom
+    # /odom (the wheel diff_drive_controller) is not used here: it is the wheels' OWN belief
+    # about how fast they are turning, which is exactly what sand slip corrupts - a spinning,
+    # non-gripping wheel reports a confident, wrong velocity, not a degraded one. That is a
+    # systematic bias (reads faster than the rover is actually moving) for as long as the slip
+    # lasts, which is worse for velocity-scaled lookahead and regulated speed scaling than
+    # /odometry/filtered's own documented weakness (ekf_config.yaml: its velocity is
+    # extrapolated, not measured, and noisy/laggy for a few tenths of a second after a speed
+    # change - a bounded, roughly zero-mean transient, not a persistent one-directional bias).
+    # Matches the precedent already in this stack: mobility_watchdog compares commanded
+    # velocity against /odometry/filtered specifically to detect wheel slip, i.e. it already
+    # treats the EKF output, not /odom, as ground truth for "how fast is the rover really
+    # going" on this terrain.
+    odom_topic: /odometry/filtered
     # twist_mux is use_stamped: true. With this false the message type is wrong, twist_mux
     # never sees it, and the rover does not move with nothing in any log to say why.
     enable_stamped_cmd_vel: true
@@ -186,13 +343,12 @@ controller_server:
       # goal. Yaw is generous because final heading rarely matters and tightening it means
       # a slow spin at exactly the rate the ESCs stall at.
       xy_goal_tolerance: 0.35
-      yaw_goal_tolerance: 0.5
+      yaw_goal_tolerance: 0.3
       stateful: true
     FollowPath:
-      # NOT currently active -- see controller_plugins above. Kept tuned so it can be
-      # switched back to without redoing the work.
-      # Follows the global path and regulates speed on curvature; it does not do its own
-      # obstacle avoidance, which is right because obstacle knowledge lives upstream.
+      # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
+      # curvature; it does not do its own obstacle avoidance, which is right because obstacle
+      # knowledge lives upstream.
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # 0.28 = 0.4 * 0.7, a deliberate 30% reduction of autonomous cruise speed.
       # safe_speed.yaml is untouched, so teleop still has the full 0.8 m/s.
@@ -219,10 +375,14 @@ controller_server:
       regulated_linear_scaling_min_speed: 0.15
       # Above this heading error the rover stops and pivots instead of arcing. That is the
       # only way to take a corner tighter than 0.38 m, which is most NavFn grid corners --
-      # though smoother_server now removes many of them, so this can sit higher than it
-      # otherwise would.
+      # though smoother_server now removes many of them, and ThetaStar (planner_server's
+      # current default) removes still more by not being grid-locked to begin with, so this
+      # can sit higher than it otherwise would. Raised from 0.8: this was tuned back when
+      # GridBased's forced 45/90 deg corners made a low threshold necessary; with a straighter
+      # raw path, more turns can be taken as a regulated arc instead of a full stop-and-pivot.
+      # Re-tune down again if it starts cutting corners too wide for the arena's clearances.
       use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 0.8
+      rotate_to_heading_min_angle: 1.2
       # Rotate-to-heading is BANG-BANG: full rate until the error drops under the threshold,
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
@@ -241,7 +401,9 @@ controller_server:
       max_allowed_time_to_collision_up_to_carrot: 1.0
       transform_tolerance: 0.2
     DWB:
-      # ACTIVE. Samples trajectories and scores them, so unlike RPP it avoids obstacles
+      # Loaded but NOT the BT default (see controller_plugins above) - selectable live for
+      # comparison via `ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"`
+      # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
       # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
       plugin: "dwb_core::DWBLocalPlanner"
@@ -288,12 +450,15 @@ controller_server:
       RotateToGoal.scale: 32.0
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
-# The controller's costmap: a window travelling with the rover, filled from the SAME
-# /costmap as the global one.
+# The controller's costmap: a window travelling with the rover, filled from BOTH terrain
+# costmaps -- global_traversability's map-wide /costmap as the base, with
+# local_traversability's live /local_costmap_terrain maxed on top.
 #
-# Not a live sensor layer on purpose -- a voxel layer off the raw MID-360 would flag the
-# ground itself. The cost is latency: this is only as fresh as global_traversability's
-# 5 s update, so the rover cannot react to anything that appears in front of it.
+# Still not a nav2 voxel/obstacle layer off the raw MID-360: that would flag the ground
+# itself, which is the whole reason the traversability nodes exist. What changed is that the
+# reactive input is now terrain-analysed upstream before it reaches nav2, so this costmap is
+# no longer stuck at global_traversability's 5 s latency and the rover can react to something
+# that appears in front of it.
 local_costmap:
   local_costmap:
     ros__parameters:
@@ -303,20 +468,56 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       rolling_window: true
+      # Must stay inside local_traversability's map_length_m (8 m), or the window's corners
+      # reach past the edge of the live grid and read as unknown there.
       width: 6
       height: 6
       resolution: 0.1
       # Per-costmap-node, so they must be repeated here; setting them on the global costmap
-      # does not reach this one. Same reasons as there.
+      # does not reach this one. Same reasons as there -- and track_unknown_space false is
+      # what makes terrain_layer's -1 cells (most of a live local window at any instant)
+      # read as free rather than as an obstacle, which is what lets use_maximum be safe.
       trinary_costmap: false
       lethal_cost_threshold: 100
       unknown_cost_value: 255
       track_unknown_space: false
-      plugins: ["static_layer"]
+      # THIS IS WHAT MAKES TWO LAYERS COMBINE INSTEAD OF THE SECOND ERASING THE FIRST, and
+      # IT BELONGS HERE, NOT UNDER terrain_layer. Same trap as the four above: StaticLayer
+      # reads use_maximum from the costmap node's own namespace while every other option it
+      # takes picks up a "<layer_name>." prefix. Nested under the layer it is silently
+      # ignored -- no warning, default stays in force. Verified the same way as
+      # trinary_costmap was: `ros2 param get /local_costmap/local_costmap use_maximum`
+      # returned a value while terrain_layer.use_maximum read "Parameter not set".
+      #
+      # false (the default) means each layer OVERWRITES the master. With terrain_layer
+      # second that throws away everything global_traversability knows about the cells the
+      # live scan happens not to cover -- which at any instant is most of the window.
+      #
+      # true makes each layer take the max instead, so the two combine: a live grid can only
+      # ever ADD an obstacle, never clear one the global map found. That is the only safe
+      # direction, because "I cannot see it right now" and "it is not there" are the same
+      # value in an OccupancyGrid. It applies to BOTH layers, which is correct: the master
+      # is reset to free each cycle (track_unknown_space false), so static_layer maxing onto
+      # a zeroed master reproduces the old overwrite behaviour exactly.
+      use_maximum: true
+      # ORDER IS THE SEMANTICS. static_layer lays down the map-wide terrain costmap, then
+      # terrain_layer maxes the live one over it.
+      plugins: ["static_layer", "terrain_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_topic: /costmap
         map_subscribe_transient_local: true
+        subscribe_to_updates: false
+      # local_traversability's live grid. map_subscribe_transient_local FALSE here is the
+      # opposite of static_layer above, and it is a QoS match rather than a preference:
+      # local_traversability publishes this topic VOLATILE on purpose (a grid is only
+      # meaningful next to the robot pose it was built around, so a latched stale one is
+      # worse than none). Set it true and the subscription is created, no error is logged,
+      # and no message is ever delivered.
+      terrain_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_topic: /local_costmap_terrain
+        map_subscribe_transient_local: false
         subscribe_to_updates: false
 # Smooths NavFn's grid path before the controller sees it. Called from the behaviour tree
 # in behavior_trees/navigate_to_pose_w_smoothing.xml, NOT automatically -- nav2's stock
@@ -379,7 +580,11 @@ bt_navigator:
   ros__parameters:
     global_frame: odom
     robot_base_frame: base_footprint
-    odom_topic: /odom
+    # Same reasoning as controller_server's odom_topic above: /odom (wheel encoders) reads a
+    # systematic bias under sand slip, not just noise, so any BT node that consults this
+    # (e.g. a stuck/velocity check) should see the same ground-truth velocity
+    # mobility_watchdog already trusts, not the wheels' own confident-but-wrong one.
+    odom_topic: /odometry/filtered
     bt_loop_duration: 10
     default_server_timeout: 20
     navigators: ["navigate_to_pose", "navigate_through_poses"]
