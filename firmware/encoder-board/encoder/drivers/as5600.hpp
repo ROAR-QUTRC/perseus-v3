@@ -33,6 +33,8 @@ public:
     // Makes the current position the new zero. A software offset applied on
     // every read, not an OTP burn, so it is lost on power cycle. Returns false
     // (offset unchanged) on an I2C error.
+    // TODO: an encoder reboot silently moves the reference back to raw 0; persist
+    // the offset (flash) or have the master re-zero after an encoder reset.
     bool zero();
 
     void clear_zero();

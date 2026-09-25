@@ -76,6 +76,8 @@ public:
     static constexpr uint32_t kResponseTimeoutMs = 50;
     static constexpr uint32_t kAnglePeriodMs = 20;  // per encoder; the bus may not sustain this at low baud
     static constexpr uint32_t kStatusPeriodMs = 200;
+    // TODO: the encoder firmware still expects a 1 s heartbeat (kHeartbeatPeriodMs
+    // 1000, 3 s timeout, encoder-board/encoder/rtos/shared_state.hpp); change it to match.
     static constexpr uint32_t kHeartbeatPeriodMs = 200;  // broadcast, once per bus
 
     static constexpr uint8_t kDiscoveryRounds = 3;

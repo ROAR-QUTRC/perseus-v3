@@ -1,6 +1,9 @@
 // comms_task.cpp
 // TODO: Potentially add dropped or corrupt MODBUS frame count, and other errors to status register
 // TODO: Make some mention of corrupt frames, modbus master will handle this but just for debugging or status might be useful
+// TODO (tech debt): firmware version. TARGET_VERSION in CMakeLists is set by hand and only lands in
+// picotool info; have CI/CD stamp it (build number or git describe) and expose it in a read-only
+// register beside status, so the master can report which firmware each encoder runs.
 
 #include "comms_task.hpp"
 
@@ -53,6 +56,8 @@ namespace
         case kRegAngleDegreesX10:
         {
             EncoderSample sample;
+            // TODO: no magnet or a failed I2C read comes back as exception 0x02 (illegal
+            // data address); 0x04 (slave device failure) would say what's actually wrong.
             if (xQueuePeek(shared->latest_sample, &sample, 0) != pdTRUE || !sample.valid)
                 return false;
             *out_value = (address == kRegAngleRaw)
@@ -98,6 +103,11 @@ namespace
         case kRegHeartbeat:
             // Any value counts. Heartbeat is this board's convention, so it is
             // handled here rather than in the modbus core.
+            // TODO: heartbeats can stay lost after a master reboot or link loss. Suspected cause:
+            // Rp2350Port::receive() rounds the 3.5-char frame gap up to 1 ms, but the master spaces
+            // frames ~334 us apart, so a heartbeat followed by a poll arrives as one frame and fails
+            // CRC. Fix: master gap >= 2 ms, or stop rounding in receive(); optionally, on a CRC
+            // failure, accept a valid leading 8-byte request.
             comms->heartbeat.note(to_ms_since_boot(get_absolute_time()));
             return true;
         case kRegZeroCommand:

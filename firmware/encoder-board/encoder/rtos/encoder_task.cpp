@@ -116,6 +116,8 @@ void encoder_task(void* parameter)
             }
             else
             {
+                // TODO: rate-limit like the other prints; a failing sensor prints every
+                // 1 ms and USB backpressure can break the 1 kHz loop.
                 printf("AS5600: I2C read failed\n");
                 have_reference = false;
                 current_velocity_sign = 0;
