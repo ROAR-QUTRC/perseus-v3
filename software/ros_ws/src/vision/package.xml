@@ -34,6 +34,8 @@
   <exec_depend>interfaces</exec_depend>
   <depend>ament_index_cpp</depend>
   <exec_depend>v4l2_camera</exec_depend>
+  <!-- realsense.launch.py, included by vision.launch.py under enable_sensors:=true -->
+  <exec_depend>sensors</exec_depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

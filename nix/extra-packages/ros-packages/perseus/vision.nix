@@ -19,6 +19,7 @@
   rclcpp,
   rclcpp-components,
   sensor-msgs,
+  sensors,
   std-msgs,
   std-srvs,
   tf2,
@@ -54,6 +55,7 @@ buildRosPackage rec {
     rclcpp
     rclcpp-components
     sensor-msgs
+    sensors
     std-msgs
     std-srvs
     tf2

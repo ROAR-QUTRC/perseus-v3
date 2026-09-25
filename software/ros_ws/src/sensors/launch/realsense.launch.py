@@ -18,10 +18,10 @@ serialised through CycloneDDS and multicast onto the wire -- measured at 12.3 MB
 egressing the LiDAR NIC, with 86% of frames dropped between the sensor and the topic
 (the hardware frame counter showed a clean 29.8 fps going in, 4.2 Hz coming out).
 A consumer loaded into this same container talks to the driver through intra-process
-comms instead, so the frames never reach the middleware at all. autonomy_bringup's
-localisation.launch.py loads vision's stereo_odometry here for exactly that reason, under
-its `enable_sensors` argument -- stereo odometry is a pose source, so it is owned by the
-localisation stack rather than by the sensor pack, and only its *placement* belongs here.
+comms instead, so the frames never reach the middleware at all. vision's vision.launch.py
+loads its nodes here for exactly that reason, under its `enable_sensors` argument (which
+autonomy_bringup's localisation.launch.py forwards) -- the vision nodes are owned by the
+vision package rather than by the sensor pack, and only their *placement* belongs here.
 
 Note the container is `component_container_mt`: the driver runs a callback per stream,
 and the single-threaded container would serialize infra1 against infra2 and reintroduce
@@ -64,9 +64,8 @@ from launch_ros.descriptions import ComposableNode
 
 CONFIG_FILE_NAME = "realsense.yaml"
 
-# The container other launch files load consumers into. autonomy_bringup's
-# localisation.launch.py names this same string when it loads stereo_odometry, so the two
-# have to agree; it is declared as a launch argument below rather than hardcoded at the use
+# The container other launch files load consumers into. vision's vision.launch.py names
+# this same string when it loads its nodes, so the two have to agree; it is declared as a launch argument below rather than hardcoded at the use
 # site, so a second camera can be brought up under a different container name.
 DEFAULT_CONTAINER_NAME = "sensor_container"
 
@@ -103,7 +102,7 @@ def generate_launch_description():
         default_value=DEFAULT_CONTAINER_NAME,
         description="Name of the component container the driver runs in. Consumers that "
         "want intra-process access to the image streams load themselves into this same "
-        "container -- see localisation.launch.py's enable_sensors argument.",
+        "container -- see vision.launch.py's enable_sensors argument.",
     )
 
     # The stream toggles are kept out of the YAML and supplied here, and the ordering
