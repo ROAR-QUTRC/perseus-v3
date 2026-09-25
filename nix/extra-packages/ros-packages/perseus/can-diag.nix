@@ -3,31 +3,21 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  backward-ros,
   hi-can-raw,
-  nlohmann_json,
-  rclcpp,
-  sensor-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-can-if";
+  pname = "ros-jazzy-can-diag";
   version = "0.0.1";
 
-  src = ./../../../../software/ros_ws/src/can_if;
+  src = ./../../../../software/ros_ws/src/can_diag;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
-  propagatedBuildInputs = [
-    backward-ros
-    hi-can-raw
-    nlohmann_json
-    rclcpp
-    sensor-msgs
-  ];
+  propagatedBuildInputs = [ hi-can-raw ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Payload-specific nodes and launch files for the Perseus Rover.";
+    description = "Generic hi-can diagnostic CLI: send an arbitrary CAN packet (RTR request or data frame) to any hi-can address and print/decode whatever response arrives.";
     license = with lib.licenses; [ mit ];
   };
 }

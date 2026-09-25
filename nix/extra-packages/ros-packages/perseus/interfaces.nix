@@ -3,61 +3,46 @@
   lib,
   buildRosPackage,
   ament-cmake,
-  ament-index-cpp,
   ament-lint-auto,
   ament-lint-common,
+  backward-ros,
   builtin-interfaces,
-  cv-bridge,
   geometry-msgs,
-  interfaces,
-  onnxruntime,
-  opencv,
-  rcl-interfaces,
-  rclcpp,
-  rclcpp-components,
+  rosidl-default-generators,
+  rosidl-default-runtime,
   sensor-msgs,
   std-msgs,
-  tf2,
-  tf2-geometry-msgs,
-  tf2-ros,
-  v4l2-camera,
-  visualization-msgs,
 }:
 buildRosPackage rec {
-  pname = "ros-jazzy-vision";
+  pname = "ros-jazzy-interfaces";
   version = "1.0.0";
 
-  src = ./../../../../software/ros_ws/src/vision;
+  src = ./../../../../software/ros_ws/src/interfaces;
 
   buildType = "ament_cmake";
-  buildInputs = [ ament-cmake ];
+  buildInputs = [
+    ament-cmake
+    rosidl-default-generators
+  ];
   checkInputs = [
     ament-lint-auto
     ament-lint-common
   ];
   propagatedBuildInputs = [
-    ament-index-cpp
+    backward-ros
     builtin-interfaces
-    cv-bridge
     geometry-msgs
-    interfaces
-    onnxruntime
-    opencv
-    rcl-interfaces
-    rclcpp
-    rclcpp-components
+    rosidl-default-runtime
     sensor-msgs
     std-msgs
-    tf2
-    tf2-geometry-msgs
-    tf2-ros
-    v4l2-camera
-    visualization-msgs
   ];
-  nativeBuildInputs = [ ament-cmake ];
+  nativeBuildInputs = [
+    ament-cmake
+    rosidl-default-generators
+  ];
 
   meta = {
-    description = "A package to do vision/detection tasks of Perseus";
+    description = "Perseus custom message definitions";
     license = with lib.licenses; [ mit ];
   };
 }
