@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Stream a PCD file to a live ROS 2 PointCloud2 topic.
 
-Written for replaying the maps FAST-LIO saves via the `pcd_save` block of
-`autonomy/config/livox_mid360.yaml` (default `~/maps/scan.pcd`) without needing the rover,
+Written for replaying the maps BIEVR-LIO saves on its /map_save service (publish.map_path in
+`autonomy_bringup/config/bievr_mid360.yaml`, `~/maps/bievr_map.pcd`) without needing the rover,
 the LiDAR, or Gazebo running. Useful for exercising anything downstream of the cloud —
 costmap layers, terrain/heightmap experiments, RViz displays — off a recorded map.
 
-FAST-LIO writes with `pcl::PCDWriter::writeBinary` (`laserMapping.cpp:663`), i.e. plain
-uncompressed binary PCD, so this parses the format directly with numpy. No PCL, no
+BIEVR-LIO writes plain uncompressed binary PCD, float32 x y z only (`Pipeline::saveMap` in
+BIEVR/src/pipeline.cpp), so this parses the format directly with numpy. No PCL, no
 pcl_conversions, no new package dependency.
 
-Defaults are set for the common case: read `~/maps/scan.pcd`, publish it once, and latch it
-so subscribers that start later still get it. A FAST-LIO map is tens of megabytes, so
+Defaults are set for the common case: read `~/maps/bievr_map.pcd`, publish it once, and latch it
+so subscribers that start later still get it. A saved map is tens of megabytes, so
 republishing one at a sensor-like rate saturates the DDS transport for no benefit — a static
 map does not change. Pass `should_loop:=true` to republish continuously.
 
@@ -25,7 +25,7 @@ Two modes, selected by `points_per_message`:
 
 Usage
 -----
-Publish `~/maps/scan.pcd` once, latched (no arguments needed):
+Publish `~/maps/bievr_map.pcd` once, latched (no arguments needed):
 
     python3 pcd_publisher.py
 
@@ -44,7 +44,7 @@ that is all it takes.
 
 Parameters
 ----------
-pcd_file            (string, ~/maps/scan.pcd)  Path to the .pcd file. `~` is expanded.
+pcd_file            (string, ~/maps/bievr_map.pcd)  Path to the .pcd file. `~` is expanded.
 topic               (string, /Laser_map)  Topic to publish on. Deliberately not
                     /livox/lidar, so this cannot be mistaken for the real sensor.
 frame_id            (string, map)  frame_id stamped on the message. Must exist in TF for
@@ -63,7 +63,7 @@ Limitations
 -----------
 * `DATA binary_compressed` is not supported — it needs LZF decompression, which is not
   implemented here rather than implemented untested. The node reports this clearly and says
-  how to convert. FAST-LIO never writes this format.
+  how to convert. BIEVR-LIO never writes this format.
 * No trajectory or sensor origin. A saved map is just points; the sensor pose that observed
   each one is gone. Anything needing per-ray origins (occupancy ray-casting, free-space
   carving) cannot be driven properly from a PCD alone — replay the rosbag for that.
@@ -82,7 +82,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointCloud2, PointField
 
-DEFAULT_PCD_FILE = "~/maps/scan.pcd"
+DEFAULT_PCD_FILE = "~/maps/bievr_map.pcd"
 DEFAULT_TOPIC = "/Laser_map"
 DEFAULT_FRAME_ID = "odom"
 DEFAULT_RATE_HZ = 10.0
@@ -494,7 +494,7 @@ class PcdPublisher(Node):
     def _warn_about_throughput(self, settings: PublisherSettings):
         """Warn when the configured rate would overwhelm the transport.
 
-        A FAST-LIO map is easily tens of megabytes, and republishing one at a sensor-like
+        A saved map is easily tens of megabytes, and republishing one at a sensor-like
         rate saturates DDS long before it saturates the network. This warns rather than
         clamps: only the caller knows what the consumer can take.
         """
