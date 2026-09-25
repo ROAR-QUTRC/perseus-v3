@@ -159,7 +159,7 @@ def fast_lio_actions(rviz, use_sim_time, is_sim):
     return [GroupAction([fast_lio_launch], scoped=True)]
 
 
-def bievr_actions(rviz, use_sim_time, is_sim):
+def bievr_actions(rviz, use_sim_time, is_sim, params_file):
     """The BIEVR-LIO backend: the node directly, rather than its own launch file.
 
     There is no temp-file dance here, and no sim_overrides() either. BIEVR-LIO takes two
@@ -181,7 +181,9 @@ def bievr_actions(rviz, use_sim_time, is_sim):
             get_package_share_directory("autonomy_bringup"), "config", name
         )
 
-    config_args = ["--params_file", config("bievr_mid360.yaml")]
+    # params_file replaces the main config outright rather than layering on it: the second
+    # slot is already the sim's, and the node takes only two.
+    config_args = ["--params_file", params_file or config("bievr_mid360.yaml")]
     if is_sim:
         config_args += ["--sensor_config_file", config("bievr_mid360_sim.yaml")]
 
@@ -240,7 +242,12 @@ def launch_setup(context, *args, **kwargs):
     lio_actions = (
         fast_lio_actions(rviz, use_sim_time, is_sim)
         if lio == "fast_lio"
-        else bievr_actions(rviz, use_sim_time, is_sim)
+        else bievr_actions(
+            rviz,
+            use_sim_time,
+            is_sim,
+            LaunchConfiguration("bievr_params_file").perform(context),
+        )
     )
 
     # Reused rather than duplicated, so the EKF node and its parameters are defined once.
@@ -529,6 +536,14 @@ def generate_launch_description():
         description="Parameters file for the robot_localization EKF.",
     )
 
+    declare_bievr_params_file = DeclareLaunchArgument(
+        "bievr_params_file",
+        default_value="",
+        description="Replace config/bievr_mid360.yaml with this file for lio:=bievr, e.g. "
+        "to A/B-test BIEVR-LIO settings against a replayed bag without editing the tracked "
+        "config. Empty uses the package's own.",
+    )
+
     declare_enable_sensors = DeclareLaunchArgument(
         "enable_sensors",
         default_value="false",
@@ -622,6 +637,7 @@ def generate_launch_description():
             declare_use_sim_time,
             declare_rviz,
             declare_ekf_params_file,
+            declare_bievr_params_file,
             declare_enable_sensors,
             declare_interface,
             bias_remover_container,
