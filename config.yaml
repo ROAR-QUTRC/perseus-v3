@@ -1,4 +1,0 @@
-# yaml-language-server: $schema=https://devenv.sh/devenv.user.schema.json
-version: 1
-shell:
-  prompt_prefix: false

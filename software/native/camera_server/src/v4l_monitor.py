@@ -59,17 +59,11 @@ def _fix_duplicate_device_names(server_name: str):
             index += 1
 
 
-# read the device name from the file /sys/class/video4linux/videoXX/name
-def _read_device_name(dev):
-    try:
-        with open(os.path.join(V4L_DIR, dev, "name"), "r") as f:
-            return f.read().strip()
-    except (FileNotFoundError, OSError):
-        return None
-
-
 # check if a videoXX string points to a video capture device
 def _is_video_capture_device(dev, context):
+    # check if file exists in /dev/videoXX
+    if not os.path.exists(os.path.join(DEV_DIR, dev)):
+        return False
     device = pyudev.Devices.from_name(context, "video4linux", dev)
     caps = device.properties.get("ID_V4L_CAPABILITIES", "")
     return "capture" in caps

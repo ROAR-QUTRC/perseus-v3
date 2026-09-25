@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import json
 import os
 from typing import Optional, cast
 
@@ -73,6 +72,7 @@ def _instance_changed(old: GstInstance, new: GstInstance) -> bool:
         or old.file != new.file
     )
 
+
 def _on_gst_message(_, message: Gst.Message, device: str):
     t = message.type
     type_name = Gst.MessageType.get_name(t)
@@ -108,7 +108,11 @@ def _on_gst_message(_, message: Gst.Message, device: str):
 
         elif t == Gst.MessageType.ASYNC_DONE:
             running_time = message.parse_async_done()
-            detail = "running-time=none" if running_time == Gst.CLOCK_TIME_NONE else f"running-time={running_time}"
+            detail = (
+                "running-time=none"
+                if running_time == Gst.CLOCK_TIME_NONE
+                else f"running-time={running_time}"
+            )
 
         elif t == Gst.MessageType.LATENCY:
             detail = "recalculate latency"
@@ -125,23 +129,37 @@ def _on_gst_message(_, message: Gst.Message, device: str):
             taglist = message.parse_tag()
             detail = taglist.to_string()
 
-        elif t in (Gst.MessageType.ERROR, Gst.MessageType.WARNING, Gst.MessageType.INFO):
+        elif t in (
+            Gst.MessageType.ERROR,
+            Gst.MessageType.WARNING,
+            Gst.MessageType.INFO,
+        ):
             parse_fn = {
                 Gst.MessageType.ERROR: message.parse_error,
                 Gst.MessageType.WARNING: message.parse_warning,
                 Gst.MessageType.INFO: message.parse_info,
             }[t]
-            log_level = cast(log_level_type, {
-                Gst.MessageType.ERROR: "ERROR",
-                Gst.MessageType.WARNING: "WARN",
-                Gst.MessageType.INFO: "INFO",
-            }[t])
+            log_level = cast(
+                log_level_type,
+                {
+                    Gst.MessageType.ERROR: "ERROR",
+                    Gst.MessageType.WARNING: "WARN",
+                    Gst.MessageType.INFO: "INFO",
+                }[t],
+            )
             gerror, debug = parse_fn()
             detail = f"{gerror.message}" + (f" | {debug}" if debug else "")
 
         elif t == Gst.MessageType.EOS:
             log_level = "WARN"
-            detail = ""
+            detail = "Freeing pipeline resources"
+            # kill gstreamer instance for this device
+            with gst_lock:
+                instance = gst_instances.get(device, None)
+                if instance is not None:
+                    if instance.pipeline is not None:
+                        instance.pipeline.set_state(Gst.State.NULL)
+                    del gst_instances[device]
 
         else:
             structure = message.get_structure()
@@ -159,9 +177,8 @@ def _on_gst_message(_, message: Gst.Message, device: str):
         line += f": {detail}"
     log(line, log_level)
 
-def start_stream(event: CameraEventType, web_server_ip: str):
-    log(f"Request stream for device: {event.target}", "DEBUG")
 
+def start_stream(event: CameraEventType, web_server_ip: str):
     # validate event
     device = event.target if event.target else None
     if device is None:
@@ -198,6 +215,10 @@ def start_stream(event: CameraEventType, web_server_ip: str):
                 "DEBUG",
             )
             return
+        log(
+            f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})",
+            "INFO",
+        )
 
         # Remove the old instance if it exists
         if old_instance is not None:
@@ -208,7 +229,9 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     # Create the elements
     source = _create_element("v4l2src", "source")
-    caps = Gst.Caps.from_string(f"video/x-raw,width={new_instance.width},height={new_instance.height}")
+    caps = Gst.Caps.from_string(
+        f"video/x-raw,width={new_instance.width},height={new_instance.height}"
+    )
     caps_filter = _create_element("capsfilter", "caps")
     convert = _create_element("videoconvert", "convert")
     flip = _create_element("videoflip", "flip")
@@ -218,14 +241,26 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     # Create the empty pipeline
     new_instance.pipeline = Gst.Pipeline.new(device)
 
-    if not new_instance.pipeline or not source or not caps_filter or not convert or not flip or not sink:
+    if (
+        not new_instance.pipeline
+        or not source
+        or not caps_filter
+        or not convert
+        or not flip
+        or not sink
+    ):
         log("Not all elements could be created.", "ERROR")
         return
 
     # Build the pipeline. Note that we are NOT linking the source at this
     # point. We will do it later.
     new_instance.pipeline.add(source, caps_filter, convert, flip, sink)
-    if not source.link(caps_filter) or not caps_filter.link(convert) or not convert.link(flip) or not flip.link(sink):
+    if (
+        not source.link(caps_filter)
+        or not caps_filter.link(convert)
+        or not convert.link(flip)
+        or not flip.link(sink)
+    ):
         log("Elements could not be linked.", "ERROR")
         return
 
@@ -235,7 +270,9 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     flip.set_property("method", new_instance.transform)
     sink.set_property("stun-server", "NULL")
     # library typing is wrong we get a tuple here
-    meta, _ = cast(tuple[Gst.Structure, None], Gst.Structure.from_string(f"meta,device={device}"))
+    meta, _ = cast(
+        tuple[Gst.Structure, None], Gst.Structure.from_string(f"meta,device={device}")
+    )
     sink.set_property("meta", meta)
     signaller = sink.get_property("signaller")
     if signaller is None:
