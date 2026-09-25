@@ -39,13 +39,18 @@ public:
 
     // SET_SPEED values within this band don't leave Position mode, so teleop's
     // stream of zeros and the SET_SPEED timeout can't cancel a setpoint.
-    static constexpr int16_t kSpeedDeadband = 327;  // ~1% of full scale
+    // Speeds are % duty cycle (100 = full PWM); angles and windows are degrees.
+    static constexpr float kSpeedDeadband = 1.0f;
 
-    // Position control: constant speed toward the target, stop within kHoldWindow (degrees).
-    static constexpr int16_t kPositionSpeed = 16384;  // ~50%; the actuators stall at ~10%
+    // Position control: constant speed toward the target, stop within kHoldWindow.
+    static constexpr float kPositionSpeed = 50.0f;  // the actuators stall at ~10%
     static constexpr float kHoldWindow = 2.0f;
     static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
     static constexpr int8_t kDriveDirection = 1;  // set -1 if positive speed decreases the angle
+
+    // SET_SPEED and MotorDriver::drive() use int16 duty, +/-32767 = 100%.
+    static constexpr int16_t to_duty(float percent) { return static_cast<int16_t>(percent * 32767.0f / 100.0f); }
+    static constexpr float to_percent(int16_t duty) { return duty * 100.0f / 32767.0f; }
 
     enum class ControlMode : uint8_t
     {

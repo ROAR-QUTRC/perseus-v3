@@ -150,8 +150,9 @@ namespace
         if (position)
             printf(" tgt %5.1f", status.target_position / kPositionUnitsPerDegree);
         else
-            printf(" spd %5d", status.speed);
-        printf("  out %6d/%6d  angle ", status.output_a, status.output_b);
+            printf(" spd %4.0f%%", MotorBank::to_percent(status.speed));
+        printf("  out %4.0f%%/%4.0f%%  angle ", MotorBank::to_percent(status.output_a),
+               MotorBank::to_percent(status.output_b));
         if (angle)
         {
             printf("%7.2f", *angle);
@@ -191,7 +192,7 @@ void setup()
     bus.begin(kSimEncoders);
     start_bank_control_task({&lift.value(), nullptr, nullptr});
 
-    printf("can_sim: lift to %.0f deg at %d, within %.0f deg, feedback %s for both actuators. Discovery first (~24 s)\n",
+    printf("can_sim: lift to %.0f deg at %.0f%%, within %.0f deg, feedback %s for both actuators. Discovery first (~24 s)\n",
            kTargetDegrees, MotorBank::kPositionSpeed, MotorBank::kHoldWindow, to_string(kFeedback));
 }
 

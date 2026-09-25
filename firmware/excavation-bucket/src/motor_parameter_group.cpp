@@ -27,6 +27,8 @@ MotorParameterGroup::MotorParameterGroup(hi_can::addressing::excavation::bucket:
             static_cast<flagged_address_t>(standard_address_t{
                 DEVICE_ADDRESS, static_cast<uint8_t>(_encoder_group),
                 static_cast<uint8_t>(controller::encoder_parameter::GET_ANGLE)}),
+            // TODO: this keeps sending the last cached angle after the encoder stops
+            // answering, so ROS never sees it go stale. Only send while the reading is fresh.
             PacketManager::transmission_config_t{
                 .generator = ([this]()
                               {

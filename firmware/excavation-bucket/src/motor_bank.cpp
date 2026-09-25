@@ -46,7 +46,7 @@ void MotorBank::set_speed(const int16_t speed)
 {
     Lock lock(_mutex);
     _speed = speed;
-    if (speed > kSpeedDeadband || speed < -kSpeedDeadband)
+    if (speed > to_duty(kSpeedDeadband) || speed < -to_duty(kSpeedDeadband))
         _mode = ControlMode::Velocity;
 }
 
@@ -65,6 +65,7 @@ void MotorBank::stop()
 }
 
 // Falls back to the last cached angles if neither encoder is fresh.
+// TODO: that fallback hides a dead encoder from ROS; stop sending GET_POSITION instead.
 int16_t MotorBank::get_current_position() const
 {
     const uint32_t now = encoder_bus().now_ms();
@@ -177,7 +178,8 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
     }
     *settled = false;
 
-    return error > 0 ? kPositionSpeed * kDriveDirection : -kPositionSpeed * kDriveDirection;
+    const int16_t duty = to_duty(kPositionSpeed) * kDriveDirection;
+    return error > 0 ? duty : -duty;
 }
 
 std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)

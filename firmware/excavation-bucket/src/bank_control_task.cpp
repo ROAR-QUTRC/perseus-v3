@@ -8,8 +8,8 @@ namespace
     // actually refreshes.
     constexpr uint32_t kPeriodMs = 20;
     // Below EncoderBus's RS485 tasks (priority 5, latency-sensitive UART I/O
-    // the PID depends on), above the Arduino loop task (priority 1, CAN
-    // handling).
+    // position control depends on), above the Arduino loop task (priority 1,
+    // CAN handling).
     constexpr UBaseType_t kTaskPriority = 4;
     constexpr BaseType_t kTaskCore = 0;  // same core as EncoderBus
     constexpr uint32_t kStackBytes = 4096;

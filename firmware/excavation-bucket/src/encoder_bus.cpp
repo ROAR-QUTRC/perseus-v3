@@ -188,11 +188,12 @@ void EncoderBus::run(Bus& bus)
 }
 
 // Runs before any device is registered, so each step() executes exactly the
-// probe just submitted.
+// request just submitted.
 void EncoderBus::discover(Bus& bus, size_t bus_index)
 {
     constexpr size_t kSlots = kDiscoveryLastSlave - kDiscoveryFirstSlave + 1;
-    uint8_t hits[kSlots] = {};
+    uint8_t good[kSlots] = {};     // valid angle read
+    uint8_t faults[kSlots] = {};   // answered with an exception, e.g. no magnet
     uint8_t garbled[kSlots] = {};  // something came back, but not a valid reply
     const unsigned bus_no = static_cast<unsigned>(bus_index + 1);
 
@@ -203,51 +204,68 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
     {
         for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
         {
+            const size_t s = slave - kDiscoveryFirstSlave;
             TickType_t wake = xTaskGetTickCount();
-            const modbus::Result result = probe(bus, slave, true);
-            if (result == modbus::Result::Ok || result == modbus::Result::ExceptionReply)
-                ++hits[slave - kDiscoveryFirstSlave];
+
+            transact(bus, enc::discovery_request(slave, true));
+
+            modbus::Request poll;
+            poll.slave = slave;
+            poll.kind = modbus::Request::Kind::ReadRegs;
+            poll.reg = enc::kRegAngleRaw;
+            poll.value_or_count = 2;
+            const modbus::Result result = transact(bus, poll);
+
+            if (result == modbus::Result::Ok)
+            {
+                ++good[s];
+                transact(bus, enc::discovery_request(slave, false));
+            }
+            else if (result == modbus::Result::ExceptionReply)
+                ++faults[s];
             else if (result != modbus::Result::Timeout)
-                ++garbled[slave - kDiscoveryFirstSlave];
+                ++garbled[s];
+
             vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryProbeMs));
-            // Broadcast, so a board whose reply was lost doesn't stay lit.
-            probe(bus, modbus::kBroadcastAddress, false);
         }
     }
 
     size_t registered = 0;
     for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
     {
-        const uint8_t count = hits[slave - kDiscoveryFirstSlave];
-        const uint8_t bad = garbled[slave - kDiscoveryFirstSlave];
+        const size_t s = slave - kDiscoveryFirstSlave;
+        const bool answered = good[s] > 0 || faults[s] > 0;
 
         size_t index = kEncoderCount;
         for (size_t i = 0; i < kEncoderCount; ++i)
             if (kPlacement[i].bus == bus_index && kPlacement[i].slave == slave)
                 index = i;
+        const char* name = index < kEncoderCount ? kNames[index] : "no placement";
 
-        if (bad > 0)
-            ESP_LOGW(TAG, "bus %u: slave %u replied %u/%u times but the reply was unreadable (CRC/frame error)",
-                     bus_no, slave, bad, kDiscoveryRounds);
+        if (garbled[s] > 0)
+            ESP_LOGW(TAG, "bus %u: slave %u (%s) replied %u/%u times but the reply was unreadable (CRC/frame error)",
+                     bus_no, slave, name, garbled[s], kDiscoveryRounds);
+        if (faults[s] > 0)
+            ESP_LOGW(TAG, "bus %u: slave %u (%s) answered %u/%u times with a fault (no magnet?), left lit", bus_no,
+                     slave, name, faults[s], kDiscoveryRounds);
 
         if (index == kEncoderCount)
         {
-            if (count > 0)
-                ESP_LOGW(TAG, "bus %u: slave %u answered %u/%u but has no placement", bus_no, slave, count,
-                         kDiscoveryRounds);
+            if (answered)
+                ESP_LOGW(TAG, "bus %u: slave %u answered but has no placement", bus_no, slave);
             continue;
         }
 
-        if (count == 0)
+        if (!answered)
         {
-            ESP_LOGW(TAG, "bus %u: %s (slave %u) missing", bus_no, kNames[index], slave);
+            ESP_LOGW(TAG, "bus %u: %s (slave %u) missing", bus_no, name, slave);
             continue;
         }
-        if (count < kDiscoveryRounds)
-            ESP_LOGW(TAG, "bus %u: %s (slave %u) flaky, answered %u/%u", bus_no, kNames[index], slave, count,
-                     kDiscoveryRounds);
+        if (good[s] == kDiscoveryRounds)
+            ESP_LOGI(TAG, "bus %u: %s (slave %u) found", bus_no, name, slave);
         else
-            ESP_LOGI(TAG, "bus %u: %s (slave %u) found", bus_no, kNames[index], slave);
+            ESP_LOGW(TAG, "bus %u: %s (slave %u) flaky, good %u/%u", bus_no, name, slave, good[s],
+                     kDiscoveryRounds);
 
         {
             Lock lock(mutex_);
@@ -269,7 +287,7 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
         if (bus.mbus.add_device(enc::make_device(config)))
             ++registered;
         else
-            ESP_LOGE(TAG, "failed to register %s", kNames[index]);
+            ESP_LOGE(TAG, "failed to register %s", name);
     }
 
     if (registered < kDevicesPerBus)
@@ -277,10 +295,13 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
                  static_cast<unsigned>(kDevicesPerBus));
 }
 
-modbus::Result EncoderBus::probe(Bus& bus, uint8_t slave, bool on)
+// Runs one request to completion and returns its result.
+modbus::Result EncoderBus::transact(Bus& bus, modbus::Request request)
 {
     modbus::Result result = modbus::Result::TransportError;
-    if (!bus.mbus.submit(enc::discovery_request(slave, on, &EncoderBus::on_probe_done, &result)))
+    request.on_done = &EncoderBus::on_probe_done;
+    request.ctx = &result;
+    if (!bus.mbus.submit(request))
         return result;
     bus.mbus.step();
     return result;
