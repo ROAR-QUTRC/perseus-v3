@@ -1,19 +1,15 @@
 # BIEVR-LIO on the real Perseus: Livox MID-360 on a Jetson.
 #
-# The default backend for localisation.launch.py; `lio:=fast_lio` selects
-# livox_mid360.yaml instead. The two fill the same slot -- LiDAR-inertial odometry on
-# /Odometry for the EKF to fuse -- so they are tuned to produce the same thing, and the
-# comments below call out where the two algorithms make the same setting mean different
-# things.
+# The LiDAR-inertial odometry localisation.launch.py runs: /Odometry, for the EKF to fuse.
 #
-# Unlike FAST-LIO this is not a ROS parameter file: bievr_lio_ros2 parses plain YAML with
+# This is not a ROS parameter file: bievr_lio_ros2 parses plain YAML with
 # yaml-cpp and takes the *path* on its command line, so there is no /**: ros__parameters
 # wrapper and nothing here is visible to `ros2 param`. Upstream splits it across
 # config/params.yaml plus a config/sensor_configs/<robot>.yaml; both are merged per leaf
 # key, so a single file carrying both halves is equivalent and is what the launch file
 # passes as --params_file.
 topics:
-  # The Livox driver's own topics, same as FAST-LIO reads. The IMU is the bias-corrected
+  # The Livox driver's own topics. The IMU is the bias-corrected
   # stream from the imu_bias_container in localisation.launch.py.
   pointcloud: "/livox/lidar"
   imu: "/livox/imu/corrected"
@@ -29,8 +25,7 @@ calibration:
   # Read the LiDAR -> IMU extrinsic from TF at startup, as imu.frame -> lidar.frame, rather
   # than restating it here. The MID-360 datasheet offset lives on the livox_imu_joint in
   # description/urdf/sensor_mount.urdf.xacro, which is where a physical property of the
-  # sensor belongs; livox_mid360.yaml still carries its own copy as mapping.extrinsic_T
-  # because FAST-LIO cannot do this, and the URDF is the one both should agree with.
+  # sensor belongs.
   #
   # This makes the robot description a hard dependency of odometry -- but it already was:
   # base.origin_at_base below cannot place the world frame without it either, so nothing new
@@ -38,8 +33,8 @@ calibration:
   # replay, which has no live TF tree to read.
   from_tf: true
 lidar:
-  # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind, with the same
-  # caveat: it is a sphere, so raising it blinds the robot in every direction at that radius.
+  # Rejects returns off the robot itself. It is a sphere, so raising it blinds the robot in
+  # every direction at that radius.
   #
   # A candidate for going lower, untested. The Livox sits over the chassis centre and the
   # furthest body part, a wheel corner, is ~0.6 m from it, so 1.0 m would still clear the
@@ -55,9 +50,8 @@ lidar:
 map:
   # The world-fixed parent of the odometry and the published clouds.
   frame: "odom"
-  # BIEVR-LIO keeps an image per voxel rather than a point tree, so these are not the same
-  # dial as FAST-LIO's filter_size_map. pixel_size_m is the resolution *within* a voxel
-  # image; voxel_size_m is the voxel grid itself.
+  # BIEVR-LIO keeps an image per voxel rather than a point tree. pixel_size_m is the
+  # resolution *within* a voxel image; voxel_size_m is the voxel grid itself.
   pixel_size_m: 0.05
   voxel_size_m: 1.0
   normal_tolerance_deg: 1
@@ -82,8 +76,7 @@ map:
   # nothing about the terrain having changed -- so a sparse look defers the decay decision
   # instead of erasing on a thin sample. No effect while stale_timeout_s is 0.
   stale_min_relative_density: 0.5
-  # A voxel count, not a metric extent, so it replaces both cube_side_length and the
-  # ikd-Tree trimming FAST-LIO uses. Voxels past this are evicted least-recently-used first,
+  # A voxel count, not a metric extent. Voxels past this are evicted least-recently-used first,
   # so the map degrades by forgetting where the robot has not been lately rather than by
   # failing.
   #
@@ -98,11 +91,11 @@ map:
   # Raise it on a workstation, where the arithmetic above is the only limit that matters.
   max_size: 700000
 preprocess:
-  # The strongest accuracy dial and the most expensive one, the counterpart of FAST-LIO's
-  # filter_size_surf. Give this back first if odometry cannot keep up with its input.
+  # The strongest accuracy dial and the most expensive one. Give this back first if odometry
+  # cannot keep up with its input.
   #
-  # Was 0.12, chosen only so the two backends spend comparable time per scan on the Jetson
-  # -- parity with FAST-LIO, not a measurement of what BIEVR-LIO needs. 0.10 is upstream's
+  # Was 0.12, chosen only to match the per-scan CPU of the previous odometry backend, not
+  # a measurement of what BIEVR-LIO needs. 0.10 is upstream's
   # own default (BIEVR-LIO/config/params.yaml) and is here to fight pose jitter: coarser
   # downsampling leaves fewer residuals in the solve, and the Lunabotics arena is close to
   # the worst case for that -- a flat sand floor and low walls give little to constrain the
@@ -159,8 +152,7 @@ optimization:
 imu:
   window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The
-  # robot must be still for this long at startup, exactly as FAST-LIO's gravity_align_en
-  # requires.
+  # robot must be still for this long at startup.
   #
   # 2.0, up from 0.2. 0.2 s is ~40 samples at 200 Hz, and the world frame is levelled from
   # their mean: a roll/pitch error there leaks gravity into horizontal acceleration for the
@@ -179,8 +171,7 @@ imu:
 base:
   frame: "base_link"
   # Report the base pose on the odometry topic so the EKF can fuse it with no transform
-  # between the message's child frame and base_link. Same role as FAST-LIO's
-  # publish.odom_in_base_en, and ekf_config.yaml's odom0 assumes it either way.
+  # between the message's child frame and base_link; ekf_config.yaml's odom0 assumes it.
   odom_in_base: true
   # Put the world origin on base_link rather than on the IMU up the mast, so the ground
   # plane is near z = 0 instead of z = -0.65 for everything downstream. Position only.
@@ -190,7 +181,6 @@ base:
   # world frame otherwise inherits the IMU's startup yaw. The IMU sits inside the Livox,
   # which laser_joint mounts a quarter turn round, so base_link would come up exactly 90
   # degrees off odom and yank the EKF (which starts at identity) on the first message.
-  # This is the same fix as FAST-LIO's common.heading_at_base_en.
   heading_at_base: true
 publish:
   # No TF from the LIO: the EKF owns odom -> base_link, and two publishers on one edge make
@@ -199,7 +189,7 @@ publish:
   # Would fight the URDF, which already parents livox_frame under base_link.
   tf_lidar: false
   # The accumulated map, on /bievr_lio/map, which localisation.launch.py remaps onto
-  # /Laser_map so the base-station Draco link gets the same topic it gets from FAST-LIO.
+  # /Laser_map, the topic the base-station Draco link subscribes to.
   #
   # Measured against the simulator at map sizes up to ~60k points: publishing every second
   # cost less than the run-to-run variation in the filter's own CPU, so the export itself is
@@ -233,9 +223,8 @@ publish:
   # stopped reading /Laser_map. Nothing on the rover grids this map any more, so 2 is safe
   # again if the on-host publish starts to hurt.
   map_stride: 1
-  # Where /map_save writes. The counterpart of map_file_path in livox_mid360.yaml, and like
-  # FAST-LIO's pcd_save_en: false, saving is on demand only -- nothing is written unless the
-  # service is called.
+  # Where /map_save writes. Saving is on demand only -- nothing is written unless the service
+  # is called.
   map_path: "~/maps/bievr_map.pcd"
   # Covariance stamped onto /Odometry's pose and twist. false leaves the message at its
   # default zero, which tells the EKF the measurement is exact -- defeating both its
@@ -278,8 +267,7 @@ debug:
   # log and costs a write per frame.
   dashboard: false
   trajectory_path: ""
-# Pinned rather than left at 0, which means "all cores" here (NOT what FAST-LIO's
-# max_threads: 0 means -- that one leaves a core free).
+# Pinned rather than left at 0, which means "all cores" here.
 #
 # 0 is actively worse than a small number, not just greedier. TBB starts a worker per core
 # and they spin-wait between frames, so the process burned 0.47-0.61 cores on a 28-thread

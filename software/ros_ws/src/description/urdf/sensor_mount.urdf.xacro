@@ -82,7 +82,7 @@
     <!--
       Livox MID-360, seated on livox_base. The joint only offsets it across the plate and
       adds no rotation of its own, so the sensor inherits the plate's tilt. The IMU-LiDAR
-      extrinsic in the fast_lio config is internal to the sensor housing and is unaffected
+      extrinsic (livox_imu_joint below) is internal to the sensor housing and is unaffected
       by how the housing is mounted.
 
       The -pi/2 yaw is not mesh alignment: the sensor is physically seated on the plate
@@ -91,9 +91,10 @@
       point downstream; get it wrong and the whole point cloud is rotated.
 
       96a84d2 removed this yaw (PR #17, fix/livox-frame-yaw) to stop base_link starting
-      90 degrees off odom, and that reversed the trade. fast_lio does compose
-      T_map_base = T_map_imu * T_imu_lidar * T_lidar_base with lid_frame -> base_frame read
-      from TF, so the yaw does land in base_link's reported orientation, but odom has no
+      90 degrees off odom, and that reversed the trade. The LIO does compose
+      T_map_base = T_map_imu * T_imu_lidar * T_lidar_base with livox_frame -> base_link read
+      from TF (BIEVR-LIO's base.odom_in_base), so the yaw does land in base_link's reported
+      orientation -- which base.heading_at_base now corrects for -- but odom has no
       absolute yaw reference (see the imu0 notes in autonomy_bringup/config/ekf_config.yaml),
       so the odom frame is defined by wherever the robot started and a 90 degree offset in it
       is cosmetic. A rotated point cloud is not. What has to agree is the cloud and the pose,
@@ -116,15 +117,14 @@
 
       It exists so the LiDAR-IMU extrinsic has one home. The MID-360 datasheet puts the IMU
       at (11.0, 23.29, -44.12) mm from the LiDAR origin, in LiDAR coordinates, with no
-      rotation between them. That number was previously written out twice, as
-      mapping.extrinsic_T in autonomy_bringup/config/livox_mid360.yaml and again as
-      calibration.translation in bievr_mid360.yaml, with nothing checking the two against
-      each other. Stating it here instead lets BIEVR-LIO read it back out of TF
-      (calibration.from_tf), and makes common.body_frame in the FAST-LIO config name a link
-      that actually exists.
+      rotation between them. That number used to be written out in the LIO config as well,
+      with nothing checking the copies against each other. Stating it here instead lets
+      BIEVR-LIO read it back out of TF (calibration.from_tf in bievr_mid360.yaml).
 
-      Note the sign. Both LIO configs express the extrinsic the other way round, as the
-      LiDAR origin in IMU coordinates, so they carry the negation of these numbers.
+      Note the sign. BIEVR-LIO's calibration block expresses the extrinsic the other way
+      round, as the LiDAR origin in IMU coordinates, so an explicit calibration.translation
+      (from_tf false, e.g. for a bag replay with no live TF tree) carries the negation of
+      these numbers.
     -->
     <link name="${prefix}livox_imu_frame"/>
 

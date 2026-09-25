@@ -1,5 +1,5 @@
 # Parameters for the two streams handled by point_cloud_compress.launch.py /
-# point_cloud_decompress.launch.py: the live Livox scan and FAST-LIO's accumulated map.
+# point_cloud_decompress.launch.py: the live Livox scan and BIEVR-LIO's map.
 #
 # voxel_size_m -- edge length of each voxel cube, in metres. At most one point survives per
 #   cube, so a smaller value keeps more detail (and more points); a larger value downsamples
@@ -37,8 +37,8 @@ livox_draco_encoder:
 laser_map_draco_encoder:
   ros__parameters:
     quantization_bits: 12
-    # Free of any precision concern here: every one of the map's five non-position fields
-    # (normal_x/y/z, intensity, curvature) is identically zero on every point FAST-LIO
-    # publishes, so there is nothing in them to lose. Positions land within 5.8 mm of the
-    # input, against a 300 mm voxel grid.
+    # Free of any precision concern here: the map's only non-position field, intensity,
+    # carries nothing -- BIEVR-LIO's map stores surface heights, not intensities -- so there
+    # is nothing in it to lose. Positions land within 5.8 mm of the input, against a 300 mm
+    # voxel grid.
     force_quantization: true

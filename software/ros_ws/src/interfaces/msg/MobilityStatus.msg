@@ -2,7 +2,7 @@
 # /odometry/filtered, produced by watchdog/mobility_watchdog.
 #
 # The filtered odometry has no wheel-encoder input (see autonomy_bringup/config/
-# ekf_config.yaml) -- it is derived from FAST-LIO's LiDAR-inertial pose and the IMU gyro --
+# ekf_config.yaml) -- it is derived from BIEVR-LIO's LiDAR-inertial pose and the IMU gyro --
 # so a sustained gap between command and measurement reflects the wheels genuinely failing
 # to move the robot, such as when they lose traction in sand, rather than two wheel-derived
 # signals agreeing with each other for the wrong reason.

@@ -18,7 +18,7 @@ namespace footprint_broadcaster
     /// base_footprint frame.
     ///
     /// The EKF (see autonomy_bringup/config/ekf_config.yaml) runs with two_d_mode:
-    /// false and publishes odom -> base_link carrying FAST-LIO's real z, roll and
+    /// false and publishes odom -> base_link carrying BIEVR-LIO's real z, roll and
     /// pitch. nav2's costmaps and controller assume a robot that moves on a plane,
     /// so this node looks up odom -> base_link on a timer, zeroes z/roll/pitch
     /// while keeping yaw, and broadcasts the result as odom -> base_footprint --

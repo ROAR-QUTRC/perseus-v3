@@ -125,10 +125,9 @@ def generate_launch_description():
     # These decoders turn each stream back into a cloud on
     # /livox/lidar/downsampled/decompressed and /Laser_map/downsampled/decompressed.
     #
-    # Note that base_station.rviz does not yet display those topics: its Livox Cloud and
-    # Cloud Map displays are still pointed at /cloud_registered and /Laser_map, the raw
-    # names. The decoders are brought up here so the decompressed clouds exist to be
-    # selected; retargeting the config is a separate change.
+    # Check base_station.rviz before relying on those topics: its cloud displays have
+    # historically pointed at the raw, uncompressed names. The decoders are brought up
+    # here so the decompressed clouds exist to be selected either way.
     #
     # Scoped for the same reason the includes in localisation.launch.py are: an include's
     # launch_arguments otherwise land in the enclosing context and are inherited by

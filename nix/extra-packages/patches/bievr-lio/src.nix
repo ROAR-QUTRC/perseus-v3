@@ -29,9 +29,9 @@
 # Twist gets its own pair -- publish.odom_linear_velocity_variance / _angular_ ((m/s)^2 /
 # (rad/s)^2) -- rather than reusing the pose pair above, which would have been dimensionally
 # wrong. Worth having: publishLatestState fills a real linear_velocity from the optimizer's
-# own state, unlike FAST-LIO, which never populates its odometry's twist at all. (Fusing it
-# into the Lunabotics EKF was tried anyway and made it measurably noisier -- see
-# ekf_config.yaml -- so this pair is currently unused there, not a recommendation to fuse it.)
+# own state. (Fusing it into the Lunabotics EKF was tried and made it measurably noisier --
+# see ekf_config.yaml -- so this pair is currently unused there, not a recommendation to
+# fuse it.)
 #
 # Pose covariance is no longer just that flat pair, either: LsqRegistration derives a real
 # per-scan estimate from the registration's own Gauss-Newton Hessian

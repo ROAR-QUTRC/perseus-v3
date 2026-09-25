@@ -3,9 +3,7 @@
 # A separate file rather than a rewritten copy, because BIEVR-LIO already layers two configs
 # and merges them per leaf key -- localisation.launch.py passes the real-robot file as
 # --params_file and this one as --sensor_config_file when sim:=true, so the keys below win
-# and every key not mentioned here keeps its real-robot value. That is also why there is no
-# counterpart to FAST-LIO's sim_overrides(): the layering does the same job without a temp
-# file.
+# and every key not mentioned here keeps its real-robot value.
 #
 # The sensor being modelled is the gpu_lidar and imu in perseus_simulation's
 # perseus_description/urdf/sensors.urdf.xacro -- the simulator is a separate workspace, and

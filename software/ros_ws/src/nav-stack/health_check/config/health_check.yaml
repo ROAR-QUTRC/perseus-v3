@@ -32,7 +32,7 @@
       # Bias-corrected IMU from sensors/bias_remover; the EKF's imu0 input. Same rate as
       # the raw stream it derives from.
       - /livox/imu/corrected
-      # FAST-LIO's pose output; the EKF's odom0 input. Tied to the LiDAR scan rate.
+      # BIEVR-LIO's pose output; the EKF's odom0 input. Tied to the LiDAR scan rate.
       - /Odometry
       # Wheel odometry from the diff drive controller. publish_rate in
       # perseus/config/perseus_controllers.yaml.

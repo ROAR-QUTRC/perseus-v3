@@ -1,7 +1,7 @@
 """Rover half of the point cloud link: voxel downsample, then Draco compress.
 
 For each of the two clouds worth sending to the base station -- the live Livox
-scan and FAST-LIO's accumulated map -- this runs a `voxel_downsampler` to thin
+scan and BIEVR-LIO's map -- this runs a `voxel_downsampler` to thin
 the cloud, then a `point_cloud_transport` `republish` node to encode the thinned
 cloud as Draco on `<downsampled topic>/draco`.
 

@@ -90,10 +90,9 @@ install(
   RUNTIME DESTINATION bin)
 
 # Dust Filter Radius outlier removal, decluttering the Livox point cloud before
-# FAST-LIO or the obstacle costmap sees it. Built as a component so it can be
-# loaded into a shared container with another node (e.g. FAST-LIO's
-# LaserMappingNode) and pass point clouds between them by pointer instead of
-# over DDS.
+# the LIO or the terrain costmaps see it. Built as a component so it can be
+# loaded into a shared container with another node and pass point clouds
+# between them by pointer instead of over DDS.
 add_library(dust_filter_component SHARED src/dust_filter/dust_filter.cpp)
 
 target_include_directories(dust_filter_component
@@ -117,7 +116,7 @@ ament_target_dependencies(dust_filter rclcpp)
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
 
 # Voxel Downsampler Reduces point cloud density by keeping at most one point per
-# voxel cell, thinning the Livox scan and the FAST-LIO map before
+# voxel cell, thinning the Livox scan and the BIEVR-LIO map before
 # point_cloud_transport Draco-compresses them for the base station link.
 add_executable(
   voxel_downsampler src/voxel_downsampler/voxel_downsampler.cpp

@@ -163,7 +163,7 @@ sits downstream (see below).
 
 ## Point cloud link (rover ↔ base station)
 
-Two launch files carry the Livox scan and FAST-LIO's accumulated map across the link, one for each
+Two launch files carry the Livox scan and BIEVR-LIO's map across the link, one for each
 direction of the codec. Both ends need `draco_point_cloud_transport` installed — `republish` loads
 the plugin by name at runtime, so a missing plugin only shows up as a launch-time error.
 

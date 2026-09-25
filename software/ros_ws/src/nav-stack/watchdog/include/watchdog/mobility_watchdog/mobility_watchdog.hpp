@@ -19,7 +19,7 @@ namespace watchdog
     ///
     /// Compares the velocity commanded on `/cmd_vel_out` against the velocity
     /// actually measured on `/odometry/filtered`. The filtered odometry is derived
-    /// from FAST-LIO's LiDAR-inertial pose and the IMU gyro (see
+    /// from BIEVR-LIO's LiDAR-inertial pose and the IMU gyro (see
     /// autonomy_bringup/config/ekf_config.yaml) -- it contains no wheel-encoder
     /// input, so it keeps reporting the robot's true motion even while the wheels
     /// themselves are spinning freely in sand. A persistent gap between command and
