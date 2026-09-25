@@ -91,7 +91,7 @@ namespace hi_can
             /// @brief Whether the address is an error frame
             bool is_error = false;
             /// @brief Whether the address is an extended (29-bit) address
-            bool is_extended = true;
+            bool is_extended = true;  // DOES NOT SUPPORT CURRENTLY ESP32-S3
 
             /// @brief Default constructor - zero address, not RTR or error, extended
             constexpr flagged_address_t() = default;
@@ -418,10 +418,9 @@ namespace hi_can
                         SET_POSITION = 0x04,
                         SET_PID_PARAMS = 0x05,
                         SET_ZERO_POS = 0x06,
-                        GET_SLEEP = 0x07,
-                        SET_SLEEP = 0x08,
-                        RESET_TO_ZERO = 0x09,
                     };
+
+                    /* Encoder board ROS interface */
                     enum class encoder_group : uint8_t
                     {
                         LIFT_L = 0x03,
@@ -434,7 +433,6 @@ namespace hi_can
                     enum class encoder_parameter : uint8_t
                     {
                         GET_ANGLE = 0x00,
-                        SET_ANGLE = 0x01,
                     };
                 }  // namespace controller
             }  // namespace bucket

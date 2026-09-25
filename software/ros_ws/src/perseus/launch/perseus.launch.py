@@ -145,7 +145,12 @@ def generate_launch_description():
                                 [
                                     FindPackageShare("payloads"),
                                     "launch",
-                                    "bucket.launch.py",
+                                    # Teleop (open-loop SET_SPEED) path. The
+                                    # ros2_control stack is bucket.launch.py -
+                                    # only ever run one of the two, since the
+                                    # firmware takes its control mode from
+                                    # whichever command arrived last.
+                                    "bucket_teleop.launch.py",
                                 ]
                             )
                         ]

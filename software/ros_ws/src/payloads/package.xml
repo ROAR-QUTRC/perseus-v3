@@ -2,9 +2,8 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>payloads</name>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
   <description>Payload-specific nodes and launch files for the Perseus Rover.</description>
-  <maintainer email="65759870+ZephCreations@users.noreply.github.com">Zeph</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -14,6 +13,8 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>hi_can_raw</depend>
+  <depend>actuator_msgs</depend>
+  <depend>sensor_msgs</depend>
 
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
