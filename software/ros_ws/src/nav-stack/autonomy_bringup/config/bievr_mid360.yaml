@@ -38,9 +38,14 @@ calibration:
   # replay, which has no live TF tree to read.
   from_tf: true
 lidar:
-  # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind; same 0.5 m,
-  # and the same caveat: it is a sphere, so raising it blinds the robot in every direction
-  # at that radius.
+  # Rejects returns off the robot itself. FAST-LIO calls this preprocess.blind, with the same
+  # caveat: it is a sphere, so raising it blinds the robot in every direction at that radius.
+  #
+  # A candidate for going lower, untested. The Livox sits over the chassis centre and the
+  # furthest body part, a wheel corner, is ~0.6 m from it, so 1.0 m would still clear the
+  # rover. With the sensor ~0.65 m up, the ground ring at 1.5 m range is ~1.35 m out and at
+  # 1.0 m it is ~0.8 m out, and near floor returns are the best-measured points in the scan
+  # -- on a flat arena, what pins z, roll and pitch. Try it against a replayed bag first.
   min_range_m: 1.5
   # Real MID-360 range (~15 m at high reflectivity, ~10 m at 10%).
   max_range_m: 15
@@ -58,12 +63,18 @@ map:
   normal_tolerance_deg: 1
   smooth: true
   weighted: true
-  # Off until field-tested: each bump-image pixel's weight only ever grows, so a fine-sand
-  # patch reshaped by the wheels barely moves the stored height once a pixel has enough
-  # hits. Setting this clears a pixel that goes this many seconds without a fresh hit, so
-  # the next one starts a clean average instead of blending into the old surface. See
-  # bievr_mid360_sim.yaml for a value to try in the simulator first.
-  stale_timeout_s: 1.0
+  # Each bump-image pixel's weight only ever grows, so a fine-sand patch reshaped by the
+  # wheels barely moves the stored height once a pixel has enough hits. Setting this clears a
+  # pixel that goes this many seconds without a fresh hit, so the next one starts a clean
+  # average instead of blending into the old surface.
+  #
+  # OFF, AND KEEP IT OFF FOR ODOMETRY. This map is not just the published cloud: it is the
+  # surface every new scan is registered against. At 1 s it held little more than the last
+  # second of scans, which turns scan-to-map into scan-to-recent-scans -- every re-seeded
+  # pixel is laid down at the current pose estimate, error included, so drift accumulates
+  # instead of being pinned to terrain seen earlier. It was enabled so /Laser_map would track
+  # reshaped sand for global_traversability, which no longer reads that map.
+  stale_timeout_s: 0.0
   # A stale pixel is only actually cleared if this scan's point count in the voxel is at
   # least this fraction of the voxel's currently-observed pixel count. LiDAR point density
   # is not uniform across the map -- the same spot seen from further away or at a shallower
@@ -150,7 +161,12 @@ imu:
   # Seconds of stationary data used to estimate the biases and level the world frame. The
   # robot must be still for this long at startup, exactly as FAST-LIO's gravity_align_en
   # requires.
-  t_init: 0.2
+  #
+  # 2.0, up from 0.2. 0.2 s is ~40 samples at 200 Hz, and the world frame is levelled from
+  # their mean: a roll/pitch error there leaks gravity into horizontal acceleration for the
+  # whole run, which integrates straight into position drift. Averaging 10x the samples cuts
+  # that noise ~3x. Costs two seconds of standing still at launch.
+  t_init: 2.0
   # -1 autodetects whether the accelerometer reports g or m/s^2 from the magnitude of that
   # window. The Livox IMU reports g, and the bias remover upstream does not rescale it, so
   # autodetection is what makes the units come out right; pin it to 1 if a future driver
@@ -275,4 +291,4 @@ debug:
 # the whole pipeline held 10 Hz on one 3.9 GHz core with a 23k-point scan, which is the
 # point rate the real MID-360 produces. Raise it if `ros2 topic hz /Odometry` falls below
 # the LiDAR rate.
-max_num_threads: 0
+max_num_threads: 3
