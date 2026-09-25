@@ -49,8 +49,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # would have added another, separate such chain (via grid_map_cv -> filters) for
 # no benefit -- GridMap -> OccupancyGrid is hand-rolled below using
 # grid_map_core's own getIndex() instead of grid_map_ros's converter.
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs nav_msgs grid_map_core
-                                 pcl_conversions)
+#
+# local_traversability for its terrain_analysis library: the same height-difference
+# classifier, run over the same kind of short scan buffer. It is found after PCL
+# below for the reason given there -- it links PCL without exporting it.
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+    rclcpp
+    sensor_msgs
+    nav_msgs
+    geometry_msgs
+    grid_map_core
+    pcl_conversions
+    tf2
+    tf2_ros
+    tf2_eigen
+    local_traversability)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)

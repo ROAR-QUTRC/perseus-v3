@@ -1,14 +1,15 @@
 #pragma once
 
 /// @file global_traversability.hpp
-/// @brief Builds a terrain-aware costmap from the 3D lidar map, in place of a
-/// global costmap
-///        sourced only from a 2D SLAM occupancy grid.
+/// @brief Builds a persistent, self-clearing terrain costmap of everywhere the
+///        rover has looked, from the raw lidar scan.
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
+#include <deque>
 #include <grid_map_core/grid_map_core.hpp>
+#include <local_traversability/local_traversability/terrain_analysis.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -17,29 +18,37 @@
 
 namespace global_traversability
 {
-    /// @brief ROS 2 node that turns FAST-LIO's accumulated map cloud into a
-    /// multi-layer terrain
-    ///        grid_map, exported as one nav_msgs/OccupancyGrid per layer plus a
-    ///        combined nav2-consumable occupancy costmap.
+    /// @brief ROS 2 node that classifies short windows of raw MID-360 returns by
+    ///        height difference and remembers each cell's verdict, publishing the
+    ///        result as one map-wide nav2-consumable nav_msgs/OccupancyGrid.
     ///
-    /// A 2D SLAM map only ever records whether a cell is occupied in a single
-    /// horizontal slice, which cannot tell a step the robot can climb from a wall
-    /// it cannot, or a low branch it would hit from open air at the same (x, y).
-    /// This node instead analyses the full 3D map point cloud per cell -- height
-    /// above a locally fitted ground plane, local slope, local roughness, overhead
-    /// clearance -- and folds those into an obstacle/inflation cost that nav2's
-    /// costmap can consume directly, without needing a 2D SLAM map as an
-    /// intermediate.
+    /// THIS USED TO READ THE ACCUMULATED LIO MAP, AND THAT WAS THE PROBLEM. LIO
+    /// z-wander writes the same floor into /Laser_map several times, 5-10 cm apart, so
+    /// no local minimum there can be trusted as "the ground" -- which is what the old
+    /// RANSAC ground fit, ground_margin_m 0.15 and the clearance ablation in
+    /// navigation.yaml were all fighting. The map was also append-only: an obstacle
+    /// that left never left the costmap.
     ///
-    /// The input cloud (FAST-LIO's /Laser_map, see
-    /// autonomy_bringup/config/livox_mid360.yaml's publish.map_en) is republished
-    /// in full on every scan and only grows, so recomputing on every message would
-    /// be wasted work on a Jetson-class board. Instead the latest message is cached
-    /// and the whole pipeline re-runs on a slower timer.
+    /// CLASSIFY SHORT, REMEMBER LONG. Every update runs local_traversability's
+    /// height-difference classifier over only the last point_buffer_s of scans, which
+    /// were all measured within drift-free reach of each other, so the lowest return
+    /// near a cell really is the floor near it. What is REMEMBERED is the verdict per
+    /// cell (log-odds of "obstacle"), never the raw height: a height grid stitched
+    /// across minutes would put a cell seen at t = 10 s next to one seen at t = 300 s
+    /// and read the drift between them as a step, rebuilding the layered-floor
+    /// problem cell by cell. Drift between verdicts can only smear an obstacle
+    /// sideways on a revisit, and the log-odds washes that out as soon as the cell is
+    /// rescanned.
     ///
-    /// Deliberately depends on grid_map_core only, not grid_map_ros: see
-    /// CMakeLists.txt for why, and _to_occupancy_grid() for the hand-rolled GridMap
-    /// -> OccupancyGrid conversion that replaces it.
+    /// SELF-CLEARING, NOT FORGETFUL. A cell the current window observes is pulled
+    /// towards obstacle or free by that observation; a cell it does not observe keeps
+    /// its last value indefinitely. So a rock that is removed clears the next time
+    /// the lidar looks at that spot, and one the rover drove away from stays on the
+    /// map for the planner no matter how long ago it was seen.
+    ///
+    /// The grid starts at initial_map_length_m around the first robot pose and grows
+    /// (grid_map::GridMap::extendToInclude) whenever the scan window reaches past its
+    /// edge, so it never needs arena bounds up front.
     class GlobalTraversability : public rclcpp::Node
     {
     public:
@@ -49,188 +58,130 @@ namespace global_traversability
             const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
     private:
-        /// @brief Default topic the accumulated 3D map cloud is read from.
-        static inline const std::string DEFAULT_POINTCLOUD_TOPIC = "/Laser_map";
+        /// @brief Default topic the raw lidar scan is read from.
+        static inline const std::string DEFAULT_POINTCLOUD_TOPIC = "/livox/lidar";
         /// @brief Default topic the final occupancy costmap is published on.
         static inline const std::string DEFAULT_COSTMAP_TOPIC = "costmap";
         /// @brief Namespace debug layers are published under, one
         /// nav_msgs/OccupancyGrid each.
         static inline const std::string DEFAULT_LAYERS_TOPIC_PREFIX = "layers/";
 
-        /// @brief Default cell size of the generated grid, in metres.
+        /// @brief Default frame the persistent grid is expressed in.
+        /// @details odom, not map: BIEVR-LIO's world frame is odom and nothing
+        /// publishes map -> odom (see navigation.yaml).
+        static inline const std::string DEFAULT_GLOBAL_FRAME = "odom";
+        /// @brief Default frame the scan window is centred on.
+        static inline const std::string DEFAULT_ROBOT_FRAME = "base_footprint";
+
+        /// @brief Default cell size of both grids, in metres.
         static constexpr double DEFAULT_RESOLUTION_M = 0.1;
-        /// @brief Default margin added around the cloud's bounding box, in metres.
-        static constexpr double DEFAULT_MAP_MARGIN_M = 1.0;
-        /// @brief Default period between recomputing the costmap from the latest
-        /// cloud, in seconds.
-        static constexpr double DEFAULT_UPDATE_PERIOD_S = 5.0;
+        /// @brief Default side of the persistent grid when it is first allocated, in
+        ///        metres. It grows past this on its own.
+        static constexpr double DEFAULT_INITIAL_MAP_LENGTH_M = 40.0;
+        /// @brief Default period between classifying the scan window and fusing it
+        ///        into the persistent grid, in seconds.
+        static constexpr double DEFAULT_UPDATE_PERIOD_S = 0.5;
+        /// @brief Default period between republishing the costmap, in seconds.
+        /// @details Separate from the update period because the publish is the
+        /// expensive half once the map is arena-sized: inflation and the OccupancyGrid
+        /// conversion both scale with the whole map, the fusion only with the window.
+        static constexpr double DEFAULT_PUBLISH_PERIOD_S = 1.0;
 
-        /// @brief Default side length of the square neighbourhood used for the local
-        /// plane fit
-        ///        that steepness, roughness and ridge are derived from, in metres.
-        static constexpr double DEFAULT_NEIGHBOURHOOD_RADIUS_M = 0.3;
-        /// @brief Default minimum number of valid neighbours required to fit that
-        /// plane.
-        static constexpr int DEFAULT_MIN_PLANE_FIT_POINTS = 4;
-        /// @brief Default height a point must clear a cell's ground estimate by
-        /// before it counts
-        ///        toward that cell's overhead clearance, in metres. Filters
-        ///        ground-return noise.
-        static constexpr double DEFAULT_GROUND_MARGIN_M = 0.05;
-        /// @brief Default minimum point count for a cell to be considered mapped
-        /// rather than
-        ///        border/unknown.
-        static constexpr int DEFAULT_MIN_POINTS_PER_CELL = 3;
+        /// @brief Default age at which a buffered scan is dropped, in seconds.
+        /// @details How much raw data one classification sees. It must stay short
+        /// enough that LIO drift across it is negligible -- that is the entire reason
+        /// this node does not read the accumulated map.
+        static constexpr double DEFAULT_POINT_BUFFER_S = 1.0;
+        /// @brief Default closest return kept, in metres from the sensor.
+        static constexpr double DEFAULT_MIN_RANGE_M = 1.0;
+        /// @brief Default furthest return kept, in metres from the sensor.
+        /// @details Further than local_traversability's, because the planner needs to
+        /// see further than the controller; beyond ~10 m a 0.1 m grid is too sparse
+        /// for the height test to say much.
+        static constexpr double DEFAULT_MAX_RANGE_M = 10.0;
+        /// @brief Default height above the sensor beyond which returns are dropped,
+        ///        in metres.
+        static constexpr double DEFAULT_MAX_SENSOR_HEIGHT_M = 1.5;
 
-        /// @brief Default local slope, above which a cell is an obstacle, in degrees.
+        /// @name Classifier thresholds
+        /// Same meaning as local_traversability's DEFAULT_* constants of the same
+        /// names; see local_traversability.hpp.
+        /// @{
+        static constexpr double DEFAULT_GROUND_WINDOW_M = 0.5;
         static constexpr double DEFAULT_MAX_SLOPE_DEG = 30.0;
-        /// @brief Default local plane-fit residual, above which a cell is an
-        /// obstacle, in metres.
-        static constexpr double DEFAULT_MAX_ROUGHNESS_M = 0.08;
-        /// @brief Default overhead clearance the robot needs to pass under a cell, in
-        /// metres.
-        ///        Cells with less are obstacles regardless of ground-level terrain.
-        static constexpr double DEFAULT_MIN_CLEARANCE_M = 0.6;
-        /// @brief Whether border/unknown cells are treated as obstacles (safe default
-        /// for a
-        ///        vehicle that cannot verify unmapped ground) rather than as
-        ///        free/unknown space.
-        /// @brief Smallest run of connected obstacle cells that is published as an
-        /// obstacle; anything smaller is erased. 1 disables the filter.
-        /// @details A morphological opening on the obstacle layer. A 30-40 cm boulder
-        /// covers 9-16 cells at 0.1 m resolution, so a one- or two-cell blob is not a
-        /// rock -- it is a cell that crept over max_height_above_ground_m because the
-        /// map is vertically inconsistent with itself where two passes overlap. Those
-        /// are expensive out of proportion to their size: inflation_radius_m turns a
-        /// single spurious cell into a 0.45 m disc of no-go in the middle of
-        /// otherwise drivable ground.
-        static constexpr int DEFAULT_MIN_OBSTACLE_CELLS = 1;
+        static constexpr double DEFAULT_MAX_STEP_UP_M = 0.2;
+        static constexpr double DEFAULT_MAX_STEP_DOWN_M = 0.15;
+        static constexpr double DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M = 0.2;
+        static constexpr double DEFAULT_OBSTACLE_HEIGHT_CAP_M = 1.0;
+        static constexpr double DEFAULT_GROUND_MARGIN_M = 0.10;
+        static constexpr double DEFAULT_MIN_CLEARANCE_M = 0.0;
+        /// @brief 2 rather than local's 1: this grid remembers, so a lone return
+        ///        that local would forget in a second would stay here until rescanned.
+        static constexpr int DEFAULT_MIN_POINTS_PER_CELL = 2;
+        static constexpr int DEFAULT_MIN_OBSTACLE_CELLS = 2;
+        /// @}
 
-        /// @brief Residual within which a point counts as lying on the ground plane.
-        /// @details Part of the node's only vertical obstacle test: fit a plane to
-        /// the surrounding terrain by RANSAC, then ask how far a cell's points rise
-        /// above THAT. This replaced max(z) - min(z) inside a single cell, which
-        /// answered "how much vertical spread is here" rather than "is something
-        /// standing up here" and so counted a sloped cell, a cell straddling two map
-        /// layers, and a rock identically. The fitted plane follows a berm instead of
-        /// flagging it.
-        ///
-        /// Measured by replaying rosbag2_1970_01_01-10_31_15's /Laser_map:
-        /// 816 obstacle cells with the old in-cell spread, 688 with this (-16%), and
-        /// the largest connected blob grows 205 -> 300 cells, i.e. walls come out as
-        /// coherent solids rather than fragments.
-        ///
-        /// It is not a cure for map layering. Two surfaces at the same xy put one of
-        /// them above any plane through the other, whatever the inlier band -- which
-        /// is why 0.08 through 0.20 all measure the same. The upstream fix
-        /// (huber_delta in bievr_mid360.yaml, 2361 -> 816 cells) remains the larger
-        /// lever, and min_clearance_m/ground_margin_m decide far more cells than this
-        /// test does -- see the ablation in autonomy_bringup/config/navigation.yaml.
-        static constexpr double DEFAULT_RANSAC_INLIER_M = 0.10;
+        /// @brief Log-odds added to a cell each update the window calls it an
+        ///        obstacle.
+        /// @details Above log_odds_occupied on its own, so one sighting is enough to
+        /// mark a cell: missing a rock is worse than a spurious one that clears on the
+        /// next look.
+        static constexpr double DEFAULT_LOG_ODDS_HIT = 0.7;
+        /// @brief Log-odds subtracted from a cell each update the window calls it
+        ///        free.
+        static constexpr double DEFAULT_LOG_ODDS_MISS = 0.4;
+        /// @brief Lower clamp on a cell's log-odds.
+        /// @details Bounds how long ground that has been seen free many times takes
+        /// to register something new placed on it.
+        static constexpr double DEFAULT_LOG_ODDS_MIN = -2.0;
+        /// @brief Upper clamp on a cell's log-odds.
+        /// @details Bounds how long a removed obstacle takes to clear once the lidar
+        /// is looking at it: (max - occupied) / miss updates, ~4 s at the defaults.
+        static constexpr double DEFAULT_LOG_ODDS_MAX = 3.5;
+        /// @brief Log-odds above which a cell is published as an obstacle.
+        static constexpr double DEFAULT_LOG_ODDS_OCCUPIED = 0.5;
 
-        /// @brief Side length of the square each ground plane is fitted over.
-        /// @details Must be comfortably larger than the obstacles being detected, or
-        /// a boulder becomes its own ground and disappears; small enough that the
-        /// terrain inside is close to planar. 1.0 m against 30-40 cm boulders.
-        static constexpr double DEFAULT_RANSAC_PATCH_M = 1.0;
-
-        /// @brief RANSAC sample count per patch.
-        static constexpr int DEFAULT_RANSAC_ITERATIONS = 40;
-
-        /// @brief Height above the fitted ground plane that counts as an obstacle.
-        static constexpr double DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M = 0.10;
-
-        static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = true;
+        /// @brief Whether never-observed cells are published as obstacles rather than
+        ///        as unknown.
+        static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = false;
 
         /// @brief Default robot radius used as the inscribed (always-lethal)
-        /// inflation distance,
-        ///        in metres.
-        static constexpr double DEFAULT_ROBOT_RADIUS_M = 0.3;
+        ///        inflation distance, in metres.
+        static constexpr double DEFAULT_ROBOT_RADIUS_M = 0.5;
         /// @brief Default distance out to which obstacle cost decays, in metres.
-        static constexpr double DEFAULT_INFLATION_RADIUS_M = 0.6;
+        static constexpr double DEFAULT_INFLATION_RADIUS_M = 0.8;
         /// @brief Default exponential decay rate of inflated cost with distance,
-        /// matching nav2's
-        ///        InflationLayer convention.
-        static constexpr double DEFAULT_COST_SCALING_FACTOR = 3.0;
+        ///        matching nav2's InflationLayer convention.
+        static constexpr double DEFAULT_COST_SCALING_FACTOR = 3.2;
 
         /// @brief Declares every parameter and copies the values into their matching
-        /// members.
+        ///        members.
         void _load_parameters();
 
-        /// @brief Caches the latest map cloud; the actual (re)build happens on the
-        /// update timer.
-        /// @param msg Incoming accumulated map cloud.
+        /// @brief Transforms, filters and buffers an incoming scan.
+        /// @param msg Incoming raw lidar scan, in the sensor's own frame.
         void _pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 
-        /// @brief Rebuilds the grid_map and costmap from the most recently cached
-        /// cloud, if any.
-        void _update_costmap();
+        /// @brief Drops buffered scans older than _point_buffer_s.
+        /// @param now Time the age is measured back from.
+        void _expire_clouds(const rclcpp::Time& now);
 
-        /// @brief Bins each point into elevation_min/point_count per cell.
-        /// @param cloud Map cloud to accumulate.
-        void _accumulate_elevation(const pcl::PointCloud<pcl::PointXYZ>& cloud);
+        /// @brief Classifies the current scan window and fuses the verdicts into the
+        ///        persistent grid.
+        void _update_map();
 
-        /// @brief Fills the clearance layer with the lowest overhead point above each
-        /// cell's
-        ///        ground estimate, once elevation_min is known.
-        /// @param cloud Map cloud to scan for overhead returns.
-        void _compute_clearance(const pcl::PointCloud<pcl::PointXYZ>& cloud);
+        /// @brief Recentres the scan window on the robot and grows the persistent
+        ///        grid to cover it, allocating both on the first call.
+        /// @param center Robot position in the global frame.
+        /// @return False if the geometry could not be established.
+        bool _place_window(const grid_map::Position& center);
 
-        /// @brief Fits a local plane around every mapped cell to derive steepness,
-        /// roughness and
-        ///        ridge (split into ridge_bump/ridge_pothole, see the two-topic
-        ///        comment in the constructor) from elevation_min.
-        void _compute_local_terrain_features();
+        /// @brief Adds each observed window cell's verdict to the persistent log-odds.
+        void _fuse_window();
 
-        /// @brief Marks cells with too few points as border/unknown.
-        void _compute_border();
-
-        /// @brief Combines height_above_ground, steepness, roughness, clearance and
-        ///        border into a binary obstacle layer.
-        void _compute_obstacle();
-        /// @brief Erase obstacle blobs smaller than _min_obstacle_cells, in place.
-        void _prune_small_obstacles();
-        /// @brief Fill the height_above_ground layer from RANSAC ground planes.
-        /// @param cloud The same cloud the elevation layers were built from.
-        void
-        _compute_height_above_ground(const pcl::PointCloud<pcl::PointXYZ>& cloud);
-
-        /// @brief Runs a two-pass chamfer distance transform off the obstacle layer
-        /// and turns the
-        ///        result into a decaying inflation cost.
-        void _compute_inflation();
-
-        /// @brief Folds obstacle, inflation and border into the final 0-100 (or
-        /// NaN/unknown)
-        ///        cost layer that gets exported as the occupancy costmap.
-        void _compute_final_cost();
-
-        /// @brief Fills a nav_msgs/OccupancyGrid from one grid_map layer, linearly
-        /// mapping
-        ///        [min_value, max_value] to the occupancy range [0, 100] and NaN
-        ///        cells to -1 (unknown). Built directly on grid_map_core's own
-        ///        getIndex(), rather than grid_map_ros's converter -- see
-        ///        CMakeLists.txt for why.
-        /// @param layer Name of the grid_map layer to convert.
-        /// @param min_value Layer value mapped to occupancy 0.
-        /// @param max_value Layer value mapped to occupancy 100.
-        /// @param occupancy_grid_out Receives the converted grid.
-        void
-        _to_occupancy_grid(const std::string& layer, double min_value,
-                           double max_value,
-                           nav_msgs::msg::OccupancyGrid& occupancy_grid_out) const;
-
-        /// @brief Publishes the cost layer as the final nav2-consumable occupancy
-        /// costmap.
-        /// @param stamp Timestamp to publish the message with.
-        void _publish_costmap(const rclcpp::Time& stamp);
-
-        /// @brief Publishes every debug layer (height_above_ground, steepness,
-        /// roughness, ridge_bump,
-        ///        ridge_pothole, clearance, border, obstacle, inflation) as its own
-        ///        OccupancyGrid, for inspection/tuning in rviz.
-        /// @param stamp Timestamp to publish the messages with.
-        void _publish_layers(const rclcpp::Time& stamp);
+        /// @brief Derives obstacle/border from the log-odds, inflates, and publishes
+        ///        the costmap and any subscribed debug layers.
+        void _publish();
 
         /// @brief One debug layer's name, occupancy value range and publisher.
         struct LayerPublisher
@@ -242,36 +193,61 @@ namespace global_traversability
         };
 
         std::string _pointcloud_topic{DEFAULT_POINTCLOUD_TOPIC};
+        std::string _global_frame{DEFAULT_GLOBAL_FRAME};
+        std::string _robot_frame{DEFAULT_ROBOT_FRAME};
+
         double _resolution_m{DEFAULT_RESOLUTION_M};
-        double _map_margin_m{DEFAULT_MAP_MARGIN_M};
+        double _initial_map_length_m{DEFAULT_INITIAL_MAP_LENGTH_M};
 
-        double _neighbourhood_radius_m{DEFAULT_NEIGHBOURHOOD_RADIUS_M};
-        int _min_plane_fit_points{DEFAULT_MIN_PLANE_FIT_POINTS};
-        double _ground_margin_m{DEFAULT_GROUND_MARGIN_M};
-        int _min_points_per_cell{DEFAULT_MIN_POINTS_PER_CELL};
+        double _point_buffer_s{DEFAULT_POINT_BUFFER_S};
+        double _min_range_m{DEFAULT_MIN_RANGE_M};
+        double _max_range_m{DEFAULT_MAX_RANGE_M};
+        double _max_sensor_height_m{DEFAULT_MAX_SENSOR_HEIGHT_M};
 
-        double _max_slope_deg{DEFAULT_MAX_SLOPE_DEG};
-        double _max_roughness_m{DEFAULT_MAX_ROUGHNESS_M};
-        double _min_clearance_m{DEFAULT_MIN_CLEARANCE_M};
-        int _min_obstacle_cells{DEFAULT_MIN_OBSTACLE_CELLS};
-        double _ransac_inlier_m{DEFAULT_RANSAC_INLIER_M};
-        double _ransac_patch_m{DEFAULT_RANSAC_PATCH_M};
-        int _ransac_iterations{DEFAULT_RANSAC_ITERATIONS};
-        double _max_height_above_ground_m{DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M};
+        local_traversability::TerrainParameters _terrain{
+            DEFAULT_GROUND_WINDOW_M,
+            DEFAULT_MAX_SLOPE_DEG,
+            DEFAULT_MAX_STEP_UP_M,
+            DEFAULT_MAX_STEP_DOWN_M,
+            DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M,
+            DEFAULT_OBSTACLE_HEIGHT_CAP_M,
+            DEFAULT_GROUND_MARGIN_M,
+            DEFAULT_MIN_CLEARANCE_M,
+            DEFAULT_MIN_POINTS_PER_CELL,
+            DEFAULT_MIN_OBSTACLE_CELLS,
+            // Always false for the window: an unobserved window cell is "no
+            // evidence", and must not be fused as a hit. treat_unknown_as_obstacle
+            // applies to the persistent grid instead, see _treat_unknown_as_obstacle.
+            false};
+        local_traversability::InflationParameters _inflation{
+            DEFAULT_ROBOT_RADIUS_M, DEFAULT_INFLATION_RADIUS_M,
+            DEFAULT_COST_SCALING_FACTOR};
+
+        double _log_odds_hit{DEFAULT_LOG_ODDS_HIT};
+        double _log_odds_miss{DEFAULT_LOG_ODDS_MISS};
+        double _log_odds_min{DEFAULT_LOG_ODDS_MIN};
+        double _log_odds_max{DEFAULT_LOG_ODDS_MAX};
+        double _log_odds_occupied{DEFAULT_LOG_ODDS_OCCUPIED};
         bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
 
-        double _robot_radius_m{DEFAULT_ROBOT_RADIUS_M};
-        double _inflation_radius_m{DEFAULT_INFLATION_RADIUS_M};
-        double _cost_scaling_factor{DEFAULT_COST_SCALING_FACTOR};
-
+        /// @brief The scan window: rebuilt from scratch on every update, never
+        ///        carried over.
+        grid_map::GridMap _window;
+        /// @brief The persistent grid: log_odds and elevation are state, everything
+        ///        else is derived from them at publish time.
         grid_map::GridMap _map;
-        sensor_msgs::msg::PointCloud2::SharedPtr _latest_cloud;
+        bool _map_initialised{false};
+        std::deque<local_traversability::BufferedCloud> _cloud_buffer;
+
+        std::shared_ptr<tf2_ros::Buffer> _tf_buffer;
+        std::shared_ptr<tf2_ros::TransformListener> _tf_listener;
 
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr
             _pointcloud_subscription;
         rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr _costmap_publisher;
         std::vector<LayerPublisher> _layer_publishers;
         rclcpp::TimerBase::SharedPtr _update_timer;
+        rclcpp::TimerBase::SharedPtr _publish_timer;
     };
 
 }  // namespace global_traversability

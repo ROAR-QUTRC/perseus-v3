@@ -5,11 +5,16 @@
   ament-cmake,
   ament-lint-auto,
   ament-lint-common,
+  geometry-msgs,
   grid-map-core,
+  local-traversability,
   nav-msgs,
   pcl-conversions,
   rclcpp,
   sensor-msgs,
+  tf2,
+  tf2-eigen,
+  tf2-ros,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-global-traversability";
@@ -24,16 +29,21 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
+    geometry-msgs
     grid-map-core
+    local-traversability
     nav-msgs
     pcl-conversions
     rclcpp
     sensor-msgs
+    tf2
+    tf2-eigen
+    tf2-ros
   ];
   nativeBuildInputs = [ ament-cmake ];
 
   meta = {
-    description = "Builds a terrain-aware global costmap from the 3D lidar map, replacing a 2D-SLAM-only costmap source";
+    description = "Builds a persistent, self-clearing terrain costmap from the raw lidar scan by height difference";
     license = with lib.licenses; [ mit ];
   };
 }

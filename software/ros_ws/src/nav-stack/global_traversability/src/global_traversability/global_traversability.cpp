@@ -1,5 +1,5 @@
 /// @file global_traversability.cpp
-/// @brief Implementation of the terrain-aware costmap generator.
+/// @brief Implementation of the persistent terrain costmap generator.
 
 #include "global_traversability/global_traversability/global_traversability.hpp"
 
@@ -9,11 +9,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <cstdint>
 #include <limits>
 #include <memory>
-#include <random>
-#include <unordered_map>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <utility>
 #include <vector>
 
@@ -23,49 +21,84 @@ namespace global_traversability
     {
         constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
-        /// @brief QoS depth used for the input map cloud subscription.
-        constexpr int POINTCLOUD_QOS_DEPTH = 1;
+        /// @brief QoS depth used for the input scan subscription.
+        constexpr int POINTCLOUD_QOS_DEPTH = 5;
 
-        double deg_from_rad(double radians) { return radians * 180.0 / M_PI; }
+        /// @brief How long to wait for the scan's own transform before dropping it.
+        constexpr double TRANSFORM_TIMEOUT_S = 0.05;
+
+        /// @brief Seconds between repeats of the TF warnings, which would otherwise
+        ///        fire once per scan.
+        constexpr int WARN_THROTTLE_MS = 2000;
+
+        /// @brief How far past the scan window the persistent grid grows each time it
+        ///        has to, in metres.
+        /// @details Growing reallocates and copies the whole grid, so it is done in
+        /// generous steps rather than one cell at a time as the rover creeps along.
+        constexpr double GROWTH_MARGIN_M = 10.0;
+
+        /// @brief Rounds @p value down to a whole number of @p resolution steps.
+        double snap_down(double value, double resolution)
+        {
+            return std::floor(value / resolution) * resolution;
+        }
+
+        /// @brief Rounds @p value up to a whole number of @p resolution steps.
+        double snap_up(double value, double resolution)
+        {
+            return std::ceil(value / resolution) * resolution;
+        }
+
+        /// @brief Sets @p map to cover [min, max] exactly, cell-aligned.
+        /// @details THE ALIGNMENT RULE BOTH GRIDS OBEY: bounds on whole multiples of
+        /// the resolution. grid_map places cell edges at center +/- length/2 + k*res,
+        /// so with the bounds snapped every cell edge in either grid lands on the same
+        /// lattice, and a window cell maps onto exactly one persistent cell by its
+        /// center -- no resampling, no cell straddling two.
+        void set_aligned_geometry(grid_map::GridMap& map, const grid_map::Position& min,
+                                  const grid_map::Position& max, double resolution)
+        {
+            const grid_map::Position snapped_min(snap_down(min.x(), resolution),
+                                                 snap_down(min.y(), resolution));
+            const grid_map::Position snapped_max(snap_up(max.x(), resolution),
+                                                 snap_up(max.y(), resolution));
+            map.setGeometry(grid_map::Length(snapped_max - snapped_min), resolution,
+                            (snapped_min + snapped_max) / 2.0);
+        }
     }  // namespace
 
     GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions& options)
         : rclcpp::Node("global_traversability", options),
-          _map({"elevation_min", "point_count", "height_above_ground", "steepness",
-                "roughness", "ridge", "ridge_bump", "ridge_pothole", "clearance",
-                "border", "obstacle", "inflation", "cost"})
+          _window(local_traversability::TERRAIN_LAYERS),
+          _map({"log_odds", "elevation", "obstacle", "border", "inflation", "cost"})
     {
         _load_parameters();
 
+        _tf_buffer = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        _tf_listener = std::make_shared<tf2_ros::TransformListener>(*_tf_buffer);
+
+        // Best effort, matching what the Livox driver publishes. A reliable
+        // subscription against a best-effort publisher is a QoS mismatch, which ROS
+        // reports as a subscription that simply never receives anything.
         _pointcloud_subscription =
             this->create_subscription<sensor_msgs::msg::PointCloud2>(
-                _pointcloud_topic, rclcpp::QoS(POINTCLOUD_QOS_DEPTH),
+                _pointcloud_topic,
+                rclcpp::QoS(POINTCLOUD_QOS_DEPTH).best_effort(),
                 std::bind(&GlobalTraversability::_pointcloud_callback, this,
                           std::placeholders::_1));
 
         // Transient local so nav2's static layer (or rviz, joining late) picks up the
-        // most recent costmap immediately rather than waiting for the next update
-        // cycle.
+        // most recent costmap immediately rather than waiting for the next publish.
         const auto latched_qos = rclcpp::QoS(1).transient_local();
         _costmap_publisher = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
             DEFAULT_COSTMAP_TOPIC, latched_qos);
 
         // Debug/tuning layers, each its own OccupancyGrid (plain nav_msgs, no
         // grid_map_rviz plugin required) with a fixed value range chosen to make the
-        // layer's own units legible. ridge itself is signed (a dip vs a bump) and is
-        // published split into two unsigned layers instead of one signed one: rviz's
-        // occupancy colour schemes are built for "0 = flat/uninteresting, 100 =
-        // extreme", so a single layer with flat sitting at the signed midpoint (50)
-        // renders potholes and flat ground as visually indistinguishable, while only
-        // bumps stand out. Splitting gives potholes the same full 0-100 range bumps
-        // already had.
+        // layer's own units legible.
         const std::vector<LayerPublisher> layer_specs = {
-            {"height_above_ground", 0.0, 1.0, nullptr},
-            {"roughness", 0.0, 0.3, nullptr},
-            {"steepness", 0.0, 90.0, nullptr},
-            {"ridge_bump", 0.0, 0.5, nullptr},
-            {"ridge_pothole", 0.0, 0.5, nullptr},
-            {"clearance", 0.0, 2.0, nullptr},
+            {"log_odds", _log_odds_min, _log_odds_max, nullptr},
+            {"elevation", -1.0, 1.0, nullptr},
             {"border", 0.0, 1.0, nullptr},
             {"obstacle", 0.0, 1.0, nullptr},
             {"inflation", 0.0, 99.0, nullptr},
@@ -78,822 +111,356 @@ namespace global_traversability
                      DEFAULT_LAYERS_TOPIC_PREFIX + spec.layer, latched_qos)});
         }
 
-        const double update_period_s =
-            this->get_parameter("update_period_s").as_double();
-        const auto period = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::duration<double>(update_period_s));
-        _update_timer = this->create_wall_timer(
-            period, std::bind(&GlobalTraversability::_update_costmap, this));
+        // ROS timers on the node clock, NOT wall timers, for the same reason as
+        // local_traversability's: scan age is judged against this->now(), which under
+        // use_sim_time stops with /clock. A wall timer would keep fusing the same
+        // frozen buffer into the map forever, driving every cell it covers to the
+        // clamp on one second of data.
+        const auto to_duration = [](double seconds)
+        {
+            return rclcpp::Duration(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::duration<double>(seconds)));
+        };
+        _update_timer = rclcpp::create_timer(
+            this, this->get_clock(),
+            to_duration(this->get_parameter("update_period_s").as_double()),
+            std::bind(&GlobalTraversability::_update_map, this));
+        _publish_timer = rclcpp::create_timer(
+            this, this->get_clock(),
+            to_duration(this->get_parameter("publish_period_s").as_double()),
+            std::bind(&GlobalTraversability::_publish, this));
     }
 
     void GlobalTraversability::_load_parameters()
     {
         _pointcloud_topic =
             this->declare_parameter("pointcloud_topic", DEFAULT_POINTCLOUD_TOPIC);
+        _global_frame = this->declare_parameter("global_frame", DEFAULT_GLOBAL_FRAME);
+        _robot_frame = this->declare_parameter("robot_frame", DEFAULT_ROBOT_FRAME);
+
         _resolution_m = this->declare_parameter("resolution_m", DEFAULT_RESOLUTION_M);
-        _map_margin_m = this->declare_parameter("map_margin_m", DEFAULT_MAP_MARGIN_M);
+        _initial_map_length_m = this->declare_parameter("initial_map_length_m",
+                                                        DEFAULT_INITIAL_MAP_LENGTH_M);
 
-        _neighbourhood_radius_m = this->declare_parameter(
-            "neighbourhood_radius_m", DEFAULT_NEIGHBOURHOOD_RADIUS_M);
-        _min_plane_fit_points = this->declare_parameter("min_plane_fit_points",
-                                                        DEFAULT_MIN_PLANE_FIT_POINTS);
-        _ground_margin_m =
-            this->declare_parameter("ground_margin_m", DEFAULT_GROUND_MARGIN_M);
-        _min_points_per_cell = this->declare_parameter("min_points_per_cell",
-                                                       DEFAULT_MIN_POINTS_PER_CELL);
+        _point_buffer_s =
+            this->declare_parameter("point_buffer_s", DEFAULT_POINT_BUFFER_S);
+        _min_range_m = this->declare_parameter("min_range_m", DEFAULT_MIN_RANGE_M);
+        _max_range_m = this->declare_parameter("max_range_m", DEFAULT_MAX_RANGE_M);
+        _max_sensor_height_m = this->declare_parameter("max_sensor_height_m",
+                                                       DEFAULT_MAX_SENSOR_HEIGHT_M);
 
-        _max_slope_deg =
+        _terrain.ground_window_m =
+            this->declare_parameter("ground_window_m", DEFAULT_GROUND_WINDOW_M);
+        _terrain.max_slope_deg =
             this->declare_parameter("max_slope_deg", DEFAULT_MAX_SLOPE_DEG);
-        _max_roughness_m =
-            this->declare_parameter("max_roughness_m", DEFAULT_MAX_ROUGHNESS_M);
-        _min_obstacle_cells =
-            this->declare_parameter("min_obstacle_cells", DEFAULT_MIN_OBSTACLE_CELLS);
-        _ransac_inlier_m =
-            this->declare_parameter("ransac_inlier_m", DEFAULT_RANSAC_INLIER_M);
-        _ransac_patch_m =
-            this->declare_parameter("ransac_patch_m", DEFAULT_RANSAC_PATCH_M);
-        _ransac_iterations =
-            this->declare_parameter("ransac_iterations", DEFAULT_RANSAC_ITERATIONS);
-        _max_height_above_ground_m = this->declare_parameter(
+        _terrain.max_step_up_m =
+            this->declare_parameter("max_step_up_m", DEFAULT_MAX_STEP_UP_M);
+        _terrain.max_step_down_m =
+            this->declare_parameter("max_step_down_m", DEFAULT_MAX_STEP_DOWN_M);
+        _terrain.max_height_above_ground_m = this->declare_parameter(
             "max_height_above_ground_m", DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M);
-        _min_clearance_m =
+        _terrain.obstacle_height_cap_m = this->declare_parameter(
+            "obstacle_height_cap_m", DEFAULT_OBSTACLE_HEIGHT_CAP_M);
+        _terrain.ground_margin_m =
+            this->declare_parameter("ground_margin_m", DEFAULT_GROUND_MARGIN_M);
+        _terrain.min_clearance_m =
             this->declare_parameter("min_clearance_m", DEFAULT_MIN_CLEARANCE_M);
+        _terrain.min_points_per_cell = this->declare_parameter(
+            "min_points_per_cell", DEFAULT_MIN_POINTS_PER_CELL);
+        _terrain.min_obstacle_cells =
+            this->declare_parameter("min_obstacle_cells", DEFAULT_MIN_OBSTACLE_CELLS);
+
+        _log_odds_hit = this->declare_parameter("log_odds_hit", DEFAULT_LOG_ODDS_HIT);
+        _log_odds_miss =
+            this->declare_parameter("log_odds_miss", DEFAULT_LOG_ODDS_MISS);
+        _log_odds_min = this->declare_parameter("log_odds_min", DEFAULT_LOG_ODDS_MIN);
+        _log_odds_max = this->declare_parameter("log_odds_max", DEFAULT_LOG_ODDS_MAX);
+        _log_odds_occupied =
+            this->declare_parameter("log_odds_occupied", DEFAULT_LOG_ODDS_OCCUPIED);
         _treat_unknown_as_obstacle = this->declare_parameter(
             "treat_unknown_as_obstacle", DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE);
 
-        _robot_radius_m =
+        _inflation.robot_radius_m =
             this->declare_parameter("robot_radius_m", DEFAULT_ROBOT_RADIUS_M);
-        _inflation_radius_m =
+        _inflation.inflation_radius_m =
             this->declare_parameter("inflation_radius_m", DEFAULT_INFLATION_RADIUS_M);
-        _cost_scaling_factor = this->declare_parameter("cost_scaling_factor",
-                                                       DEFAULT_COST_SCALING_FACTOR);
+        _inflation.cost_scaling_factor = this->declare_parameter(
+            "cost_scaling_factor", DEFAULT_COST_SCALING_FACTOR);
 
         this->declare_parameter("update_period_s", DEFAULT_UPDATE_PERIOD_S);
+        this->declare_parameter("publish_period_s", DEFAULT_PUBLISH_PERIOD_S);
     }
 
     void GlobalTraversability::_pointcloud_callback(
         const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
-        // Single-threaded executor by construction (no callback groups declared), so
-        // this never races with _update_costmap on the wall timer -- a plain
-        // assignment is safe.
-        _latest_cloud = msg;
-    }
-
-    void GlobalTraversability::_update_costmap()
-    {
-        if (!_latest_cloud)
+        // Resolved on arrival: TF for this scan's own stamp exists now and may have
+        // aged out of the buffer by the time the scan is used.
+        geometry_msgs::msg::TransformStamped transform;
+        try
         {
+            transform = _tf_buffer->lookupTransform(
+                _global_frame, msg->header.frame_id, msg->header.stamp,
+                rclcpp::Duration::from_seconds(TRANSFORM_TIMEOUT_S));
+        }
+        catch (const tf2::TransformException& exception)
+        {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(),
+                                 WARN_THROTTLE_MS, "Dropping scan: %s",
+                                 exception.what());
             return;
         }
 
         pcl::PointCloud<pcl::PointXYZ> cloud;
-        pcl::fromROSMsg(*_latest_cloud, cloud);
+        pcl::fromROSMsg(*msg, cloud);
         if (cloud.empty())
         {
             return;
         }
 
-        float min_x = std::numeric_limits<float>::max();
-        float max_x = std::numeric_limits<float>::lowest();
-        float min_y = std::numeric_limits<float>::max();
-        float max_y = std::numeric_limits<float>::lowest();
-        for (const auto& point : cloud.points)
-        {
-            if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
-                !std::isfinite(point.z))
-            {
-                continue;
-            }
-            min_x = std::min(min_x, point.x);
-            max_x = std::max(max_x, point.x);
-            min_y = std::min(min_y, point.y);
-            max_y = std::max(max_y, point.y);
-        }
-        if (min_x > max_x || min_y > max_y)
+        local_traversability::BufferedCloud buffered;
+        buffered.stamp = rclcpp::Time(msg->header.stamp);
+        buffered.points = local_traversability::filter_scan(
+            cloud, tf2::transformToEigen(transform).cast<float>(),
+            {_min_range_m, _max_range_m, _max_sensor_height_m});
+        if (buffered.points.empty())
         {
             return;
         }
 
-        const double length_x =
-            static_cast<double>(max_x - min_x) + 2.0 * _map_margin_m;
-        const double length_y =
-            static_cast<double>(max_y - min_y) + 2.0 * _map_margin_m;
-        const grid_map::Position center((static_cast<double>(min_x) + max_x) / 2.0,
-                                        (static_cast<double>(min_y) + max_y) / 2.0);
-
-        _map.setGeometry(grid_map::Length(length_x, length_y), _resolution_m, center);
-        _map.setFrameId(_latest_cloud->header.frame_id);
-
-        _map["elevation_min"].setConstant(NaN);
-        _map["point_count"].setConstant(0.0f);
-        _map["clearance"].setConstant(NaN);
-        _map["steepness"].setConstant(NaN);
-        _map["roughness"].setConstant(NaN);
-        _map["ridge"].setConstant(NaN);
-        _map["ridge_bump"].setConstant(NaN);
-        _map["ridge_pothole"].setConstant(NaN);
-        _map["height_above_ground"].setConstant(NaN);
-
-        _accumulate_elevation(cloud);
-        _compute_clearance(cloud);
-        _compute_height_above_ground(cloud);
-        _compute_local_terrain_features();
-        _compute_border();
-        _compute_obstacle();
-        _compute_inflation();
-        _compute_final_cost();
-
-        const rclcpp::Time stamp(_latest_cloud->header.stamp);
-        _publish_costmap(stamp);
-        _publish_layers(stamp);
+        _cloud_buffer.push_back(std::move(buffered));
+        _expire_clouds(rclcpp::Time(msg->header.stamp));
     }
 
-    void GlobalTraversability::_accumulate_elevation(
-        const pcl::PointCloud<pcl::PointXYZ>& cloud)
+    void GlobalTraversability::_expire_clouds(const rclcpp::Time& now)
     {
-        Eigen::MatrixXf& elevation_min = _map["elevation_min"];
-        Eigen::MatrixXf& point_count = _map["point_count"];
-
-        for (const auto& point : cloud.points)
+        const rclcpp::Duration max_age =
+            rclcpp::Duration::from_seconds(_point_buffer_s);
+        while (!_cloud_buffer.empty())
         {
-            if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
-                !std::isfinite(point.z))
+            // Guards a clock jump as much as an old scan: a bag loop or a use_sim_time
+            // reset moves `now` backwards, and a scan stamped in the future would
+            // otherwise pin the buffer until it caught up.
+            const rclcpp::Duration age = now - _cloud_buffer.front().stamp;
+            if (age <= max_age && age >= rclcpp::Duration::from_seconds(0.0))
             {
-                continue;
+                break;
             }
-
-            grid_map::Index index;
-            if (!_map.getIndex(grid_map::Position(point.x, point.y), index))
-            {
-                continue;
-            }
-
-            float& cell_min = elevation_min(index(0), index(1));
-            cell_min = std::isnan(cell_min) ? point.z : std::min(cell_min, point.z);
-            point_count(index(0), index(1)) += 1.0f;
+            _cloud_buffer.pop_front();
         }
     }
 
-    void GlobalTraversability::_compute_clearance(
-        const pcl::PointCloud<pcl::PointXYZ>& cloud)
+    void GlobalTraversability::_update_map()
     {
-        const Eigen::MatrixXf& elevation_min = _map["elevation_min"];
-        Eigen::MatrixXf& clearance = _map["clearance"];
-        const float ground_margin = static_cast<float>(_ground_margin_m);
-
-        for (const auto& point : cloud.points)
+        // Unlike local_traversability, an empty buffer is not a fault to publish: the
+        // persistent grid is still exactly as true as it was, it just stops learning.
+        // The publish timer keeps republishing it.
+        _expire_clouds(this->now());
+        if (_cloud_buffer.empty())
         {
-            if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
-                !std::isfinite(point.z))
-            {
-                continue;
-            }
-
-            grid_map::Index index;
-            if (!_map.getIndex(grid_map::Position(point.x, point.y), index))
-            {
-                continue;
-            }
-
-            const float ground = elevation_min(index(0), index(1));
-            if (std::isnan(ground) || point.z <= ground + ground_margin)
-            {
-                continue;
-            }
-
-            const float height_above_ground = point.z - ground;
-            float& cell_clearance = clearance(index(0), index(1));
-            cell_clearance = std::isnan(cell_clearance)
-                                 ? height_above_ground
-                                 : std::min(cell_clearance, height_above_ground);
+            return;
         }
+
+        geometry_msgs::msg::TransformStamped robot_transform;
+        try
+        {
+            robot_transform = _tf_buffer->lookupTransform(_global_frame, _robot_frame,
+                                                          tf2::TimePointZero);
+        }
+        catch (const tf2::TransformException& exception)
+        {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(),
+                                 WARN_THROTTLE_MS, "Skipping update, no robot pose: %s",
+                                 exception.what());
+            return;
+        }
+
+        if (!_place_window(grid_map::Position(robot_transform.transform.translation.x,
+                                              robot_transform.transform.translation.y)))
+        {
+            return;
+        }
+
+        local_traversability::classify_terrain(_window, _cloud_buffer, _terrain);
+        _fuse_window();
     }
 
-    void GlobalTraversability::_compute_local_terrain_features()
+    bool GlobalTraversability::_place_window(const grid_map::Position& center)
     {
-        const Eigen::MatrixXf& elevation = _map["elevation_min"];
-        Eigen::MatrixXf& steepness = _map["steepness"];
-        Eigen::MatrixXf& roughness = _map["roughness"];
-        Eigen::MatrixXf& ridge = _map["ridge"];
-        Eigen::MatrixXf& ridge_bump = _map["ridge_bump"];
-        Eigen::MatrixXf& ridge_pothole = _map["ridge_pothole"];
+        // Checked because grid_map::GridMap::setGeometry asserts internally on a
+        // non-positive length or resolution -- a typo in navigation.yaml would abort
+        // the process rather than log anything.
+        if (!(_resolution_m > 0.0) || !(_max_range_m > _resolution_m) ||
+            !(_initial_map_length_m > _resolution_m))
+        {
+            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(),
+                                  WARN_THROTTLE_MS,
+                                  "Invalid map geometry: resolution_m %.3f, max_range_m "
+                                  "%.2f, initial_map_length_m %.2f",
+                                  _resolution_m, _max_range_m, _initial_map_length_m);
+            return false;
+        }
 
-        const int rows = _map.getSize()(0);
-        const int cols = _map.getSize()(1);
-        const int window_cells =
-            std::max(1, static_cast<int>(std::round(_neighbourhood_radius_m /
-                                                    _map.getResolution())));
+        // Every return is within max_range_m of the sensor, and the ground window
+        // reaches ground_window_m past that, so this is the smallest window that
+        // loses nothing. Rebuilt around the robot each update and never moved: the
+        // window holds no state, see _window.
+        const double half_window = _max_range_m + _terrain.ground_window_m;
+        const grid_map::Position window_min = (center.array() - half_window).matrix();
+        const grid_map::Position window_max = (center.array() + half_window).matrix();
+        set_aligned_geometry(_window, window_min, window_max, _resolution_m);
+        _window.setFrameId(_global_frame);
 
-        std::vector<Eigen::Vector3d> neighbours;
+        if (!_map_initialised)
+        {
+            const double half_map = std::max(_initial_map_length_m / 2.0, half_window);
+            set_aligned_geometry(_map, (center.array() - half_map).matrix(),
+                                 (center.array() + half_map).matrix(), _resolution_m);
+            _map.setFrameId(_global_frame);
+            // setGeometry leaves every layer NaN, which is exactly "never observed".
+            _map_initialised = true;
+            return true;
+        }
+
+        const grid_map::Position map_min =
+            (_map.getPosition().array() - _map.getLength().array() / 2.0).matrix();
+        const grid_map::Position map_max =
+            (_map.getPosition().array() + _map.getLength().array() / 2.0).matrix();
+        if ((window_min.array() >= map_min.array()).all() &&
+            (window_max.array() <= map_max.array()).all())
+        {
+            return true;
+        }
+
+        // Grow by hand rather than with GridMap::extendToInclude, whose choice of new
+        // center is not guaranteed to keep the lattice set_aligned_geometry relies on.
+        // Only the sides the window actually crossed are extended.
+        grid_map::Position grown_min = map_min;
+        grid_map::Position grown_max = map_max;
+        for (int axis = 0; axis < 2; ++axis)
+        {
+            if (window_min(axis) < map_min(axis))
+            {
+                grown_min(axis) = window_min(axis) - GROWTH_MARGIN_M;
+            }
+            if (window_max(axis) > map_max(axis))
+            {
+                grown_max(axis) = window_max(axis) + GROWTH_MARGIN_M;
+            }
+        }
+
+        grid_map::GridMap grown(_map.getLayers());
+        set_aligned_geometry(grown, grown_min, grown_max, _resolution_m);
+        grown.setFrameId(_global_frame);
         for (grid_map::GridMapIterator it(_map); !it.isPastEnd(); ++it)
         {
-            const grid_map::Index index(*it);
-            const int row = index(0);
-            const int col = index(1);
-
-            const float center = elevation(row, col);
-            if (std::isnan(center))
+            grid_map::Position position;
+            _map.getPosition(*it, position);
+            grid_map::Index grown_index;
+            if (!grown.getIndex(position, grown_index))
             {
                 continue;
             }
-
-            neighbours.clear();
-            for (int d_row = -window_cells; d_row <= window_cells; ++d_row)
+            for (const auto& layer : _map.getLayers())
             {
-                const int neighbour_row = row + d_row;
-                if (neighbour_row < 0 || neighbour_row >= rows)
-                {
-                    continue;
-                }
-                for (int d_col = -window_cells; d_col <= window_cells; ++d_col)
-                {
-                    const int neighbour_col = col + d_col;
-                    if (neighbour_col < 0 || neighbour_col >= cols)
-                    {
-                        continue;
-                    }
-
-                    const float z = elevation(neighbour_row, neighbour_col);
-                    if (std::isnan(z))
-                    {
-                        continue;
-                    }
-
-                    grid_map::Position position;
-                    _map.getPosition(grid_map::Index(neighbour_row, neighbour_col),
-                                     position);
-                    neighbours.emplace_back(position.x(), position.y(),
-                                            static_cast<double>(z));
-                }
+                grown.at(layer, grown_index) = _map.at(layer, *it);
             }
-
-            if (static_cast<int>(neighbours.size()) < _min_plane_fit_points)
-            {
-                continue;
-            }
-
-            Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
-            for (const auto& neighbour : neighbours)
-            {
-                centroid += neighbour;
-            }
-            centroid /= static_cast<double>(neighbours.size());
-
-            Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
-            for (const auto& neighbour : neighbours)
-            {
-                const Eigen::Vector3d diff = neighbour - centroid;
-                covariance += diff * diff.transpose();
-            }
-            covariance /= static_cast<double>(neighbours.size());
-
-            // The eigenvector of the smallest eigenvalue is the best-fit plane's
-            // normal; that eigenvalue itself is the variance of points off the plane,
-            // i.e. the roughness.
-            const Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(covariance);
-            const Eigen::Vector3d normal = solver.eigenvectors().col(0);
-            const double residual_variance = std::max(0.0, solver.eigenvalues()(0));
-
-            steepness(row, col) = static_cast<float>(
-                deg_from_rad(std::acos(std::min(1.0, std::abs(normal.z())))));
-            roughness(row, col) = static_cast<float>(std::sqrt(residual_variance));
-
-            const float ridge_value =
-                static_cast<float>(static_cast<double>(center) - centroid.z());
-            ridge(row, col) = ridge_value;
-            // Split into two unsigned layers rather than publishing this signed value
-            // directly: see the layer_specs comment in the constructor for why.
-            ridge_bump(row, col) = std::max(0.0f, ridge_value);
-            ridge_pothole(row, col) = std::max(0.0f, -ridge_value);
         }
+        _map = std::move(grown);
+
+        RCLCPP_INFO(this->get_logger(), "Grew terrain map to %.1f x %.1f m",
+                    _map.getLength().x(), _map.getLength().y());
+        return true;
     }
 
-    void GlobalTraversability::_compute_border()
+    void GlobalTraversability::_fuse_window()
     {
-        const Eigen::MatrixXf& point_count = _map["point_count"];
-        Eigen::MatrixXf& border = _map["border"];
-        border = (point_count.array() < static_cast<float>(_min_points_per_cell))
-                     .cast<float>()
-                     .matrix();
-    }
+        const Eigen::MatrixXf& window_border = _window["border"];
+        const Eigen::MatrixXf& window_obstacle = _window["obstacle"];
+        const Eigen::MatrixXf& window_elevation = _window["elevation"];
+        Eigen::MatrixXf& log_odds = _map["log_odds"];
+        Eigen::MatrixXf& elevation = _map["elevation"];
 
-    void GlobalTraversability::_compute_obstacle()
-    {
-        const Eigen::MatrixXf& height_above_ground = _map["height_above_ground"];
-        const Eigen::MatrixXf& steepness = _map["steepness"];
-        const Eigen::MatrixXf& roughness = _map["roughness"];
-        const Eigen::MatrixXf& clearance = _map["clearance"];
-        const Eigen::MatrixXf& border = _map["border"];
-        Eigen::MatrixXf& obstacle = _map["obstacle"];
+        const float hit = static_cast<float>(_log_odds_hit);
+        const float miss = static_cast<float>(_log_odds_miss);
+        const float lowest = static_cast<float>(_log_odds_min);
+        const float highest = static_cast<float>(_log_odds_max);
 
-        const float max_slope = static_cast<float>(_max_slope_deg);
-        const float max_roughness = static_cast<float>(_max_roughness_m);
-        const float min_clearance = static_cast<float>(_min_clearance_m);
-
-        const int rows = _map.getSize()(0);
-        const int cols = _map.getSize()(1);
-        for (int row = 0; row < rows; ++row)
+        for (grid_map::GridMapIterator it(_window); !it.isPastEnd(); ++it)
         {
-            for (int col = 0; col < cols; ++col)
-            {
-                if (border(row, col) > 0.5f)
-                {
-                    obstacle(row, col) = _treat_unknown_as_obstacle ? 1.0f : 0.0f;
-                    continue;
-                }
-
-                // The vertical test is "how far does this stand above the surrounding
-                // terrain", never "how much vertical spread is in this cell" -- see
-                // DEFAULT_RANSAC_INLIER_M in the header for why that distinction matters.
-                const float vertical_value = height_above_ground(row, col);
-                const float steepness_value = steepness(row, col);
-                const float roughness_value = roughness(row, col);
-                const float clearance_value = clearance(row, col);
-
-                const float vertical_limit =
-                    static_cast<float>(_max_height_above_ground_m);
-
-                const bool is_obstacle =
-                    (!std::isnan(vertical_value) && vertical_value > vertical_limit) ||
-                    (!std::isnan(steepness_value) && steepness_value > max_slope) ||
-                    (!std::isnan(roughness_value) && roughness_value > max_roughness) ||
-                    (!std::isnan(clearance_value) && clearance_value < min_clearance);
-
-                obstacle(row, col) = is_obstacle ? 1.0f : 0.0f;
-            }
-        }
-
-        _prune_small_obstacles();
-    }
-
-    void GlobalTraversability::_compute_height_above_ground(
-        const pcl::PointCloud<pcl::PointXYZ>& cloud)
-    {
-        Eigen::MatrixXf& height_above_ground = _map["height_above_ground"];
-
-        // Plane coefficients for z = a*x + b*y + c, one per patch.
-        struct Plane
-        {
-            double a{0.0}, b{0.0}, c{0.0};
-            bool valid{false};
-        };
-        using Key = std::pair<int, int>;
-        struct KeyHash
-        {
-            std::size_t operator()(const Key& k) const noexcept
-            {
-                return std::hash<long long>()(
-                    static_cast<long long>(k.first) * 1000003LL + k.second);
-            }
-        };
-
-        const double patch = _ransac_patch_m;
-        auto key_of = [patch](float x, float y)
-        {
-            return Key{static_cast<int>(std::floor(x / patch)),
-                       static_cast<int>(std::floor(y / patch))};
-        };
-
-        std::unordered_map<Key, std::vector<std::size_t>, KeyHash> patches;
-        for (std::size_t i = 0; i < cloud.points.size(); ++i)
-        {
-            const auto& p = cloud.points[i];
-            if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z))
+            const grid_map::Index window_index(*it);
+            // Border is "too few returns this window" -- no evidence either way, so
+            // the persistent cell keeps whatever it last knew. This one check is what
+            // makes the map remember what the lidar is not looking at.
+            if (window_border(window_index(0), window_index(1)) > 0.5f)
             {
                 continue;
             }
-            patches[key_of(p.x, p.y)].push_back(i);
-        }
 
-        // Fixed seed: the costmap should not change between runs on identical input,
-        // which is also what makes an A/B of these parameters meaningful.
-        std::mt19937 rng(12345);
-
-        auto fit = [&](const std::vector<std::size_t>& idx)
-        {
-            Plane plane;
-            // Three points define a plane; below about four times that, a RANSAC
-            // consensus means little and a least-squares fit is the honest answer.
-            if (idx.size() < 12)
-            {
-                return plane;
-            }
-
-            std::uniform_int_distribution<std::size_t> pick(0, idx.size() - 1);
-            double best_a = 0.0, best_b = 0.0, best_c = 0.0;
-            std::size_t best_inliers = 0;
-
-            for (int iter = 0; iter < _ransac_iterations; ++iter)
-            {
-                const auto& p0 = cloud.points[idx[pick(rng)]];
-                const auto& p1 = cloud.points[idx[pick(rng)]];
-                const auto& p2 = cloud.points[idx[pick(rng)]];
-
-                Eigen::Matrix3d m;
-                m << p0.x, p0.y, 1.0, p1.x, p1.y, 1.0, p2.x, p2.y, 1.0;
-                // A near-singular sample is three collinear or coincident points; there
-                // is no plane through them worth testing.
-                if (std::abs(m.determinant()) < 1e-6)
-                {
-                    continue;
-                }
-                const Eigen::Vector3d rhs(p0.z, p1.z, p2.z);
-                const Eigen::Vector3d sol = m.colPivHouseholderQr().solve(rhs);
-
-                std::size_t inliers = 0;
-                for (const auto i : idx)
-                {
-                    const auto& p = cloud.points[i];
-                    const double r = std::abs(p.z - (sol(0) * p.x + sol(1) * p.y + sol(2)));
-                    if (r < _ransac_inlier_m)
-                    {
-                        ++inliers;
-                    }
-                }
-                if (inliers > best_inliers)
-                {
-                    best_inliers = inliers;
-                    best_a = sol(0);
-                    best_b = sol(1);
-                    best_c = sol(2);
-                }
-            }
-
-            if (best_inliers < 3)
-            {
-                return plane;
-            }
-
-            // Refit on the consensus set: the three-point hypothesis fixes WHICH points
-            // are ground, and a least-squares fit over all of them is a better plane
-            // than the sample that happened to find them.
-            std::vector<std::size_t> inlier_idx;
-            inlier_idx.reserve(best_inliers);
-            for (const auto i : idx)
-            {
-                const auto& p = cloud.points[i];
-                const double r = std::abs(p.z - (best_a * p.x + best_b * p.y + best_c));
-                if (r < _ransac_inlier_m)
-                {
-                    inlier_idx.push_back(i);
-                }
-            }
-            if (inlier_idx.size() >= 3)
-            {
-                Eigen::MatrixXd A(inlier_idx.size(), 3);
-                Eigen::VectorXd z(inlier_idx.size());
-                for (Eigen::Index k = 0; k < static_cast<Eigen::Index>(inlier_idx.size());
-                     ++k)
-                {
-                    const auto& p = cloud.points[inlier_idx[static_cast<std::size_t>(k)]];
-                    A(k, 0) = p.x;
-                    A(k, 1) = p.y;
-                    A(k, 2) = 1.0;
-                    z(k) = p.z;
-                }
-                const Eigen::Vector3d sol = A.colPivHouseholderQr().solve(z);
-                best_a = sol(0);
-                best_b = sol(1);
-                best_c = sol(2);
-            }
-
-            plane.a = best_a;
-            plane.b = best_b;
-            plane.c = best_c;
-            plane.valid = true;
-            return plane;
-        };
-
-        // Each plane is fitted over its patch plus a one-patch halo, so neighbouring
-        // planes overlap and the ground estimate does not step at patch boundaries.
-        std::unordered_map<Key, Plane, KeyHash> planes;
-        planes.reserve(patches.size());
-        std::vector<std::size_t> gathered;
-        for (const auto& [key, own] : patches)
-        {
-            gathered.clear();
-            for (int dx = -1; dx <= 1; ++dx)
-            {
-                for (int dy = -1; dy <= 1; ++dy)
-                {
-                    const auto it = patches.find(Key{key.first + dx, key.second + dy});
-                    if (it != patches.end())
-                    {
-                        gathered.insert(gathered.end(), it->second.begin(), it->second.end());
-                    }
-                }
-            }
-            planes[key] = fit(gathered);
-        }
-
-        for (const auto& point : cloud.points)
-        {
-            if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
-                !std::isfinite(point.z))
-            {
-                continue;
-            }
-            const auto it = planes.find(key_of(point.x, point.y));
-            if (it == planes.end() || !it->second.valid)
-            {
-                continue;
-            }
+            grid_map::Position position;
+            _window.getPosition(window_index, position);
             grid_map::Index index;
-            if (!_map.getIndex(grid_map::Position(point.x, point.y), index))
+            if (!_map.getIndex(position, index))
             {
                 continue;
             }
-            const float above =
-                static_cast<float>(point.z - (it->second.a * point.x +
-                                              it->second.b * point.y + it->second.c));
-            float& cell = height_above_ground(index(0), index(1));
-            cell = std::isnan(cell) ? above : std::max(cell, above);
+
+            float& cell = log_odds(index(0), index(1));
+            const float prior = std::isnan(cell) ? 0.0f : cell;
+            const bool is_obstacle =
+                window_obstacle(window_index(0), window_index(1)) > 0.5f;
+            cell = std::clamp(prior + (is_obstacle ? hit : -miss), lowest, highest);
+
+            // Latest floor, for the debug layer only. Nothing downstream compares it
+            // against its neighbours -- see the class comment for why it must not.
+            elevation(index(0), index(1)) =
+                window_elevation(window_index(0), window_index(1));
         }
     }
 
-    void GlobalTraversability::_prune_small_obstacles()
+    void GlobalTraversability::_publish()
     {
-        if (_min_obstacle_cells <= 1)
+        if (!_map_initialised)
         {
             return;
         }
 
-        Eigen::MatrixXf& obstacle = _map["obstacle"];
-        const int rows = _map.getSize()(0);
-        const int cols = _map.getSize()(1);
-
-        // 8-connected flood fill. Diagonals count as connected because a boulder
-        // sampled sparsely can leave a cell touching its neighbour only at a corner,
-        // and splitting it in two would be the filter working against itself.
-        Eigen::MatrixXi visited = Eigen::MatrixXi::Zero(rows, cols);
-        std::vector<std::pair<int, int>> component;
-        std::vector<std::pair<int, int>> stack;
-
-        for (int row = 0; row < rows; ++row)
+        const Eigen::MatrixXf& log_odds = _map["log_odds"];
+        _map["border"] = log_odds.array().isNaN().cast<float>().matrix();
+        _map["obstacle"] =
+            (log_odds.array() > static_cast<float>(_log_odds_occupied))
+                .cast<float>()
+                .matrix();
+        if (_treat_unknown_as_obstacle)
         {
-            for (int col = 0; col < cols; ++col)
-            {
-                if (visited(row, col) != 0 || obstacle(row, col) <= 0.5f)
-                {
-                    continue;
-                }
-
-                component.clear();
-                stack.assign(1, {row, col});
-                visited(row, col) = 1;
-
-                while (!stack.empty())
-                {
-                    const auto [r, c] = stack.back();
-                    stack.pop_back();
-                    component.emplace_back(r, c);
-
-                    for (int dr = -1; dr <= 1; ++dr)
-                    {
-                        for (int dc = -1; dc <= 1; ++dc)
-                        {
-                            const int nr = r + dr;
-                            const int nc = c + dc;
-                            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols)
-                            {
-                                continue;
-                            }
-                            if (visited(nr, nc) != 0 || obstacle(nr, nc) <= 0.5f)
-                            {
-                                continue;
-                            }
-                            visited(nr, nc) = 1;
-                            stack.emplace_back(nr, nc);
-                        }
-                    }
-                }
-
-                if (component.size() < static_cast<std::size_t>(_min_obstacle_cells))
-                {
-                    for (const auto& [r, c] : component)
-                    {
-                        obstacle(r, c) = 0.0f;
-                    }
-                }
-            }
-        }
-    }
-
-    void GlobalTraversability::_compute_inflation()
-    {
-        const Eigen::MatrixXf& obstacle = _map["obstacle"];
-        Eigen::MatrixXf& inflation = _map["inflation"];
-
-        const int rows = _map.getSize()(0);
-        const int cols = _map.getSize()(1);
-        const float resolution = static_cast<float>(_map.getResolution());
-        const float inf = std::numeric_limits<float>::infinity();
-        const float diagonal = static_cast<float>(std::sqrt(2.0));
-
-        // Two-pass chamfer distance transform: an approximate Euclidean
-        // distance-to-nearest- obstacle in cell units, cheap enough to rerun on every
-        // update without extra deps.
-        Eigen::MatrixXf distance = Eigen::MatrixXf::Constant(rows, cols, inf);
-        for (int row = 0; row < rows; ++row)
-        {
-            for (int col = 0; col < cols; ++col)
-            {
-                if (obstacle(row, col) > 0.5f)
-                {
-                    distance(row, col) = 0.0f;
-                }
-            }
+            _map["obstacle"] = _map["obstacle"].cwiseMax(_map["border"]);
         }
 
-        for (int row = 0; row < rows; ++row)
-        {
-            for (int col = 0; col < cols; ++col)
-            {
-                float& d = distance(row, col);
-                if (row > 0)
-                {
-                    d = std::min(d, distance(row - 1, col) + 1.0f);
-                }
-                if (col > 0)
-                {
-                    d = std::min(d, distance(row, col - 1) + 1.0f);
-                }
-                if (row > 0 && col > 0)
-                {
-                    d = std::min(d, distance(row - 1, col - 1) + diagonal);
-                }
-                if (row > 0 && col + 1 < cols)
-                {
-                    d = std::min(d, distance(row - 1, col + 1) + diagonal);
-                }
-            }
-        }
-        for (int row = rows - 1; row >= 0; --row)
-        {
-            for (int col = cols - 1; col >= 0; --col)
-            {
-                float& d = distance(row, col);
-                if (row + 1 < rows)
-                {
-                    d = std::min(d, distance(row + 1, col) + 1.0f);
-                }
-                if (col + 1 < cols)
-                {
-                    d = std::min(d, distance(row, col + 1) + 1.0f);
-                }
-                if (row + 1 < rows && col + 1 < cols)
-                {
-                    d = std::min(d, distance(row + 1, col + 1) + diagonal);
-                }
-                if (row + 1 < rows && col > 0)
-                {
-                    d = std::min(d, distance(row + 1, col - 1) + diagonal);
-                }
-            }
-        }
+        local_traversability::compute_inflation(_map, _inflation);
+        local_traversability::compute_final_cost(_map, _treat_unknown_as_obstacle);
 
-        // Matches nav2's InflationLayer convention: lethal out to the robot's own
-        // radius (it cannot fit its center any closer to an obstacle than that), then
-        // an exponential decay out to inflation_radius_m, then clear.
-        const float inscribed_radius_cells =
-            static_cast<float>(_robot_radius_m) / resolution;
-        const float inflation_radius_cells =
-            static_cast<float>(_inflation_radius_m) / resolution;
-        const float scaling_factor = static_cast<float>(_cost_scaling_factor);
-        const float robot_radius = static_cast<float>(_robot_radius_m);
+        const rclcpp::Time stamp = this->now();
 
-        for (int row = 0; row < rows; ++row)
-        {
-            for (int col = 0; col < cols; ++col)
-            {
-                const float distance_cells = distance(row, col);
-                if (distance_cells <= inscribed_radius_cells)
-                {
-                    inflation(row, col) = 99.0f;
-                }
-                else if (distance_cells <= inflation_radius_cells)
-                {
-                    const float distance_m = distance_cells * resolution;
-                    inflation(row, col) =
-                        99.0f * std::exp(-scaling_factor * (distance_m - robot_radius));
-                }
-                else
-                {
-                    inflation(row, col) = 0.0f;
-                }
-            }
-        }
-    }
-
-    void GlobalTraversability::_compute_final_cost()
-    {
-        const Eigen::MatrixXf& obstacle = _map["obstacle"];
-        const Eigen::MatrixXf& inflation = _map["inflation"];
-        const Eigen::MatrixXf& border = _map["border"];
-        Eigen::MatrixXf& cost = _map["cost"];
-
-        const int rows = _map.getSize()(0);
-        const int cols = _map.getSize()(1);
-        for (int row = 0; row < rows; ++row)
-        {
-            for (int col = 0; col < cols; ++col)
-            {
-                if (border(row, col) > 0.5f && !_treat_unknown_as_obstacle)
-                {
-                    cost(row, col) =
-                        NaN;  // -> -1 (unknown) once exported as an OccupancyGrid.
-                    continue;
-                }
-                cost(row, col) = obstacle(row, col) > 0.5f
-                                     ? 100.0f
-                                     : std::min(99.0f, inflation(row, col));
-            }
-        }
-    }
-
-    void GlobalTraversability::_to_occupancy_grid(
-        const std::string& layer, double min_value, double max_value,
-        nav_msgs::msg::OccupancyGrid& occupancy_grid_out) const
-    {
-        const double resolution = _map.getResolution();
-        const grid_map::Length length = _map.getLength();
-        const grid_map::Position center = _map.getPosition();
-
-        const int width =
-            std::max(1, static_cast<int>(std::round(length.x() / resolution)));
-        const int height =
-            std::max(1, static_cast<int>(std::round(length.y() / resolution)));
-
-        occupancy_grid_out.header.frame_id = _map.getFrameId();
-        occupancy_grid_out.info.resolution = static_cast<float>(resolution);
-        occupancy_grid_out.info.width = static_cast<uint32_t>(width);
-        occupancy_grid_out.info.height = static_cast<uint32_t>(height);
-        occupancy_grid_out.info.origin.position.x = center.x() - length.x() / 2.0;
-        occupancy_grid_out.info.origin.position.y = center.y() - length.y() / 2.0;
-        occupancy_grid_out.info.origin.position.z = 0.0;
-        occupancy_grid_out.info.origin.orientation.w = 1.0;
-
-        occupancy_grid_out.data.assign(
-            static_cast<size_t>(width) * static_cast<size_t>(height), -1);
-
-        const Eigen::MatrixXf& values = _map[layer];
-        const double range = max_value - min_value;
-
-        // Iterate OccupancyGrid cells (a convention we fully control) rather than
-        // grid_map's own row/column order, and ask grid_map's own getIndex() for the
-        // matching cell each time -- that way this never has to know or reimplement
-        // grid_map's internal index<->world convention, only trust the same lookup
-        // already used everywhere else in this file.
-        for (int y = 0; y < height; ++y)
-        {
-            for (int x = 0; x < width; ++x)
-            {
-                const double world_x =
-                    occupancy_grid_out.info.origin.position.x + (x + 0.5) * resolution;
-                const double world_y =
-                    occupancy_grid_out.info.origin.position.y + (y + 0.5) * resolution;
-
-                grid_map::Index index;
-                if (!_map.getIndex(grid_map::Position(world_x, world_y), index))
-                {
-                    continue;  // stays -1 (unknown)
-                }
-
-                const float value = values(index(0), index(1));
-                if (std::isnan(value))
-                {
-                    continue;  // stays -1 (unknown)
-                }
-
-                const double normalised =
-                    range > 0.0 ? (static_cast<double>(value) - min_value) / range : 0.0;
-                const long occupancy =
-                    std::lround(std::clamp(normalised, 0.0, 1.0) * 100.0);
-                occupancy_grid_out
-                    .data[static_cast<size_t>(y) * static_cast<size_t>(width) +
-                          static_cast<size_t>(x)] = static_cast<int8_t>(occupancy);
-            }
-        }
-    }
-
-    void GlobalTraversability::_publish_costmap(const rclcpp::Time& stamp)
-    {
         nav_msgs::msg::OccupancyGrid occupancy_grid;
-        _to_occupancy_grid("cost", 0.0, 100.0, occupancy_grid);
+        local_traversability::to_occupancy_grid(_map, "cost", 0.0, 100.0,
+                                                occupancy_grid);
         occupancy_grid.header.stamp = stamp;
         _costmap_publisher->publish(occupancy_grid);
-    }
 
-    void GlobalTraversability::_publish_layers(const rclcpp::Time& stamp)
-    {
         for (const auto& layer_publisher : _layer_publishers)
         {
-            nav_msgs::msg::OccupancyGrid occupancy_grid;
-            _to_occupancy_grid(layer_publisher.layer, layer_publisher.min_value,
-                               layer_publisher.max_value, occupancy_grid);
-            occupancy_grid.header.stamp = stamp;
-            layer_publisher.publisher->publish(occupancy_grid);
+            // Converting an arena-sized grid is real work on the Orange Pi; skip the
+            // layers nobody is looking at.
+            if (layer_publisher.publisher->get_subscription_count() == 0)
+            {
+                continue;
+            }
+            nav_msgs::msg::OccupancyGrid layer_grid;
+            local_traversability::to_occupancy_grid(
+                _map, layer_publisher.layer, layer_publisher.min_value,
+                layer_publisher.max_value, layer_grid);
+            layer_grid.header.stamp = stamp;
+            layer_publisher.publisher->publish(layer_grid);
         }
     }
 

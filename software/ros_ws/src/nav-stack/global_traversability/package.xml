@@ -3,7 +3,7 @@
 <package format="3">
   <name>global_traversability</name>
   <version>0.0.1</version>
-  <description>Builds a terrain-aware global costmap from the 3D lidar map, replacing a 2D-SLAM-only costmap source</description>
+  <description>Builds a persistent, self-clearing terrain costmap from the raw lidar scan by height difference</description>
   <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
   <license>MIT</license>
 
@@ -12,8 +12,13 @@
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>grid_map_core</depend>
   <depend>pcl_conversions</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
+  <depend>local_traversability</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
