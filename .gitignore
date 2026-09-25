@@ -368,9 +368,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Temporary Fast-LIO package
-/software/ros_ws/src/spark-fast-lio
-
 # Ignore generated models, which are too large
 /software/ros_ws/src/vision/models/
 

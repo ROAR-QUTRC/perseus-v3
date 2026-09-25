@@ -15,10 +15,8 @@
   <depend>navigation2</depend>
   <depend>xacro</depend>
   <depend>robot_localization</depend>
-  <!-- The two LiDAR-inertial odometry backends localisation.launch.py selects between
-       with lio:=bievr (the default) or lio:=fast_lio. Both are exec dependencies only,
+  <!-- The LiDAR-inertial odometry localisation.launch.py runs. An exec dependency only,
        kept as <depend> to match the rest of this file. -->
-  <depend>fast-lio</depend>
   <depend>bievr_lio_ros2</depend>
   <depend>watchdog</depend>
   <depend>footprint_broadcaster</depend>

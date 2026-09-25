@@ -7,7 +7,6 @@
   ament-lint-common,
   arena-server,
   bievr-lio-ros2,
-  fast-lio,
   footprint-broadcaster,
   global-traversability,
   health-check,
@@ -37,7 +36,6 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     arena-server
     bievr-lio-ros2
-    fast-lio
     footprint-broadcaster
     global-traversability
     health-check

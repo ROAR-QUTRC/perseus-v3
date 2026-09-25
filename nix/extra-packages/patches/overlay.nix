@@ -5,6 +5,5 @@ final: prev: {
   bievr-lio-ros2 = final.callPackage ./bievr-lio-ros2 { };
   bievr-ros-common = final.callPackage ./bievr-ros-common { };
   livox-sdk2 = final.callPackage ./livox-sdk2 { };
-  fast-lio = final.callPackage ./fast-lio { };
   livox-ros-driver2 = final.callPackage ./livox-ros-driver2 { };
 }

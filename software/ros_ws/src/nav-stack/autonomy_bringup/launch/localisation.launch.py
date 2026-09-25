@@ -3,14 +3,9 @@
 
 Three pieces, and the split matters:
 
-  1. A LiDAR-inertial odometry backend, chosen with `lio:=`. Either one reads the raw Livox
-     cloud off /livox/lidar, publishes /Odometry as odom -> base_link, and broadcasts no TF
-     of its own:
-       bievr (default)     BIEVR-LIO, configured by config/bievr_mid360.yaml, with its
-                           /bievr_lio/odom remapped onto /Odometry.
-       fast_lio            FAST-LIO 2, configured by config/livox_mid360.yaml.
-     Everything downstream sees the same topic and the same frames either way, so the two
-     are interchangeable from here on and the rest of this file does not branch on them.
+  1. BIEVR-LIO, the LiDAR-inertial odometry, configured by config/bievr_mid360.yaml. It
+     reads the raw Livox cloud off /livox/lidar, publishes /Odometry as odom -> base_link
+     (remapped from its own /bievr_lio/odom), and broadcasts no TF of its own.
   2. ekf.launch.py runs robot_localization from config/ekf_config.yaml, fusing that pose
      with IMU angular velocity and owning the odom -> base_link transform.
 Two monitors ride along with them, both watching what this stack produces rather than
@@ -18,26 +13,20 @@ adding to it: the mobility watchdog, which compares commanded velocity against t
 output to catch sustained wheel slip, and the health monitor, which reports the rate and
 staleness of the topics above on /health_check/health.
 
-Start order does not matter. Both backends withhold /Odometry until the LiDAR frame ->
+Start order does not matter. BIEVR-LIO withholds /Odometry until the LiDAR frame ->
 base_link lookup resolves in TF, so until robot_state_publisher is up the EKF runs on the
 IMU alone.
 
-Both backends publish /Laser_map and save a map on /map_save, so the point cloud link and
-map saving work either way -- but they build that map differently, and it shows. FAST-LIO
-accumulates registered scans, so /Laser_map is every point it ever kept and grows without
-bound. BIEVR-LIO keeps one height image per voxel and reprojects it on request, so its map
-is deduplicated, capped by map.max_size, and costs a walk over the whole map each time it
-is published rather than a growing buffer each scan. Hence publish.map_interval_s in
-bievr_mid360.yaml: seconds between publishes, not per scan.
+BIEVR-LIO also publishes its map on /Laser_map and saves it on /map_save. It keeps one
+height image per voxel and reprojects it on request, so the map is deduplicated, capped by
+map.max_size, and costs a walk over the whole map each time it is published. Hence
+publish.map_interval_s in bievr_mid360.yaml: seconds between publishes, not per scan.
 
-Both configs are tuned for the real robot, and both backends take sim:=true against
-Gazebo, which publishes a differently shaped cloud. What changes and why is in
-sim_overrides() for fast_lio and in config/bievr_mid360_sim.yaml for bievr. The shape of
-the answer differs because the backends do: FAST-LIO takes one parameter file, so its
-overrides are applied to a rewritten copy of it, while BIEVR-LIO already layers two configs
-and merges them per key, so its overrides are just a second file.
+The config is tuned for the real robot. sim:=true layers config/bievr_mid360_sim.yaml on
+top for Gazebo, which publishes a differently shaped cloud: BIEVR-LIO merges its two config
+files per key, so the sim's differences are just the handful of keys that file sets.
 
-A second, independent pose source is fused alongside the LIO backend: vision's
+A second, independent pose source is fused alongside BIEVR-LIO: vision's
 stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), which arrives as odom1
 in ekf_config.yaml. How it is brought up depends on `enable_sensors:=`, and the difference
 is not cosmetic:
@@ -67,9 +56,7 @@ downstream branches on this choice.
 """
 
 import os
-import tempfile
 
-import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
@@ -86,94 +73,26 @@ from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 
 
-def sim_overrides(params):
-    """Adjust the real-robot parameters for Gazebo's point cloud, in place.
-
-    Gazebo publishes x,y,z,intensity,ring. The real Livox driver publishes
-    reflectivity,tag,line. lidar_type selects which of those layouts FAST-LIO deserialises
-    into, so against the sim, type 4 finds no `line` field and reads the scan-line index as 0
-    for every point -- collapsing all points onto one line and wrecking the per-point
-    timestamps that motion compensation depends on. Type 2 reads `ring`, which the sim does
-    provide, and derives times from azimuth when no per-point time is present.
-
-    scan_line is the number of lines to expect: 32 vertical samples in the sim, against 4 real
-    scan lines on a MID-360. The Velodyne handler skips points whose ring exceeds it.
-
-    lid_topic needs no override: Gazebo's ±Inf no-return rays are rejected by the preprocess
-    handlers now, so the raw topic is safe to consume directly.
-    """
-    params["preprocess"]["lidar_type"] = 2
-    params["preprocess"]["scan_line"] = 32
-
-
-LIO_BACKENDS = ("fast_lio", "bievr")
-
 # Must match realsense.launch.py's DEFAULT_CONTAINER_NAME. That file creates the container,
 # this one loads stereo_odometry into it by name, and a mismatch does not raise:
 # LoadComposableNodes simply waits for a container that never appears.
 SENSOR_CONTAINER_NAME = "sensor_container"
 
 
-def fast_lio_actions(rviz, use_sim_time, is_sim):
-    """The FAST-LIO backend: its own launch file, over a rewritten copy of its config.
-
-    The copy is why this cannot be a plain substitution. fast_lio takes a config *path*
-    rather than a parameter dictionary, so ~ in map_file_path and the sim overrides both
-    have to be applied to a real file before the node starts.
-    """
-    fast_lio_params_file = os.path.join(
-        get_package_share_directory("autonomy_bringup"), "config", "livox_mid360.yaml"
-    )
-    with open(fast_lio_params_file, "r") as f:
-        fast_lio_params = yaml.safe_load(f)
-
-    params = fast_lio_params.get("/**", {}).get("ros__parameters", {})
-
-    if "map_file_path" in params:
-        resolved_path = os.path.expanduser(params["map_file_path"])
-        params["map_file_path"] = resolved_path
-        os.makedirs(os.path.dirname(resolved_path), exist_ok=True)
-
-    if is_sim:
-        sim_overrides(params)
-
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
-    yaml.dump(fast_lio_params, tmp)
-    tmp.close()
-
-    fast_lio_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("fast_lio"), "launch", "mapping.launch.py"]
-            )
-        ),
-        launch_arguments={
-            "config_path": os.path.dirname(tmp.name),
-            "config_file": os.path.basename(tmp.name),
-            "rviz": rviz,
-            "use_sim_time": use_sim_time,
-        }.items(),
-    )
-    # Scoped for the same reason every other include here is: see the comment at the end of
-    # launch_setup.
-    return [GroupAction([fast_lio_launch], scoped=True)]
-
-
 def bievr_actions(rviz, use_sim_time, is_sim, params_file):
-    """The BIEVR-LIO backend: the node directly, rather than its own launch file.
+    """BIEVR-LIO: the node directly, rather than its own launch file.
 
-    There is no temp-file dance here, and no sim_overrides() either. BIEVR-LIO takes two
-    config paths and merges them per leaf key, so the simulator's differences go in a
-    second file that wins on the handful of keys it sets -- see bievr_mid360_sim.yaml.
-    That is also the only reason not to include bievr_lio_ros2's own launch file: it takes
-    the same two paths but resolves them inside its own share directory, and hardcodes its
-    RViz config.
+    BIEVR-LIO takes two config paths and merges them per leaf key, so the simulator's
+    differences go in a second file that wins on the handful of keys it sets -- see
+    bievr_mid360_sim.yaml. bievr_lio_ros2's own launch file takes the same two paths but
+    resolves them inside its own share directory, and hardcodes its RViz config, which is
+    the only reason not to include it.
 
     Neither file is a ROS parameter file -- the node parses them itself with yaml-cpp -- so
     they go on the command line. use_sim_time is a genuine ROS parameter and stays one.
 
-    The remap is what makes the two backends interchangeable: BIEVR-LIO namespaces
-    everything it publishes under /bievr_lio, and ekf_config.yaml's odom0 wants /Odometry.
+    BIEVR-LIO namespaces everything it publishes under /bievr_lio; the remaps put its
+    odometry and map where ekf_config.yaml's odom0 and the point cloud link expect them.
     """
 
     def config(name):
@@ -197,9 +116,8 @@ def bievr_actions(rviz, use_sim_time, is_sim, params_file):
             parameters=[{"use_sim_time": use_sim_time}],
             remappings=[
                 ("/bievr_lio/odom", "/Odometry"),
-                # Same reasoning as the odometry remap: /Laser_map is what the Draco
-                # compressor below and the base station already subscribe to, so the map
-                # arrives under the name FAST-LIO would have published it under.
+                # /Laser_map is what the Draco compressor below and the base station
+                # subscribe to.
                 ("/bievr_lio/map", "/Laser_map"),
             ],
         ),
@@ -222,32 +140,24 @@ def bievr_actions(rviz, use_sim_time, is_sim, params_file):
 def launch_setup(context, *args, **kwargs):
     """Build the actions once the launch arguments can be resolved.
 
-    An OpaqueFunction is needed because both backends need their arguments as real Python
-    values here rather than as substitutions: `lio` selects which set of actions exists at
-    all, and FAST-LIO's config has to be read and rewritten to a file before its node
-    starts.
+    An OpaqueFunction is needed because `sim`, `enable_sensors` and `bievr_params_file` are
+    needed as real Python values here rather than as substitutions: they decide which
+    actions exist at all and what goes on BIEVR-LIO's command line.
     """
     use_sim_time = LaunchConfiguration("use_sim_time")
     rviz = LaunchConfiguration("rviz")
     ekf_params_file = LaunchConfiguration("ekf_params_file")
     sim = LaunchConfiguration("sim")
     is_sim = sim.perform(context).lower() == "true"
-    lio = LaunchConfiguration("lio").perform(context).lower()
     enable_sensors = (
         LaunchConfiguration("enable_sensors").perform(context).lower() == "true"
     )
 
-    # An unknown value never reaches here: DeclareLaunchArgument takes LIO_BACKENDS as its
-    # choices and rejects anything else before this function runs.
-    lio_actions = (
-        fast_lio_actions(rviz, use_sim_time, is_sim)
-        if lio == "fast_lio"
-        else bievr_actions(
-            rviz,
-            use_sim_time,
-            is_sim,
-            LaunchConfiguration("bievr_params_file").perform(context),
-        )
+    lio_actions = bievr_actions(
+        rviz,
+        use_sim_time,
+        is_sim,
+        LaunchConfiguration("bievr_params_file").perform(context),
     )
 
     # Reused rather than duplicated, so the EKF node and its parameters are defined once.
@@ -453,11 +363,10 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # The rover half of the point cloud link: voxel downsamples the live Livox scan and
-    # FAST-LIO's /Laser_map, then Draco encodes both for the base station. Its two inputs
+    # /Laser_map (BIEVR-LIO's map, remapped above and published every
+    # publish.map_interval_s), then Draco encodes both for the base station. Its two inputs
     # are exactly what this stack consumes and produces, so it comes up with them; the
     # base station runs sensors/point_cloud_decompress.launch.py against the Draco topics.
-    # Both backends feed the /Laser_map half: FAST-LIO publishes it directly, BIEVR-LIO
-    # publishes /bievr_lio/map on publish.map_interval_s and is remapped onto it above.
     point_cloud_compress_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -479,11 +388,11 @@ def launch_setup(context, *args, **kwargs):
     # argument one include sets is inherited by every include after it, and the inheriting
     # launch file cannot tell that happened.
     #
-    # fast_lio makes that concrete: it takes an argument called `config_file`, which is
-    # generic enough that health_check takes one by the same name. Unscoped, the health
-    # monitor was handed fast_lio's rewritten temp filename as its parameter file and came
-    # up with an empty watch list -- silently, since a missing watch list is a warning and
-    # not an error. Scoping confines each include's arguments to the include that set them.
+    # This has bitten before: a since-removed include took an argument called `config_file`,
+    # generic enough that health_check takes one by the same name, and unscoped the health
+    # monitor was handed the other file's path as its parameter file and came up with an
+    # empty watch list -- silently, since a missing watch list is a warning and not an
+    # error. Scoping confines each include's arguments to the include that set them.
     return (
         lio_actions
         + sensor_actions
@@ -499,15 +408,6 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    declare_lio = DeclareLaunchArgument(
-        "lio",
-        default_value="bievr",
-        choices=list(LIO_BACKENDS),
-        description="Which LiDAR-inertial odometry backend produces /Odometry. "
-        "bievr is BIEVR-LIO with config/bievr_mid360.yaml; fast_lio is FAST-LIO 2 with "
-        "config/livox_mid360.yaml. Everything downstream is identical either way.",
-    )
-
     declare_sim = DeclareLaunchArgument(
         "sim",
         default_value="false",
@@ -525,7 +425,7 @@ def generate_launch_description():
     declare_rviz = DeclareLaunchArgument(
         "rviz",
         default_value="false",
-        description="Launch RViz with the selected backend's own display config.",
+        description="Launch RViz with BIEVR-LIO's own display config.",
     )
 
     declare_ekf_params_file = DeclareLaunchArgument(
@@ -539,17 +439,17 @@ def generate_launch_description():
     declare_bievr_params_file = DeclareLaunchArgument(
         "bievr_params_file",
         default_value="",
-        description="Replace config/bievr_mid360.yaml with this file for lio:=bievr, e.g. "
-        "to A/B-test BIEVR-LIO settings against a replayed bag without editing the tracked "
-        "config. Empty uses the package's own.",
+        description="Replace config/bievr_mid360.yaml with this file, e.g. to A/B-test "
+        "BIEVR-LIO settings against a replayed bag without editing the tracked config. "
+        "Empty uses the package's own.",
     )
 
     declare_enable_sensors = DeclareLaunchArgument(
         "enable_sensors",
         default_value="false",
-        # Constrained for the same reason `lio` is. launch_setup reads this with a strict
-        # `== "true"`, which -- unlike IfCondition -- does not accept 1/on/yes, so without
-        # choices an `enable_sensors:=1` would read as false and silently skip the sensors.
+        # Constrained because launch_setup reads this with a strict `== "true"`, which --
+        # unlike IfCondition -- does not accept 1/on/yes, so without choices an
+        # `enable_sensors:=1` would read as false and silently skip the sensors.
         choices=["true", "false"],
         description="Bring the Livox and RealSense drivers up from this file, and load "
         "vision's stereo_odometry into the camera's component container -- 30 Hz on the "
@@ -632,7 +532,6 @@ def generate_launch_description():
     )
     return LaunchDescription(
         [
-            declare_lio,
             declare_sim,
             declare_use_sim_time,
             declare_rviz,

@@ -43,7 +43,6 @@ pkgs.mkShell {
           cv-bridge
           diff-drive-controller
           draco-point-cloud-transport
-          fast-lio
           geometry-msgs
           grid-map-core
           hardware-interface
