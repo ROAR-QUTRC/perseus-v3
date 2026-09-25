@@ -16,7 +16,9 @@ def enable_debug():
     global show_debug_logs
     show_debug_logs = True
 
+
 log_level_type = Literal["DEBUG", "INFO", "WARN", "ERROR"]
+
 
 def log(values: object, level: log_level_type = "INFO"):
     if level == "DEBUG" and not show_debug_logs:

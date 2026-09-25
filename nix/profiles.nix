@@ -19,7 +19,7 @@
     };
 
     webui.module = import ./profiles/webui.nix {
-      inherit pkgs config;
+      inherit pkgs config lib;
     };
 
     cicd = import ./profiles/cicd.nix {
