@@ -16,8 +16,9 @@ def enable_debug():
     global show_debug_logs
     show_debug_logs = True
 
+log_level_type = Literal["DEBUG", "INFO", "WARN", "ERROR"]
 
-def log(values: object, level: Literal["DEBUG", "INFO", "WARN", "ERROR"] = "INFO"):
+def log(values: object, level: log_level_type = "INFO"):
     if level == "DEBUG" and not show_debug_logs:
         return  # Skip debug messages if debug logging is not enabled
     color = BLUE
@@ -30,4 +31,4 @@ def log(values: object, level: Literal["DEBUG", "INFO", "WARN", "ERROR"] = "INFO
             color = YELLOW
         case "ERROR":
             color = RED
-    print(f"{color}[Cam Server {BOLD}{level}{RESET}{color}]{RESET} {values}")
+    print(f"{color}[Cam {BOLD}{level}{RESET}{color}]{RESET} {values}")

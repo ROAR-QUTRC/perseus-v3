@@ -4,16 +4,21 @@ from signal import signal, SIGINT
 import socketio
 from time import sleep
 from pydantic import ValidationError
+import os
 
 from logger import log, enable_debug
 from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
-from message_types import (
-    CameraEventType,
-    Device,
-)
+from message_types import CameraEventType
 from start_stream import start_stream, start_gst_thread
 
 group_description = CameraEventType(type="camera", action="group-description")
+
+if os.getuid() == 0:
+    log(
+        "Please do not run this script as root. If required you will be prompted for sudo.",
+        "ERROR",
+    )
+    sys.exit(0)
 
 
 def main():
@@ -71,14 +76,13 @@ def main():
 
     # region -----------< Get hardware information >-----------
 
-    devices: list[str] = []  # [videoXX]
-    device_names: dict[str, str] = {}  # {videoXX: name}
+    devices: list[str] = []  # video devices from /dev/v4l/by-id
 
-    def handle_device_change(new_devices: dict[str, str]):
+    def handle_device_change(new_devices: list[str]):
         # Update the devices dictionary with the new devices and remove old ones
         for dev in devices:
             if dev not in new_devices:
-                log(f"Camera device removed: {dev} -> {device_names[dev]}")
+                log(f"Camera device removed: {dev}")
                 sio.send(
                     {
                         "type": "camera",
@@ -87,27 +91,24 @@ def main():
                     }
                 )
                 devices.remove(dev)
-                del device_names[dev]
-        additions: list[Device] = []
-        for dev, name in new_devices.items():
+        additions: list[str] = []
+        for dev in new_devices:
             if dev not in devices:
-                log(f"Camera device added: {dev} -> {name}")
+                log(f"Camera device added: {dev}")
                 devices.append(dev)
-                device_names[dev] = name
-                additions.append(Device(dev=dev, name=name, serverName=server_name))
+                additions.append(dev)
         if len(additions) > 0:
-            group_description.devices = additions
+            group_description.devices = additions.copy()
             sio.send(group_description.model_dump(exclude_none=True))
 
     # start monitor and get initial device list
-    initial_devices = start_v4l_monitor(handle_device_change)
-    for dev, name in initial_devices.items():
+    initial_devices = start_v4l_monitor(server_name, handle_device_change)
+    for dev in initial_devices:
         devices.append(dev)
-        device_names[dev] = name
-        log(f"Detected camera device: {dev} -> {name}")
+        log(f"Detected camera device: {dev}")
     # endregion
 
-    # region -----------< Start GStreamer Thread >-----------
+    # region -----------< Start GStreamer >-----------
     start_gst_thread()
     # endregion
 
@@ -132,10 +133,7 @@ def main():
     # region -----------< Handle Socket Events >-----------
 
     # Send initial group description to the server
-    group_description.devices = [
-        Device(dev=dev, name=name, serverName=server_name)
-        for dev, name in device_names.items()
-    ]
+    group_description.devices = devices.copy()
     sio.send(group_description.model_dump(exclude_none=True))
 
     def handle_camera_event(event_payload: CameraEventType):
@@ -153,26 +151,11 @@ def main():
         match event.action:
             case "request-groups":
                 # Broadcast handled by all camera servers
-                group_description.devices = [
-                    Device(dev=dev, name=name, serverName=server_name)
-                    for dev, name in device_names.items()
-                ]
+                group_description.devices = devices.copy()
                 sio.send(group_description.model_dump(exclude_none=True))
             case "request-stream":
                 if event.target is None:
                     log("No target device specified for request-stream action", "ERROR")
-                    return
-                if event.target.serverName != server_name:
-                    log(
-                        f"Request stream for device: {event.target.dev} ignored, not for this server ({server_name})",
-                        "DEBUG",
-                    )
-                    return
-                if event.target.dev not in devices:
-                    log(
-                        f"Request stream for device: {event.target.dev} ignored, not a valid device",
-                        "DEBUG",
-                    )
                     return
                 start_stream(event, hostname)
 
