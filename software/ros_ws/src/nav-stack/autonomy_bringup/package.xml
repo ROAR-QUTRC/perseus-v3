@@ -32,6 +32,8 @@
        EKF's odom1: standalone, or with enable_sensors:=true composed into the RealSense
        driver's container. Launched by name at runtime, so nothing here links against it. -->
   <exec_depend>vision</exec_depend>
+  <!-- controller.launch.py, the joystick override base_station.launch.py brings up -->
+  <exec_depend>teleop</exec_depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
 

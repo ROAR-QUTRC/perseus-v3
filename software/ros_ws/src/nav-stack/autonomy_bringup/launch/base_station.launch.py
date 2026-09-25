@@ -1,9 +1,14 @@
 """Base station view: RViz and the point cloud decoders, for an operator machine
 watching a robot elsewhere.
 
-Nothing here drives the robot. This launches the visualisation side alone, so it can be
-run on a laptop that shares a ROS domain with the rover while the sensing, estimation and
-health monitoring all run on the rover itself.
+This launches the operator side alone, so it can be run on a laptop that shares a ROS
+domain with the rover while the sensing, estimation and health monitoring all run on the
+rover itself. The one thing here that can drive the robot is the joystick, which is
+deliberate: it is the manual override for when autonomous navigation goes wrong. Plug the
+controller into this machine and it is live -- joy_node picks the device up on hotplug.
+teleop's generic_controller only publishes /joy_vel while the drive deadman is held, and
+twist_mux on the rover ranks joy_vel above navigation, so holding the deadman takes over
+from nav2 at once and releasing it hands control back after twist_mux's 0.5 s timeout.
 
 point_cloud_decompress.launch.py rides along because the clouds arriving from the rover
 are Draco-encoded and RViz cannot display them as they are -- see the comment on the
@@ -24,7 +29,11 @@ Arguments:
                   on /mesh for RViz. Off by default: it is only useful once the rover has
                   mapped something, and it costs a fraction of a second per update
     rviz_only     skip the point cloud decoders, mesh node and minimap, launching RViz
-                  alone. Overrides decompress/mesh/minimap regardless of their own values
+                  alone. Overrides decompress/mesh/minimap regardless of their own values.
+                  The joystick is not affected
+    teleop        run the joystick override (joy_node and teleop's generic_controller)
+    controller_type  controller config for the override, as teleop's controller.launch.py
+                  type:= -- taranis, xbox, logitech or 8bitdo
 """
 
 from launch import LaunchDescription
@@ -48,6 +57,7 @@ def generate_launch_description():
     decompress = LaunchConfiguration("decompress")
     mesh = LaunchConfiguration("mesh")
     rviz_only = LaunchConfiguration("rviz_only")
+    teleop = LaunchConfiguration("teleop")
 
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -78,6 +88,40 @@ def generate_launch_description():
             "Launch RViz alone, skipping the point cloud decoders, mesh node and "
             "minimap regardless of decompress/mesh/minimap"
         ),
+    )
+
+    teleop_arg = DeclareLaunchArgument(
+        "teleop",
+        default_value="true",
+        description="Run the joystick manual override from this machine",
+    )
+    controller_type_arg = DeclareLaunchArgument(
+        "controller_type",
+        default_value="taranis",
+        # Constrained because controller.launch.py falls back to the 8bitdo config for any
+        # type it does not recognise, so a typo would map the wrong axes without an error.
+        choices=["taranis", "xbox", "logitech", "8bitdo"],
+        description="Controller config for the joystick override",
+    )
+
+    # The manual override. Outside processing_nodes so rviz_only:=true cannot drop it, and
+    # scoped so its `type`, `debug` etc. stay out of the rest of this file.
+    teleop_launch = GroupAction(
+        [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [FindPackageShare("teleop"), "launch", "controller.launch.py"]
+                    )
+                ),
+                launch_arguments={
+                    "type": LaunchConfiguration("controller_type"),
+                    "debug": "false",
+                }.items(),
+            )
+        ],
+        scoped=True,
+        condition=IfCondition(teleop),
     )
 
     # The environment below matches description/launch/view_perseus.launch.py: RViz needs
@@ -258,8 +302,11 @@ def generate_launch_description():
             decompress_arg,
             mesh_arg,
             rviz_only_arg,
+            teleop_arg,
+            controller_type_arg,
             rviz_nixgl,
             rviz_plain,
             processing_nodes,
+            teleop_launch,
         ]
     )

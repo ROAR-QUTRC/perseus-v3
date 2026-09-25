@@ -51,13 +51,15 @@ void GenericController::_joy_timeout_callback(void)
     if ((this->now().nanoseconds() - _prev_received_joy_time.nanoseconds()) >
         timeout_length)
     {
-        geometry_msgs::msg::TwistStamped twist_msg;
-        twist_msg.twist.linear.x = 0;
-        twist_msg.twist.angular.z = 0;
-
-        twist_msg.header.stamp = this->now();
-        // Publish twist message
-        _twist_publisher->publish(twist_msg);
+        // A short burst of zeros stops the rover, then joy_vel goes quiet so twist_mux
+        // can hand control back to navigation.
+        if (_stop_messages_remaining > 0)
+        {
+            --_stop_messages_remaining;
+            geometry_msgs::msg::TwistStamped twist_msg;
+            twist_msg.header.stamp = this->now();
+            _twist_publisher->publish(twist_msg);
+        }
 
         actuator_msgs::msg::Actuators actuator_msg;
         actuator_msg.velocity.push_back(0);
@@ -74,8 +76,8 @@ void GenericController::_joy_timeout_callback(void)
 
         // Warn user if controller is disconnected
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                             "Joy timeout, publishing zero to twist and actuators "
-                             "to stop movement safely");
+                             "Joy timeout, stopped the drive and publishing zero to "
+                             "actuators to stop movement safely");
     }
 }
 
@@ -97,13 +99,29 @@ void GenericController::_joy_callback(
                           "%+2.2f, Jaws: %+2.2f, Rotate: %+2.2f, Magnet: %d",
                           forward, turn, lift, tilt, jaws, rotate, magnet);
 
-    geometry_msgs::msg::TwistStamped twist_msg;
-    twist_msg.twist.linear.x = forward;
-    twist_msg.twist.angular.z = turn;
+    // joy_vel is only published while the drive deadman is held, plus a short burst of
+    // zeros after it is released to stop the rover. Publishing zeros whenever the stick
+    // is idle would keep twist_mux's highest-priority input alive and block navigation.
+    // With the deadman released forward and turn are already zero, so the burst carries
+    // exactly what used to be sent.
+    bool drive_enabled =
+        _enable_parsers.at(FORWARD_BASE_NAME + ".enable").get_value();
+    if (drive_enabled)
+        _stop_messages_remaining = STOP_BURST_LENGTH;
 
-    twist_msg.header.stamp = this->now();
-    // Publish twist message
-    _twist_publisher->publish(twist_msg);
+    if (drive_enabled || _stop_messages_remaining > 0)
+    {
+        if (!drive_enabled)
+            --_stop_messages_remaining;
+
+        geometry_msgs::msg::TwistStamped twist_msg;
+        twist_msg.twist.linear.x = forward;
+        twist_msg.twist.angular.z = turn;
+
+        twist_msg.header.stamp = this->now();
+        // Publish twist message
+        _twist_publisher->publish(twist_msg);
+    }
 
     actuator_msgs::msg::Actuators actuator_msg;
     actuator_msg.velocity.push_back(lift);

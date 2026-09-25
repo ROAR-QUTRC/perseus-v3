@@ -92,12 +92,19 @@ private:
 
     static constexpr auto JOY_TIMEOUT = std::chrono::milliseconds(100);
 
+    // How many zero twists to send after the drive deadman is released, or after the joy
+    // stream times out, before going silent on joy_vel. twist_mux gives joy_vel priority
+    // over navigation and only releases it once the topic has been quiet for its timeout,
+    // so publishing zeros forever would pin the rover still under nav2 as well.
+    static constexpr int STOP_BURST_LENGTH = 5;
+
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr _joy_subscription;
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
         _twist_publisher;
     rclcpp::Publisher<actuator_msgs::msg::Actuators>::SharedPtr
         _actuator_publisher;
     rclcpp::TimerBase::SharedPtr _joy_timeout_timer;
+    int _stop_messages_remaining = 0;
 
 protected:
     sensor_msgs::msg::Joy::SharedPtr _last_received_joy;
