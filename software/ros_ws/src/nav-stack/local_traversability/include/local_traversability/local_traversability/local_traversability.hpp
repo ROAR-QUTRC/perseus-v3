@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "local_traversability/local_traversability/terrain_analysis.hpp"
+
 namespace local_traversability
 {
     /// @brief ROS 2 node that turns the last second of raw MID-360 returns into a
@@ -51,10 +53,12 @@ namespace local_traversability
     /// TF for a scan's own stamp is available when the scan arrives and may have aged
     /// out of the buffer by the time it is used.
     ///
+    /// The classifier itself lives in terrain_analysis.hpp, shared with
+    /// global_traversability, which runs the same test over the same kind of short
+    /// scan buffer and remembers the verdicts instead of discarding them.
+    ///
     /// Deliberately depends on grid_map_core only, not grid_map_ros, and finds PCL
-    /// scoped to COMPONENTS common: see CMakeLists.txt for both, and
-    /// _to_occupancy_grid() for the hand-rolled GridMap -> OccupancyGrid conversion
-    /// that replaces grid_map_ros's converter.
+    /// scoped to COMPONENTS common: see CMakeLists.txt for both.
     class LocalTraversability : public rclcpp::Node
     {
     public:
@@ -186,13 +190,6 @@ namespace local_traversability
         ///        matching nav2's InflationLayer convention.
         static constexpr double DEFAULT_COST_SCALING_FACTOR = 3.2;
 
-        /// @brief One scan, already transformed into the global frame.
-        struct BufferedCloud
-        {
-            rclcpp::Time stamp;
-            std::vector<Eigen::Vector3f> points;
-        };
-
         /// @brief Declares every parameter and copies the values into their matching
         ///        members.
         void _load_parameters();
@@ -212,50 +209,6 @@ namespace local_traversability
         /// @param center Robot position in the global frame.
         /// @return False if the geometry could not be established.
         bool _recenter_map(const grid_map::Position& center);
-
-        /// @brief Bins every buffered point into elevation/height_max/point_count.
-        void _accumulate_elevation();
-
-        /// @brief Fills the ground, step_up and step_down layers by comparing each
-        ///        cell's floor against the lowest nearby ground, discounting the
-        ///        slope that ground is allowed to have.
-        void _compute_height_difference();
-
-        /// @brief Fills height_above_ground and clearance from the buffered points,
-        ///        once the ground reference is known.
-        void _compute_structure();
-
-        /// @brief Marks cells with too few returns as border/unknown.
-        void _compute_border();
-
-        /// @brief Combines step_up, step_down, height_above_ground, clearance and
-        ///        border into a binary obstacle layer.
-        void _compute_obstacle();
-
-        /// @brief Erases obstacle blobs smaller than _min_obstacle_cells, in place.
-        void _prune_small_obstacles();
-
-        /// @brief Runs a two-pass chamfer distance transform off the obstacle layer
-        ///        and turns the result into a decaying inflation cost.
-        void _compute_inflation();
-
-        /// @brief Folds obstacle, inflation and border into the final 0-100 (or
-        ///        NaN/unknown) cost layer that gets exported as the occupancy costmap.
-        void _compute_final_cost();
-
-        /// @brief Fills a nav_msgs/OccupancyGrid from one grid_map layer, linearly
-        ///        mapping [min_value, max_value] to the occupancy range [0, 100] and
-        ///        NaN cells to -1 (unknown). Built directly on grid_map_core's own
-        ///        getIndex(), rather than grid_map_ros's converter -- see
-        ///        CMakeLists.txt for why.
-        /// @param layer Name of the grid_map layer to convert.
-        /// @param min_value Layer value mapped to occupancy 0.
-        /// @param max_value Layer value mapped to occupancy 100.
-        /// @param occupancy_grid_out Receives the converted grid.
-        void
-        _to_occupancy_grid(const std::string& layer, double min_value,
-                           double max_value,
-                           nav_msgs::msg::OccupancyGrid& occupancy_grid_out) const;
 
         /// @brief Publishes the cost layer as the local nav2-consumable costmap.
         /// @param stamp Timestamp to publish the message with.
@@ -287,24 +240,20 @@ namespace local_traversability
         double _max_range_m{DEFAULT_MAX_RANGE_M};
         double _max_sensor_height_m{DEFAULT_MAX_SENSOR_HEIGHT_M};
 
-        double _ground_window_m{DEFAULT_GROUND_WINDOW_M};
-        double _max_slope_deg{DEFAULT_MAX_SLOPE_DEG};
-
-        double _max_step_up_m{DEFAULT_MAX_STEP_UP_M};
-        double _max_step_down_m{DEFAULT_MAX_STEP_DOWN_M};
-        double _max_height_above_ground_m{DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M};
-        double _obstacle_height_cap_m{DEFAULT_OBSTACLE_HEIGHT_CAP_M};
-
-        double _ground_margin_m{DEFAULT_GROUND_MARGIN_M};
-        double _min_clearance_m{DEFAULT_MIN_CLEARANCE_M};
-
-        int _min_points_per_cell{DEFAULT_MIN_POINTS_PER_CELL};
-        int _min_obstacle_cells{DEFAULT_MIN_OBSTACLE_CELLS};
-        bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
-
-        double _robot_radius_m{DEFAULT_ROBOT_RADIUS_M};
-        double _inflation_radius_m{DEFAULT_INFLATION_RADIUS_M};
-        double _cost_scaling_factor{DEFAULT_COST_SCALING_FACTOR};
+        TerrainParameters _terrain{DEFAULT_GROUND_WINDOW_M,
+                                   DEFAULT_MAX_SLOPE_DEG,
+                                   DEFAULT_MAX_STEP_UP_M,
+                                   DEFAULT_MAX_STEP_DOWN_M,
+                                   DEFAULT_MAX_HEIGHT_ABOVE_GROUND_M,
+                                   DEFAULT_OBSTACLE_HEIGHT_CAP_M,
+                                   DEFAULT_GROUND_MARGIN_M,
+                                   DEFAULT_MIN_CLEARANCE_M,
+                                   DEFAULT_MIN_POINTS_PER_CELL,
+                                   DEFAULT_MIN_OBSTACLE_CELLS,
+                                   DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
+        InflationParameters _inflation{DEFAULT_ROBOT_RADIUS_M,
+                                       DEFAULT_INFLATION_RADIUS_M,
+                                       DEFAULT_COST_SCALING_FACTOR};
 
         grid_map::GridMap _map;
         bool _map_initialised{false};

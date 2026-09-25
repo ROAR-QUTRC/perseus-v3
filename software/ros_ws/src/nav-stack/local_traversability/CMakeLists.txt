@@ -85,6 +85,23 @@ endforeach()
 include_directories(include ${PCL_INCLUDE_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
+# COMPILE (Libraries)
+#
+# The height-difference pipeline, as a library so global_traversability can run the
+# same classifier instead of carrying its own copy. PCL is linked but not exported:
+# a consumer's find_package(local_traversability) would otherwise re-find it
+# unscoped and pull in the whole visualization chain the ordering comment above is
+# about, so consumers find PCL COMPONENTS common themselves, first.
+add_library(terrain_analysis src/local_traversability/terrain_analysis.cpp)
+
+target_include_directories(
+  terrain_analysis PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                          $<INSTALL_INTERFACE:include>)
+
+ament_target_dependencies(terrain_analysis PUBLIC rclcpp nav_msgs grid_map_core)
+
+target_link_libraries(terrain_analysis PUBLIC ${PCL_LIBRARIES})
+
 # COMPILE (Executables)
 add_executable(
   local_traversability src/local_traversability/local_traversability.cpp
@@ -96,12 +113,23 @@ target_include_directories(local_traversability
 ament_target_dependencies(local_traversability PUBLIC
                           ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
-target_link_libraries(local_traversability PUBLIC ${PCL_LIBRARIES})
+target_link_libraries(local_traversability PUBLIC terrain_analysis
+                                                  ${PCL_LIBRARIES})
 
 # INSTALL (ROS)
 install(TARGETS local_traversability DESTINATION lib/${PROJECT_NAME})
 
+install(
+  TARGETS terrain_analysis
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
 install(DIRECTORY include/ DESTINATION include/)
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp nav_msgs grid_map_core)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
