@@ -1,7 +1,7 @@
 # Everything navigation.launch.py brings up: the two terrain costmaps, the global planner,
 # and the nav2 stack that drives to a goal.
 #
-#   /Laser_map -> global_traversability -> /costmap -> planner_server   -> /plan
+# /livox/lidar -> global_traversability -> /costmap -> planner_server   -> /plan
 #                                                   -> smoother_server
 #                                                   -> controller_server -> /cmd_vel
 #                                                   -> velocity_smoother -> /cmd_vel_nav_stamped
@@ -19,54 +19,76 @@
 # ============================================================================
 # TERRAIN COSTMAP -- global_traversability
 # ============================================================================
+# The map-wide terrain the planner plans on. Built from the RAW Livox scan, not from
+# /Laser_map: BIEVR-LIO is odometry only as far as navigation is concerned.
+#
+# WHY NOT THE LIO MAP. LIO z-wander writes the same floor into it several times, 5-10 cm
+# apart, so a "lowest point in the cell" there is not the ground, and the map only ever
+# grows, so an obstacle that leaves never clears. Measured on rosbag2_1970_01_01-10_31_15:
+# min_clearance_m alone flagged 1079 cells of flat floor off that second copy.
+#
+# CLASSIFY SHORT, REMEMBER LONG. Every update_period_s it runs local_traversability's exact
+# height-difference test (the classifier is literally shared, see terrain_analysis.hpp) over
+# only the last point_buffer_s of scans -- drift-free by construction -- and folds each
+# observed cell's verdict into a log-odds that persists. Cells the lidar cannot see keep
+# their last value forever; cells it can see are re-decided, so a removed rock clears the
+# next time the rover looks at that spot. It stores verdicts, never heights: a height grid
+# stitched across minutes would read the drift between two visits as a step.
 global_traversability:
   ros__parameters:
-    pointcloud_topic: "/Laser_map"
+    pointcloud_topic: "/livox/lidar"
+    # No map frame -- see the header of this file. Must match global_costmap's global_frame.
+    global_frame: "odom"
+    robot_frame: "base_footprint"
     resolution_m: 0.1
-    map_margin_m: 1.0
-    update_period_s: 5.0
-    # Local plane fit, for steepness/roughness/ridge.
-    neighbourhood_radius_m: 0.3
-    min_plane_fit_points: 4
-    # How far above a cell's ground a point must be to count as overhead rather than
-    # ground noise. Raised from 0.05 because LIO z-wander writes the same ground twice
-    # 5-10 cm apart, and the clearance test read the upper copy as a low ceiling.
-    # Trades against detecting low obstacles: boulder cells report clearance around 0.06.
-    ground_margin_m: 0.15
-    # Fewer points than this and the cell is unknown, not ground. 3 was too high: it made
-    # sparsely-sampled rocks invisible. Measured on 7 sim boulders, 2 and 1 perform the
-    # same with no false positives, so 2 keeps a little protection against a stray return.
+    # Starting size only. The grid grows by itself in 10 m steps whenever the scan window
+    # reaches past its edge, logging "Grew terrain map to ..." each time.
+    initial_map_length_m: 40.0
+    # Classify + fuse. The window is ~21 m square at max_range_m 10, i.e. ~5.5x local's
+    # cells at 1/5 of its rate -- about the same CPU. Raise this first if the Orange Pi
+    # struggles.
+    update_period_s: 0.5
+    # Republish /costmap. Inflation and the OccupancyGrid conversion scale with the WHOLE
+    # map, so this is the one to slow down once the map is arena-sized.
+    publish_period_s: 1.0
+    # The drift-free window. Same 1 s as local. With update_period_s 0.5 every scan is
+    # classified twice, which the log-odds values below are tuned for.
+    point_buffer_s: 1.0
+    # Sensor-frame range gate. Further than local's 6 m because the planner needs to see
+    # further than the controller; much past 10 m a 0.1 m grid is too sparse to judge.
+    min_range_m: 1.0
+    max_range_m: 10.0
+    max_sensor_height_m: 1.5
+    # THE CLASSIFIER, same meaning as the matching local_traversability parameters below --
+    # read their comments there. Kept in step with local's so a cell does not change
+    # verdict depending on which node saw it.
+    ground_window_m: 0.5
+    max_slope_deg: 40.0
+    max_step_up_m: 0.2
+    max_height_above_ground_m: 0.2
+    max_step_down_m: 0.15
+    obstacle_height_cap_m: 1.0
+    ground_margin_m: 0.10
+    # Disabled, for the same arithmetic reason as local's -- see there.
+    min_clearance_m: 0.0
+    # 2, against local's 1. This grid REMEMBERS: a lone return local would forget in a
+    # second would stay here until the cell is rescanned.
     min_points_per_cell: 2
-    # Open ground here already reaches 13.5 deg, so tightening this flags flat regolith.
-    max_slope_deg: 30.0
-    # Boulders read 0.042-0.078, open ground 0.003-0.015. Tightening is the worst thing you
-    # can do: false positives go 1 -> 22 -> 74 -> 125 at 0.08 / 0.04 / 0.03 / 0.025, with
-    # detection unchanged at 7/7 throughout.
-    max_roughness_m: 0.08
-    # THE VERTICAL TEST: height above a RANSAC ground plane, not max(z)-min(z) in the cell.
-    # The plane follows a berm instead of flagging it.
-    #
-    # Do not expect much from these dials. On rosbag2_1970_01_01-10_31_15 the whole test
-    # decides ~60 of 4045 obstacle cells; inlier_m swept 0.08-0.20 and max_height 0.10-0.25
-    # were worth 24 cells between them. min_clearance_m below decides far more.
-    ransac_inlier_m: 0.20
-    max_height_above_ground_m: 0.20
-    # Patch the plane is fitted over, plus a one-patch halo so neighbours overlap. Must be
-    # well clear of the 30-40 cm boulders or one becomes its own ground and vanishes.
-    ransac_patch_m: 1.0
-    ransac_iterations: 40
-    # Erase obstacle blobs smaller than this (8-connected). A 30-40 cm boulder covers 9-16
-    # cells at 0.1 m, so 4 cannot erase one. Removes 362 of 4034 cells (9%), all marginal.
-    # A filter on a symptom: the real fix was huber_delta 0.1 -> 0.01 in bievr_mid360.yaml,
-    # which took flagged cells 2361 -> 816 on identical LiDAR.
-    min_obstacle_cells: 4
-    # THE TEST THAT FLAGS YOUR FLAT GROUND. Ablation on the same bag, one test off at a
-    # time: clearance -1079, steepness -231, vertical -57, roughness -44. And every
-    # offending cell sits between ground_margin_m and 0.10 m of clearance -- not overhead
-    # structure, just the map's second copy of the floor. Hence ground_margin_m above.
-    min_clearance_m: 0.6
-    # false: unmapped cells publish as -1, not cost 100. One of three settings that decide
-    # whether the rover may cross ground the lidar has never seen; the others are
+    min_obstacle_cells: 2
+    # THE MEMORY. Each update a cell the window observes gets +hit (obstacle) or -miss
+    # (free), clamped to [min, max]; above occupied it publishes as lethal. Cells the window
+    # does not observe are left alone.
+    #   hit > occupied   one sighting marks a rock. Missing one is worse than a false one
+    #                    that clears on the next look.
+    #   (max - occupied) / miss = updates of clear view to erase an obstacle: 7.5, ~4 s.
+    #   (occupied - min) / hit  = updates to mark something new on long-free ground: ~4, ~2 s.
+    log_odds_hit: 0.7
+    log_odds_miss: 0.4
+    log_odds_min: -2.0
+    log_odds_max: 3.5
+    log_odds_occupied: 0.5
+    # false: never-observed cells publish as -1, not cost 100. One of three settings that
+    # decide whether the rover may cross ground the lidar has never seen; the others are
     # allow_unknown and the costmaps' track_unknown_space. Search UNMAPPED for all three.
     treat_unknown_as_obstacle: false
     # Inflation, same semantics as nav2's InflationLayer. nav2 does NOT inflate on top of
@@ -80,17 +102,17 @@ global_traversability:
 # The other half of the terrain analysis: an 8 m window around the rover, rebuilt from the
 # RAW Livox scan at 10 Hz. It does not replace global_traversability -- it is layered on top
 # of it in local_costmap below, so the controller sees map-wide terrain plus whatever the
-# lidar is looking at right now. Everything the global node's 5 s update cannot do (react to
-# something that appeared, to something that moved, to a rock in an occlusion shadow the map
-# never filled) is this node's job.
+# lidar is looking at right now, at 10 Hz rather than the global node's 1 s republish.
+# What the global map deliberately cannot do -- forget -- is this node's job: something
+# that moved away is gone from here within point_buffer_s, where the global map keeps it
+# until the lidar looks at that spot again.
 #
-# WHY HEIGHT DIFFERENCE HERE AND RANSAC UP THERE. The global node fits ground planes by
-# RANSAC because its input is the accumulated LIO map, where the same floor appears at
-# several heights at once (ground_margin_m above) and no local minimum can be trusted as
-# "the ground". A raw scan was measured in one sweep and has no such layering, so the lowest
-# return near a cell IS the ground near it, and a windowed height difference answers the same
-# question for a fraction of the cost -- which is the only reason a 10 Hz update fits on the
-# Orange Pi at all. It is also deterministic, where RANSAC needs a fixed seed to be.
+# SAME CLASSIFIER, DIFFERENT MEMORY. Both nodes run the one height-difference test in
+# terrain_analysis.hpp over the last 1 s of raw scans, which are drift-free, so the lowest
+# return near a cell IS the ground near it. This node throws the verdicts away every
+# update; the global node folds them into a persistent log-odds. The windowed height
+# difference is also what makes a 10 Hz update fit on the Orange Pi at all, and it is
+# deterministic.
 local_traversability:
   ros__parameters:
     # Raw, not /Laser_map. Point this at /livox/lidar/filtered to run behind the dust
@@ -245,7 +267,7 @@ global_costmap:
       global_frame: odom
       robot_base_frame: base_footprint
       robot_radius: 0.3
-      # /costmap only republishes every update_period_s (5 s); polling faster re-copies it.
+      # /costmap only republishes every publish_period_s (1 s); polling faster re-copies it.
       update_frequency: 1.0
       publish_frequency: 1.0
       rolling_window: false
@@ -457,7 +479,7 @@ controller_server:
 # Still not a nav2 voxel/obstacle layer off the raw MID-360: that would flag the ground
 # itself, which is the whole reason the traversability nodes exist. What changed is that the
 # reactive input is now terrain-analysed upstream before it reaches nav2, so this costmap is
-# no longer stuck at global_traversability's 5 s latency and the rover can react to something
+# no longer stuck at global_traversability's 1 s republish and the rover can react to something
 # that appears in front of it.
 local_costmap:
   local_costmap:

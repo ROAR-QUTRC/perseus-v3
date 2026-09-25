@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Launch the terrain costmaps and the full nav2 stack that drives to a goal.
 
-    /Laser_map   -> global_traversability -> /costmap ---------------> planner_server   -> /plan
+    /livox/lidar -> global_traversability -> /costmap ---------------> planner_server   -> /plan
                                                        |                smoother_server
     /livox/lidar -> local_traversability                -> controller_server -> /cmd_vel
                     -> /local_costmap_terrain --------/                 velocity_smoother
                                                                           -> /cmd_vel_nav_stamped
 
-TWO TERRAIN COSTMAPS, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE. global_traversability reads
-the accumulated LIO map every 5 s and covers the whole arena, so it is what the planner plans
-on. local_traversability reads the raw Livox scan at sensor rate over an 8 m window, so it is
-what the controller reacts to. Both land in the controller's local costmap, the local one
-layered on top with use_maximum -- see local_costmap in config/navigation.yaml.
+TWO TERRAIN COSTMAPS, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE. Both classify the raw Livox
+scan with the same height-difference test. global_traversability REMEMBERS every cell it has
+seen, re-deciding a cell only when the lidar looks at it again, so it covers the whole arena
+and is what the planner plans on. local_traversability forgets after 1 s over an 8 m window,
+so it is what the controller reacts to. Both land in the controller's local costmap, the
+local one layered on top with use_maximum -- see local_costmap in config/navigation.yaml.
 
 THIS LAUNCH FILE MOVES THE ROVER. An rviz "2D Goal Pose" makes it drive: bt_navigator
 subscribes to /goal_pose directly, so the button works without the nav2 rviz panel.
@@ -22,7 +23,7 @@ Two ways to stop it:
   * The e-stop. That is the one to actually rely on.
 
 Prerequisites:
-  localisation.launch.py -- /Laser_map, the odom frame, and odom -> base_footprint.
+  localisation.launch.py -- the odom frame, odom -> base_footprint and odom -> the lidar.
   perseus.launch.py      -- twist_mux and the diff drive controller that turn
                             /cmd_vel_nav_stamped into wheel motion.
 
