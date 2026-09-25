@@ -28,31 +28,27 @@ files per key, so the sim's differences are just the handful of keys that file s
 
 A second, independent pose source is fused alongside BIEVR-LIO: vision's
 stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), which arrives as odom1
-in ekf_config.yaml. How it is brought up depends on `enable_sensors:=`, and the difference
-is not cosmetic:
+in ekf_config.yaml. It is brought up by including vision/vision.launch.py, which is also
+where `enable_sensors:=` is forwarded:
 
   enable_sensors:=false (default)  The sensor drivers are assumed to be running already,
                                    from sensors/sensors.launch.py in their own terminal.
-                                   stereo_odometry is launched here as a standalone node.
-  enable_sensors:=true             This file brings up the Livox and RealSense drivers
-                                   itself, and loads stereo_odometry as a *component* into
-                                   the container realsense.launch.py creates.
-
-The composed path exists because the infra pair is 848x480 Y8 at 30 fps -- 407 KB a frame,
-24 MB/s for the two together. Run as a separate process every byte of that is serialised
-through the middleware, and measured on this rover 86% of frames never arrived: 29.8 fps at
-the camera's own frame counter against 4.2 Hz on the topic, with infra1 and infra2 drifting
-to different rates so libviso2 was matching frames that did not correspond to each other.
-Loaded into the driver's container the frames are passed by pointer instead, and both
-streams measure a clean 30 Hz. So prefer enable_sensors:=true whenever this file is the
-thing starting the camera.
+                                   vision.launch.py runs stereo_odometry as its own process.
+  enable_sensors:=true             This file brings up the Livox driver itself, and
+                                   vision.launch.py brings up the RealSense and loads
+                                   stereo_odometry as a component into the camera's
+                                   container -- 30 Hz on the infra pair against roughly
+                                   4 Hz standalone. vision.launch.py's docstring has the
+                                   measurements.
 
 The default is false because nothing in this repo orchestrates bringup -- the drivers are
-started by hand -- and defaulting to true would open the RealSense a second time alongside
-an existing one and fail with "Device or resource busy".
+started by hand -- and defaulting to true would open the sensors a second time alongside
+existing ones and fail with "Device or resource busy".
 
-Either way the EKF only names the topic and fuses whatever appears on it, so nothing
-downstream branches on this choice.
+The ArUco, cube and overlay nodes are forwarded as aruco:=, cube:= and overlay:=, all off
+by default, so a plain run is stereo odometry only; turned on here they follow the same
+enable_sensors placement as stereo_odometry. Either way the EKF only names the topic and
+fuses whatever appears on it, so nothing downstream branches on this choice.
 """
 
 import os
@@ -68,15 +64,9 @@ from launch.actions import (
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes, Node
+from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
-
-
-# Must match realsense.launch.py's DEFAULT_CONTAINER_NAME. That file creates the container,
-# this one loads stereo_odometry into it by name, and a mismatch does not raise:
-# LoadComposableNodes simply waits for a container that never appears.
-SENSOR_CONTAINER_NAME = "sensor_container"
 
 
 def bievr_actions(rviz, use_sim_time, is_sim, params_file):
@@ -173,18 +163,19 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-    # The second pose source, plus the sensors it feeds on. Which of these two branches is
-    # built is the whole of what `enable_sensors` selects -- the module docstring has the
-    # measurements that make the composed one worth reaching for.
+    # The second pose source, plus the Livox it shares a switch with. vision.launch.py owns
+    # the RealSense side of `enable_sensors` -- composed into the camera's container, or
+    # node by node against an already-running camera -- so both branches include it and
+    # only the Livox differs.
     #
-    # Resolved to a Python bool rather than driven by IfCondition because the branches are
-    # mutually exclusive and one of them is better off never being *constructed*:
+    # The Livox is left out by a Python bool rather than an IfCondition because
     # livox.launch.py reads the host address with `ip -4 addr show <interface>` inside its
     # own OpaqueFunction and raises RuntimeError when that interface has no IPv4. Under a
-    # false IfCondition that body would not run either, but not building it at all keeps the
-    # default path from carrying an interface name it never uses.
+    # false IfCondition that body would not run either, but not building it at all keeps
+    # the default path from carrying an interface name it never uses.
+    sensor_actions = []
     if enable_sensors:
-        sensor_actions = [
+        sensor_actions.append(
             GroupAction(
                 [
                     IncludeLaunchDescription(
@@ -203,91 +194,32 @@ def launch_setup(context, *args, **kwargs):
                     )
                 ],
                 scoped=True,
-            ),
-            # Creates the component container the load below targets. No use_sim_time to
-            # pass: the driver timestamps from the camera's own clock regardless, and
-            # realsense.launch.py declares no such argument to receive it.
-            GroupAction(
-                [
-                    IncludeLaunchDescription(
-                        PythonLaunchDescriptionSource(
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("sensors"),
-                                    "launch",
-                                    "realsense.launch.py",
-                                ]
-                            )
-                        ),
-                        # Pinned rather than left to realsense.launch.py's identical
-                        # default, and this is not belt-and-braces. GroupAction(scoped=True)
-                        # forwards the enclosing configurations inward, and `ros2 launch`
-                        # accepts any k:=v the file never declared, so a stray
-                        # `container_name:=foo` would reach this include, rename the
-                        # container, and leave the load below waiting on a service that
-                        # never appears -- LoadComposableNodes waits without a timeout and
-                        # logs nothing above DEBUG, so the symptom is a launch that hangs
-                        # in silence. An explicit argument wins inside the scope.
-                        launch_arguments={
-                            "container_name": SENSOR_CONTAINER_NAME,
-                        }.items(),
-                    )
-                ],
-                scoped=True,
-            ),
-            # Into that container, which is the entire point of this branch. The name and
-            # namespace are not free choices: vision.yaml keys this node's parameters under
-            # a top-level `stereo_odometry:` block at the root namespace, so renaming it
-            # here would silently drop every one of them and leave the node on its built-in
-            # defaults -- including publish_tf, which must stay false while the EKF owns
-            # odom -> base_link.
-            LoadComposableNodes(
-                target_container=SENSOR_CONTAINER_NAME,
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package="vision",
-                        plugin="vision::StereoOdometry",
-                        name="stereo_odometry",
-                        namespace="",
-                        parameters=[
-                            os.path.join(
-                                get_package_share_directory("vision"),
-                                "config",
-                                "vision.yaml",
-                            ),
-                            {"use_sim_time": use_sim_time},
-                        ],
-                        extra_arguments=[{"use_intra_process_comms": True}],
-                    )
-                ],
-            ),
-        ]
-    else:
-        # The same node and the same config file, in its own process. vision's own launch
-        # file is reused rather than a Node() rebuilt here so the two paths cannot drift.
-        # This is also the branch the simulator wants: Gazebo publishes the infra topics
-        # with no RealSense driver present, so there is no container to load into.
-        sensor_actions = [
-            GroupAction(
-                [
-                    IncludeLaunchDescription(
-                        PythonLaunchDescriptionSource(
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("vision"),
-                                    "launch",
-                                    "stereo_odometry.launch.py",
-                                ]
-                            )
-                        ),
-                        launch_arguments={
-                            "use_sim_time": use_sim_time,
-                        }.items(),
-                    )
-                ],
-                scoped=True,
             )
-        ]
+        )
+    sensor_actions.append(
+        GroupAction(
+            [
+                IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource(
+                        PathJoinSubstitution(
+                            [FindPackageShare("vision"), "launch", "vision.launch.py"]
+                        )
+                    ),
+                    # stereo_odometry is pinned on because it is the reason this include
+                    # exists; the detectors are this file's own toggles, forwarded.
+                    launch_arguments={
+                        "enable_sensors": LaunchConfiguration("enable_sensors"),
+                        "use_sim_time": use_sim_time,
+                        "stereo_odometry": "true",
+                        "aruco": LaunchConfiguration("aruco"),
+                        "cube": LaunchConfiguration("cube"),
+                        "overlay": LaunchConfiguration("overlay"),
+                    }.items(),
+                )
+            ],
+            scoped=True,
+        )
+    )
 
     # Flattens the EKF's odom -> base_link into odom -> base_footprint, dropping z, roll
     # and pitch while keeping yaw. nav2's costmaps and controller are the consumers, but
@@ -451,11 +383,11 @@ def generate_launch_description():
         # unlike IfCondition -- does not accept 1/on/yes, so without choices an
         # `enable_sensors:=1` would read as false and silently skip the sensors.
         choices=["true", "false"],
-        description="Bring the Livox and RealSense drivers up from this file, and load "
-        "vision's stereo_odometry into the camera's component container -- 30 Hz on the "
-        "infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
+        description="Bring the Livox driver up from this file, and have vision.launch.py "
+        "bring up the RealSense with stereo_odometry composed into its container -- 30 Hz on "
+        "the infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
         "when the drivers are already running from sensors/sensors.launch.py, in which case "
-        "stereo_odometry is launched standalone instead. See the module docstring.",
+        "the vision nodes run standalone instead. See the module docstring.",
     )
 
     declare_interface = DeclareLaunchArgument(
@@ -466,6 +398,19 @@ def generate_launch_description():
         "livox.launch.py's own; the driver fails at launch if the interface it names has no "
         "IPv4 address, so this needs to be right per machine.",
     )
+
+    # Forwarded to vision.launch.py. Off by default, unlike vision.launch.py's own, so that
+    # localisation alone brings up only the pose source it fuses.
+    declare_detectors = [
+        DeclareLaunchArgument(
+            name, default_value="false", description=f"Also launch vision's {what}."
+        )
+        for name, what in [
+            ("aruco", "ArUco detector"),
+            ("cube", "cube detector"),
+            ("overlay", "detection overlay"),
+        ]
+    ]
 
     bias_remover_container = ComposableNodeContainer(
         name="imu_bias_container",
@@ -539,6 +484,7 @@ def generate_launch_description():
             declare_bievr_params_file,
             declare_enable_sensors,
             declare_interface,
+            *declare_detectors,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),
         ]

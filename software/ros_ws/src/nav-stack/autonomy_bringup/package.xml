@@ -26,13 +26,11 @@
   <!-- health_monitor, launched alongside localisation -->
   <depend>health_check</depend>
   <!-- imu_processors components and point_cloud_compress.launch.py, both brought up by
-       localisation.launch.py, plus livox.launch.py and realsense.launch.py under
-       enable_sensors:=true -->
+       localisation.launch.py, plus livox.launch.py under enable_sensors:=true -->
   <depend>sensors</depend>
-  <!-- stereo_odometry, the EKF's odom1. localisation.launch.py runs it either as vision's
-       own standalone launch file or, with enable_sensors:=true, by loading the
-       vision::StereoOdometry component into the RealSense driver's container. The plugin
-       is resolved by name at runtime, so nothing here links against it. -->
+  <!-- vision.launch.py, which localisation.launch.py includes for stereo_odometry, the
+       EKF's odom1: standalone, or with enable_sensors:=true composed into the RealSense
+       driver's container. Launched by name at runtime, so nothing here links against it. -->
   <exec_depend>vision</exec_depend>
   <!-- supplies the Topic Health RViz panel used by base_station.rviz -->
   <depend>rviz_plugins</depend>
