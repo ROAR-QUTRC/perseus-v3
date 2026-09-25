@@ -156,8 +156,6 @@
 				console.log('Requesting streams:', config, event);
 				Object.keys(config).forEach((device) => {
 					if (event.devices?.some((d) => device === d)) {
-						const dev = device.split('-')[0];
-						const serverName = device.split(dev + '-')[1];
 						socket.send({
 							type: 'camera',
 							action: 'request-stream',
@@ -292,7 +290,6 @@
 		settings.groups.setupCamera.config.value = JSON.stringify(config);
 
 		// Send request to update stream
-		const dev = device.split('-')[0];
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',

@@ -87,7 +87,7 @@ def main():
                     {
                         "type": "camera",
                         "action": "device-disconnect",
-                        "target": {"dev": dev, "serverName": server_name},
+                        "target": dev,
                     }
                 )
                 devices.remove(dev)

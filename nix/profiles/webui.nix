@@ -1,6 +1,18 @@
-{ pkgs, config, ... }:
-
 {
+  pkgs,
+  config,
+  lib,
+  ...
+}:
+let
+  kernel-version = (lib.splitString "." pkgs.linux.version);
+  kernel-pkgs =
+    pkgs.linuxKernel.packages.${
+      "linux_" + (lib.head kernel-version) + "_" + (lib.elemAt kernel-version 1)
+    };
+in
+{
+  env.KERNEL_VERSION = "linux_" + (lib.head kernel-version) + "_" + (lib.elemAt kernel-version 1);
   packages =
     with pkgs;
     (
@@ -8,6 +20,7 @@
         libnice
         tsx
         v4l-utils
+        kernel-pkgs.v4l2loopback
       ]
       ++ flattenDerivationSet camera-server
       # TODO: select only the gst plugins that are needed see:

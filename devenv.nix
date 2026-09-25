@@ -2,7 +2,7 @@
 {
   # Access to inputs from devenv.yaml
   pkgs,
-  config,
+  # config,
   # nixpkgs,
   nix-ros-overlay,
   nix-ros-workspace,
@@ -29,8 +29,6 @@ in
       rosDistro
       ;
   };
-
-  env.DEVENV_USER_CONFIG = "${config.env.DEVENV_ROOT}/demo.yaml";
 
   # --- Packages ---
   packages = with pkgs; [ ] ++ flattenDerivationSet examples ++ flattenDerivationSet scripts;
