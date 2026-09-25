@@ -193,6 +193,7 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
 {
     constexpr size_t kSlots = kDiscoveryLastSlave - kDiscoveryFirstSlave + 1;
     uint8_t hits[kSlots] = {};
+    uint8_t garbled[kSlots] = {};  // something came back, but not a valid reply
     const unsigned bus_no = static_cast<unsigned>(bus_index + 1);
 
     ESP_LOGI(TAG, "bus %u: discovering slaves %u-%u, %u rounds", bus_no, kDiscoveryFirstSlave, kDiscoveryLastSlave,
@@ -203,12 +204,14 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
         for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
         {
             TickType_t wake = xTaskGetTickCount();
-            const bool answered = probe(bus, slave, true);
-            if (answered)
+            const modbus::Result result = probe(bus, slave, true);
+            if (result == modbus::Result::Ok || result == modbus::Result::ExceptionReply)
                 ++hits[slave - kDiscoveryFirstSlave];
+            else if (result != modbus::Result::Timeout)
+                ++garbled[slave - kDiscoveryFirstSlave];
             vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryProbeMs));
-            if (answered)
-                probe(bus, slave, false);
+            // Broadcast, so a board whose reply was lost doesn't stay lit.
+            probe(bus, modbus::kBroadcastAddress, false);
         }
     }
 
@@ -216,11 +219,16 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
     for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
     {
         const uint8_t count = hits[slave - kDiscoveryFirstSlave];
+        const uint8_t bad = garbled[slave - kDiscoveryFirstSlave];
 
         size_t index = kEncoderCount;
         for (size_t i = 0; i < kEncoderCount; ++i)
             if (kPlacement[i].bus == bus_index && kPlacement[i].slave == slave)
                 index = i;
+
+        if (bad > 0)
+            ESP_LOGW(TAG, "bus %u: slave %u replied %u/%u times but the reply was unreadable (CRC/frame error)",
+                     bus_no, slave, bad, kDiscoveryRounds);
 
         if (index == kEncoderCount)
         {
@@ -269,13 +277,13 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
                  static_cast<unsigned>(kDevicesPerBus));
 }
 
-bool EncoderBus::probe(Bus& bus, uint8_t slave, bool on)
+modbus::Result EncoderBus::probe(Bus& bus, uint8_t slave, bool on)
 {
-    modbus::Result result = modbus::Result::Timeout;
+    modbus::Result result = modbus::Result::TransportError;
     if (!bus.mbus.submit(enc::discovery_request(slave, on, &EncoderBus::on_probe_done, &result)))
-        return false;
+        return result;
     bus.mbus.step();
-    return result == modbus::Result::Ok || result == modbus::Result::ExceptionReply;
+    return result;
 }
 
 void EncoderBus::refresh_stats(const Bus& bus, size_t bus_index)

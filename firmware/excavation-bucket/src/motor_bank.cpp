@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include <algorithm>
 #include <cmath>
 
 #include "encoder_bus.hpp"
@@ -54,6 +55,13 @@ void MotorBank::set_target_position(const int16_t position)
     Lock lock(_mutex);
     _target_position = position;
     _mode = ControlMode::Position;
+}
+
+void MotorBank::stop()
+{
+    Lock lock(_mutex);
+    _speed = 0;
+    _mode = ControlMode::Velocity;
 }
 
 // Falls back to the last cached angles if neither encoder is fresh.
@@ -146,10 +154,9 @@ void MotorBank::control_tick(uint32_t now_ms)
     _output_b = output_b;
 }
 
-// Constant-speed drive toward the target: kTravelSpeed while far off,
-// kApproachSpeed inside kLargeErrorWindow, stop inside kHoldWindow. Once
-// stopped it stays stopped until the error passes kResumeWindow, so encoder
-// noise at the window edge can't make the motor chatter.
+// kPositionSpeed toward the target, the shortest way round, until within
+// kHoldWindow. An overshoot just drives back. Once stopped it stays stopped
+// until the error passes kResumeWindow, so encoder noise can't chatter.
 int16_t MotorBank::position_output(float target, std::optional<float> angle, bool* settled)
 {
     if (!angle)
@@ -158,7 +165,7 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
         return 0;  // no feedback: don't drive blind
     }
 
-    const float error = target - *angle;
+    const float error = angle_difference(target, *angle);
     const float magnitude = std::fabs(error);
 
     if (*settled && magnitude <= kResumeWindow)
@@ -170,8 +177,7 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
     }
     *settled = false;
 
-    const int16_t speed = magnitude > kLargeErrorWindow ? kTravelSpeed : kApproachSpeed;
-    return error > 0 ? speed * kDriveDirection : -speed * kDriveDirection;
+    return error > 0 ? kPositionSpeed * kDriveDirection : -kPositionSpeed * kDriveDirection;
 }
 
 std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
@@ -180,4 +186,12 @@ std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
     if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > kFeedbackStaleMs)
         return std::nullopt;
     return reading.degrees;
+}
+
+float MotorBank::angle_difference(float to, float from)
+{
+    float difference = std::fmod(to - from + 180.0f, 360.0f);
+    if (difference <= 0.0f)
+        difference += 360.0f;
+    return difference - 180.0f;
 }

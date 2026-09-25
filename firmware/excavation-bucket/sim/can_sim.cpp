@@ -1,13 +1,18 @@
 // can_sim.cpp
 //
 // Bench entry point for env:can_sim, built instead of src/main.cpp. Replaces
-// the TWAI bus with an in-memory interface and runs the lift bank only. Sends
-// no commands: the bank stays in Velocity mode at speed 0, so the control
-// task holds both H-bridges at zero while both lift encoders are read and
-// printed on the console UART, along with what ROS would receive over CAN.
+// the TWAI bus with an in-memory interface that plays the part of ROS and runs
+// the lift bank only. After discovery it sends SET_POSITION kTargetDegrees and
+// prints status on the console UART while the bank drives there and holds.
+//
+// Only lift_left is polled, so both actuators follow it: the two lift encoders
+// haven't been checked against each other (sign, offset) yet.
+//
+// This drives the real lift motors.
 
 #include <Arduino.h>
 
+#include <cmath>
 #include <cstdio>
 #include <deque>
 #include <optional>
@@ -24,19 +29,35 @@
 using namespace hi_can;
 using namespace hi_can::addressing;
 using namespace hi_can::addressing::excavation::bucket::controller;
+namespace params = hi_can::parameters::excavation::bucket::controller;
 
 namespace
 {
     constexpr gpio_num_t NSLEEP = GPIO_NUM_40;
 
+    constexpr float kTargetDegrees = 350.0f;
+
+    constexpr uint32_t kStallMs = 3000;  // stop if driving but the angle hasn't moved kStallDegrees
+    constexpr float kStallDegrees = 0.5f;
+    constexpr uint32_t kMoveTimeoutMs = 120000;
+
     constexpr uint32_t kPrintPeriodMs = 250;
 
-    constexpr uint8_t kSimEncoders = encoder_bit(LIFT::DRIVER_A::ENCODER_ID) | encoder_bit(LIFT::DRIVER_B::ENCODER_ID);
+    constexpr EncoderId kFeedback = LIFT::DRIVER_A::ENCODER_ID;
+    constexpr uint8_t kSimEncoders = encoder_bit(kFeedback);
 
     constexpr standard_address_t DEVICE_ADDRESS{
         excavation::SYSTEM_ID,
         excavation::bucket::SUBSYSTEM_ID,
         excavation::bucket::controller::DEVICE_ID,
+    };
+
+    enum class Phase
+    {
+        Discovery,
+        Moving,
+        Holding,
+        Stopped,
     };
 
     class SimInterface : public FilteredCanInterface
@@ -49,19 +70,26 @@ namespace
             tx_.push_back(packet);
         }
 
-        std::optional<Packet> receive(bool) override { return std::nullopt; }  // nothing is ever sent to the board
-
-        // Latest frame sent to `address`, as ROS would last have seen it.
-        std::optional<Packet> last_sent(const flagged_address_t& address) const
+        std::optional<Packet> receive(bool) override
         {
-            for (auto it = tx_.rbegin(); it != tx_.rend(); ++it)
-                if (it->get_address() == address)
-                    return *it;
+            while (!rx_.empty())
+            {
+                const Packet packet = rx_.front();
+                rx_.pop_front();
+                if (!address_matches_filters(packet.get_address()))
+                    continue;
+                if (_receive_callback)
+                    _receive_callback(packet);
+                return packet;
+            }
             return std::nullopt;
         }
 
+        void inject(const Packet& packet) { rx_.push_back(packet); }
+
     private:
-        static constexpr size_t kMaxTx = 32;
+        static constexpr size_t kMaxTx = 32;  // periodic reports nobody reads
+        std::deque<Packet> rx_;
         std::deque<Packet> tx_;
     };
 
@@ -70,7 +98,22 @@ namespace
     std::optional<MotorBank> lift;
     std::optional<MotorBankParameterGroup> lift_group;
     std::optional<MotorParameterGroup> lift_left_group;
-    std::optional<MotorParameterGroup> lift_right_group;
+
+    const char* phase_name(Phase phase)
+    {
+        switch (phase)
+        {
+        case Phase::Discovery:
+            return "discovery";
+        case Phase::Moving:
+            return "moving";
+        case Phase::Holding:
+            return "holding";
+        case Phase::Stopped:
+            return "stopped";
+        }
+        return "?";
+    }
 
     const char* link_name(modbus::DeviceState state)
     {
@@ -88,67 +131,42 @@ namespace
         return "?";
     }
 
-    const char* mode_name(MotorBank::ControlMode mode)
+    void send_position(float degrees)
     {
-        return mode == MotorBank::ControlMode::Position ? "POS" : "VEL";
+        const flagged_address_t address = static_cast<flagged_address_t>(standard_address_t{
+            DEVICE_ADDRESS, static_cast<uint8_t>(bank_group::LIFT), static_cast<uint8_t>(bank_parameter::SET_POSITION)});
+        const auto units = static_cast<int16_t>(std::lround(degrees * kPositionUnitsPerDegree));
+        sim.inject(Packet(address, params::position_t{units}.serialize_data()));
     }
 
-    // Value of the last report sent to `address`, in degrees.
-    void print_reported(const char* label, const flagged_address_t& address)
+    void print_status(uint32_t now, Phase phase, std::optional<float> angle)
     {
-        const std::optional<Packet> frame = sim.last_sent(address);
-        const std::optional<int16_t> units = frame ? frame->get_data<int16_t>() : std::nullopt;
-        if (units)
-            printf("  %s %6.1f", label, *units / kPositionUnitsPerDegree);
-        else
-            printf("  %s     --", label);
-    }
-
-    flagged_address_t get_angle_address(encoder_group group)
-    {
-        return static_cast<flagged_address_t>(standard_address_t{
-            DEVICE_ADDRESS, static_cast<uint8_t>(group), static_cast<uint8_t>(encoder_parameter::GET_ANGLE)});
-    }
-
-    void print_encoder(const char* side, EncoderId id, uint32_t now)
-    {
+        const MotorBank::Status status = lift->get_status();
+        const bool position = status.mode == MotorBank::ControlMode::Position;
         EncoderReading reading;
-        encoder_bus().get(id, &reading);
-        const std::optional<float> angle = MotorBank::encoder_degrees(id, now);
-        const char* alive = !reading.status_valid ? "?" : reading.master_alive ? "yes"
-                                                                               : "no";
+        encoder_bus().get(kFeedback, &reading);
 
-        printf("  %s ", side);
+        printf("%7.2fs  %-9s %s", now / 1000.0f, phase_name(phase), position ? "POS" : "VEL");
+        if (position)
+            printf(" tgt %5.1f", status.target_position / kPositionUnitsPerDegree);
+        else
+            printf(" spd %5d", status.speed);
+        printf("  out %6d/%6d  angle ", status.output_a, status.output_b);
         if (angle)
+        {
             printf("%7.2f", *angle);
+            if (position)
+                printf(" err %+7.2f",
+                       MotorBank::angle_difference(status.target_position / kPositionUnitsPerDegree, *angle));
+        }
         else if (!reading.present)
             printf("not found");
         else if (!reading.angle_valid)
             printf("invalid");
         else
             printf("stale %lums", static_cast<unsigned long>(reading.angle_age_ms(now)));
-        printf(" (%s %lu/%lu mag %d alive %s)", link_name(reading.link), static_cast<unsigned long>(reading.stats.ok),
-               static_cast<unsigned long>(reading.stats.total), reading.magnet_detected, alive);
-    }
-
-    void print_status(uint32_t now)
-    {
-        const MotorBank::Status status = lift->get_status();
-
-        printf("%7.2fs %s out %d/%d", now / 1000.0f, encoder_bus().ready() ? "" : "[discovery]", status.output_a,
-               status.output_b);
-        if (status.mode != MotorBank::ControlMode::Velocity || status.speed != 0)
-            printf(" !! %s speed %d", mode_name(status.mode), status.speed);  // should never happen here
-        print_encoder("L", LIFT::DRIVER_A::ENCODER_ID, now);
-        print_encoder("R", LIFT::DRIVER_B::ENCODER_ID, now);
-
-        printf("  | can");
-        print_reported("L", get_angle_address(encoder_group::LIFT_L));
-        print_reported("R", get_angle_address(encoder_group::LIFT_R));
-        print_reported("avg", static_cast<flagged_address_t>(standard_address_t{
-                                  DEVICE_ADDRESS, static_cast<uint8_t>(bank_group::LIFT),
-                                  static_cast<uint8_t>(bank_parameter::GET_POSITION)}));
-        printf("\n");
+        printf("  (%s %lu/%lu)\n", link_name(reading.link), static_cast<unsigned long>(reading.stats.ok),
+               static_cast<unsigned long>(reading.stats.total));
     }
 }  // namespace
 
@@ -167,34 +185,83 @@ void setup()
     packet_manager.emplace(sim);
     lift_group.emplace(bank_group::LIFT, lift.value());
     lift_left_group.emplace(encoder_group::LIFT_L, lift->get_driver_A());
-    lift_right_group.emplace(encoder_group::LIFT_R, lift->get_driver_B());
     packet_manager->add_group(lift_group.value());
     packet_manager->add_group(lift_left_group.value());
-    packet_manager->add_group(lift_right_group.value());
 
     bus.begin(kSimEncoders);
     start_bank_control_task({&lift.value(), nullptr, nullptr});
 
-    printf("can_sim: read-only, lift bank held at zero, no commands sent\n");
-    printf("  L = driver A (h-bridge 1, GPIO %d/%d) with %s (bus 1, slave 1)\n", LIFT::DRIVER_A::DRIVER_PINS.first,
-           LIFT::DRIVER_A::DRIVER_PINS.second, to_string(LIFT::DRIVER_A::ENCODER_ID));
-    printf("  R = driver B (h-bridge 2, GPIO %d/%d) with %s (bus 2, slave 1)\n", LIFT::DRIVER_B::DRIVER_PINS.first,
-           LIFT::DRIVER_B::DRIVER_PINS.second, to_string(LIFT::DRIVER_B::ENCODER_ID));
+    printf("can_sim: lift to %.0f deg at %d, within %.0f deg, feedback %s for both actuators. Discovery first (~24 s)\n",
+           kTargetDegrees, MotorBank::kPositionSpeed, MotorBank::kHoldWindow, to_string(kFeedback));
 }
 
 void loop()
 {
+    static Phase phase = Phase::Discovery;
+    static uint32_t move_start_ms = 0;
     static uint32_t last_print_ms = 0;
+    static float progress_angle = 0.0f;
+    static uint32_t progress_ms = 0;
+
     const uint32_t now = encoder_bus().now_ms();
+    const std::optional<float> angle = MotorBank::encoder_degrees(kFeedback, now);
+
+    if (phase == Phase::Discovery && encoder_bus().ready() && angle)
+    {
+        printf("\n--- moving to %.0f: shortest way from %.2f is %+.2f deg\n", kTargetDegrees, *angle,
+               MotorBank::angle_difference(kTargetDegrees, *angle));
+        send_position(kTargetDegrees);
+        phase = Phase::Moving;
+        move_start_ms = now;
+        progress_angle = *angle;
+        progress_ms = now;
+    }
+    else if ((phase == Phase::Moving || phase == Phase::Holding) && angle)
+    {
+        const MotorBank::Status status = lift->get_status();
+        const bool driving = status.output_a != 0 || status.output_b != 0;
+
+        if (!driving || std::fabs(MotorBank::angle_difference(*angle, progress_angle)) > kStallDegrees)
+        {
+            progress_angle = *angle;
+            progress_ms = now;
+        }
+
+        if (driving && now - progress_ms >= kStallMs)
+        {
+            lift->stop();
+            phase = Phase::Stopped;
+            printf("--- STOP: stalled at %.2f, driving but not moving (end stop?)\n", *angle);
+        }
+        else if (phase == Phase::Moving && !driving)
+        {
+            phase = Phase::Holding;
+            printf("--- reached %.0f (angle %.2f) in %.1f s, holding\n", kTargetDegrees, *angle,
+                   (now - move_start_ms) / 1000.0f);
+        }
+        else if (phase == Phase::Holding && driving)
+        {
+            phase = Phase::Moving;
+            printf("--- drifted to %.2f, homing back in\n", *angle);
+        }
+        else if (phase == Phase::Moving && now - move_start_ms >= kMoveTimeoutMs)
+        {
+            lift->stop();
+            phase = Phase::Stopped;
+            printf("--- STOP: didn't reach %.0f within %lu s (angle %.2f)\n", kTargetDegrees,
+                   static_cast<unsigned long>(kMoveTimeoutMs / 1000), *angle);
+        }
+    }
 
     // Stands in for loop() in main.cpp: caches angles for GET_ANGLE, runs CAN.
     lift->monitor_and_move();
     packet_manager->handle();
 
-    if (now - last_print_ms >= kPrintPeriodMs)
+    // Quiet during discovery (~24 s) so its encoder_bus log lines stay readable.
+    if (phase != Phase::Discovery && now - last_print_ms >= kPrintPeriodMs)
     {
         last_print_ms = now;
-        print_status(now);
+        print_status(now, phase, angle);
     }
 
     delay(1);

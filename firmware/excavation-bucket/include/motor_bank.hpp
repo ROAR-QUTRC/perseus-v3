@@ -41,13 +41,11 @@ public:
     // stream of zeros and the SET_SPEED timeout can't cancel a setpoint.
     static constexpr int16_t kSpeedDeadband = 327;  // ~1% of full scale
 
-    // Position control, in degrees. TODO: tune on the rig.
-    static constexpr float kHoldWindow = 1.0f;         // stop when this close to the target
-    static constexpr float kResumeWindow = 2.0f;       // once stopped, restart only past this
-    static constexpr float kLargeErrorWindow = 10.0f;  // beyond this, drive at kTravelSpeed
-    static constexpr int16_t kTravelSpeed = 16384;     // ~50%
-    static constexpr int16_t kApproachSpeed = 6554;    // ~20%
-    static constexpr int8_t kDriveDirection = 1;       // TODO: set -1 if positive speed decreases the angle
+    // Position control: constant speed toward the target, stop within kHoldWindow (degrees).
+    static constexpr int16_t kPositionSpeed = 16384;  // ~50%; the actuators stall at ~10%
+    static constexpr float kHoldWindow = 2.0f;
+    static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
+    static constexpr int8_t kDriveDirection = 1;  // set -1 if positive speed decreases the angle
 
     enum class ControlMode : uint8_t
     {
@@ -83,6 +81,9 @@ public:
     void set_speed(const int16_t speed) override;
     // SET_POSITION: position command, in position_t units. Switches to Position mode.
     void set_target_position(const int16_t position) override;
+    // Speed 0 in Velocity mode, which a SET_SPEED of 0 alone can't force. The
+    // next SET_POSITION re-arms position control.
+    void stop();
     // GET_POSITION: average of the bank's encoders, in position_t units.
     int16_t get_current_position() const override;
     Status get_status() const;
@@ -105,6 +106,9 @@ public:
     // Degrees (0-360) of any encoder, or nullopt if it has no valid angle or
     // it is older than kFeedbackStaleMs.
     static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms);
+
+    // Shortest signed angle from `from` to `to`, in (-180, 180]: 359 to 1 is +2.
+    static float angle_difference(float to, float from);
 
 private:
     static int16_t position_output(float target, std::optional<float> angle, bool* settled);

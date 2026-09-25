@@ -132,7 +132,7 @@ private:
     bool submit(EncoderId id, const modbus::Request& request);
     void run(Bus& bus);
     void discover(Bus& bus, size_t bus_index);
-    bool probe(Bus& bus, uint8_t slave, bool on);
+    modbus::Result probe(Bus& bus, uint8_t slave, bool on);
     void refresh_stats(const Bus& bus, size_t bus_index);
 
     static void bus_task_entry(void* arg);
