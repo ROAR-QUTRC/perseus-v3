@@ -180,13 +180,8 @@ set(MODEL_URL
     "https://github.com/ROAR-QUTRC/perseus-v2/releases/download/models-v1/${MODEL_FILENAME}"
 )
 set(MODEL_FILENAME "rock_detector.onnx")
-set(MODEL_SOURCE
-    "${CMAKE_CURRENT_SOURCE_DIR}/models/${MODEL_FILENAME}"
-)
-install(
-    FILES "${MODEL_SOURCE}"
-    DESTINATION "share/${PROJECT_NAME}/models"
-)
+set(MODEL_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/models/${MODEL_FILENAME}")
+install(FILES "${MODEL_SOURCE}" DESTINATION "share/${PROJECT_NAME}/models")
 set(MODEL_SHA256
     "1245a1285628839cac4a86dc1380c55b64bc8f764b4190c1c6e7162dafca55f7")
 set(MODEL_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/models")

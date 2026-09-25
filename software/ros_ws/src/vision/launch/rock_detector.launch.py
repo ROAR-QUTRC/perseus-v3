@@ -1,4 +1,5 @@
 """Launch the rock detection node with the shared vision configuration."""
+
 """Launch the rock detection node with the shared vision configuration."""
 
 import os

@@ -2,7 +2,6 @@
 /// @brief Standalone entry point for the rock detection node.
 
 #include <memory>
-
 #include <rclcpp/rclcpp.hpp>
 
 #include "perseus_vision/rock_detector/rock_detector.hpp"

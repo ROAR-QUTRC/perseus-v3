@@ -976,7 +976,7 @@ namespace perseus_vision
             definite_foreground,
             probable_foreground,
             detection.mask);
-                    
+
         // Keep the largest connected foreground area and calculate its centroid.
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(
@@ -1013,7 +1013,7 @@ namespace perseus_vision
         detection.mask = largest_mask;
 
         const cv::Moments moments = cv::moments(detection.contour);
-                
+
         if (std::abs(moments.m00) < 1e-6)
         {
             detection.mask.release();
@@ -1026,7 +1026,6 @@ namespace perseus_vision
 
         return true;
     }
-    
 
     bool RockDetector::_estimate_rock_pose_from_depth(
         const detection_t& detection,
@@ -1058,10 +1057,10 @@ namespace perseus_vision
         }
 
         // FIX: Coordinates are mutable so a valid mask centroid can replace the
-        // bounding-box centre.
+        // bounding-box center.
         int u = detection.bounding_box.x + (detection.bounding_box.width / 2);
         int v = detection.bounding_box.y + (detection.bounding_box.height / 2);
-        
+
         if (!detection.mask.empty())
         {
             u = cvRound(detection.centroid.x);
