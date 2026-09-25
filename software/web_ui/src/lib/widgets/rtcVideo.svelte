@@ -32,13 +32,6 @@
 		}
 	});
 
-	// export type DevIdType = `video${number}`;
-	interface DeviceType {
-		dev: string;
-		serverName: string;
-		name?: string;
-	}
-
 	export type videoTransformType =
 		| 'none'
 		| 'clockwise'
@@ -59,8 +52,8 @@
 			| 'request-stream'
 			| 'group-terminated'
 			| 'device-disconnect';
-		target?: DeviceType;
-		devices?: Array<DeviceType>;
+		target?: string;
+		devices?: Array<string>;
 		data?: {
 			resolution?: { width: number; height: number };
 			transform?: videoTransformType;
@@ -95,27 +88,30 @@
 
 	let socket: Socket = io();
 
-	// These reactive variable map `${dev}-${ip}` to the device name and config
-	let devicesNames = $state<Record<string, string>>({});
+	// The string id is from /dev/v4l/by-id
+	let devicesNames = $state<Array<string>>([]);
 	let config = $derived<Record<string, ConfigType>>(
 		JSON.parse(settings.groups.setupCamera.config.value!) || {}
 	);
 
-	const updateAvailableDevices = (device: DeviceType, addingNewDevice: boolean) => {
-		const UID = `${device.dev}-${device.serverName}`;
-		if (addingNewDevice && !devicesNames[UID] && device.name) {
-			devicesNames[UID] = device.name;
+	const updateAvailableDevices = (device: string, addingNewDevice: boolean) => {
+		if (addingNewDevice && !devicesNames.includes(device)) {
+			devicesNames.push(device);
 			if (!settings.groups.setupCamera.device.options)
 				settings.groups.setupCamera.device.options = [];
 			settings.groups.setupCamera.device.options.push({
-				value: UID,
-				label: device.name
+				value: device,
+				label: device
+					.replace('usb-', '')
+					.replace('-video-index0', '')
+					.replaceAll('-', ' ')
+					.replaceAll('_', ' ')
 			});
-		} else if (!addingNewDevice && devicesNames[UID]) {
-			delete devicesNames[UID];
+		} else if (!addingNewDevice && devicesNames.includes(device)) {
+			devicesNames = devicesNames.filter((d) => d !== device);
 			if (settings.groups.setupCamera.device.options) {
 				settings.groups.setupCamera.device.options =
-					settings.groups.setupCamera.device.options.filter((option) => option.value !== UID);
+					settings.groups.setupCamera.device.options.filter((option) => option.value !== device);
 			}
 		}
 	};
@@ -159,17 +155,13 @@
 				// request streams for cameras in config
 				console.log('Requesting streams:', config, event);
 				Object.keys(config).forEach((device) => {
-					if (event.devices?.some((d) => device === `${d.dev}-${d.serverName}`)) {
+					if (event.devices?.some((d) => device === d)) {
 						const dev = device.split('-')[0];
 						const serverName = device.split(dev + '-')[1];
 						socket.send({
 							type: 'camera',
 							action: 'request-stream',
-							target: {
-								dev,
-								serverName,
-								name: devicesNames[device]
-							},
+							target: device,
 							data: {
 								resolution: config[device].resolution,
 								transform: config[device].transform,
@@ -188,12 +180,11 @@
 			case 'group-terminated':
 				// remove all peer connections for this group
 				event.devices?.forEach((device) => {
-					const UID = `${device.dev}-${device.serverName}`;
-					if (peerConnections[UID]) {
-						peerConnections[UID].connection?.close();
-						peerConnections[UID] = {
+					if (peerConnections[device]) {
+						peerConnections[device].connection?.close();
+						peerConnections[device] = {
 							sessionId: '',
-							name: peerConnections[UID].name,
+							name: peerConnections[device].name,
 							online: false,
 							connection: null,
 							track: null
@@ -238,14 +229,10 @@
 			settings.groups.setupCamera.config.value = JSON.stringify(config);
 
 			// Send request to create camera
-			const dev = values.device.value.split('-')[0];
 			socket.send({
 				type: 'camera',
 				action: 'request-stream',
-				target: {
-					dev,
-					serverName: values.device.value.split(dev + '-')[1]
-				},
+				target: values.device.value,
 				data: {
 					resolution: config[values.device.value].resolution,
 					transform: config[values.device.value].transform,
@@ -309,11 +296,7 @@
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
-			target: {
-				dev,
-				serverName: device.split(dev + '-')[1],
-				name: devicesNames[device]
-			},
+			target: device,
 			data: {
 				resolution: newConfig.resolution,
 				transform: newConfig.transform,
@@ -323,15 +306,10 @@
 	};
 
 	const onVideoRestart = (device: string) => {
-		const dev = device.split('-')[0];
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
-			target: {
-				dev,
-				serverName: device.split(dev + '-')[1],
-				name: devicesNames[device]
-			},
+			target: device,
 			data: {
 				resolution: config[device].resolution,
 				transform: config[device].transform,
