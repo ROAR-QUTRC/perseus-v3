@@ -115,6 +115,9 @@ void setup()
 
     // Failure is logged inside begin();
     encoderBusInstance.begin();
+
+    // Drives the motors for SET_SPEED and SET_POSITION alike, so every bank needs it.
+    start_bank_control_task({&motor_bank_lift.value(), &motor_bank_jaws.value(), &motor_bank_tilt.value()});
 }
 
 void loop()

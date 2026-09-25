@@ -3,6 +3,12 @@
 
 file(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/src/*.*)
 
+# env:can_sim swaps main.cpp for a bench entry point that fakes the CAN bus.
+if(CAN_SIM)
+  list(FILTER app_sources EXCLUDE REGEX ".*/src/main\\.cpp$")
+  list(APPEND app_sources ${CMAKE_SOURCE_DIR}/sim/can_sim.cpp)
+endif()
+
 idf_component_register(
   SRCS
   ${app_sources}

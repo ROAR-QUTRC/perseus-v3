@@ -33,7 +33,7 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
         std::make_pair(
             static_cast<flagged_address_t>(standard_address_t{
                 DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                static_cast<uint8_t>(bank_parameter::GET_ANGLE)}),
+                static_cast<uint8_t>(bank_parameter::GET_POSITION)}),
             PacketManager::transmission_config_t{.generator = ([this]()
                                                                {
                                                                     parameters::excavation::bucket::controller::position_t position{this->_motor_bank.get_current_position()};
@@ -51,6 +51,8 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
                 .data_callback = ([this](const Packet& packet)
                                   {
                                     const auto& raw_data = packet.get_data();
+                                    if (raw_data.size() != sizeof(int16_t))
+                                        return;
                                     parameters::excavation::bucket::controller::speed_t speed;
                                     speed.deserialize_data(raw_data);
                                     this->_motor_bank.set_speed(speed.value); }),
@@ -62,12 +64,14 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
             filter_t{
                 static_cast<flagged_address_t>(standard_address_t{
                     DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                    static_cast<uint8_t>(bank_parameter::SET_ANGLE)}),
+                    static_cast<uint8_t>(bank_parameter::SET_POSITION)}),
             },
             PacketManager::callback_config_t{
                 .data_callback = ([this](const Packet& packet)
                                   {
                                     const auto& raw_data = packet.get_data();
+                                    if (raw_data.size() != sizeof(int16_t))
+                                        return;
                                     parameters::excavation::bucket::controller::position_t position;
                                     position.deserialize_data(raw_data);
                                     this->_motor_bank.set_target_position(position.value); }),

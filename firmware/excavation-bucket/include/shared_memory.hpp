@@ -5,43 +5,16 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "encoder_bus.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "hi_can_parameter.hpp"
+#include "lock.hpp"
 
-/**
- * @brief Reusable RAII Lock guard for FreeRTOS semaphores/mutexes.
- * @details Automatically takes the mutex on construction and releases it on destruction.
- */
-
-// TODO: this is a copy of Mozz's lock, consider refactoring or using a common implementation if available.
-class Lock
-{
-public:
-    explicit Lock(SemaphoreHandle_t mutex)
-        : _mutex(mutex)
-    {
-        if (_mutex != nullptr)
-        {
-            xSemaphoreTake(_mutex, portMAX_DELAY);
-        }
-    }
-
-    ~Lock()
-    {
-        if (_mutex != nullptr)
-        {
-            xSemaphoreGive(_mutex);
-        }
-    }
-
-    Lock(const Lock&) = delete;
-    Lock& operator=(const Lock&) = delete;
-
-private:
-    SemaphoreHandle_t _mutex;
-};
+// position_t on CAN (GET_ANGLE, GET_POSITION, SET_POSITION) is degrees x10.
+inline constexpr float kPositionUnitsPerDegree = 10.0f;
 
 /**
  * @brief Abstract class to represent a generic excavation joint in shared memory.
@@ -118,7 +91,7 @@ public:
         if (reading.angle_valid)
         {
             Lock lock(_mutex);
-            _current_position = static_cast<int16_t>(reading.degrees);
+            _current_position = static_cast<int16_t>(std::lround(reading.degrees * kPositionUnitsPerDegree));
         }
     }
 

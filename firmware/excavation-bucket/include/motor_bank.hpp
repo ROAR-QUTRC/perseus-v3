@@ -4,6 +4,7 @@
 
 #include <board_support.hpp>
 #include <cstdint>
+#include <optional>
 
 #include "encoder_bus.hpp"
 #include "freertos/FreeRTOS.h"
@@ -14,7 +15,7 @@
 
 /**
  * @brief A class responsible for managing pair of motors (Left = A, Right = B) (TODO: check this and update)
- * @details This class provides an interface to control both motors as a pair and the individual motors separately.
+ * @details Both motors always get the same command: SET_SPEED (velocity) or SET_POSITION (position) is per bank.
  */
 class MotorBank : public ExcavationJoint
 {
@@ -30,14 +31,38 @@ public:
     static constexpr float MAX_VOLTAGE = 3.3f;  // volts
     static constexpr float MAX_CURRENT = 6.0f;  // amps
 
-    // Fixed period the bank control task calls control_tick() at; also
-    // PidController's dt. Must match bank_control_task's own period.
+    // Period bank_control_task calls control_tick() at.
     static constexpr uint32_t kControlPeriodMs = 20;
 
-    // A feedback reading older than this (both sides) is treated as a sensor
-    // fault by control_tick(): drop back to open loop and stop, rather than
-    // drive on stale data. 5x EncoderBus::kAnglePeriodMs.
+    // Encoder readings older than this are treated as missing. 5x EncoderBus::kAnglePeriodMs.
     static constexpr uint32_t kFeedbackStaleMs = 100;
+
+    // SET_SPEED values within this band don't leave Position mode, so teleop's
+    // stream of zeros and the SET_SPEED timeout can't cancel a setpoint.
+    static constexpr int16_t kSpeedDeadband = 327;  // ~1% of full scale
+
+    // Position control, in degrees. TODO: tune on the rig.
+    static constexpr float kHoldWindow = 1.0f;         // stop when this close to the target
+    static constexpr float kResumeWindow = 2.0f;       // once stopped, restart only past this
+    static constexpr float kLargeErrorWindow = 10.0f;  // beyond this, drive at kTravelSpeed
+    static constexpr int16_t kTravelSpeed = 16384;     // ~50%
+    static constexpr int16_t kApproachSpeed = 6554;    // ~20%
+    static constexpr int8_t kDriveDirection = 1;       // TODO: set -1 if positive speed decreases the angle
+
+    enum class ControlMode : uint8_t
+    {
+        Velocity,  // SET_SPEED: the commanded speed goes straight to the motors
+        Position,  // SET_POSITION: control_tick() drives toward the target
+    };
+
+    struct Status
+    {
+        ControlMode mode;
+        int16_t speed;
+        int16_t target_position;  // position_t units (degrees x10)
+        int16_t output_a;         // last values sent to the drivers
+        int16_t output_b;
+    };
 
     MotorBank(const bsp::pin_pair_t& driver_A_pins, EncoderId driver_A_encoder_id, uint8_t driver_A_encoder_group_id,
               const bsp::pin_pair_t& driver_B_pins, EncoderId driver_B_encoder_id, uint8_t driver_B_encoder_group_id,
@@ -51,19 +76,17 @@ public:
 
     virtual ~MotorBank();
 
-    // the function to be continually called to update motor status and control signals
+    // Caches each side's encoder angle for the per-encoder GET_ANGLE reports.
     void monitor_and_move(void) override;
 
-    // whole bank setting (applies to both motors)
+    // SET_SPEED: velocity command. A speed outside kSpeedDeadband switches to Velocity mode.
     void set_speed(const int16_t speed) override;
+    // SET_POSITION: position command, in position_t units. Switches to Position mode.
     void set_target_position(const int16_t position) override;
+    // GET_POSITION: average of the bank's encoders, in position_t units.
     int16_t get_current_position() const override;
+    Status get_status() const;
 
-    // individual motors
-    void set_speed_a(const int16_t speed);
-    void set_speed_b(const int16_t speed);
-    void set_target_position_a(const int16_t position);
-    void set_target_position_b(const int16_t position);
     int16_t get_current_position_a() const;
     int16_t get_current_position_b() const;
     MotorDriver& get_driver_A(void);
@@ -74,37 +97,17 @@ public:
     bool is_in_fault();
     std::vector<uint8_t> get_fault();
 
-    // Averaged raw encoder counts across the bank's two sides, serialized as
-    // position_t. Reports 0 if neither side currently has fresh, valid data.
-    std::vector<uint8_t> get_position();
+    // Called every kControlPeriodMs by bank_control_task. The only place the
+    // motors are driven: Velocity mode applies the commanded speed, Position
+    // mode the control output.
+    void control_tick(uint32_t now_ms);
+
+    // Degrees (0-360) of any encoder, or nullopt if it has no valid angle or
+    // it is older than kFeedbackStaleMs.
+    static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms);
 
 private:
-    enum class ControlMode : uint8_t
-    {
-        OPEN_LOOP_SPEED,
-        CLOSED_LOOP_POSITION,
-    };
-
-    class Lock
-    {
-    public:
-        explicit Lock(SemaphoreHandle_t mutex)
-            : _mutex(mutex)
-        {
-            xSemaphoreTake(_mutex, portMAX_DELAY);
-        }
-        ~Lock() { xSemaphoreGive(_mutex); }
-
-        Lock(const Lock&) = delete;
-        Lock& operator=(const Lock&) = delete;
-
-    private:
-        SemaphoreHandle_t _mutex;
-    };
-
-    // Averages whichever of the bank's two encoders currently has fresh,
-    // valid data. Returns false (leaving *out untouched) if neither does.
-    bool average_raw_counts(uint32_t now_ms, int16_t* out) const;
+    static int16_t position_output(float target, std::optional<float> angle, bool* settled);
 
     MotorDriver _driver_A;
     MotorDriver _driver_B;
@@ -112,15 +115,17 @@ private:
     const gpio_num_t _current_sense_pin;
     const gpio_num_t _fault_pin;
 
-    const EncoderId _encoder_left;
-    const EncoderId _encoder_right;
-
-    PidController _position_pid;
-    ControlMode _mode = ControlMode::OPEN_LOOP_SPEED;
-    int16_t _position_setpoint = 0;
-
-    // Guards _mode, _position_setpoint, and every _driver_A/_driver_B write -
-    // the state/hardware touched by both the CAN callback thread (set_speed(),
-    // set_position_setpoint()) and the control task (control_tick()).
+    // Written by the CAN task, read by the control task; guarded by _mutex.
     SemaphoreHandle_t _mutex;
+    ControlMode _mode = ControlMode::Velocity;
+    int16_t _speed = 0;
+    int16_t _target_position = 0;
+    int16_t _output_a = 0;
+    int16_t _output_b = 0;
+
+    // Owned by the control task.
+    ControlMode _last_mode = ControlMode::Velocity;
+    int16_t _last_target = 0;
+    bool _settled_a = false;
+    bool _settled_b = false;
 };

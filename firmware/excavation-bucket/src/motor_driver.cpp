@@ -1,6 +1,6 @@
 #include "motor_driver.hpp"
 
-#include <Arduino.h>  // TODO: required to load before motor_driver.hpp due to IPADDR_NONE collission
+#include <Arduino.h>  // TODO: required to load before motor_driver.hpp due to IPADDR_NONE collision
 
 #include <stdexcept>
 
@@ -54,48 +54,48 @@ void MotorDriver::monitor_and_move(void)
     // if (get_current_position() != _motor_memory.get_target_position())
 }
 
-// void MotorDriver::set_speed(int16_t speed)
-// {
-//     speed = map(speed, std::numeric_limits<int16_t>::min(),
-//                 std::numeric_limits<int16_t>::max(), -PWM_MAX, PWM_MAX);
+void MotorDriver::drive(int16_t speed)
+{
+    speed = map(speed, std::numeric_limits<int16_t>::min(),
+                std::numeric_limits<int16_t>::max(), -PWM_MAX, PWM_MAX);
 
-//     direction current_dir = direction::STOPPED;
-//     if (speed > 0)
-//         current_dir = direction::FORWARD;
-//     else if (speed < 0)
-//         current_dir = direction::BACKWARD;
-//     bool dir_changed = (current_dir != _prev_direction);
-//     _prev_direction = current_dir;
+    direction current_dir = direction::STOPPED;
+    if (speed > 0)
+        current_dir = direction::FORWARD;
+    else if (speed < 0)
+        current_dir = direction::BACKWARD;
+    bool dir_changed = (current_dir != _prev_direction);
+    _prev_direction = current_dir;
 
-//     if (dir_changed)
-//     {
-//         if (current_dir == direction::FORWARD)
-//         {
-//             pinMode(_pins.second, OUTPUT);
-//             digitalWrite(_pins.second, LOW);
-//             analogWrite(_pins.first, 1);
-//             analogWriteResolution(_pins.first, PWM_BITS);
-//             analogWriteFrequency(_pins.first, PWM_FREQ);
-//         }
-//         else if (current_dir == direction::BACKWARD)
-//         {
-//             pinMode(_pins.first, OUTPUT);
-//             digitalWrite(_pins.first, LOW);
-//             analogWrite(_pins.second, 1);
-//             analogWriteResolution(_pins.second, PWM_BITS);
-//             analogWriteFrequency(_pins.second, PWM_FREQ);
-//         }
-//         else
-//         {
-//             pinMode(_pins.first, OUTPUT);
-//             pinMode(_pins.second, OUTPUT);
-//             digitalWrite(_pins.first, LOW);
-//             digitalWrite(_pins.second, LOW);
-//         }
-//     }
+    if (dir_changed)
+    {
+        if (current_dir == direction::FORWARD)
+        {
+            pinMode(_pins.second, OUTPUT);
+            digitalWrite(_pins.second, LOW);
+            analogWrite(_pins.first, 1);
+            analogWriteResolution(_pins.first, PWM_BITS);
+            analogWriteFrequency(_pins.first, PWM_FREQ);
+        }
+        else if (current_dir == direction::BACKWARD)
+        {
+            pinMode(_pins.first, OUTPUT);
+            digitalWrite(_pins.first, LOW);
+            analogWrite(_pins.second, 1);
+            analogWriteResolution(_pins.second, PWM_BITS);
+            analogWriteFrequency(_pins.second, PWM_FREQ);
+        }
+        else
+        {
+            pinMode(_pins.first, OUTPUT);
+            pinMode(_pins.second, OUTPUT);
+            digitalWrite(_pins.first, LOW);
+            digitalWrite(_pins.second, LOW);
+        }
+    }
 
-//     if (speed > 0)
-//         analogWrite(_pins.first, speed);
-//     else if (speed < 0)
-//         analogWrite(_pins.second, -speed);
-// }
+    if (speed > 0)
+        analogWrite(_pins.first, speed);
+    else if (speed < 0)
+        analogWrite(_pins.second, -speed);
+}

@@ -24,8 +24,12 @@ public:
     void set_speed(int16_t speed) override;
     void set_target_position(int16_t position) override;
     int16_t get_current_position() const override;
+    EncoderId encoder_id() const { return _motor_memory.encoder_id(); }
 
     void monitor_and_move(void) override;
+
+    // Writes the PWM. Only the bank control task calls this; +/-32767 = full.
+    void drive(int16_t speed);
 
 private:
     direction _prev_direction = direction::STOPPED;

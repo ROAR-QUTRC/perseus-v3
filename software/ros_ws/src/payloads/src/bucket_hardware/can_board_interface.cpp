@@ -296,35 +296,35 @@ namespace payloads
         Packet packet(addressing::flagged_address_t(address), {});
         can_interface_->transmit(packet);
     }
+    /*REMOVE OR ADD LATER*/
+    // void CanBoardInterface::reset_axis(Axis axis)  // reset to zero is no longer in address, fix later
+    // {
+    //     if (!can_interface_)
+    //     {
+    //         return;
+    //     }
+    //     // TODO: confirm RESET_TO_ZERO expects an empty payload - same caveat as
+    //     // zero_axis().
+    //     // See can_board_interface.hpp for type defs.
+    //     const auto address = bank_address(axis, bucket_addr::bank_parameter::RESET_TO_ZERO);
+    //     Packet packet(addressing::flagged_address_t(address), {});
+    //     can_interface_->transmit(packet);
+    // }
 
-    void CanBoardInterface::reset_axis(Axis axis)
-    {
-        if (!can_interface_)
-        {
-            return;
-        }
-        // TODO: confirm RESET_TO_ZERO expects an empty payload - same caveat as
-        // zero_axis().
-        // See can_board_interface.hpp for type defs.
-        const auto address = bank_address(axis, bucket_addr::bank_parameter::RESET_TO_ZERO);
-        Packet packet(addressing::flagged_address_t(address), {});
-        can_interface_->transmit(packet);
-    }
-
-    void CanBoardInterface::set_axis_sleep(Axis axis, bool sleep)
-    {
-        if (!can_interface_)
-        {
-            return;
-        }
-        // TODO: confirm SET_SLEEP reuses status_t (bool) - no dedicated type is
-        // declared for it in hi_can_parameter.hpp, only GET_FAULT is explicitly
-        // tied to status_t.
-        bucket_param::status_t param{sleep};
-        const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_SLEEP);
-        Packet packet(addressing::flagged_address_t(address), param.serialize_data());
-        can_interface_->transmit(packet);
-    }
+    // void CanBoardInterface::set_axis_sleep(Axis axis, bool sleep)
+    // {
+    //     if (!can_interface_)
+    //     {
+    //         return;
+    //     }
+    //     // TODO: confirm SET_SLEEP reuses status_t (bool) - no dedicated type is
+    //     // declared for it in hi_can_parameter.hpp, only GET_FAULT is explicitly
+    //     // tied to status_t.
+    //     bucket_param::status_t param{sleep};
+    //     const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_SLEEP);
+    //     Packet packet(addressing::flagged_address_t(address), param.serialize_data());
+    //     can_interface_->transmit(packet);
+    // }
 
     EncoderState CanBoardInterface::get_last_encoder_state(Axis axis, Side side) const
     {

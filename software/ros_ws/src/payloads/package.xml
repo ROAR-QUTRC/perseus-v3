@@ -5,6 +5,8 @@
   <version>0.2.1</version>
   <description>Payload-specific nodes and launch files for the Perseus Rover.</description>
   <license>MIT</license>
+  <maintainer email="evanfoxx18@gmail.com">Mozz</maintainer>
+
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

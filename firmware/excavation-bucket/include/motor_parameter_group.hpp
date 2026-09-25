@@ -1,6 +1,6 @@
 /**
  * @file motor_parameter_group.hpp
- * @details Provides class for managing the hi_can transmission and callbacks for encoder readings and actuation of a single bucket actuator.
+ * @details Provides class for managing the hi_can transmission and callbacks for encoder readings (GET_ANGLE) of a single bucket actuator. Commands are per bank, via MotorBankParameterGroup.
  */
 #pragma once
 

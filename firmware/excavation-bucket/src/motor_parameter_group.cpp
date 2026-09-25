@@ -34,20 +34,4 @@ MotorParameterGroup::MotorParameterGroup(hi_can::addressing::excavation::bucket:
                 return position.serialize_data(); }),
                 .interval = 50ms}),
     };
-    _callbacks = {
-        std::make_pair(
-            filter_t{
-                static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_encoder_group), static_cast<uint8_t>(controller::encoder_parameter::SET_ANGLE)}),
-            },
-            PacketManager::callback_config_t{
-                .data_callback = ([this](const Packet& packet)
-                                  {
-                        const auto& raw_data = packet.get_data();
-                        parameters::excavation::bucket::controller::position_t position;
-                        position.deserialize_data(raw_data);
-                        this->_motor_driver.set_target_position(position.value); }),
-                .timeout = 200ms,
-            }),
-    };
 }

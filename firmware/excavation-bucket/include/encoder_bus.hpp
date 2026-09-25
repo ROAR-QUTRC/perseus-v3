@@ -1,7 +1,9 @@
 // encoder_bus.hpp
 //
 // Master side of the joint encoders: two RS485 buses (bsp::RS485_1, RS485_2)
-// polled by the shared modbus core, one FreeRTOS task per bus. Control code
+// polled by the shared modbus core, one FreeRTOS task per bus. Each task first
+// runs discovery (bus 1, then bus 2) and only polls encoders that answered.
+// Control code
 // reads the latest readings with EncoderBus::get() and sends commands with
 // zero() / identify(); it never touches the buses directly.
 
@@ -12,6 +14,7 @@
 
 #include "board_support.hpp"
 #include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "modbus/esp32_clock.hpp"
@@ -30,11 +33,16 @@ enum class EncoderId : uint8_t
 };
 
 inline constexpr size_t kEncoderCount = 6;
+inline constexpr uint8_t kAllEncoders = (1u << kEncoderCount) - 1;
+
+constexpr uint8_t encoder_bit(EncoderId id) { return 1u << static_cast<uint8_t>(id); }
 
 const char* to_string(EncoderId id);
 
 struct EncoderReading
 {
+    bool present = false;  // answered discovery at boot; never polled otherwise
+
     // Set by a good angle read. Cleared when the encoder answers with an
     // exception (no magnet, or a failed I2C read on the board). Link failures
     // leave the last value in place: check `link` and angle_age_ms().
@@ -65,13 +73,22 @@ public:
     static constexpr uint32_t kStatusPeriodMs = 200;
     static constexpr uint32_t kHeartbeatPeriodMs = 1000;  // broadcast, once per bus
 
-    // Installs both UARTs, registers the six encoders and starts the bus
-    // tasks. Returns false (after logging) if anything fails; the rest of the
+    static constexpr uint8_t kDiscoveryRounds = 3;
+    static constexpr uint8_t kDiscoveryFirstSlave = 1;  // DIP 0-7
+    static constexpr uint8_t kDiscoveryLastSlave = 8;
+    static constexpr uint32_t kDiscoveryProbeMs = 500;  // identify LED stays on this long per address
+
+    // Installs both UARTs and starts the bus tasks, which discover the
+    // encoders and register those in `enabled` (a mask of encoder_bit()).
+    // Returns false (after logging) if anything fails; the rest of the
     // firmware keeps running without encoder data.
-    bool begin();
+    bool begin(uint8_t enabled = kAllEncoders);
 
     // Latest reading for one encoder; false before begin().
     bool get(EncoderId id, EncoderReading* out) const;
+
+    // True once both buses have finished discovery and started polling.
+    bool ready() const;
 
     // Clock the reading timestamps come from, for computing ages.
     uint32_t now_ms() { return clock_.now_ms(); }
@@ -103,6 +120,9 @@ private:
         EncoderBus* owner;
     };
 
+    static constexpr EventBits_t discovered_bit(size_t bus_index) { return 1u << bus_index; }
+    static constexpr EventBits_t kAllDiscovered = (1u << kBusCount) - 1;
+
     struct Slot
     {
         EncoderBus* owner;
@@ -111,6 +131,8 @@ private:
 
     bool submit(EncoderId id, const modbus::Request& request);
     void run(Bus& bus);
+    void discover(Bus& bus, size_t bus_index);
+    bool probe(Bus& bus, uint8_t slave, bool on);
     void refresh_stats(const Bus& bus, size_t bus_index);
 
     static void bus_task_entry(void* arg);
@@ -118,6 +140,7 @@ private:
     static void on_status(const modbus::Response& response, void* ctx);
     static void on_state_change(uint8_t slave, modbus::DeviceState from, modbus::DeviceState to, void* ctx);
     static void on_command_done(const modbus::Response& response, void* ctx);
+    static void on_probe_done(const modbus::Response& response, void* ctx);
 
     modbus::Esp32Clock clock_;
     Bus bus1_;
@@ -126,6 +149,8 @@ private:
     Slot slots_[kEncoderCount];
     EncoderReading readings_[kEncoderCount];
     SemaphoreHandle_t mutex_ = nullptr;
+    EventGroupHandle_t events_ = nullptr;
+    uint8_t enabled_ = kAllEncoders;
     bool started_ = false;
 };
 

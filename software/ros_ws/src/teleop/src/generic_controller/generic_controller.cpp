@@ -20,10 +20,11 @@ GenericController::GenericController(const rclcpp::NodeOptions& options)
         std::make_pair(TILT_BASE_NAME, AxisParser(*this, TILT_BASE_NAME)));
     _axis_parsers.emplace(
         std::make_pair(JAWS_BASE_NAME, AxisParser(*this, JAWS_BASE_NAME)));
-    _axis_parsers.emplace(
-        std::make_pair(ROTATE_BASE_NAME, AxisParser(*this, ROTATE_BASE_NAME)));
-    _axis_parsers.emplace(
-        std::make_pair(MAGNET_BASE_NAME, AxisParser(*this, MAGNET_BASE_NAME)));
+    /*Remove old reference to magnet*/
+    // _axis_parsers.emplace(
+    //     std::make_pair(ROTATE_BASE_NAME, AxisParser(*this, ROTATE_BASE_NAME)));
+    // _axis_parsers.emplace(
+    //     std::make_pair(MAGNET_BASE_NAME, AxisParser(*this, MAGNET_BASE_NAME)));
     _joy_subscription = this->create_subscription<sensor_msgs::msg::Joy>(
         "joy", 10,
         std::bind(&GenericController::_joy_callback, this,

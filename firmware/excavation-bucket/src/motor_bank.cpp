@@ -2,8 +2,11 @@
 
 #include <Arduino.h>
 
+#include <cmath>
+
 #include "encoder_bus.hpp"
 #include "hi_can_parameter.hpp"
+#include "lock.hpp"
 
 MotorBank::MotorBank(const bsp::pin_pair_t& driver_A_pins,
                      EncoderId driver_A_encoder_id,
@@ -17,9 +20,6 @@ MotorBank::MotorBank(const bsp::pin_pair_t& driver_A_pins,
       _driver_B(driver_B_pins, driver_B_encoder_id, driver_B_encoder_group_id, encoder_bus),
       _current_sense_pin(current_sense_pin),
       _fault_pin(fault_pin),
-      _encoder_left(encoder_left),
-      _encoder_right(encoder_right),
-      _position_pid(kControlPeriodMs / 1000.0),
       _mutex(xSemaphoreCreateMutex())
 {
     pinMode(_current_sense_pin, INPUT);
@@ -44,29 +44,38 @@ void MotorBank::monitor_and_move(void)
 void MotorBank::set_speed(const int16_t speed)
 {
     Lock lock(_mutex);
-    _mode = ControlMode::OPEN_LOOP_SPEED;
-    _driver_A.set_speed(speed);
-    _driver_B.set_speed(speed);
+    _speed = speed;
+    if (speed > kSpeedDeadband || speed < -kSpeedDeadband)
+        _mode = ControlMode::Velocity;
 }
 
 void MotorBank::set_target_position(const int16_t position)
 {
-    _driver_A.set_target_position(position);
-    _driver_B.set_target_position(position);
+    Lock lock(_mutex);
+    _target_position = position;
+    _mode = ControlMode::Position;
 }
 
+// Falls back to the last cached angles if neither encoder is fresh.
 int16_t MotorBank::get_current_position() const
 {
-    int16_t A_position = _driver_A.get_current_position();
-    int16_t B_position = _driver_B.get_current_position();
-
-    return static_cast<int16_t>((A_position + B_position) / 2);
+    const uint32_t now = encoder_bus().now_ms();
+    const std::optional<float> a = encoder_degrees(_driver_A.encoder_id(), now);
+    const std::optional<float> b = encoder_degrees(_driver_B.encoder_id(), now);
+    if (a || b)
+    {
+        const float degrees = (a && b) ? (*a + *b) / 2.0f : (a ? *a : *b);
+        return static_cast<int16_t>(std::lround(degrees * kPositionUnitsPerDegree));
+    }
+    return static_cast<int16_t>((_driver_A.get_current_position() + _driver_B.get_current_position()) / 2);
 }
 
-void MotorBank::set_speed_a(const int16_t speed) { _driver_A.set_speed(speed); }
-void MotorBank::set_speed_b(const int16_t speed) { _driver_B.set_speed(speed); }
-void MotorBank::set_target_position_a(const int16_t position) { _driver_A.set_target_position(position); }
-void MotorBank::set_target_position_b(const int16_t position) { _driver_B.set_target_position(position); }
+MotorBank::Status MotorBank::get_status() const
+{
+    Lock lock(_mutex);
+    return {_mode, _speed, _target_position, _output_a, _output_b};
+}
+
 int16_t MotorBank::get_current_position_a() const { return _driver_A.get_current_position(); }
 int16_t MotorBank::get_current_position_b() const { return _driver_B.get_current_position(); }
 MotorDriver& MotorBank::get_driver_A() { return _driver_A; }
@@ -95,10 +104,80 @@ std::vector<uint8_t> MotorBank::get_fault()
     return status.serialize_data();
 }
 
-std::vector<uint8_t> MotorBank::get_position()
+void MotorBank::control_tick(uint32_t now_ms)
 {
-    int16_t counts = 0;
-    average_raw_counts(encoder_bus().now_ms(), &counts);
-    hi_can::parameters::excavation::bucket::controller::position_t position{counts};
-    return position.serialize_data();
+    ControlMode mode;
+    int16_t speed;
+    int16_t target;
+    {
+        Lock lock(_mutex);
+        mode = _mode;
+        speed = _speed;
+        target = _target_position;
+    }
+
+    int16_t output_a = speed;
+    int16_t output_b = speed;
+
+    if (mode == ControlMode::Position)
+    {
+        if (_last_mode != ControlMode::Position || target != _last_target)
+        {
+            _settled_a = false;
+            _settled_b = false;
+            _last_target = target;
+        }
+
+        // Both actuators move the same joint, so a side with no reading
+        // follows the other side's encoder.
+        const float target_degrees = target / kPositionUnitsPerDegree;
+        const std::optional<float> angle_a = encoder_degrees(_driver_A.encoder_id(), now_ms);
+        const std::optional<float> angle_b = encoder_degrees(_driver_B.encoder_id(), now_ms);
+        output_a = position_output(target_degrees, angle_a ? angle_a : angle_b, &_settled_a);
+        output_b = position_output(target_degrees, angle_b ? angle_b : angle_a, &_settled_b);
+    }
+    _last_mode = mode;
+
+    _driver_A.drive(output_a);
+    _driver_B.drive(output_b);
+
+    Lock lock(_mutex);
+    _output_a = output_a;
+    _output_b = output_b;
+}
+
+// Constant-speed drive toward the target: kTravelSpeed while far off,
+// kApproachSpeed inside kLargeErrorWindow, stop inside kHoldWindow. Once
+// stopped it stays stopped until the error passes kResumeWindow, so encoder
+// noise at the window edge can't make the motor chatter.
+int16_t MotorBank::position_output(float target, std::optional<float> angle, bool* settled)
+{
+    if (!angle)
+    {
+        *settled = false;
+        return 0;  // no feedback: don't drive blind
+    }
+
+    const float error = target - *angle;
+    const float magnitude = std::fabs(error);
+
+    if (*settled && magnitude <= kResumeWindow)
+        return 0;
+    if (magnitude <= kHoldWindow)
+    {
+        *settled = true;
+        return 0;
+    }
+    *settled = false;
+
+    const int16_t speed = magnitude > kLargeErrorWindow ? kTravelSpeed : kApproachSpeed;
+    return error > 0 ? speed * kDriveDirection : -speed * kDriveDirection;
+}
+
+std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
+{
+    EncoderReading reading;
+    if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > kFeedbackStaleMs)
+        return std::nullopt;
+    return reading.degrees;
 }
