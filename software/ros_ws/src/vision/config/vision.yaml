@@ -154,8 +154,8 @@ stereo_odometry:
     # 0.0 disables a given axis; both 0.0 disables the deadband entirely (every estimate
     # is integrated as-is). Tune by watching .../pose while stationary and setting these
     # just above the noise floor you actually observe. Runtime-adjustable via `ros2 param set`.
-    static_translation_deadband_m: 0.01 # 1cm
-    static_rotation_deadband_rad: 0.005 # ~0.3 degrees
+    static_translation_deadband_m: 0.0 # 1cm
+    static_rotation_deadband_rad: 0.0 # ~0.3 degrees
     # libviso2 feature matcher. Unlike the perseus-v2 origin of this config, match_radius
     # and the bucket.* block below are left at libviso2's own out-of-the-box defaults
     # (200 / 50 / 50), not scaled down: this repo's realsense.yaml runs the infra pair at
