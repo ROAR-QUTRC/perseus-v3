@@ -38,8 +38,8 @@ ip = "192.168.2.18"
 # have sat on 192.168.2.0/24 at once -- which is why the interface is pinned rather than
 # left to Cyclone's autodetection. When docked: interface = "enp12s0", ip = "192.168.2.21".
 [BoMachine]
-interface = "wlp18s0"
-ip = "192.168.2.13"
+interface = "enp12s0"
+ip = "192.168.2.21"
 enabled = true
 
 # The hostnames below are placeholders; replace each with that machine's `hostname`.
