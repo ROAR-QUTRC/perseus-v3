@@ -43,7 +43,8 @@ add_library(
   vision_components SHARED
   src/common/detection_renderer.cpp src/aruco_detector/aruco_detector.cpp
   src/cube_detector/cube_detector.cpp
-  src/detection_overlay/detection_overlay.cpp)
+  src/detection_overlay/detection_overlay.cpp
+  src/rock_detector/rock_detector.cpp)
 
 target_include_directories(
   vision_components
@@ -160,6 +161,10 @@ add_executable(stereo_odometry src/stereo_odometry/stereo_odometry_node.cpp)
 target_link_libraries(stereo_odometry vision_stereo_odom)
 ament_target_dependencies(stereo_odometry rclcpp)
 
+add_executable(rock_detector_node src/rock_detector/rock_detector_node.cpp)
+target_link_libraries(rock_detector_node vision_components)
+ament_target_dependencies(rock_detector_node rclcpp)
+
 # ── install ───────────────────────────────────────────────────────────────────
 install(
   TARGETS vision_components vision_stereo_odom
@@ -168,7 +173,7 @@ install(
   RUNTIME DESTINATION bin)
 
 install(TARGETS aruco_detector_node cube_detector detection_overlay_node
-                stereo_odometry DESTINATION lib/${PROJECT_NAME})
+                stereo_odometry rock_detector_node DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
@@ -180,7 +185,7 @@ set(MODEL_URL
     "https://github.com/ROAR-QUTRC/perseus-v2/releases/download/models-v1/${MODEL_FILENAME}"
 )
 set(MODEL_FILENAME "rock_detector.onnx")
-set(MODEL_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/models/${MODEL_FILENAME}")
+set(MODEL_SOURCE "/home/shaan/perseus_v3/perseus-v3/src/perseus_vision/models/${MODEL_FILENAME}")
 install(FILES "${MODEL_SOURCE}" DESTINATION "share/${PROJECT_NAME}/models")
 set(MODEL_SHA256
     "1245a1285628839cac4a86dc1380c55b64bc8f764b4190c1c6e7162dafca55f7")

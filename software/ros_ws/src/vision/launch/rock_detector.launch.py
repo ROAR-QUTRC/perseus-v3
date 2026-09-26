@@ -14,9 +14,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     """Build the launch description for the rock detector node."""
     # Get the package directory
-    perseus_vision_dir = get_package_share_directory("perseus_vision")
+    perseus_vision_dir = get_package_share_directory("vision")
     config_dir = os.path.join(perseus_vision_dir, "config")
-    config_file = os.path.join(config_dir, "perseus_vision.yaml")
+    config_file = os.path.join(config_dir, "vision.yaml")
 
     # Declare launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
@@ -25,8 +25,8 @@ def generate_launch_description():
 
     # Create the rock_detector node
     rock_detector_node = Node(
-        package="perseus_vision",
-        executable="rock_detector",
+        package="vision",
+        executable="rock_detector_node",
         name="rock_detector",
         parameters=[config_file, {"use_sim_time": LaunchConfiguration("use_sim_time")}],
         output="screen",

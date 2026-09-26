@@ -1,7 +1,7 @@
 /// @file rock_detector.cpp
 /// @brief Implementation of the rock detection and depth-based pose estimation node.
 
-#include "perseus_vision/rock_detector/rock_detector.hpp"
+#include "vision/rock_detector/rock_detector.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,9 +19,9 @@
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include "perseus_vision/common/detection_renderer.hpp"
+#include "vision/common/detection_renderer.hpp"
 
-namespace perseus_vision
+namespace vision
 {
     namespace
     {
@@ -66,7 +66,7 @@ namespace perseus_vision
         /// @brief File name of the rock detection model shipped in the package share directory.
         const std::string PACKAGED_MODEL_FILENAME = "rock_detector.onnx";
         /// @brief Name of the package the model and configuration are installed under.
-        const std::string PACKAGE_NAME = "perseus_vision";
+        const std::string PACKAGE_NAME = "vision";
 
         /// @brief Depth image encoding holding 16-bit unsigned values.
         const std::string DEPTH_ENCODING_16UC1 = "16UC1";
@@ -257,7 +257,7 @@ namespace perseus_vision
         /// @brief Draws the capture timestamp and detection list onto an image.
         /// @param frame Image to draw onto. Modified in place.
         /// @param detections Detections to list, already drawn by the shared renderer.
-        void draw_capture_overlay(cv::Mat& frame, const perseus_interfaces::msg::DetectionArray& detections)
+        void draw_capture_overlay(cv::Mat& frame, const interfaces::msg::DetectionArray& detections)
         {
             const cv::Scalar timestamp_color(0, 255, 255);
             const cv::Scalar frame_id_color(255, 255, 0);
@@ -330,7 +330,7 @@ namespace perseus_vision
         }
 
         // Publishers and services
-        _detection_publisher = create_publisher<perseus_interfaces::msg::DetectionArray>(
+        _detection_publisher = create_publisher<interfaces::msg::DetectionArray>(
             _output_detections_topic, QOS_DEPTH);
         _rock_marker_publisher = create_publisher<visualization_msgs::msg::MarkerArray>(
             _output_markers_topic, QOS_DEPTH);
@@ -787,7 +787,7 @@ namespace perseus_vision
             _warn_if_depth_frame_mismatched(header);
         }
 
-        perseus_interfaces::msg::DetectionArray detections_msg;
+        interfaces::msg::DetectionArray detections_msg;
         detections_msg.header = header;
         detections_msg.detections.reserve(detections.size());
 
@@ -796,7 +796,7 @@ namespace perseus_vision
         {
             const std::size_t class_index = static_cast<std::size_t>(detection.class_id);
 
-            perseus_interfaces::msg::Detection detection_msg;
+            interfaces::msg::Detection detection_msg;
             detection_msg.bounding_box = polygon_from_rect(detection.bounding_box);
             // The shared overlay renderer uses the message colour.
             detection_msg.color = color_from_bgr(CLASS_COLORS[class_index]);
@@ -872,7 +872,7 @@ namespace perseus_vision
             depth_frame_id.c_str(), color_header.frame_id.c_str());
     }
 
-    void RockDetector::_publish_markers(const perseus_interfaces::msg::DetectionArray& detections)
+    void RockDetector::_publish_markers(const interfaces::msg::DetectionArray& detections)
     {
         visualization_msgs::msg::MarkerArray marker_array;
         marker_array.markers.push_back(make_clear_marker(detections.header));
@@ -896,7 +896,7 @@ namespace perseus_vision
     }
 
     void RockDetector::_cache_latest_detections(
-        const perseus_interfaces::msg::DetectionArray& detections,
+        const interfaces::msg::DetectionArray& detections,
         std::string message)
     {
         std::lock_guard<std::mutex> lock(_detections_mutex);
@@ -1174,7 +1174,7 @@ namespace perseus_vision
         }
 
         cv::Mat frame_to_save;
-        perseus_interfaces::msg::DetectionArray detections;
+        interfaces::msg::DetectionArray detections;
 
         {
             std::lock_guard<std::mutex> lock(_detections_mutex);
@@ -1228,7 +1228,7 @@ namespace perseus_vision
     void RockDetector::_save_detection_capture(
         const std::string& save_path,
         cv::Mat& frame,
-        const perseus_interfaces::msg::DetectionArray& detections) const
+        const interfaces::msg::DetectionArray& detections) const
     {
         if (frame.empty())
         {
@@ -1295,6 +1295,6 @@ namespace perseus_vision
         return result;
     }
 
-}  // namespace perseus_vision
+}  // namespace vision
 
-RCLCPP_COMPONENTS_REGISTER_NODE(perseus_vision::RockDetector)
+RCLCPP_COMPONENTS_REGISTER_NODE(vision::RockDetector)

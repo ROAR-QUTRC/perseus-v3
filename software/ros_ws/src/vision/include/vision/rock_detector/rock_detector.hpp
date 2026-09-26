@@ -28,10 +28,10 @@
 #include <vector>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-#include "perseus_interfaces/msg/detection_array.hpp"
-#include "perseus_interfaces/srv/detect_objects.hpp"
+#include "interfaces/msg/detection_array.hpp"
+#include "interfaces/srv/detect_objects.hpp"
 
-namespace perseus_vision
+namespace vision
 {
     // FIX: The exported detection model contains one class: rock.
     inline constexpr std::size_t NUM_CLASSES = 1;
@@ -70,7 +70,7 @@ namespace perseus_vision
     class RockDetector : public rclcpp::Node
     {
     public:
-        using DetectObjects = perseus_interfaces::srv::DetectObjects;
+        using DetectObjects = interfaces::srv::DetectObjects;
 
         /// @brief Constructs the node, declaring parameters and setting up
         ///        subscriptions, publishers, inference resources, and the detection service.
@@ -116,9 +116,9 @@ namespace perseus_vision
         static inline const std::string DEFAULT_DEPTH_INFO_TOPIC =
             "/camera/camera/aligned_depth_to_color/camera_info";
         /// @brief Default topic that detection messages are published on.
-        static inline const std::string DEFAULT_OUTPUT_DETECTIONS_TOPIC = "/perseus_vision/rock/detections";
+        static inline const std::string DEFAULT_OUTPUT_DETECTIONS_TOPIC = "/vision/rock/detections";
         /// @brief Default topic that rviz visualization markers are published on.
-        static inline const std::string DEFAULT_OUTPUT_MARKERS_TOPIC = "/perseus_vision/rock/markers";
+        static inline const std::string DEFAULT_OUTPUT_MARKERS_TOPIC = "/vision/rock/markers";
 
         /// @brief Resolves the configured model path against the packaged model directory.
         ///
@@ -191,13 +191,13 @@ namespace perseus_vision
 
         /// @brief Publishes rviz markers for every pose-resolved detection.
         /// @param detections Detections from the frame just processed.
-        void _publish_markers(const perseus_interfaces::msg::DetectionArray& detections);
+        void _publish_markers(const interfaces::msg::DetectionArray& detections);
 
         /// @brief Replaces the cached detections served by the detection service.
         /// @param detections Detections that were just published.
         /// @param message Human-readable summary of the detection pass.
         void _cache_latest_detections(
-            const perseus_interfaces::msg::DetectionArray& detections,
+            const interfaces::msg::DetectionArray& detections,
             std::string message);
         /// @brief Creates an approximate foreground mask and centroid using GrabCut.
         /// @param bgr_image Original camera image.
@@ -255,7 +255,7 @@ namespace perseus_vision
         void _save_detection_capture(
             const std::string& save_path,
             cv::Mat& frame,
-            const perseus_interfaces::msg::DetectionArray& detections) const;
+            const interfaces::msg::DetectionArray& detections) const;
 
         /// @brief Applies runtime updates to the reconfigurable parameters.
         /// @param parameters Parameters being set.
@@ -319,7 +319,7 @@ namespace perseus_vision
         rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr _depth_camera_info_subscription;
 
         // Publishers and services
-        rclcpp::Publisher<perseus_interfaces::msg::DetectionArray>::SharedPtr _detection_publisher;
+        rclcpp::Publisher<interfaces::msg::DetectionArray>::SharedPtr _detection_publisher;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _rock_marker_publisher;
         rclcpp::Service<DetectObjects>::SharedPtr _detect_objects_service;
 
@@ -330,8 +330,8 @@ namespace perseus_vision
         bool _has_latest_bgr_frame{false};
         mutable std::mutex _inference_mutex;
         mutable std::mutex _detections_mutex;
-        perseus_interfaces::msg::DetectionArray _latest_detections;
+        interfaces::msg::DetectionArray _latest_detections;
         std::string _latest_detection_message{"No rock detections are currently cached."};
     };
 
-}  // namespace perseus_vision
+}  // namespace vision
