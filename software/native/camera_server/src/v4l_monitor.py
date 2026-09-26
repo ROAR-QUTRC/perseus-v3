@@ -9,6 +9,8 @@ import subprocess
 DEV_DIR = "/dev/"
 BY_ID_DIR = "/dev/v4l/by-id"
 V4L_DIR = "/sys/class/video4linux"
+# Offset virtual devices numbers to avoid colisions when repluggin cameras
+DEVICE_NUMBER_OFFSET = 32
 
 _devices = []
 _lock = threading.Lock()
@@ -44,7 +46,7 @@ def _fix_duplicate_device_names(server_name: str):
     # Create symlinks for the remaining devices that don't have by-id symlinks
     if len(devices) > 0:
         log(f"Found {len(devices)} devices without by-id symlinks: {devices}", "DEBUG")
-        log("Duplicates found. Attempting to escalate privileges to create symlinks...")
+        log("Duplicates found, creating symlinks...")
         command_base = ["sudo", "ln", "-s"]
         index = 0
         for dev in devices:
@@ -57,6 +59,18 @@ def _fix_duplicate_device_names(server_name: str):
             except subprocess.CalledProcessError as e:
                 log(f"Failed to create symlink for {dev}: {e}", "ERROR")
             index += 1
+
+def _create_virtual_devices(device_count: int):
+    log(f"Creating {device_count} virtual video devices...", "DEBUG")
+    device_numbers = []
+    for i in range(device_count):
+        device_numbers.append(str(i + DEVICE_NUMBER_OFFSET))
+    command_base = ["sudo", "modprobe", "v4l2loopback", f"video_nr={','.join(device_numbers)}"]
+    try:
+        subprocess.run(command_base, check=True)
+        log(f"Successfully created {device_count} virtual video devices.", "DEBUG")
+    except subprocess.CalledProcessError as e:
+        log(f"Failed to create virtual video devices: {e}", "ERROR")
 
 
 # check if a videoXX string points to a video capture device
@@ -108,6 +122,7 @@ def start_v4l_monitor(server_name: str, on_change=None) -> list[str]:
         monitor = pyudev.Monitor.from_netlink(_context)
         monitor.filter_by(subsystem="video4linux")
 
+        _create_virtual_devices(4)  # Create 4 virtual devices
         _fix_duplicate_device_names(server_name)
 
         _observer = pyudev.MonitorObserver(
