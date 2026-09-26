@@ -43,7 +43,7 @@ public:
     static constexpr float kSpeedDeadband = 1.0f;
 
     // Position control: constant speed toward the target, stop within kHoldWindow.
-    static constexpr float kPositionSpeed = 50.0f;  // the actuators stall at ~10%
+    static constexpr float kPositionSpeed = 100.0f;  // the actuators stall at ~10%
     static constexpr float kHoldWindow = 2.0f;
     static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
     static constexpr int8_t kDriveDirection = 1;  // set -1 if positive speed decreases the angle
