@@ -1,0 +1,10 @@
+<library path="bucket_hardware">
+	<class
+		name="payloads/BucketHardware"
+		type="payloads::BucketHardware"
+		base_class_type="hardware_interface::SystemInterface">
+		<description>
+			Hardware interface for the bucket lift/tilt/jaw actuator pairs, 
+			driven over CANBUS.
+		</description>
+</library>

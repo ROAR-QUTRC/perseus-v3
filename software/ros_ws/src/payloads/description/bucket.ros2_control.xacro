@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Include this file from the main URDF/xacro with:
+      <xacro:include filename="$(find bucket_hardware)/description/bucket.ros2_control.xacro"/>
+      <xacro:bucket_ros2_control can_interface="can0"/>
+
+    Each joint below is tagged with "axis" and "side" - these are read by
+    BucketHardware::on_init() to decide which CAN actuator it maps to.
+
+    Commands are bank-level, not per-side: the CAN board deliberately only
+    accepts one setpoint per axis (independent left/right control is
+    possible in hardware but is disallowed over CAN to prevent torsion in
+    the bucket). So exactly ONE joint per axis (arbitrarily "_left" here)
+    declares command_interfaces; its pair declares state_interfaces only.
+    BucketHardware::on_init() enforces this 1-commandable-joint-per-axis
+    invariant and will refuse to configure otherwise.
+  -->
+  <xacro:macro name="bucket_ros2_control" params="can_interface:='can0'">
+    <ros2_control name="BucketSystem" type="system">
+      <hardware>
+        <plugin>bucket_hardware/BucketHardware</plugin>
+        <param name="can_interface">${can_interface}</param>
+      </hardware>
+
+      <!-- The one joint per axis that actually receives commands. -->
+      <xacro:macro name="bucket_command_joint" params="joint_name axis side">
+        <joint name="${joint_name}">
+          <param name="axis">${axis}</param>
+          <param name="side">${side}</param>
+          <command_interface name="position"/>
+          <command_interface name="velocity"/>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+          <state_interface name="effort"/>
+        </joint>
+      </xacro:macro>
+
+      <!--
+        Its pair: a real, independently-encoded joint (needed for
+        state/skew feedback and TF), but not independently commandable, so
+        no command_interfaces here.
+      -->
+      <xacro:macro name="bucket_state_only_joint" params="joint_name axis side">
+        <joint name="${joint_name}">
+          <param name="axis">${axis}</param>
+          <param name="side">${side}</param>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+          <state_interface name="effort"/>
+        </joint>
+      </xacro:macro>
+
+      <xacro:bucket_command_joint    joint_name="lift_left"   axis="lift" side="left"/>
+      <xacro:bucket_state_only_joint joint_name="lift_right"  axis="lift" side="right"/>
+      <xacro:bucket_command_joint    joint_name="tilt_left"   axis="tilt" side="left"/>
+      <xacro:bucket_state_only_joint joint_name="tilt_right"  axis="tilt" side="right"/>
+      <xacro:bucket_command_joint    joint_name="jaws_left"   axis="jaws" side="left"/>
+      <xacro:bucket_state_only_joint joint_name="jaws_right"  axis="jaws" side="right"/>
+    </ros2_control>
+  </xacro:macro>
+
+</robot>
