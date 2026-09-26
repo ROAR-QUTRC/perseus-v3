@@ -28,6 +28,9 @@ in
         iproute2
       ];
     };
+    v4l2loopback-setup = build-wrapped-script {
+      name = "v4l2loopback-setup.sh";
+    };
     # nix-setup and devenv-setup aren't needed here because they are run before nix is installed
   };
 }
