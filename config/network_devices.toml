@@ -66,4 +66,4 @@ enabled = false
 [latitude]
 interface = "wlan0"
 ip = "192.168.2.25"
-enabled = false
+enabled = true
