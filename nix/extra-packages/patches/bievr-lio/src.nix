@@ -38,8 +38,10 @@
 # (poseCovarianceDiagonal), so an ill-constrained direction (yaw and the horizontal plane on
 # a flat sand floor, the common case here) is reported as uncertain instead of getting the
 # same fixed number as a well-constrained one. odom_position_variance /
-# odom_orientation_variance are now that estimate's fallback, used only when it is not
-# trustworthy this scan (too few effective points, or too ill-conditioned).
+# odom_orientation_variance are that estimate's fallback when it is not trustworthy this
+# scan (too few effective points, or too ill-conditioned), and a floor under it otherwise:
+# the Hessian is overconfident (~1e-5 m^2 against ~15 mm RMS scan-to-scan jitter on
+# rock_nav_test_2), which made the EKF snap to every scan instead of smoothing it.
 #
 # All five covariance keys (publish.enable_odom_covariance and the four variances) are also
 # ordinary ROS2 parameters on the bievr_lio node -- `ros2 param set /bievr_lio <name> <value>`
@@ -54,6 +56,6 @@
 fetchFromGitHub {
   owner = "bocho0600";
   repo = "BIEVR-LIO";
-  rev = "fa6f8b8a18e1d277eb080ff668f4332c6f41b518"; # feat/stale-pixel-decay
-  hash = "sha256-fWKWBvNFjdJhGhBw4T8jSjQ00zeN8unzFUiuxWsasC0=";
+  rev = "8edd6fe29771cb696f0fd7ba7e8e17ceeb3d1957"; # feat/stale-pixel-decay
+  hash = "sha256-iBkto07BbR5QQsoJHge0ePsEhcMaP8wL+I1jPJ6yXhE=";
 }
