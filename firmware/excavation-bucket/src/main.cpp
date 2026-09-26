@@ -35,6 +35,7 @@ using namespace hi_can::addressing::excavation;
 
 std::optional<PacketManager> packet_manager;
 
+/* This order is incorrect, it is lift, tilt and jaws.*/
 std::optional<MotorBank> motor_bank_lift;  // Bank 1
 std::optional<MotorBank> motor_bank_jaws;  // Bank 2
 std::optional<MotorBank> motor_bank_tilt;  // Bank 3
@@ -120,7 +121,7 @@ void setup()
     start_bank_control_task({&motor_bank_lift.value(), &motor_bank_jaws.value(), &motor_bank_tilt.value()});
 }
 
-void loop()
+void loop()  // TODO: LIFT DIRECTION NEEDS TO BE INVERTED
 {
     // TODO: will this be fast enough?
     motor_bank_lift->monitor_and_move();

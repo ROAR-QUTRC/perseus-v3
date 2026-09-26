@@ -2,9 +2,9 @@
 //
 // Master side of the joint encoders: two RS485 buses (bsp::RS485_1, RS485_2)
 // polled by the shared modbus core, one FreeRTOS task per bus. Each task first
-// runs discovery (bus 1, then bus 2): every address gets a half-second slot in
-// which it is lit with the identify LED and polled; a good reply turns the LED
-// off, a failed one leaves it lit. Only encoders that answered are polled after.
+// runs discovery (bus 1, then bus 2): three rounds over slaves 1-3, each given
+// a half-second slot that opens with a 200 ms identify-LED blip followed by an
+// angle poll. Only encoders that answered are polled after.
 // Control code
 // reads the latest readings with EncoderBus::get() and sends commands with
 // zero() / identify(); it never touches the buses directly.
@@ -81,9 +81,8 @@ public:
     static constexpr uint32_t kHeartbeatPeriodMs = 200;  // broadcast, once per bus
 
     static constexpr uint8_t kDiscoveryRounds = 3;
-    static constexpr uint8_t kDiscoveryFirstSlave = 1;  // DIP 0-7
-    static constexpr uint8_t kDiscoveryLastSlave = 8;
-    static constexpr uint32_t kDiscoveryProbeMs = 500;  // slot per address
+    static constexpr uint32_t kDiscoveryProbeMs = 500;  // slot per encoder
+    static constexpr uint32_t kDiscoveryBlipMs = 200;   // identify LED on, at the start of each slot
 
     // Installs both UARTs and starts the bus tasks, which discover the
     // encoders and register those in `enabled` (a mask of encoder_bit()).

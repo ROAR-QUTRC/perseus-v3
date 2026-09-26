@@ -258,7 +258,7 @@ void loop()
     lift->monitor_and_move();
     packet_manager->handle();
 
-    // Quiet during discovery (~24 s) so its encoder_bus log lines stay readable.
+    // Quiet during discovery (~9 s) so its encoder_bus log lines stay readable.
     if (phase != Phase::Discovery && now - last_print_ms >= kPrintPeriodMs)
     {
         last_print_ms = now;

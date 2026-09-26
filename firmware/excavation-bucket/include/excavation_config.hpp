@@ -9,6 +9,7 @@ using namespace bsp;
 // We're only using the analog functions on the current sense pins,
 // so these are the only ones named with analog numbers
 // even though all the pins can do analog and digital IO
+/* JAWS and TILT have to be swapped, wrong order.*/
 
 namespace LIFT
 {

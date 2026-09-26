@@ -191,23 +191,27 @@ void EncoderBus::run(Bus& bus)
 // request just submitted.
 void EncoderBus::discover(Bus& bus, size_t bus_index)
 {
-    constexpr size_t kSlots = kDiscoveryLastSlave - kDiscoveryFirstSlave + 1;
-    uint8_t good[kSlots] = {};     // valid angle read
-    uint8_t faults[kSlots] = {};   // answered with an exception, e.g. no magnet
-    uint8_t garbled[kSlots] = {};  // something came back, but not a valid reply
+    uint8_t good[kEncoderCount] = {};     // valid angle read
+    uint8_t faults[kEncoderCount] = {};   // answered with an exception, e.g. no magnet
+    uint8_t garbled[kEncoderCount] = {};  // something came back, but not a valid reply
     const unsigned bus_no = static_cast<unsigned>(bus_index + 1);
 
-    ESP_LOGI(TAG, "bus %u: discovering slaves %u-%u, %u rounds", bus_no, kDiscoveryFirstSlave, kDiscoveryLastSlave,
-             kDiscoveryRounds);
+    ESP_LOGI(TAG, "bus %u: discovering, %u rounds", bus_no, kDiscoveryRounds);
 
+    // kPlacement is in slave order, so each round probes slaves 1, 2, 3.
     for (uint8_t round = 0; round < kDiscoveryRounds; ++round)
     {
-        for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
+        for (size_t i = 0; i < kEncoderCount; ++i)
         {
-            const size_t s = slave - kDiscoveryFirstSlave;
+            if (kPlacement[i].bus != bus_index)
+                continue;
+
+            const uint8_t slave = kPlacement[i].slave;
             TickType_t wake = xTaskGetTickCount();
 
             transact(bus, enc::discovery_request(slave, true));
+            vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryBlipMs));
+            transact(bus, enc::discovery_request(slave, false));
 
             modbus::Request poll;
             poll.slave = slave;
@@ -217,62 +221,49 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
             const modbus::Result result = transact(bus, poll);
 
             if (result == modbus::Result::Ok)
-            {
-                ++good[s];
-                transact(bus, enc::discovery_request(slave, false));
-            }
+                ++good[i];
             else if (result == modbus::Result::ExceptionReply)
-                ++faults[s];
+                ++faults[i];
             else if (result != modbus::Result::Timeout)
-                ++garbled[s];
+                ++garbled[i];
 
-            vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryProbeMs));
+            vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryProbeMs - kDiscoveryBlipMs));
         }
     }
 
     size_t registered = 0;
-    for (uint8_t slave = kDiscoveryFirstSlave; slave <= kDiscoveryLastSlave; ++slave)
+    for (size_t i = 0; i < kEncoderCount; ++i)
     {
-        const size_t s = slave - kDiscoveryFirstSlave;
-        const bool answered = good[s] > 0 || faults[s] > 0;
-
-        size_t index = kEncoderCount;
-        for (size_t i = 0; i < kEncoderCount; ++i)
-            if (kPlacement[i].bus == bus_index && kPlacement[i].slave == slave)
-                index = i;
-        const char* name = index < kEncoderCount ? kNames[index] : "no placement";
-
-        if (garbled[s] > 0)
-            ESP_LOGW(TAG, "bus %u: slave %u (%s) replied %u/%u times but the reply was unreadable (CRC/frame error)",
-                     bus_no, slave, name, garbled[s], kDiscoveryRounds);
-        if (faults[s] > 0)
-            ESP_LOGW(TAG, "bus %u: slave %u (%s) answered %u/%u times with a fault (no magnet?), left lit", bus_no,
-                     slave, name, faults[s], kDiscoveryRounds);
-
-        if (index == kEncoderCount)
-        {
-            if (answered)
-                ESP_LOGW(TAG, "bus %u: slave %u answered but has no placement", bus_no, slave);
+        if (kPlacement[i].bus != bus_index)
             continue;
-        }
 
-        if (!answered)
+        const uint8_t slave = kPlacement[i].slave;
+        const char* name = kNames[i];
+
+        if (garbled[i] > 0)
+            ESP_LOGW(TAG, "bus %u: %s (slave %u) replied %u/%u times but the reply was unreadable (CRC/frame error)",
+                     bus_no, name, slave, garbled[i], kDiscoveryRounds);
+        if (faults[i] > 0)
+            ESP_LOGW(TAG, "bus %u: %s (slave %u) answered %u/%u times with a fault (no magnet?)", bus_no, name, slave,
+                     faults[i], kDiscoveryRounds);
+
+        if (good[i] == 0 && faults[i] == 0)
         {
             ESP_LOGW(TAG, "bus %u: %s (slave %u) missing", bus_no, name, slave);
             continue;
         }
-        if (good[s] == kDiscoveryRounds)
+        if (good[i] == kDiscoveryRounds)
             ESP_LOGI(TAG, "bus %u: %s (slave %u) found", bus_no, name, slave);
         else
-            ESP_LOGW(TAG, "bus %u: %s (slave %u) flaky, good %u/%u", bus_no, name, slave, good[s],
+            ESP_LOGW(TAG, "bus %u: %s (slave %u) flaky, good %u/%u", bus_no, name, slave, good[i],
                      kDiscoveryRounds);
 
         {
             Lock lock(mutex_);
-            readings_[index].present = true;
+            readings_[i].present = true;
         }
 
-        if (!(enabled_ & (1u << index)))
+        if (!(enabled_ & (1u << i)))
             continue;
 
         enc::DeviceConfig config;
@@ -282,7 +273,7 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
         config.on_angle = &EncoderBus::on_angle;
         config.on_status = &EncoderBus::on_status;
         config.on_state_change = &EncoderBus::on_state_change;
-        config.ctx = &slots_[index];
+        config.ctx = &slots_[i];
 
         if (bus.mbus.add_device(enc::make_device(config)))
             ++registered;
