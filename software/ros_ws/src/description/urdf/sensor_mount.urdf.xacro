@@ -94,7 +94,7 @@
       90 degrees off odom, and that reversed the trade. The LIO does compose
       T_map_base = T_map_imu * T_imu_lidar * T_lidar_base with livox_frame -> base_link read
       from TF (BIEVR-LIO's base.odom_in_base), so the yaw does land in base_link's reported
-      orientation -- which base.heading_at_base now corrects for -- but odom has no
+      orientation (which base.heading_at_base now corrects for), but odom has no
       absolute yaw reference (see the imu0 notes in autonomy_bringup/config/ekf_config.yaml),
       so the odom frame is defined by wherever the robot started and a 90 degree offset in it
       is cosmetic. A rotated point cloud is not. What has to agree is the cloud and the pose,
