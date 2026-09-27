@@ -1,0 +1,28 @@
+# What each machine launches, keyed by `hostname` like config/network_devices.toml.
+#
+# `roar-launch` (software/scripts/roar-launch.py) reads the entry for the machine it runs
+# on, enters the devenv shell, and opens a zellij session with one tab per line below.
+# Each pane's command is typed in and waiting: press ENTER in a pane to start it. Once it
+# exits, ENTER runs it again and ESC drops to a shell in that pane.
+#
+#   roar-launch                       # this machine's entry
+#   roar-launch --device medium-brain # someone else's, to try it out here
+#   roar-launch --dry-run             # print the zellij layout instead of opening it
+#   roar-launch --fresh               # restart the session (after a rebuild, say)
+#
+# Each line is a tab:  tab-name = ["pane 1 command", "pane 2 command", ...]
+# Panes sit side by side. A tab with one pane can drop the brackets: tab-name = "btop".
+# An empty string "" is a plain shell. For a pane that starts without waiting for ENTER,
+# write it as { cmd = "...", autostart = true }.
+#
+# Optional settings, alongside the tabs:
+#   session         zellij session name                  default: the device name
+#   devenv_profile  profile the session runs inside      default: "cyclonedds"
+#   source          script sourced before the session    default: "software/ros_ws/install/setup.bash"
+
+[medium-brain]
+ros = [
+  "ros2 launch perseus perseus.launch.py use_sim_time:=false payload:=bucket",
+  "ros2 bag record -a",
+]
+monitor = "btop"
