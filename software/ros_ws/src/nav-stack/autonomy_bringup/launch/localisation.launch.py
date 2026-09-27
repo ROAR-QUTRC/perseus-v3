@@ -45,9 +45,10 @@ The default is false because nothing in this repo orchestrates bringup -- the dr
 started by hand -- and defaulting to true would open the sensors a second time alongside
 existing ones and fail with "Device or resource busy".
 
-The ArUco, cube and overlay nodes are forwarded as aruco:=, cube:= and overlay:=, all off
-by default, so a plain run is stereo odometry only; turned on here they follow the same
-enable_sensors placement as stereo_odometry. Either way the EKF only names the topic and
+The ArUco, cube and overlay nodes are forwarded as aruco:=, cube:= and overlay:=. ArUco
+and overlay are on by default and cube is off, so a plain run is stereo odometry plus
+marker detection; whichever are on follow the same enable_sensors placement as
+stereo_odometry. Either way the EKF only names the topic and
 fuses whatever appears on it, so nothing downstream branches on this choice.
 """
 
@@ -392,23 +393,23 @@ def generate_launch_description():
 
     declare_interface = DeclareLaunchArgument(
         "interface",
-        default_value="eth1",
+        default_value="enP3p49s0",
         description="Network interface the Livox driver reads the host IP from, forwarded "
         "to livox.launch.py and used only when enable_sensors:=true. The default matches "
         "livox.launch.py's own; the driver fails at launch if the interface it names has no "
         "IPv4 address, so this needs to be right per machine.",
     )
 
-    # Forwarded to vision.launch.py. Off by default, unlike vision.launch.py's own, so that
-    # localisation alone brings up only the pose source it fuses.
+    # Forwarded to vision.launch.py. ArUco and its overlay are on by default so a plain
+    # localisation run also brings up marker detection; the cube detector stays off.
     declare_detectors = [
         DeclareLaunchArgument(
-            name, default_value="false", description=f"Also launch vision's {what}."
+            name, default_value=default, description=f"Also launch vision's {what}."
         )
-        for name, what in [
-            ("aruco", "ArUco detector"),
-            ("cube", "cube detector"),
-            ("overlay", "detection overlay"),
+        for name, default, what in [
+            ("aruco", "true", "ArUco detector"),
+            ("cube", "false", "cube detector"),
+            ("overlay", "true", "detection overlay"),
         ]
     ]
 
