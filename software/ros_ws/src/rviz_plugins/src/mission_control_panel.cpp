@@ -4,9 +4,9 @@
 #include "rviz_plugins/mission_control_panel.hpp"
 
 #include <QFormLayout>
+#include <QGraphicsBlurEffect>
 #include <QGridLayout>
 #include <QGroupBox>
-#include <QGraphicsBlurEffect>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -44,12 +44,18 @@ namespace rviz_plugins
 
         QString phase_text(const std::string& phase)
         {
-            if (phase == "starting") return "Starting...";
-            if (phase == "to_excavation") return "Driving to excavation zone";
-            if (phase == "excavating") return "Excavating (placeholder pause)";
-            if (phase == "to_construction") return "Driving to construction zone";
-            if (phase == "depositing") return "Depositing (placeholder pause)";
-            if (phase == "done") return "Done";
+            if (phase == "starting")
+                return "Starting...";
+            if (phase == "to_excavation")
+                return "Driving to excavation zone";
+            if (phase == "excavating")
+                return "Excavating (placeholder pause)";
+            if (phase == "to_construction")
+                return "Driving to construction zone";
+            if (phase == "depositing")
+                return "Depositing (placeholder pause)";
+            if (phase == "done")
+                return "Done";
             return QString::fromStdString(phase);
         }
 
@@ -212,8 +218,9 @@ namespace rviz_plugins
 
         row.source = new QComboBox(widget);
         row.source->addItems({"Map point", "Arena auto"});
-        row.source->setToolTip("Map point: the point picked on the map.\n"
-                               "Arena auto: arena_server picks a safe point in the zone.");
+        row.source->setToolTip(
+            "Map point: the point picked on the map.\n"
+            "Arena auto: arena_server picks a safe point in the zone.");
         row.pick_button = new QPushButton("Pick on map", widget);
         row.pick_button->setToolTip("Click on the map, drag to set heading - like 2D Goal Pose");
         auto* top = new QHBoxLayout();

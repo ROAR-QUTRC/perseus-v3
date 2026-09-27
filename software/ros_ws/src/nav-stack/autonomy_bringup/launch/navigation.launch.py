@@ -114,7 +114,10 @@ def generate_launch_description():
             executable="mission_bt_server",
             name="mission_bt_server",
             parameters=[
-                {"bt_xml_path": mission_bt_xml, "mission_bt_xml_path": mission_cycle_bt_xml},
+                {
+                    "bt_xml_path": mission_bt_xml,
+                    "mission_bt_xml_path": mission_cycle_bt_xml,
+                },
                 use_sim_time,
             ],
             output="screen",

@@ -14,10 +14,12 @@
   qt5,
   rclcpp,
   rviz-common,
+  rviz-default-plugins,
   std-srvs,
   tf2,
   tf2-geometry-msgs,
   tf2-ros,
+  visualization-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-rviz-plugins";
@@ -41,10 +43,12 @@ buildRosPackage rec {
     qt5.qtbase
     rclcpp
     rviz-common
+    rviz-default-plugins
     std-srvs
     tf2
     tf2-geometry-msgs
     tf2-ros
+    visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
