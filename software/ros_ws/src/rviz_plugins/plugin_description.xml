@@ -32,8 +32,27 @@
     type="rviz_plugins::MissionControlPanel"
     base_class_type="rviz_common::Panel">
     <description>
-      Two buttons, one per mission zone. Each calls mission_bt_server, which
-      requests a safe point from arena_server and navigates there via nav2.
+      Configures, starts and stops a mission on mission_bt_server: full autonomy
+      (drive + bucket step at each zone) or navigation only, zone waypoints picked
+      on the map or chosen by arena_server, and a number of cycles.
+    </description>
+  </class>
+  <class
+    name="rviz_plugins/ExcavationPoint"
+    type="rviz_plugins::ExcavationPointTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Click and drag, like 2D Goal Pose, to set the Mission Control panel's
+      excavation waypoint. Publishes on /mission/excavation_point.
+    </description>
+  </class>
+  <class
+    name="rviz_plugins/ConstructionPoint"
+    type="rviz_plugins::ConstructionPointTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Click and drag, like 2D Goal Pose, to set the Mission Control panel's
+      construction waypoint. Publishes on /mission/construction_point.
     </description>
   </class>
 </library>
