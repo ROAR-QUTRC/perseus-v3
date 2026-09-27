@@ -82,6 +82,7 @@ pkgs.mkShell {
           rosidl-default-runtime
           rplidar-ros
           rviz-common
+          rviz-default-plugins
           rviz2
           sensor-msgs
           slam-toolbox

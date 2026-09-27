@@ -197,7 +197,8 @@ namespace mission_bt_server
     nav2_behavior_tree::BtStatus
     MissionBtServer::_run_tree(BT::Tree& tree, const std::function<void()>& on_loop)
     {
-        auto is_canceling = [this]() { return _stop_requested.load() || !rclcpp::ok(); };
+        auto is_canceling = [this]()
+        { return _stop_requested.load() || !rclcpp::ok(); };
         const auto status = _engine->run(&tree, on_loop, is_canceling, _bt_loop_duration);
         // Cancels whatever action is still in flight -- on a stop, the
         // NavigateToPose goal the rover is driving on.
@@ -398,7 +399,7 @@ namespace mission_bt_server
         blackboard->set<bool>("use_arena_excavation", request.use_arena_excavation);
         blackboard->set<bool>("use_arena_construction", request.use_arena_construction);
         blackboard->set<geometry_msgs::msg::PoseStamped>("excavation_point",
-                                                        latest(request.excavation_point));
+                                                         latest(request.excavation_point));
         blackboard->set<geometry_msgs::msg::PoseStamped>(
             "construction_point", latest(request.construction_point));
         // Both RequestZoneWaypoint nodes resolve service_name when the tree is
