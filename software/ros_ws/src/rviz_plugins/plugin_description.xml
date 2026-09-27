@@ -55,4 +55,14 @@
       construction waypoint. Publishes on /mission/construction_point.
     </description>
   </class>
+  <class
+    name="rviz_plugins/ViewLockPanel"
+    type="rviz_plugins::ViewLockPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      One checkbox in place of the Views panel: ticked, the camera switches to a
+      saved view from the config ("Far" by default) and is held there; unticked,
+      it moves freely.
+    </description>
+  </class>
 </library>

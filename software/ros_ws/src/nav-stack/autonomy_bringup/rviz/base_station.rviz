@@ -5,13 +5,14 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Description Topic1
+        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 250
+    Tree Height: 325
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -19,11 +20,10 @@ Panels:
       - /2D Goal Pose1
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
-  - Class: rviz_common/Views
-    Expanded:
-      - /Current View1
-    Name: Views
-    Splitter Ratio: 0.5
+  - Class: rviz_plugins/ViewLockPanel
+    Locked: true
+    Name: View Lock
+    View: Far
   - Class: rviz_plugins/TopicHealthPanel
     Name: Topic Health
     Topic: /health_check/health
@@ -36,9 +36,23 @@ Panels:
     Topic: /watchdog/mobility_status
     WarnPercent: 60
   - Class: rviz_plugins/MissionControlPanel
-    ConstructionService: /mission/go_to_construction_zone
-    ExcavationService: /mission/go_to_excavation_zone
+    ConstructionFrame: odom
+    ConstructionSet: true
+    ConstructionSource: arena
+    ConstructionX: 2.013065814971924
+    ConstructionY: -3.131265878677368
+    ConstructionYaw: 2.8019309043884277
+    Cycles: 1
+    ExcavationFrame: odom
+    ExcavationSet: true
+    ExcavationSource: map
+    ExcavationX: 6.153618812561035
+    ExcavationY: 1.215698480606079
+    ExcavationYaw: -0.7246798276901245
+    Mode: full
     Name: Mission Control
+    PauseS: 10
+    Task: cycle
 Visualization Manager:
   Class: ""
   Displays:
@@ -243,7 +257,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /livox/lidar/downsampled/decompressed
+        Value: /livox/lidar
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -382,6 +396,18 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /arena/zones
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Mission Waypoints
+      Namespaces:
+        mission_waypoints: true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mission/waypoint_markers
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
@@ -495,6 +521,8 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /goal_pose
+    - Class: rviz_plugins/ExcavationPoint
+    - Class: rviz_plugins/ConstructionPoint
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
@@ -576,14 +604,14 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000006fb000000100044006900730070006c006100790073010000003f0000013a000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c00740068010000017f000000d20000008800fffffffb0000000a00560069006500770073010000025700000104000000a900fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000361000000730000006400ffffff000000010000028000000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f0000018d0000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000001d20000017e0000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c01000003560000007e0000007e00ffffff0000039e0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000007fb000000100044006900730070006c006100790073010000003f00000185000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001ca000001050000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e0063007901000002d50000008e0000006400fffffffb0000001200560069006500770020004c006f0063006b01000003690000006b0000005700ffffff000000010000016400000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000000b90000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000000fe000001300000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000234000001a00000019f00ffffff000004ba0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
     collapsed: false
   Topic Health:
     collapsed: false
-  Views:
+  View Lock:
     collapsed: false
   Width: 1920
   X: 0
