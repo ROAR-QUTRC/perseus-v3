@@ -50,6 +50,9 @@ def generate_launch_description():
     # then hand it to bt_navigator's own /navigate_to_pose action - i.e. the tree above,
     # unmodified. Same reason this path cannot live in navigation.yaml either.
     mission_bt_xml = os.path.join(share, "behavior_trees", "go_to_zone_waypoint.xml")
+    # The Mission Control panel's Start/Stop missions: full autonomy or navigation only,
+    # cycling between the zones or a single trip. Built from the tree above.
+    mission_cycle_bt_xml = os.path.join(share, "behavior_trees", "mission.xml")
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -103,14 +106,17 @@ def generate_launch_description():
             extra_params=[{"default_nav_to_pose_bt_xml": bt_xml}],
         ),
         nav2_node("nav2_waypoint_follower", "waypoint_follower", "waypoint_follower"),
-        # Behind the RViz mission panel's two buttons. Brought up here rather than with
+        # Behind the RViz Mission Control panel. Brought up here rather than with
         # localisation (where arena_server lives): it needs bt_navigator's
         # /navigate_to_pose action, which only exists once this file's nodes are active.
         Node(
             package="mission_bt_server",
             executable="mission_bt_server",
             name="mission_bt_server",
-            parameters=[{"bt_xml_path": mission_bt_xml}, use_sim_time],
+            parameters=[
+                {"bt_xml_path": mission_bt_xml, "mission_bt_xml_path": mission_cycle_bt_xml},
+                use_sim_time,
+            ],
             output="screen",
         ),
         # THE ONE REMAP THAT CONNECTS NAV2 TO THIS ROVER. The smoother's output is nav2's
