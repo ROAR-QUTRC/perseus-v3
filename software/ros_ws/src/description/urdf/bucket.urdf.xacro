@@ -13,7 +13,7 @@
       <visual>
         <origin xyz="-0.022594 0.050708 -0.016954" rpy="0.0 0.0 0.0"/>
         <geometry>
-          <mesh scale="1.0 1.0 1.0" filename="file://$(find description)/meshes/bucket_mount.dae"/>
+          <mesh scale="1.0 1.0 1.0" filename="package://description/meshes/bucket_mount.dae"/>
         </geometry>
       </visual>
     </link>
