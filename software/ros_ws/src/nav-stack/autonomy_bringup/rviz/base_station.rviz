@@ -20,8 +20,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_common/Views
-    Expanded:
-      - /Current View1
+    Expanded: ~
     Name: Views
     Splitter Ratio: 0.5
   - Class: rviz_plugins/TopicHealthPanel
