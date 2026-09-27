@@ -1,0 +1,111 @@
+<!--
+  Mission tree behind /mission/start (mission_bt_server, driven by the RViz Mission
+  Control panel). Built from go_to_zone_waypoint.xml: GoToExcavation / GoToConstruction
+  below are that tree's RequestZoneWaypoint -> NavigateToPose, with a second branch that
+  drives straight to a point picked on the map instead of asking arena_server. As there,
+  NavigateToPose is nav2's own action-client node into bt_navigator's /navigate_to_pose,
+  so planning, smoothing, replanning and recovery are still entirely
+  navigate_to_pose_w_smoothing.xml's. This tree only decides where to go and in what order.
+
+  mission_bt_server sets every blackboard entry read here before building the tree:
+    task                     "full_cycle" | "nav_cycle" | "nav_excavation" | "nav_construction"
+    cycles                   int, >= 1
+    pause_ms                 int, the placeholder bucket step's duration
+    use_arena_excavation     bool: true asks arena_server, false uses excavation_point
+    use_arena_construction   bool, same for construction
+    excavation_point         PoseStamped picked in RViz (unused when use_arena_*)
+    construction_point       PoseStamped
+    excavation_service       arena_server's /arena/request_excavation_waypoint
+    construction_service     arena_server's /arena/request_construction_waypoint
+    cycles_done              int, 0 -- this tree counts it up
+    phase                    string -- this tree writes it; the server publishes both on
+                             /mission/status as they change
+
+  A cycle is excavation -> construction -> back to excavation, and it is counted on
+  arrival back at excavation. The rover drives to excavation once first, so the loop
+  body always starts where it digs.
+
+  PLACEHOLDER: the two Sleep nodes in FullAutonomyCycle stand in for the autonomous
+  bucket actions (dig at excavation, dump at construction), which do not exist yet.
+  Replace each Sleep with the real action node when it does -- nothing else in the tree
+  needs to change.
+-->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+
+  <BehaviorTree ID="MainTree">
+    <Switch4 variable="{task}"
+             case_1="full_cycle" case_2="nav_cycle"
+             case_3="nav_excavation" case_4="nav_construction">
+      <SubTree ID="FullAutonomyCycle" _autoremap="true"/>
+      <SubTree ID="NavigationCycle" _autoremap="true"/>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <SubTree ID="GoToConstruction" _autoremap="true"/>
+      <!-- Unknown task: fail rather than guess. -->
+      <AlwaysFailure/>
+    </Switch4>
+  </BehaviorTree>
+
+  <BehaviorTree ID="FullAutonomyCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <Script code="phase:='excavating'"/>
+          <!-- PLACEHOLDER for the autonomous dig action. -->
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToConstruction" _autoremap="true"/>
+          <Script code="phase:='depositing'"/>
+          <!-- PLACEHOLDER for the autonomous dump action. -->
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Same loop as FullAutonomyCycle without the bucket steps. -->
+  <BehaviorTree ID="NavigationCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <SubTree ID="GoToConstruction" _autoremap="true"/>
+          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GoToExcavation">
+    <Sequence>
+      <Script code="phase:='to_excavation'"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_excavation"/>
+        <Sequence>
+          <RequestZoneWaypoint service_name="{excavation_service}" goal="{excavation_goal}"/>
+          <NavigateToPose goal="{excavation_goal}"/>
+        </Sequence>
+        <NavigateToPose goal="{excavation_point}"/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GoToConstruction">
+    <Sequence>
+      <Script code="phase:='to_construction'"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_construction"/>
+        <Sequence>
+          <RequestZoneWaypoint service_name="{construction_service}" goal="{construction_goal}"/>
+          <NavigateToPose goal="{construction_goal}"/>
+        </Sequence>
+        <NavigateToPose goal="{construction_point}"/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+</root>
