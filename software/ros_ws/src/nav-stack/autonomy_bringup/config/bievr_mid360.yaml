@@ -42,8 +42,14 @@ lidar:
   # 1.0 m it is ~0.8 m out, and near floor returns are the best-measured points in the scan
   # -- on a flat arena, what pins z, roll and pitch. Try it against a replayed bag first.
   min_range_m: 1.5
-  # Real MID-360 range (~15 m at high reflectivity, ~10 m at 10%).
-  max_range_m: 15
+  # Was 15, from "real MID-360 range (~15 m at high reflectivity, ~10 m at 10%)" -- but the
+  # MID-360 datasheet lists ~40 m at 10% reflectivity, and the sim config uses 40. Raised to
+  # 25 to fight pose jitter: on a flat sand floor the ground pins z, roll and pitch but barely
+  # constrains the horizontal plane and yaw, which only walls and rocks further out do. If
+  # nothing actually returns past 15 m this costs nothing; past 25 m range noise and the
+  # Huber-downweighted residuals start to dominate. UNTESTED -- replay against 15 before
+  # keeping it.
+  max_range_m: 25
   # Must match the URDF link name: it is the source frame of the lidar -> base lookup that
   # the three `base` switches below need.
   frame: "livox_frame"
@@ -53,8 +59,18 @@ map:
   # BIEVR-LIO keeps an image per voxel rather than a point tree. pixel_size_m is the
   # resolution *within* a voxel image; voxel_size_m is the voxel grid itself.
   pixel_size_m: 0.05
-  voxel_size_m: 1.0
-  normal_tolerance_deg: 1
+  # 0.5, back to upstream's default, from 1.0. A voxel fits one surface image, so at 1 m a
+  # rock field is averaged towards a plane and the fit loses its horizontal and yaw
+  # constraints. Memory per voxel drops ~4x at the same pixel size (see max_size below), so
+  # the same max_size covers a quarter of the area. UNTESTED -- revert to 1.0 if /Odometry
+  # sags below 10 Hz or drifts.
+  voxel_size_m: 0.5
+  # 3, back to upstream's default, from 1. A voxel's image is re-projected whenever its
+  # surface normal moves by more than this, which shifts the very surface the next scan is
+  # registered against. At 1 deg that happens near-constantly on uneven ground -- a likely
+  # source of scan-to-scan pose jitter with no drift, which is what rock_nav_test_2 shows.
+  # UNTESTED -- revert to 1 if the map smears or the pose drifts.
+  normal_tolerance_deg: 3
   smooth: true
   weighted: true
   # Each bump-image pixel's weight only ever grows, so a fine-sand patch reshaped by the
@@ -148,7 +164,12 @@ optimization:
   # genuinely large legitimate residuals, which is where too tight a threshold
   # would start rejecting real data. Re-run the sweep on a rougher site before
   # going lower.
-  huber_delta: 0.01
+  #
+  # Now 0.005, the next row of the table (19.07 vs 19.55 rms, still survives the 116 s
+  # event), being tried on rock_nav_test_2 -- the rougher site asked for above -- alongside
+  # the map/range changes. The caution above stands: revert to 0.01 first if the pose
+  # sticks or jumps where the scene has large genuine residuals.
+  huber_delta: 0.005
 imu:
   window_s: 20
   # Seconds of stationary data used to estimate the biases and level the world frame. The
