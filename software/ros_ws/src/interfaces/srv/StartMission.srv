@@ -1,0 +1,45 @@
+# Start a mission on mission_bt_server. Returns as soon as the mission is accepted
+# or refused -- it does NOT wait for the mission to finish. Progress and the final
+# outcome arrive on /mission/status (interfaces/MissionStatus); /mission/stop
+# (std_srvs/Trigger) cancels it.
+
+# What the rover does at each zone.
+#   FULL_AUTONOMY    drive between the zones AND run the bucket step at each one. Until
+#                    the autonomous bucket action exists that step is a timed pause
+#                    (zone_pause_s), so the cycle structure can be tested end to end.
+#                    Always cycles; task is ignored.
+#   NAVIGATION_ONLY  drive only, no bucket step. task picks what to drive.
+uint8 MODE_FULL_AUTONOMY = 0
+uint8 MODE_NAVIGATION_ONLY = 1
+uint8 mode
+
+# NAVIGATION_ONLY only.
+#   CYCLE                excavation -> (construction -> excavation) x cycles
+#   GO_TO_EXCAVATION     one trip to the excavation point
+#   GO_TO_CONSTRUCTION   one trip to the construction point
+uint8 TASK_CYCLE = 0
+uint8 TASK_GO_TO_EXCAVATION = 1
+uint8 TASK_GO_TO_CONSTRUCTION = 2
+uint8 task
+
+# Cycles to run, >= 1. One cycle is excavation -> construction -> back to excavation,
+# counted once the rover is back at excavation. Ignored by the single-trip tasks.
+uint32 cycles
+
+# Where each zone's waypoint comes from.
+#   false  the pose below, picked on the map in RViz
+#   true   ask arena_server for a safe point in that zone when the rover sets off for
+#          it (the pose below is then ignored and may be left empty)
+bool use_arena_excavation
+geometry_msgs/PoseStamped excavation_point
+bool use_arena_construction
+geometry_msgs/PoseStamped construction_point
+
+# FULL_AUTONOMY only: how long the placeholder bucket step holds at each zone, in
+# seconds. <= 0 uses the server's default (2 s).
+float64 zone_pause_s
+---
+# false: refused (a mission is already running, a required point is missing, ...);
+# message says why. true: running -- watch /mission/status.
+bool accepted
+string message
