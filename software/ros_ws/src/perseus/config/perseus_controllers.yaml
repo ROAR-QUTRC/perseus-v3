@@ -20,7 +20,11 @@ diff_drive_base_controller:
     wheels_per_side: 2
     wheel_radius: 0.147
     pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
-    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    # vy at 0.005 (m/s)^2 because ekf_config.yaml fuses it as odom2: vy is exactly zero from
+    # the diff-drive kinematics, so this sets how firmly the EKF holds the no-sideslip
+    # constraint (~7 cm/s sigma, loose enough to give way to a real side-hill slide). vx is
+    # not fused -- it slips too much on sand -- so it keeps the controller default.
+    twist_covariance_diagonal: [0.001, 0.005, 0.001, 0.001, 0.001, 0.01]
     open_loop: false
     # ROS I/O configuration
     publish_rate: 50.0

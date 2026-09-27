@@ -11,10 +11,11 @@ ekf_filter_node:
     debug: false
     # state_var: [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel, x_accel, y_accel, z_accel]
     #
-    # The diff drive controller's /odom is deliberately not fused. robot_localization scans
-    # odomN from N=0 and stops at the first index it does not find, so BIEVR-LIO has to occupy
-    # odom0 -- leaving it at odom1 with no odom0 present would make the filter skip it
-    # silently and fuse nothing but the gyro.
+    # robot_localization scans odomN from N=0 and stops at the first index it does not find,
+    # so BIEVR-LIO has to occupy odom0 -- leaving it at odom1 with no odom0 present would make
+    # the filter skip it silently and fuse nothing but the gyro. The same applies to odom2
+    # (wheel vy): it is only read because odom1 exists, so if stereo_odometry is ever
+    # removed, renumber the wheels to odom1 or they are silently dropped too.
     # ----- BIEVR-LIO (3D pose backbone) -----
     # Full 6-DOF pose from LiDAR-inertial odometry, and now the only source of translation at
     # all: imu0 contributes rates only. It anchors the odom frame outright, so there is nothing
@@ -92,6 +93,55 @@ ekf_filter_node:
     # No rejection thresholds here either, and for the same reason as odom0: trust the
     # covariance (here, the binary good-track/lost-track split) rather than a second,
     # redundant gate on top of it.
+    #
+    # In practice odom1 contributes almost nothing at the moment: its fixed 0.1 m^2 pose
+    # covariance is ~10^4x odom0's, so the filter all but ignores it. That is just as well --
+    # on rock_nav_test_2 it measured only ~0.33x of BIEVR-LIO's displacement over 5 s windows
+    # (wheels: 1.14x) and drifted 2.5 m in z against LIO's 0.6 m. Fix that scale before
+    # tightening its covariance, or it will shrink the trajectory.
+    #
+    # ----- diff drive wheel odometry (vy only: the no-sideslip constraint) -----
+    # vy only. A diff drive reports vy = 0 by construction, so this asserts "the rover does
+    # not move sideways" rather than measuring anything -- and that holds however badly the
+    # wheels slip along the direction of travel, which is why vx is NOT fused.
+    #
+    # Replayed rock_nav_test_2 through parallel ekf_nodes (publish_tf off), scoring the RMS
+    # second difference of position at 30 Hz and the RMS offset from /Odometry:
+    #
+    #     config                                   d2pos     offset from LIO
+    #     previous (old Q, LIO covariance raw)     13.5 mm   1.73 cm
+    #     new Q + LIO covariance floor             12.0 mm   1.70 cm
+    #     + predict_to_current_time: false         11.4 mm   1.47 cm
+    #     + wheel vx and vy                         9.2 mm   1.01 cm
+    #
+    # Wheel vx was the biggest single gain -- it is the only thing that measures velocity
+    # between 10 Hz scans -- but it fails on sand. Injecting +0.3 m/s of wheel spin for 4 s
+    # at a time pulled the filter up to ~11 cm off LIO and, worse, reported vx ~0.35 m/s too
+    # fast for the whole spin: Nav2's controller reads that velocity, and the mobility
+    # watchdog detects slip by comparing cmd_vel with it, so fusing vx hides the very slip it
+    # is there to catch. odom2_twist_rejection_threshold did not rescue it: the gate rejects
+    # the first few spinning readings, but with nothing measuring vx the filter's vx
+    # variance grows at the 0.3 process noise until the spin looks plausible again. Revisit
+    # only with a vx source that does not slip, or with a much lower vx process noise, which
+    # needs a bag with a hard stop to check against the sawtooth described under
+    # process_noise_covariance.
+    #
+    # vy-only in that same slip replay: identical to no wheels at all under spin (~3.4 cm
+    # peak, vx unaffected) and within run-to-run noise of it on pose smoothness (11.6 vs
+    # 11.4 mm), but the published vy drops from 1.24 to 0.04 cm/s RMS. So what this buys is
+    # a clean velocity output, not a smoother pose. The variance is 0.005 (m/s)^2 in
+    # perseus/config/perseus_controllers.yaml: that got the whole vy benefit (0.001 was no
+    # better), and at ~7 cm/s sigma it only mildly resists real sideways motion -- side-hill
+    # slides or the rear kicking out in a turn, where vy = 0 is false. Not covered by that
+    # bag; if the pose lags a real slide, loosen it or drop odom2.
+    odom2: /odom
+    #                 x      y      z      roll   pitch  yaw    vx    vy    vz     vroll  vpitch vyaw   ax     ay     az
+    odom2_config: [false, false, false, false, false, false, false, true, false, false, false, false, false, false, false]
+    odom2_differential: false
+    odom2_relative: false
+    # 50 Hz in.
+    odom2_queue_size: 20
+    odom2_nodelay: true
     imu0: /livox/imu/corrected
     # Gyroscope only. The roll/pitch/yaw entries read
     # sensor_msgs/Imu.orientation, which the MID-360 never fills: its ICM-40609 is a 6-axis
@@ -110,7 +160,7 @@ ekf_filter_node:
     # orientation_covariance[0] is -1. The Livox driver leaves that covariance at 0, so the
     # default identity orientation is trusted and gravity is subtracted as though the sensor
     # were level. With the sensor pitched 45 deg that leaves ~6.9 m/s^2 of fictitious
-    # horizontal acceleration, which double-integrates straight into position. Wheel odometry
+    # horizontal acceleration, which double-integrates straight into position. odom0
     # supplies translation instead.
     #
     # robot_localization rotates the rates from the message's frame into base_link using TF,
@@ -129,7 +179,14 @@ ekf_filter_node:
     base_link_frame: base_link
     world_frame: odom
     publish_tf: true
-    predict_to_current_time: true
+    # false: publish the state at the last measurement instead of extrapolating it to now.
+    # Extrapolating between 10 Hz scans on a velocity nothing measures was a large share of
+    # the jitter (see the replay table under odom2 above), and in the replay switching it off cut roughness about as much as the covariance floor
+    # did, while tracking LIO more closely rather than lagging it. The cost is that output
+    # and TF are stamped at the newest measurement rather than now -- only tens of ms back,
+    # with imu0 and odom2 both arriving at 50 Hz or more, and well inside navigation.yaml's
+    # 0.2 s transform_tolerance.
+    predict_to_current_time: false
     smooth_lagged_data: True
     history_length: 1.0
     # 15x15 row-major, so each of these MUST be exactly 225 elements: one row of 15 per
@@ -143,11 +200,17 @@ ekf_filter_node:
     # (imu0_*_rejection_threshold above) tighten until real measurements are rejected.
     # vyaw matters most here -- it is one of the three states imu0 actually fuses.
     #
-    # The velocity terms are deliberately LARGER than the position terms they sit under.
-    # Nothing in this filter measures velocity: odom0 contributes pose only, imu0 contributes
-    # angular rates only, and the wheel /odom is not fused (it slips too much on LHS-2E to be
-    # worth having). Velocity is therefore only correctable through its cross-covariance with
-    # position, and if vx is declared more certain than x -- as it was, 0.05 against 0.1 --
+    # Retuned on rock_nav_test_2 (see odom2 above for the replay table). x/y 0.5 -> 0.05,
+    # z 0.2 -> 0.02, roll/pitch 0.03 -> 0.003, yaw 0.3 -> 0.03, vx/vy 1.0 -> 0.3. At the old
+    # values the prediction grew so uncertain between 10 Hz scans that every odom0 update
+    # replaced the state outright, so the filter copied each scan's jitter instead of
+    # averaging it. That only helps together with odom0's covariance floor (bievr_mid360.yaml):
+    # against the raw ~1e-5 m^2 Hessian estimate even 0.05 still loses.
+    #
+    # vx is still deliberately LARGER than the position terms it sits under, because nothing
+    # in this filter measures it: odom0 contributes pose only, imu0 angular rates only, and
+    # odom2 vy only (wheel vx slips too much on sand -- see odom2 above). vx is therefore only
+    # correctable through its cross-covariance with position, and if vx is declared more certain than x -- as it was, 0.05 against 0.1 --
     # an arriving pose update is absorbed almost entirely by position while velocity keeps its
     # stale value. The filter then extrapolates forward again on that same velocity, so a hard
     # stop produces a sawtooth at the pose source's rate.
@@ -161,20 +224,22 @@ ekf_filter_node:
     #
     # A/B'd against a second ekf_node on identical inputs with publish_tf off. This is a
     # mitigation, not a cure: a 10 Hz pose-only source driving a 30 Hz output will always
-    # extrapolate between corrections. predict_to_current_time: false is the other lever and
-    # is untested.
+    # extrapolate between corrections. predict_to_current_time: false removes the
+    # extrapolation itself; measuring vx would remove the cause, but wheel vx is not
+    # trustworthy on sand (see odom2 above). 0.3 keeps vx/vy above x/y as this section
+    # argues; the hard-stop test above has not been re-run on the new values.
     #
     # Values are decimal rather than 1e-3 notation on purpose: `1e-3` is not a valid YAML 1.1
     # float, so rcl accepts it via strtod but PyYAML reads it as a string. This repo already
     # yaml.safe_load()s a config in localisation.launch.py, so that trap is worth avoiding.
-    process_noise_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # x
-      0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # y
-      0.0, 0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # z
-      0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # roll
-      0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # pitch
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # yaw
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vx
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vy
+    process_noise_covariance: [0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # x
+      0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # y
+      0.0, 0.0, 0.02, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # z
+      0.0, 0.0, 0.0, 0.003, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # roll
+      0.0, 0.0, 0.0, 0.0, 0.003, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # pitch
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # yaw
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vx
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vy
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # vz
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, # vroll
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, # vpitch
