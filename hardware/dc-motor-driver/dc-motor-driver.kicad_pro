@@ -600,7 +600,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "../../../Documents/2026/hardware_projects/QUTRC/ExDriver/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "../../../Downloads/ENC_V1R1.step",
@@ -801,7 +801,7 @@
         "uuid": "fc286157-4263-4a46-ad05-98b3354aa28a"
       }
     ],
-    "used_designators": "FID1-3,Q1-5,J1,J4,J10-11,J14-20,R16-38,C25-26,#PWR1-4,#PWR68-93,D1-2,D6-18,U7-8,JP7-8,TP1-6",
+    "used_designators": "FID1-3,Q1-5,U7-8,J1,J4,J10-11,J14-20,R16-38,JP7-8,TP1-6,C25-26,D1-2,D6-18,#PWR1-4,#PWR68-93",
     "variants": []
   },
   "sheets": [

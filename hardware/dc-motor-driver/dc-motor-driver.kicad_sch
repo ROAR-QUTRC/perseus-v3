@@ -3109,6 +3109,16 @@
 		)
 		(uuid "6e0bb961-2001-4d3c-b9dc-331db42bc6ed")
 	)
+	(text "GPIO 39 and 38 can be used"
+		(exclude_from_sim no)
+		(at 151.384 97.282 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "31bd359c-b2a4-4d86-9dfd-55a1f3f3ab78")
+	)
 	(text "Bank 2"
 		(exclude_from_sim no)
 		(at 110.49 25.4 0)
