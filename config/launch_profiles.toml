@@ -35,5 +35,5 @@ ros = [
 monitor = "btop"
 
 [BoMachine]
-ros = ["ros2 launch autonomy_bringup base_station.launch.py", "ros2 topic list",]
+ros = ["ros2 launch autonomy_bringup base_station.launch.py", "ros2 topic list"]
 monitor = "btop"
