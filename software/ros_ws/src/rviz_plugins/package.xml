@@ -23,6 +23,9 @@
        cannot disagree about the layout -->
   <depend>arena_server</depend>
   <depend>pluginlib</depend>
+  <!-- the zone point tools extend its PoseTool, the same base as 2D Goal Pose -->
+  <depend>rviz_default_plugins</depend>
+  <depend>visualization_msgs</depend>
   <depend>qtbase5-dev</depend>
 
   <test_depend>ament_lint_auto</test_depend>
