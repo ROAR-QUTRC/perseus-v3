@@ -61,11 +61,31 @@ global_traversability:
     max_sensor_height_m: 1.5
     # THE CLASSIFIER, same meaning as the matching local_traversability parameters below --
     # read their comments there. Kept in step with local's so a cell does not change
-    # verdict depending on which node saw it.
+    # verdict depending on which node saw it -- EXCEPT max_height_above_ground_m and
+    # min_obstacle_cells, which differ on purpose; see there.
     ground_window_m: 0.5
     max_slope_deg: 40.0
     max_step_up_m: 0.2
-    max_height_above_ground_m: 0.2
+    # 0.05, against local's 0.2, so the planner sees ~7 cm bricks lying flat. The slope
+    # allowance (tan(max_slope_deg) * resolution_m = 8.4 cm per cell) hides anything that
+    # short from step_up, but a cell straddling the brick's edge holds both floor and top
+    # returns, so this test sees close to its full height -- the brick shows as an outline.
+    #
+    # Replayed rock_nav_test_2 (no bricks in it: this measures false positives, not brick
+    # detection), counting final-map obstacle cells under the driven path -- ground the
+    # rover's own body covered, so false by construction:
+    #
+    #     setting                                  on driven path   total obstacle cells
+    #     0.2 (before)                                   0                1113
+    #     0.06                                          48                2130
+    #     0.05 + min_obstacle_cells 4                  201                2633
+    #     0.05 + log_odds_hit 0.25                       2                1417
+    #     0.05 + both (this config)                      1                1290
+    #
+    # 0.04 speckled the whole driven area. The additions at 0.05 sit on rock edges and walls.
+    # 0.05 alone is not safe: sand noise and wheel ruts put 520 cells under the path. It only
+    # works together with log_odds_hit below, which rejects that noise because it flickers.
+    max_height_above_ground_m: 0.05
     max_step_down_m: 0.15
     obstacle_height_cap_m: 1.0
     ground_margin_m: 0.10
@@ -74,15 +94,22 @@ global_traversability:
     # 2, against local's 1. This grid REMEMBERS: a lone return local would forget in a
     # second would stay here until the cell is rescanned.
     min_points_per_cell: 2
-    min_obstacle_cells: 2
+    # 4, against local's 2. A flat brick's edge outline is ~7-10 connected cells, so this
+    # keeps it while dropping the 2-3 cell noise blobs the 0.05 height test lets through.
+    min_obstacle_cells: 4
     # THE MEMORY. Each update a cell the window observes gets +hit (obstacle) or -miss
     # (free), clamped to [min, max]; above occupied it publishes as lethal. Cells the window
     # does not observe are left alone.
-    #   hit > occupied   one sighting marks a rock. Missing one is worse than a false one
-    #                    that clears on the next look.
+    #   hit < occupied   was 0.7 (one sighting marks a rock). 0.25 needs 3 consecutive
+    #                    obstacle verdicts (~1.5 s in view) on never-seen ground, which is
+    #                    what rejects the flickering noise max_height_above_ground_m 0.05
+    #                    lets through -- see the table there. A cell alternating hit/miss
+    #                    now drifts down (+0.25 -0.4) instead of up.
     #   (max - occupied) / miss = updates of clear view to erase an obstacle: 7.5, ~4 s.
-    #   (occupied - min) / hit  = updates to mark something new on long-free ground: ~4, ~2 s.
-    log_odds_hit: 0.7
+    #   (occupied - min) / hit  = updates to mark something new on long-free ground: 10, ~5 s
+    #                    (was ~2 s). A brick dropped onto ground already mapped free takes
+    #                    that long in view to appear; one there from the start takes ~1.5 s.
+    log_odds_hit: 0.25
     log_odds_miss: 0.4
     log_odds_min: -2.0
     log_odds_max: 3.5
@@ -170,6 +197,13 @@ local_traversability:
     # Start looser than the global node's 0.20 would suggest and tighten: raw scans have no
     # map layering inflating these, so a real 0.12 m step here is a real 0.12 m step.
     max_step_up_m: 0.2
+    # 0.2 on purpose, NOT the global node's 0.05. This node has no log-odds memory to reject
+    # flickering sand noise, so a low threshold here puts phantom obstacles straight in the
+    # controller's path: on rock_nav_test_2, 0.06 (even with min_obstacle_cells 4 and
+    # min_points_per_cell 2) left a false lethal cell under the rover's next 5 s of path in
+    # 4.1% of frames, 0.05 in 16.1%, against 0% at 0.2. Small obstacles like bricks still
+    # reach the controller: local_costmap layers the global map in, so once
+    # global_traversability confirms one (~1.5 s in view) the controller avoids it too.
     max_height_above_ground_m: 0.2
     max_step_down_m: 0.15
     # Above this height a return is overhead structure and is left out of the height test
