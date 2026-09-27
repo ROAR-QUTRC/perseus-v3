@@ -54,7 +54,9 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     tf2_ros
     tf2_geometry_msgs
     ament_index_cpp
-    arena_server)
+    arena_server
+    rviz_default_plugins
+    visualization_msgs)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
@@ -87,7 +89,9 @@ add_library(
   src/mobility_efficiency_panel.cpp
   include/rviz_plugins/mobility_efficiency_panel.hpp
   src/mission_control_panel.cpp
-  include/rviz_plugins/mission_control_panel.hpp)
+  include/rviz_plugins/mission_control_panel.hpp
+  src/mission_point_tool.cpp
+  include/rviz_plugins/mission_point_tool.hpp)
 
 target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
