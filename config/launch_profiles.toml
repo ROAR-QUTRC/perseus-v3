@@ -26,3 +26,14 @@ ros = [
   "ros2 bag record -a",
 ]
 monitor = "btop"
+
+[autonomy-brain]
+ros = [
+  "ros2 launch autonomy_bringup localisation.launch.py enable_sensors:=true interface:=enP3p49s0 aruco:=true overlay:=true",
+  "ros2 launch autonomy_bringup navigation.launch.py",
+]
+monitor = "btop"
+
+[BoMachine]
+ros = ["ros2 launch autonomy_bringup base_station.launch.py", "ros2 topic list",]
+monitor = "btop"
