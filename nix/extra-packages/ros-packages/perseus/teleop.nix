@@ -6,10 +6,10 @@
   ament-cmake,
   ament-cmake-python,
   backward-ros,
-  geometry-msgs,
   control-msgs,
-  moveit-msgs,
+  geometry-msgs,
   joy,
+  moveit-msgs,
   rclcpp,
   rclpy,
   sensor-msgs,
@@ -29,10 +29,10 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     actuator-msgs
     backward-ros
-    geometry-msgs
     control-msgs
-    moveit-msgs
+    geometry-msgs
     joy
+    moveit-msgs
     rclcpp
     rclpy
     sensor-msgs

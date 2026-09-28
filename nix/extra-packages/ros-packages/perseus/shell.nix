@@ -27,9 +27,11 @@ pkgs.mkShell {
         with extraPkgs;
         [
           # Dependencies from package.xml files
-          arm-ikfast-plugin
           actuator-msgs
           ament-cmake
+          ament-cmake-gen-version-h
+          ament-cmake-gmock
+          ament-cmake-gtest
           ament-cmake-python
           ament-index-cpp
           ament-index-python
@@ -39,27 +41,30 @@ pkgs.mkShell {
           builtin-interfaces
           compressed-depth-image-transport
           compressed-image-transport
+          control-msgs
           controller-manager
+          controller-manager-msgs
           cv-bridge
           diff-drive-controller
           dynamixel-sdk
           fast-lio
-          geometry-msgs
           generate-parameter-library
+          geometry-msgs
           grid-map-core
           hardware-interface
+          hector-testing-utils
           hi-can
           hi-can-raw
           joint-state-broadcaster
           joint-state-publisher-gui
           joint-trajectory-controller
           joy
+          liblapack
+          mecanum-drive-controller
           moveit-core
           moveit-kinematics
-          mecanum-drive-controller
           moveit-msgs
           moveit-planners-ompl
-          moveit-ros-control-interface
           moveit-ros-move-group
           moveit-ros-visualization
           moveit-servo
@@ -69,6 +74,7 @@ pkgs.mkShell {
           nlohmann_json
           onnxruntime
           opencv
+          orocos-kdl-vendor
           pcl-conversions
           pluginlib
           rcl-interfaces
@@ -81,15 +87,18 @@ pkgs.mkShell {
           robot-localization
           robot-state-publisher
           ros2-control
+          ros2-control-cmake
           ros2controlcli
           ros2launch
           rosidl-default-generators
           rosidl-default-runtime
           rplidar-ros
+          rtest
           rviz2
           sensor-msgs
           slam-toolbox
           std-msgs
+          std-srvs
           tf2
           tf2-eigen
           tf2-geometry-msgs
@@ -101,8 +110,6 @@ pkgs.mkShell {
           v4l2-camera
           visualization-msgs
           xacro
-          pkgs.blas
-          pkgs.lapack
         ]
       )
       ++ builtins.attrValues extraPkgs
