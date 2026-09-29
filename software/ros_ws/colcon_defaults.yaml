@@ -1,1 +1,8 @@
-{"build": {"symlink-install": true}}
+build:
+  symlink-install: true
+  # Emit a compilation database so language servers can resolve includes
+  # instead of guessing: CMake writes one per package, and colcon-cmake's
+  # "compile_commands" event handler (enabled by default) merges them into
+  # a workspace-level build/compile_commands.json at the end of every build.
+  cmake-args:
+    - -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
