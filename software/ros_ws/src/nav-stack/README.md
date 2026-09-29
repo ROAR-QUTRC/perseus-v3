@@ -5,7 +5,7 @@
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus)](#requirements)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
-Autonomous navigation for **Perseus**, the QUT Robotics Club (ROAR) rover, built
+Adaptive autonomous navigation stack for **Perseus**, the QUT Robotics Club (ROAR) rover, built
 for the 2026 NASA International Lunabotics Championship. The stack takes a Livox
 MID-360 LiDAR, its IMU and a RealSense stereo camera, and turns them into a
 localised rover that plans across unknown regolith, avoids rocks and craters,
