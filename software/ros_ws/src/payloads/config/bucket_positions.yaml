@@ -4,7 +4,7 @@ bucket_position_control:
     # three; add "tilt" / "jaws" here once they are ready.
     enabled_axes: ["lift"]
     # Every name listed here must have an entry under positions.
-    position_names: ["stowed", "raised"]
+    position_names: ["down", "raised"]
     # Angles in degrees (4096 encoder counts per revolution).
     positions:
       down:
