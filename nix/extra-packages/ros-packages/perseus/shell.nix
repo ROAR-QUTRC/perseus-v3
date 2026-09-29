@@ -57,6 +57,7 @@ pkgs.mkShell {
           opencv
           pcl-conversions
           pluginlib
+          position-controllers
           rcl-interfaces
           rclcpp
           rclcpp-components

@@ -7,10 +7,12 @@
   ament-lint-auto,
   ament-lint-common,
   controller-manager,
+  description,
   hardware-interface,
   hi-can-raw,
   joint-state-broadcaster,
   pluginlib,
+  position-controllers,
   rclcpp,
   rclcpp-lifecycle,
   robot-state-publisher,
@@ -31,10 +33,12 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     actuator-msgs
     controller-manager
+    description
     hardware-interface
     hi-can-raw
     joint-state-broadcaster
     pluginlib
+    position-controllers
     rclcpp
     rclcpp-lifecycle
     robot-state-publisher
