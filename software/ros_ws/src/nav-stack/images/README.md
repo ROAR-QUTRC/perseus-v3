@@ -12,9 +12,9 @@ any edits. About 1600 × 900 works well.
 
 ## Screenshot tips
 
-*   Use a dark RViz background so the screenshot reads well in both GitHub
-    themes.
-*   Keep the file under about 2 MB. Running it through `pngquant` or `oxipng`
-    usually gets it well under that.
-*   To add more images later, drop them in this folder and reference them from
-    the nav-stack README as `images/<name>.png`.
+- Use a dark RViz background so the screenshot reads well in both GitHub
+  themes.
+- Keep the file under about 2 MB. Running it through `pngquant` or `oxipng`
+  usually gets it well under that.
+- To add more images later, drop them in this folder and reference them from
+  the nav-stack README as `images/<name>.png`.
