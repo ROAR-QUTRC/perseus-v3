@@ -146,13 +146,13 @@ void BucketPositionControl::_position_callback(
         if (!_enabled[i])
             continue;
 
-        const int16_t counts = degrees_to_counts(it->second[i]);
-        RCLCPP_INFO(this->get_logger(), "%s: %s -> %.2f deg (%d counts)",
-                    it->first.c_str(), BANK_NAMES[i], it->second[i], counts);
+        const int16_t degrees = it->second[i] * 10;
+        RCLCPP_INFO(this->get_logger(), "%s: %s -> %.2f deg",
+                    it->first.c_str(), BANK_NAMES[i], it->second[i]);
 
         _can_interface.transmit(
             Packet(bank_address(BANKS[i], bucket_addr::bank_parameter::SET_POSITION),
-                   bucket_param::position_t{counts}.serialize_data()));
+                   bucket_param::position_t{degrees}.serialize_data()));
     }
 }
 
