@@ -264,7 +264,8 @@ namespace
             return ERR_VAL;
 
         Connection* c = std::find_if(std::begin(connections), std::end(connections),
-                                     [](const Connection& x) { return x.state == State::kFree; });
+                                     [](const Connection& x)
+                                     { return x.state == State::kFree; });
         if (c == std::end(connections))
         {
             tcp_abort(pcb);

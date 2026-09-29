@@ -1,17 +1,34 @@
 <!doctype html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>Encoder Doom</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
-  img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
 </style>
-<img src="/stream" alt="">
+<img src="/stream" alt="" />
 <script>
   // One key POST at a time, so a quick tap can't arrive as up-then-down.
   let queue = Promise.resolve();
-  const post = body => queue = queue.then(() => fetch('/key', { method: 'POST', body })).catch(() => {});
-  const key = down => e => { e.preventDefault(); if (!e.repeat) post(down + e.code); };
+  const post = (body) =>
+    (queue = queue
+      .then(() => fetch("/key", { method: "POST", body }))
+      .catch(() => {}));
+  const key = (down) => (e) => {
+    e.preventDefault();
+    if (!e.repeat) post(down + e.code);
+  };
   onkeydown = key(1);
   onkeyup = key(0);
-  onblur = () => post('R');  // focus lost mid-press: release everything
+  onblur = () => post("R"); // focus lost mid-press: release everything
 </script>

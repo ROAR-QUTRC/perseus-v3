@@ -13,12 +13,12 @@ core 0: engine                      platform.hpp                  core 1: backen
   HID key events                   ◄─────────────────  hdmi: HSTX DVI + USB-host keyboard (TBD)
 ```
 
-| Piece          | Design                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| Interface      | `display_set_palette()`, `display_present()`, `input_poll()`; keys are USB HID usage IDs  |
-| Backend choice | Build time: `-DDOOM_PLATFORM=web` (default) or `hdmi` (TBD)                               |
-| Frame handoff  | One slot, atomic flag; a frame arriving while core 1 is busy is dropped, never queued     |
-| Key handoff    | `pico_util` queue, core 1 → core 0                                                        |
+| Piece          | Design                                                                                                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface      | `display_set_palette()`, `display_present()`, `input_poll()`; keys are USB HID usage IDs                                                                    |
+| Backend choice | Build time: `-DDOOM_PLATFORM=web` (default) or `hdmi` (TBD)                                                                                                 |
+| Frame handoff  | One slot, atomic flag; a frame arriving while core 1 is busy is dropped, never queued                                                                       |
+| Key handoff    | `pico_util` queue, core 1 → core 0                                                                                                                          |
 | Boot (planned) | Doom in its own flash partition; a bench-only trigger reboots into it, a power cycle returns to the encoder. Today `doom.uf2` replaces the encoder firmware |
 
 ### Web backend
@@ -26,13 +26,13 @@ core 0: engine                      platform.hpp                  core 1: backen
 | Item    | Value                                                                                         |
 | ------- | --------------------------------------------------------------------------------------------- |
 | USB     | Composite: CDC serial (stdio) + CDC-NCM network adapter                                       |
-| Network | Board `192.168.7.1`, PC `192.168.7.2` by DHCP; no gateway or DNS advertised                    |
-| Stack   | TinyUSB + lwIP without an RTOS, polled from core 1's loop; own HTTP server on the raw TCP API   |
-| Page    | `GET /`: `index.html`, compiled into flash; about 6 lines of JavaScript, keys only             |
-| Video   | `GET /stream`: `multipart/x-mixed-replace` of palette PNGs, displayed by a plain `<img>`       |
-| Encoder | Fixed-Huffman deflate; candidates from a 3-byte hash, the previous byte and the row above      |
-| Keys    | `POST /key`: `1<code>` down, `0<code>` up, `R` release all; sent in order, repeats ignored     |
-| RAM     | 325 KB of 520 KB, including the test pattern's 64 KB frame that Doom's screen buffer replaces  |
+| Network | Board `192.168.7.1`, PC `192.168.7.2` by DHCP; no gateway or DNS advertised                   |
+| Stack   | TinyUSB + lwIP without an RTOS, polled from core 1's loop; own HTTP server on the raw TCP API |
+| Page    | `GET /`: `index.html`, compiled into flash; about 6 lines of JavaScript, keys only            |
+| Video   | `GET /stream`: `multipart/x-mixed-replace` of palette PNGs, displayed by a plain `<img>`      |
+| Encoder | Fixed-Huffman deflate; candidates from a 3-byte hash, the previous byte and the row above     |
+| Keys    | `POST /key`: `1<code>` down, `0<code>` up, `R` release all; sent in order, repeats ignored    |
+| RAM     | 325 KB of 520 KB, including the test pattern's 64 KB frame that Doom's screen buffer replaces |
 
 Verified on a PC: PNGs round-trip (CRC, Adler-32, pixels); Firefox plays the PNG
 stream live; the page's key POSTs arrive in order. Untested: hardware, Chrome.
@@ -60,13 +60,13 @@ encoder's normal operation. The RP2350 boot ROM reads a partition table, starts
 the first valid image, and maps whichever partition it starts so that it appears
 at `0x10000000`. Both builds therefore stay ordinary, unrelocated builds.
 
-| Region          | Offset     | Size   | Contents                                                        |
-| --------------- | ---------- | ------ | --------------------------------------------------------------- |
-| Partition table | `0x000000` | 4 KB   | Created with `picotool partition create layout.json`             |
-| P0 `encoder`    | `0x001000` | 1 MB   | Encoder firmware; first partition, so the default boot           |
-| P1 `doom`       | `0x101000` | ~8 MB  | Doom engine, web backend and WAD bundled in one image            |
-| P2 `zero`       | `0xFFE000` | 4 KB   | Zero-offset record, same place as today, now reserved by the table |
-| Unpartitioned   | `0xFFF000` | 4 KB   | Left free for the RP2350-E10 absolute UF2 block                  |
+| Region          | Offset     | Size  | Contents                                                           |
+| --------------- | ---------- | ----- | ------------------------------------------------------------------ |
+| Partition table | `0x000000` | 4 KB  | Created with `picotool partition create layout.json`               |
+| P0 `encoder`    | `0x001000` | 1 MB  | Encoder firmware; first partition, so the default boot             |
+| P1 `doom`       | `0x101000` | ~8 MB | Doom engine, web backend and WAD bundled in one image              |
+| P2 `zero`       | `0xFFE000` | 4 KB  | Zero-offset record, same place as today, now reserved by the table |
+| Unpartitioned   | `0xFFF000` | 4 KB  | Left free for the RP2350-E10 absolute UF2 block                    |
 
 **Switching (boot ROM only, no launcher).** The encoder's trigger looks up
 partition `doom` by name and calls the boot ROM's reboot with the flash-update
@@ -77,15 +77,15 @@ unrelated images, not only for A/B pairs.
 
 **Protecting the encoder**
 
-| Rule                        | How                                                                                          |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| Encoder always boots        | P0 is the default; no "boot Doom" state is ever stored, so every reset returns to the encoder |
-| Rover can't start Doom      | Trigger only on the USB console, never Modbus/CAN; compiled in only by a bench build option    |
-| Missing Doom is harmless    | Trigger checks the `doom` partition first; if it's absent or invalid, it logs and carries on   |
-| Zero record untouched       | Stays at `0xFFE000` in its own partition; Doom never links flash writes                        |
-| Zero record still readable  | `zero_store` reads through `XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE`, not `XIP_BASE`, because translation remaps `XIP_BASE` to the running partition. Works with or without a table |
-| Encoder workflow unchanged  | P0 accepts the standard `rp2350-arm-s` UF2 family; P1 takes a custom family (or `picotool load -p 1`) |
-| Easy rollback               | `picotool erase`, then flash `encoder.uf2`: back to today's single-image layout                |
+| Rule                       | How                                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Encoder always boots       | P0 is the default; no "boot Doom" state is ever stored, so every reset returns to the encoder                                                                                    |
+| Rover can't start Doom     | Trigger only on the USB console, never Modbus/CAN; compiled in only by a bench build option                                                                                      |
+| Missing Doom is harmless   | Trigger checks the `doom` partition first; if it's absent or invalid, it logs and carries on                                                                                     |
+| Zero record untouched      | Stays at `0xFFE000` in its own partition; Doom never links flash writes                                                                                                          |
+| Zero record still readable | `zero_store` reads through `XIP_NOCACHE_NOALLOC_NOTRANSLATE_BASE`, not `XIP_BASE`, because translation remaps `XIP_BASE` to the running partition. Works with or without a table |
+| Encoder workflow unchanged | P0 accepts the standard `rp2350-arm-s` UF2 family; P1 takes a custom family (or `picotool load -p 1`)                                                                            |
+| Easy rollback              | `picotool erase`, then flash `encoder.uf2`: back to today's single-image layout                                                                                                  |
 
 **Order of work:** the encoder changes first (untranslated zero read, trigger
 behind a build option), tested with no partition table. Then the table and
@@ -107,10 +107,10 @@ passive adapter: USB-C plug → HDMI socket + USB-A socket (keyboard) + 5 V inpu
 
 | Other         | Wiring                                                                  |
 | ------------- | ----------------------------------------------------------------------- |
-| Ground        | USB-C GND → HDMI shields 2, 5, 8, 11 and pin 17                          |
-| 5 V           | Dock supply → USB-C VBUS (powers the board), HDMI pin 18, USB-A VBUS     |
-| Keyboard      | USB-C D+/D− → USB-A D+/D−; the RP2350 runs as USB host                   |
-| Not connected | HDMI 13 (CEC), 14, 15/16 (DDC), 19 (hot plug); USB-C SBU is unconnected  |
+| Ground        | USB-C GND → HDMI shields 2, 5, 8, 11 and pin 17                         |
+| 5 V           | Dock supply → USB-C VBUS (powers the board), HDMI pin 18, USB-A VBUS    |
+| Keyboard      | USB-C D+/D− → USB-A D+/D−; the RP2350 runs as USB host                  |
+| Not connected | HDMI 13 (CEC), 14, 15/16 (DDC), 19 (hot plug); USB-C SBU is unconnected |
 
 Wire net-for-net as in the table. The CK pair lands on the connector's RX1 pins
 with swapped polarity, which HSTX can invert in firmware anyway.
