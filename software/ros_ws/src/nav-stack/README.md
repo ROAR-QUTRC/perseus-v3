@@ -11,6 +11,10 @@ MID-360 LiDAR, its IMU and a RealSense stereo camera, and turns them into a
 localised rover that plans across unknown regolith, avoids rocks and craters,
 and cycles between the excavation and construction zones on its own.
 
+Nothing in the core stack depends on the arena. The same localisation and
+terrain costmaps also drive the rover across
+[open, uneven 3D terrain](#open-terrain-navigation) with no prior map.
+
 ![Base station RViz view during autonomous navigation](images/base_station_rviz.png)
 
 *The base station view: the operator's RViz, running on a laptop, following the
@@ -19,6 +23,7 @@ rover over the network.*
 ## Contents
 
 *   [Features](#features)
+*   [Open terrain navigation](#open-terrain-navigation)
 *   [Architecture](#architecture)
 *   [Packages](#packages)
 *   [Requirements](#requirements)
@@ -41,6 +46,9 @@ rover over the network.*
 *   **LiDAR-inertial localisation.** BIEVR-LIO odometry fused with gyro rates,
     stereo visual odometry and a diff-drive no-sideslip constraint in a
     `robot_localization` EKF.
+*   **Open 3D terrain, no prior map.** Full 6-DOF state estimation and
+    slope- and step-aware terrain analysis, so the rover can navigate open
+    outdoor ground as well as the arena.
 *   **Arena-frame localisation from fiducials.** `arena_server` fixes the rover
     pose from ArUco markers on the arena rail and publishes `map -> odom`, so
     goals can be given in guidebook coordinates.
@@ -65,6 +73,52 @@ rover over the network.*
     link for the minimap.
 *   **Manual override always wins.** `twist_mux` ranks the joystick above
     navigation, so holding the deadman takes over from Nav2 at once.
+
+## Open terrain navigation
+
+The stack isn't limited to a walled arena. It navigates open, uneven 3D
+terrain with no prior map:
+
+*   **Full 3D state estimation.** BIEVR-LIO and the EKF estimate x, y, z, roll,
+    pitch and yaw (`two_d_mode: false`), so slopes, mounds and craters are
+    tracked, not flattened away.
+*   **Terrain analysis, not a flat-floor assumption.** Each cell is judged
+    against the local ground from the raw 3D scan. A drivable slope up to
+    `max_slope_deg` (40°) reads as free. Steps up (`max_step_up_m`), drops
+    (`max_step_down_m`) and anything standing proud of the ground
+    (`max_height_above_ground_m`) read as obstacles. Overhead returns above
+    `obstacle_height_cap_m` are ignored, so the rover can drive under them.
+*   **No walls or prior map needed.** Both costmaps come from live LiDAR only.
+    `global_traversability` starts at 40 m × 40 m and grows in 10 m steps as
+    the rover explores, and unmapped ground is plannable by default.
+*   **Drift-free classification.** Cells are classified from the last second
+    of raw scans, then folded into a log-odds memory. Slow odometry drift
+    never shows up as a false step between two visits to the same spot.
+
+### Running outside the arena
+
+Launch localisation and navigation as usual, then send goals in `odom` with
+**2D Goal Pose** or `NavigateToPose`. The arena-specific parts are optional:
+
+*   Ignore `arena_server`'s `map` frame. It's seeded from the arena starting
+    pose and only means something inside the arena.
+*   The zone missions (`/mission/*`, `/arena/request_*_waypoint`) assume the
+    Lunabotics layout. Use plain Nav2 goals or `waypoint_follower` instead.
+*   On bigger ground, raise `max_range_m` on both traversability nodes, and
+    `max_size` in `bievr_mid360.yaml` if the computer has the memory.
+
+### Open terrain limits
+
+*   **2.5D planning.** Nav2 plans on a 2D cost grid built from the 3D terrain
+    analysis. It can't route over and under the same spot, such as a bridge.
+*   **Odometry only.** Away from the arena fiducials there's no absolute fix,
+    so position drifts slowly over long runs. Add GNSS or another global
+    source to the EKF for kilometre-scale missions.
+*   **Drop-offs.** A real edge often shows up as *no* returns, not low ones,
+    and unknown ground is treated as free. See [Safety](#safety).
+*   **Tuned for Lunabotics regolith.** The speed limits, stall floors and
+    thresholds suit a slow skid-steer on sand. Retune `navigation.yaml` for
+    other vehicles or surfaces.
 
 ## Architecture
 
