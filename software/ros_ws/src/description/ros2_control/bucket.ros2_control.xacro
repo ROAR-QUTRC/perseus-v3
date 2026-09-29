@@ -3,7 +3,7 @@
 
   <!--
     Include this file from the main URDF/xacro with:
-      <xacro:include filename="$(find bucket_hardware)/description/bucket.ros2_control.xacro"/>
+      <xacro:include filename="$(find description)/ros2_control/bucket.ros2_control.xacro"/>
       <xacro:bucket_ros2_control can_interface="can0"/>
 
     Each joint below is tagged with "axis" and "side" - these are read by
@@ -13,14 +13,19 @@
     accepts one setpoint per axis (independent left/right control is
     possible in hardware but is disallowed over CAN to prevent torsion in
     the bucket). So exactly ONE joint per axis (arbitrarily "_left" here)
-    declares command_interfaces; its pair declares state_interfaces only.
+    declares a command_interface; its pair declares state_interfaces only.
+
+    Position is the only command interface. Speed control is the separate,
+    non-ros2_control teleop driver's job (payloads/bucket_driver) - the two
+    must never run at once, since the firmware takes its control mode from
+    whichever command arrived last.
     BucketHardware::on_init() enforces this 1-commandable-joint-per-axis
     invariant and will refuse to configure otherwise.
   -->
   <xacro:macro name="bucket_ros2_control" params="can_interface:='can0'">
     <ros2_control name="BucketSystem" type="system">
       <hardware>
-        <plugin>bucket_hardware/BucketHardware</plugin>
+        <plugin>payloads/BucketHardware</plugin>
         <param name="can_interface">${can_interface}</param>
       </hardware>
 
@@ -30,7 +35,6 @@
           <param name="axis">${axis}</param>
           <param name="side">${side}</param>
           <command_interface name="position"/>
-          <command_interface name="velocity"/>
           <state_interface name="position"/>
           <state_interface name="velocity"/>
           <state_interface name="effort"/>

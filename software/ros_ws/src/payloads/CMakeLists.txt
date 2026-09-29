@@ -113,10 +113,13 @@ install(
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin)
 
-install(FILES bucket_hardware.xml DESTINATION share/${PROJECT_NAME})
+# Registers the plugin with pluginlib via the ament index AND installs the
+# file. A plain install() copies the xml but leaves pluginlib unable to find
+# the class, which fails only at runtime as "class ... does not exist".
+pluginlib_export_plugin_description_file(hardware_interface bucket_hardware.xml)
 
 install(
-  DIRECTORY launch config
+  DIRECTORY launch config urdf
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
 

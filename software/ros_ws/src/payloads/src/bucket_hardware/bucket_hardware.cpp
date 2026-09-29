@@ -101,7 +101,7 @@ namespace payloads
                     joint.name.c_str());
                 return hardware_interface::CallbackReturn::ERROR;
             }
-            if (joint_info.command_interfaces.size() == 2)
+            if (joint_info.command_interfaces.size() == 1)
             {
                 joint.has_command = true;
             }
@@ -109,8 +109,8 @@ namespace payloads
             {
                 RCLCPP_ERROR(
                     logger(),
-                    "Joint '%s' must declare either 0 command interfaces (state-only) or exactly 2 "
-                    "(position, velocity) - got %zu",
+                    "Joint '%s' must declare either 0 command interfaces (state-only) or exactly 1 "
+                    "(position) - got %zu",
                     joint.name.c_str(), joint_info.command_interfaces.size());
                 return hardware_interface::CallbackReturn::ERROR;
             }
@@ -202,22 +202,81 @@ namespace payloads
         const rclcpp_lifecycle::State& /*previous_state*/)
     {
         // Seed commands with current state so the first write() doesn't jerk the
-        // actuators toward a stale/zero setpoint.
+        // actuators toward a stale/zero setpoint. perform_command_mode_switch()
+        // re-seeds on each claim too, since activation and claiming are separate
+        // events and state_position moves in between.
         for (auto& joint : joints_)
         {
             joint.command_position = joint.state_position;
-            joint.command_velocity = 0.0;
         }
+        activated_at_ = get_clock()->now();
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
     hardware_interface::CallbackReturn BucketHardware::on_deactivate(
         const rclcpp_lifecycle::State& /*previous_state*/)
     {
-        // TODO: add a "hold" or "disable" command here so the board
-        // doesn't keep driving actuators toward the last commanded setpoint after
-        // controllers stop updating.
+        // Stop every bank explicitly. The firmware watchdogs a stale SET_SPEED
+        // but not a stale SET_POSITION, so without this the bucket would keep
+        // driving toward its last setpoint after the controllers stop.
+        for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
+        {
+            can_->stop_axis(static_cast<Axis>(axis_idx));
+        }
+        for (auto& joint : joints_)
+        {
+            joint.command_claimed = false;
+        }
         return hardware_interface::CallbackReturn::SUCCESS;
+    }
+
+    hardware_interface::return_type BucketHardware::prepare_command_mode_switch(
+        const std::vector<std::string>& start_interfaces,
+        const std::vector<std::string>& stop_interfaces)
+    {
+        // Position is the only command interface this hardware exports, so any
+        // claim controller_manager can construct is one we can honour. Validation
+        // that only one joint per axis is commandable happened back in on_init().
+        (void)start_interfaces;
+        (void)stop_interfaces;
+        return hardware_interface::return_type::OK;
+    }
+
+    hardware_interface::return_type BucketHardware::perform_command_mode_switch(
+        const std::vector<std::string>& start_interfaces,
+        const std::vector<std::string>& stop_interfaces)
+    {
+        // controller_manager hands us interfaces as "<joint>/<interface>".
+        const auto matches = [](const std::string& full_name, const JointHandle& joint)
+        {
+            return full_name == joint.name + "/" + hardware_interface::HW_IF_POSITION;
+        };
+
+        for (auto& joint : joints_)
+        {
+            for (const auto& name : stop_interfaces)
+            {
+                if (matches(name, joint))
+                {
+                    joint.command_claimed = false;
+                    // Stop the bank rather than leaving it acting on the setpoint
+                    // it was last given. Nothing else will: the firmware does not
+                    // watchdog position commands.
+                    can_->stop_axis(joint.axis);
+                }
+            }
+            for (const auto& name : start_interfaces)
+            {
+                if (matches(name, joint))
+                {
+                    // Start from where the bucket actually is, so the first
+                    // write() cannot jerk it toward a stale setpoint.
+                    joint.command_position = joint.state_position;
+                    joint.command_claimed = true;
+                }
+            }
+        }
+        return hardware_interface::return_type::OK;
     }
 
     std::vector<hardware_interface::StateInterface> BucketHardware::export_state_interfaces()
@@ -240,7 +299,7 @@ namespace payloads
     std::vector<hardware_interface::CommandInterface> BucketHardware::export_command_interfaces()
     {
         std::vector<hardware_interface::CommandInterface> command_interfaces;
-        command_interfaces.reserve(kNumAxes * 2);
+        command_interfaces.reserve(kNumAxes);
 
         // Only the one commandable joint per axis exports command interfaces -
         // the other side declared none in the xacro (see on_init()'s validation).
@@ -252,26 +311,54 @@ namespace payloads
             }
             command_interfaces.emplace_back(
                 joint.name, hardware_interface::HW_IF_POSITION, &joint.command_position);
-            command_interfaces.emplace_back(
-                joint.name, hardware_interface::HW_IF_VELOCITY, &joint.command_velocity);
         }
         return command_interfaces;
     }
 
     hardware_interface::return_type BucketHardware::read(
-        const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
+        const rclcpp::Time& time, const rclcpp::Duration& /*period*/)
     {
+        // GET_ANGLE is request/response - ask first, or there is nothing to
+        // decode. Replies arrive in the next cycle's poll(), so joint state
+        // trails the bus by one period.
+        can_->request_encoder_angles();
+
         // hi_can::PacketManager is polled, decoding buffered frames. Fires
         // the encoder/bank callbacks registered in on_configure().
         // Must run before joint state is considered current.
         can_->poll();
 
-        // Example staleness check, modify to match final implementation:
-        // for (auto & joint : joints_) {
-        //   if (can_->get_last_encoder_state(joint.axis, joint.side).stale) {
-        //     return hardware_interface::return_type::ERROR;
-        //   }
-        // }
+        // Refuse to keep running on bad feedback. Returning ERROR makes
+        // controller_manager deactivate the controllers, which routes into
+        // on_deactivate() and stops the bucket.
+        //
+        // This matters more than it looks: the firmware watchdogs a stale
+        // SET_SPEED but NOT a stale SET_POSITION, so on the position path there
+        // is no firmware deadman behind us.
+        // Encoders are legitimately stale until the first polled reply arrives,
+        // so don't judge them until the grace period is up.
+        const bool settled = (time - activated_at_) > rclcpp::Duration(STARTUP_GRACE);
+
+        for (const auto& joint : joints_)
+        {
+            if (settled && can_->get_last_encoder_state(joint.axis, joint.side).stale)
+            {
+                RCLCPP_ERROR_THROTTLE(
+                    get_logger(), *get_clock(), 1000,
+                    "Encoder for joint '%s' is stale - stopping", joint.name.c_str());
+                return hardware_interface::return_type::ERROR;
+            }
+        }
+        for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
+        {
+            const auto axis = static_cast<Axis>(axis_idx);
+            if (settled && can_->get_last_bank_state(axis).fault)
+            {
+                RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,
+                                      "Bank %d reports a fault - stopping", axis_idx);
+                return hardware_interface::return_type::ERROR;
+            }
+        }
 
         return hardware_interface::return_type::OK;
     }
@@ -283,22 +370,15 @@ namespace payloads
         // Find the one commandable joint per axis rather than iterating all 6.
         for (const auto& joint : joints_)
         {
-            if (!joint.has_command)
+            if (!joint.has_command || !joint.command_claimed)
             {
+                // Silence is deliberate when nothing has claimed the interface.
+                // Transmitting the last setpoint anyway would keep the firmware's
+                // command timer fed - so its watchdog would never fire - and
+                // would fight the standalone teleop driver for control mode,
+                // since the firmware follows whichever command arrived last.
                 continue;
             }
-            // Position and velocity controllers are mutually exclusive (see
-            // bucket_controllers.yaml), so send whichever the active controller is
-            // actually writing. Sending both every cycle would mean the board
-            // receives a stale/zero value on whichever interface no controller has
-            // claimed.
-            // TODO: this assumes only the claimed interface's command is
-            // meaningful; if neither controller is active this still sends
-            // command_position (usually 0.0 or the last-seeded value from
-            // on_activate()) via SET_ANGLE every cycle. Track which interface is
-            // actually claimed if not acceptable.
-            // TODO: The controller should use position for autonomous operation,
-            // and velocity for manual adjustment (moving at a speed vs to a position)
             can_->send_position_command(joint.axis, joint.command_position);
         }
         return hardware_interface::return_type::OK;

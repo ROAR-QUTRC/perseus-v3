@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<!--
+  ============================================================================
+  PLACEHOLDER GEOMETRY - NOT FROM CAD. DO NOT TRUST FOR ANYTHING PHYSICAL.
+  ============================================================================
+
+  Every dimension, origin, axis and limit in this file is invented. It exists
+  only so the bucket's ros2_control stack can start: Jazzy's controller_manager
+  takes robot_description from a topic, robot_state_publisher publishes that
+  topic, and robot_state_publisher refuses a URDF with no links. So the stack
+  needs *a* kinematic model before it will run at all.
+
+  What IS correct here and must stay correct:
+    - the six joint names, which have to match bucket.ros2_control.xacro
+      exactly or the hardware interface fails to claim them
+    - joint types (revolute): the encoders are AS5600 rotary sensors and the
+      position interface is in radians
+
+  What is WRONG until someone replaces it from CAD:
+    - all link dimensions and masses
+    - all joint origins and axes
+    - all joint limits
+    - the tree structure: left and right are modelled as independent branches,
+      but physically each pair drives ONE axis from both sides (which is why
+      CAN commands are bank-level - see bucket.ros2_control.xacro). A faithful
+      model would be a closed kinematic loop, which URDF cannot express
+      directly anyway.
+
+  Consequence: TF for the bucket will be geometrically wrong. /joint_states
+  values are real (they come from the encoders); where those joints are in
+  space is not.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- PLACEHOLDER: arbitrary -->
+  <xacro:property name="ph_len" value="0.30"/>
+  <xacro:property name="ph_thick" value="0.05"/>
+  <xacro:property name="ph_mass" value="1.0"/>
+  <xacro:property name="ph_track" value="0.25"/>
+
+  <xacro:macro name="bucket_placeholder_link" params="name">
+    <link name="${name}">
+      <visual>
+        <origin xyz="${ph_len/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${ph_len} ${ph_thick} ${ph_thick}"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="${ph_len/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${ph_len} ${ph_thick} ${ph_thick}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="${ph_len/2} 0 0" rpy="0 0 0"/>
+        <mass value="${ph_mass}"/>
+        <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <!-- All limits PLACEHOLDER -->
+  <xacro:macro name="bucket_placeholder_joint" params="name parent child y">
+    <joint name="${name}" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="${ph_len} ${y} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="${-pi/2}" upper="${pi/2}" effort="100.0" velocity="1.0"/>
+    </joint>
+  </xacro:macro>
+
+  <!--
+    parent: link to hang the bucket off (the rover chassis in the full robot,
+    a bare root link when running the payload stack standalone).
+  -->
+  <xacro:macro name="bucket_description" params="parent">
+    <xacro:bucket_placeholder_link name="lift_left_link"/>
+    <xacro:bucket_placeholder_link name="lift_right_link"/>
+    <xacro:bucket_placeholder_link name="tilt_left_link"/>
+    <xacro:bucket_placeholder_link name="tilt_right_link"/>
+    <xacro:bucket_placeholder_link name="jaws_left_link"/>
+    <xacro:bucket_placeholder_link name="jaws_right_link"/>
+
+    <!-- Joint names MUST match bucket.ros2_control.xacro -->
+    <xacro:bucket_placeholder_joint name="lift_left"  parent="${parent}" child="lift_left_link"  y="${ph_track/2}"/>
+    <xacro:bucket_placeholder_joint name="lift_right" parent="${parent}" child="lift_right_link" y="${-ph_track/2}"/>
+
+    <xacro:bucket_placeholder_joint name="tilt_left"  parent="lift_left_link"  child="tilt_left_link"  y="0"/>
+    <xacro:bucket_placeholder_joint name="tilt_right" parent="lift_right_link" child="tilt_right_link" y="0"/>
+
+    <xacro:bucket_placeholder_joint name="jaws_left"  parent="tilt_left_link"  child="jaws_left_link"  y="0"/>
+    <xacro:bucket_placeholder_joint name="jaws_right" parent="tilt_right_link" child="jaws_right_link" y="0"/>
+  </xacro:macro>
+
+</robot>

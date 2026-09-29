@@ -99,7 +99,7 @@ namespace payloads
     ///
     /// Sends bypass PacketManager's scheduled-transmission machinery - command
     /// setpoints are event-driven off the control loop, not a fixed interval, so
-    /// send_position_command()/send_velocity_command() build and transmit a
+    /// send_position_command()/stop_axis() build and transmit a
     /// Packet directly via the underlying RawCanInterface.
     ///
     /// Nothing outside this file needs to know how CAN framing, IDs, or
@@ -124,6 +124,18 @@ namespace payloads
         /// BucketHardware::read()) - this decodes incoming frames and fires
         /// on_encoder_received()/on_bank_received() and PacketManager's timeout
         /// callbacks. Does nothing if not connected.
+        /// Ask every encoder for its current angle.
+        ///
+        /// encoder_parameter::GET_ANGLE is request/response, not a broadcast -
+        /// the bucket firmware replies only to an RTR frame and never volunteers
+        /// an angle (encoder_parameter_group.cpp). So this must be called once
+        /// per control cycle, immediately before poll(), or no encoder data ever
+        /// arrives and every joint stays stale forever.
+        ///
+        /// Replies land in the *next* poll(), so joint state trails the bus by
+        /// one control cycle.
+        void request_encoder_angles();
+
         void poll();
 
         /// Register the function called whenever a new per-encoder angle frame is
@@ -140,23 +152,18 @@ namespace payloads
         /// when the position command interface is claimed.
         void send_position_command(Axis axis, double position);
 
-        /// Command a bank to a target speed, via bank_parameter::SET_SPEED.
-        /// Mutually exclusive with send_position_command() in practice - only one
-        /// of the position/velocity controllers should be spawned at a time (see
-        /// bucket_controllers.yaml).
-        void send_velocity_command(Axis axis, double velocity);
+        /// Stop a bank immediately, via a zero bank_parameter::SET_SPEED.
+        ///
+        /// This is the only SET_SPEED this class sends - general speed control
+        /// belongs to the standalone teleop driver, which must never run at the
+        /// same time as the ros2_control stack. Called from
+        /// BucketHardware::on_deactivate() so controllers stop the bucket
+        /// promptly rather than waiting out the firmware's command timeout.
+        void stop_axis(Axis axis);
 
         /// One-shot: zero a bank's encoder reference (bank_parameter::SET_ZERO_POS).
         /// Call during on_configure()/on_activate(), not every write() cycle.
         void zero_axis(Axis axis);
-
-        /// One-shot: home/reset a bank to its zero position
-        /// (bank_parameter::RESET_TO_ZERO).
-        void reset_axis(Axis axis);
-
-        /// One-shot: put a bank to sleep or wake it (bank_parameter::SET_SLEEP).
-        /// Typically: wake in on_activate(), sleep in on_deactivate().
-        void set_axis_sleep(Axis axis, bool sleep);
 
         // TODO: bank_parameter::SET_PID_PARAMS
 

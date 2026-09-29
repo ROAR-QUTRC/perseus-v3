@@ -3,6 +3,7 @@
 #define BUCKET_HARDWARE__BUCKET_HARDWARE_HPP_
 
 #include <array>
+#include <chrono>
 #include <hi_can_raw.hpp>
 #include <memory>
 #include <string>
@@ -25,7 +26,7 @@ namespace payloads
     /// Commands are bank-level (see can_board_interface.hpp), so only ONE joint per axis.
     /// The one declared with command_interfaces in the xacro is commandable
     /// `has_command` reflects this. The other side is state-only: its
-    /// command_position/command_velocity fields are never written by a controller
+    /// command_position field is never written by a controller
     /// and must never be sent to CAN
     struct JointHandle
     {
@@ -34,10 +35,15 @@ namespace payloads
         Side side;
         bool has_command = false;
 
-        // Command interfaces (written by a controller, read by write())
-        // Only meaningful when has_command is true
+        // Command interface (written by a controller, read by write()).
+        // Only meaningful when has_command is true.
         double command_position = 0.0;
-        double command_velocity = 0.0;
+
+        // Whether a controller currently has the position command interface
+        // claimed. Maintained by perform_command_mode_switch(); write() sends
+        // nothing unless this is true, so deactivating the controller really
+        // does take this node off the bus.
+        bool command_claimed = false;
 
         // State interfaces (written by read(), read by a controller)
         double state_position = 0.0;  // Raw angle
@@ -77,6 +83,14 @@ namespace payloads
         hardware_interface::CallbackReturn on_deactivate(
             const rclcpp_lifecycle::State& previous_state) override;
 
+        hardware_interface::return_type prepare_command_mode_switch(
+            const std::vector<std::string>& start_interfaces,
+            const std::vector<std::string>& stop_interfaces) override;
+
+        hardware_interface::return_type perform_command_mode_switch(
+            const std::vector<std::string>& start_interfaces,
+            const std::vector<std::string>& stop_interfaces) override;
+
         std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
         std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
@@ -89,6 +103,19 @@ namespace payloads
     private:
         static bool parse_axis(const std::string& value, Axis& out);
         static bool parse_side(const std::string& value, Side& out);
+
+        /// How long after activation to tolerate not-yet-received encoder data.
+        ///
+        /// GET_ANGLE is polled, and a reply only lands in the cycle *after* the
+        /// request, so encoders are legitimately stale for the first couple of
+        /// cycles. Without this the hardware faults on its very first read(),
+        /// every time. Long enough to cover the CAN timeout interval and a few
+        /// control cycles; short enough that a genuinely dead bus still fails
+        /// quickly rather than hanging.
+        static constexpr auto STARTUP_GRACE = std::chrono::milliseconds(500);
+
+        /// When on_activate() last ran, for STARTUP_GRACE.
+        rclcpp::Time activated_at_;
 
         std::vector<JointHandle> joints_;
         std::unique_ptr<CanBoardInterface> can_;
