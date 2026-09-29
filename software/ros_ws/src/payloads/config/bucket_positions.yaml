@@ -1,0 +1,17 @@
+bucket_position_control:
+  ros__parameters:
+    # Banks that are sent SET_POSITION frames. Every position still defines all
+    # three; add "tilt" / "jaws" here once they are ready.
+    enabled_axes: ["lift"]
+    # Every name listed here must have an entry under positions.
+    position_names: ["stowed", "raised"]
+    # Angles in degrees (4096 encoder counts per revolution).
+    positions:
+      down:
+        lift: 340.0
+        tilt: 0.0
+        jaws: 0.0
+      raised:
+        lift: 0.0
+        tilt: 0.0
+        jaws: 0.0
