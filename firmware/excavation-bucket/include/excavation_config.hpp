@@ -16,13 +16,13 @@ namespace LIFT
     // TODO update namespace to be LEFT and RIGHT based (once pins are confirmed)
     namespace DRIVER_A
     {                                                                       // assuming left
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_15, GPIO_NUM_16};  // driver 1
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_16, GPIO_NUM_15};  // driver 1
         static constexpr EncoderId ENCODER_ID = EncoderId::LiftLeft;        // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x03;                           // for sending over canbus
     }
     namespace DRIVER_B
     {                                                                       // assuming Right
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_42, GPIO_NUM_41};  // driver 2
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_41, GPIO_NUM_42};  // driver 2
         static constexpr EncoderId ENCODER_ID = EncoderId::LiftRight;       // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x04;                           // for sending over canbus
     }

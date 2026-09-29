@@ -121,12 +121,10 @@ void setup()
     start_bank_control_task({&motor_bank_lift.value(), &motor_bank_jaws.value(), &motor_bank_tilt.value()});
 }
 
-void loop()  // TODO: LIFT DIRECTION NEEDS TO BE INVERTED
-{
-    // TODO: will this be fast enough?
-    motor_bank_lift->monitor_and_move();
-    motor_bank_jaws->monitor_and_move();
-    motor_bank_tilt->monitor_and_move();
-    packet_manager->handle();
-    delay(1);
+void loop()
+    motor_bank_lift -> monitor_and_move();
+motor_bank_jaws->monitor_and_move();
+motor_bank_tilt->monitor_and_move();
+packet_manager->handle();      // Potential issue is hi-can not handling transmit failure to ack from can0 on jetson (Bad can cable or something), Twai will through an exception and crash the board. This for now is handled by sdkconfig.debug, where hi-can-no-ack is set to true. spooky.
+vTaskDelay(pdMS_TO_TICKS(1));  // Techically delay(1) works since arduino core treats delay as the same thing, but semantics
 }

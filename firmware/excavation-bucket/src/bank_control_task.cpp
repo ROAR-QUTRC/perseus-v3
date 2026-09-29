@@ -15,17 +15,18 @@ namespace
     constexpr uint32_t kStackBytes = 4096;
 
     std::array<MotorBank*, kBankCount> g_banks{};
+    TaskHandle_t g_task = nullptr;
 
     void task_entry(void*)
     {
-        TickType_t last_wake_time = xTaskGetTickCount();
         for (;;)
         {
             const uint32_t now_ms = encoder_bus().now_ms();
             for (MotorBank* bank : g_banks)
                 if (bank)
                     bank->control_tick(now_ms);
-            vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(kPeriodMs));
+            // Returns early when wake_bank_control_task() is called.
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kPeriodMs));
         }
     }
 }  // namespace
@@ -34,5 +35,11 @@ bool start_bank_control_task(const std::array<MotorBank*, kBankCount>& banks)
 {
     g_banks = banks;
     return xTaskCreatePinnedToCore(&task_entry, "bank_control", kStackBytes, nullptr,
-                                   kTaskPriority, nullptr, kTaskCore) == pdPASS;
+                                   kTaskPriority, &g_task, kTaskCore) == pdPASS;
+}
+
+void wake_bank_control_task()
+{
+    if (g_task)
+        xTaskNotifyGive(g_task);
 }

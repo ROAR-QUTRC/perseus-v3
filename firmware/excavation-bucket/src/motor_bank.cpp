@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "bank_control_task.hpp"
 #include "encoder_bus.hpp"
 #include "hi_can_parameter.hpp"
 #include "lock.hpp"
@@ -42,26 +43,37 @@ void MotorBank::monitor_and_move(void)
     _driver_B.monitor_and_move();
 }
 
+// Each command wakes the control task after releasing the lock, so the task
+// doesn't wake only to block on it.
 void MotorBank::set_speed(const int16_t speed)
 {
-    Lock lock(_mutex);
-    _speed = speed;
-    if (speed > to_duty(kSpeedDeadband) || speed < -to_duty(kSpeedDeadband))
-        _mode = ControlMode::Velocity;
+    {
+        Lock lock(_mutex);
+        _speed = speed;
+        if (speed > to_duty(kSpeedDeadband) || speed < -to_duty(kSpeedDeadband))
+            _mode = ControlMode::Velocity;
+    }
+    wake_bank_control_task();
 }
 
 void MotorBank::set_target_position(const int16_t position)
 {
-    Lock lock(_mutex);
-    _target_position = position;
-    _mode = ControlMode::Position;
+    {
+        Lock lock(_mutex);
+        _target_position = position;
+        _mode = ControlMode::Position;
+    }
+    wake_bank_control_task();
 }
 
 void MotorBank::stop()
 {
-    Lock lock(_mutex);
-    _speed = 0;
-    _mode = ControlMode::Velocity;
+    {
+        Lock lock(_mutex);
+        _speed = 0;
+        _mode = ControlMode::Velocity;
+    }
+    wake_bank_control_task();
 }
 
 // Falls back to the last cached angles if neither encoder is fresh.

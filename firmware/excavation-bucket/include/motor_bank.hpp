@@ -31,7 +31,7 @@ public:
     static constexpr float MAX_VOLTAGE = 3.3f;  // volts
     static constexpr float MAX_CURRENT = 6.0f;  // amps
 
-    // Period bank_control_task calls control_tick() at.
+    // Longest gap between control_tick() calls; a new command runs one straight away.
     static constexpr uint32_t kControlPeriodMs = 20;
 
     // Encoder readings older than this are treated as missing. 5x EncoderBus::kAnglePeriodMs.
@@ -103,7 +103,7 @@ public:
     bool is_in_fault();
     std::vector<uint8_t> get_fault();
 
-    // Called every kControlPeriodMs by bank_control_task. The only place the
+    // Called by bank_control_task every kControlPeriodMs and after each command. The only place the
     // motors are driven: Velocity mode applies the commanded speed, Position
     // mode the control output.
     void control_tick(uint32_t now_ms);
