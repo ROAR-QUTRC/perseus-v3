@@ -17,6 +17,7 @@
   rclcpp-lifecycle,
   robot-state-publisher,
   sensor-msgs,
+  std-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-payloads";
@@ -43,6 +44,7 @@ buildRosPackage rec {
     rclcpp-lifecycle
     robot-state-publisher
     sensor-msgs
+    std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 
