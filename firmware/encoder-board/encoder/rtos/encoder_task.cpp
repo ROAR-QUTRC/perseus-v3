@@ -10,6 +10,7 @@
 #include "pico/stdlib.h"
 #include "shared_state.hpp"
 #include "task.h"
+#include "zero_store.hpp"
 
 // AS5600 SDA/SCL pins, overridable at build time.
 #ifndef AS5600_SDA_PIN
@@ -67,6 +68,8 @@ void encoder_task(void* parameter)
     gpio_pull_up(AS5600_SCL_PIN);
 
     As5600 encoder(kI2cPort);
+    encoder.set_zero_offset(shared->boot_zero_offset);
+    bool zero_saved = shared->boot_zero_saved;
 
     bool have_reference = false;
     uint16_t reference_counts = 0;
@@ -83,8 +86,22 @@ void encoder_task(void* parameter)
         EncoderCommand cmd;
         while (xQueueReceive(shared->encoder_commands, &cmd, 0) == pdTRUE)
         {
-            if (cmd == EncoderCommand::kZero)
-                encoder.zero();
+            if (cmd != EncoderCommand::kZero)
+                continue;
+            const uint16_t previous_offset = encoder.zero_offset();
+            if (!encoder.zero())
+            {
+                printf("zero: I2C read failed, offset unchanged\n");
+                continue;
+            }
+            // Re-zeroing on the spot changes nothing, so skip the erase and its stall.
+            if (zero_saved && encoder.zero_offset() == previous_offset)
+                continue;
+            zero_saved = zero_store::save(encoder.zero_offset());
+            if (zero_saved)
+                printf("zero: offset %u saved to flash\n", encoder.zero_offset());
+            else
+                printf("zero: FLASH SAVE FAILED, offset %u is lost on reset\n", encoder.zero_offset());
         }
 
         EncoderSample sample;
@@ -135,6 +152,7 @@ void encoder_task(void* parameter)
         }
 
         sample.velocity_sign = current_velocity_sign;
+        sample.zero_saved = zero_saved;
         xQueueOverwrite(shared->latest_sample, &sample);
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(kSamplePeriodMs));

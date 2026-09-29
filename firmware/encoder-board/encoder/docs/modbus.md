@@ -40,19 +40,27 @@ All registers are 16-bit holding registers.
 | 1       | `kRegAngleDegreesX10` | R      | Angle in degrees x 10 (1805 = 180.5 degrees)                                |
 | 2       | `kRegZeroCommand`     | W      | Nonzero: make the current position the new zero. Zero: no-op                |
 | 3       | `kRegHeartbeat`       | W      | Any value refreshes the master-alive timer                                  |
-| 4       | `kRegStatus`          | R      | Bit 0: magnet detected. Bit 1: master alive (heartbeat within the last 3 s) |
+| 4       | `kRegStatus`          | R      | Bitfield, see below                                                         |
 | 5       | `kRegDiscovery`       | R/W    | Nonzero: status LED solid white. Zero: normal operation                     |
 
 - **Angle.** The value is the last sample published by `encoder_task` (section 4),
   not a live read. If the magnet is absent or the I2C read failed, the read
   returns exception 0x02.
-- **Zero.** A software offset. It is lost on power cycle and affects only the
-  addressed board. A broadcast zero is not meaningful.
+- **Zero.** A software offset, saved to flash (section 5) and applied again at boot.
+  It affects only the addressed board. A broadcast zero is not meaningful.
 - **Heartbeat.** Sent as a broadcast write to address 0. A board reports the master
   as lost after `kHeartbeatTimeoutMs` (3 s) without one. Detecting a dead board is
   the master's responsibility and relies on its own poll failures.
 - **Access.** Registers 2 and 3 are write-only and register 4 is read-only, so
   registers 2 and 3 cannot be read as part of a block read.
+
+### Status bits
+
+| Bit | Name                    | Set when                                                                        |
+| --- | ----------------------- | ------------------------------------------------------------------------------- |
+| 0   | `kStatusMagnetDetected` | The AS5600 detects a magnet                                                     |
+| 1   | `kStatusMasterAlive`    | A heartbeat arrived within the last 3 s                                         |
+| 2   | `kStatusZeroNotSaved`   | The zero in use is not in flash: never zeroed, record corrupt, or the save failed |
 
 ### Exceptions
 
@@ -131,7 +139,27 @@ checking enabled.
 | `heartbeat_state`  | `HeartbeatState` | 1      | `comms_task`   | `led_task`               |
 | `discovery_active` | `bool`           | 1      | `comms_task`   | `led_task`               |
 
-## 5. Tools
+## 5. Zero Offset Storage
+
+| Item     | Value                                                                                   |
+| -------- | --------------------------------------------------------------------------------------- |
+| Location | Second-to-last 4 KiB sector of the 16 MiB W25Q128JV (offset `0xFFE000`)                   |
+| Record   | Magic `"ZERO"`, offset (counts), Modbus CRC16 over both                                   |
+| Load     | `main()`, before the scheduler starts; the result is in the boot banner                  |
+| Save     | `encoder_task`, after a successful zero, unless the offset is unchanged and already saved |
+| Driver   | `drivers/zero_store.cpp`, using `flash_safe_execute()` from `pico_flash`                  |
+
+- **Why not the last sector.** If the `PICO_RP2350_A2_SUPPORTED` CMake variable is set,
+  the SDK adds an absolute UF2 block at `0x10FFFF00` (RP2350-E10 workaround) and every
+  drag-and-drop flash rewrites the last sector. It is currently only a compile definition,
+  so no block is added, but the second-to-last sector stays safe either way. It is
+  outside every UF2 and survives updates; `picotool erase` clears it.
+- **Stall.** The sector erase stops both cores, typically 45 ms and up to 400 ms. Sampling
+  pauses and Modbus requests arriving then are lost; the master's retries cover it.
+- **Debug output.** Boot banner and one line per zero on USB stdio (`watch_boot.py`),
+  never from the 1 kHz path.
+
+## 6. Tools
 
 | Script                   | Purpose                                                              |
 | ------------------------ | -------------------------------------------------------------------- |

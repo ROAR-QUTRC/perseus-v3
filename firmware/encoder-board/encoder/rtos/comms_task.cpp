@@ -78,6 +78,8 @@ namespace
                 status |= kStatusMagnetDetected;
             if (have_hb && hb.master_alive)
                 status |= kStatusMasterAlive;
+            if (have_sample && !sample.zero_saved)
+                status |= kStatusZeroNotSaved;
             *out_value = status;
             return true;
         }

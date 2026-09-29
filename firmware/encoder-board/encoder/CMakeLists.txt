@@ -69,6 +69,7 @@ add_executable(
   ${TARGET_NAME}
   ${TARGET_NAME}.cpp
   drivers/as5600.cpp # AS5600 magnetic rotary encoder driver (I2C)
+  drivers/zero_store.cpp # keeps the AS5600 zero offset in flash
   drivers/status_led.cpp # WS2812 status LED state machine (heartbeat/velocity)
   drivers/ws2812.cpp # drives ws2812.pio for the status LED
   rtos/encoder_task.cpp # core 1: owns the AS5600
@@ -108,6 +109,10 @@ target_compile_definitions(
           # which some serial monitors don't do.
           PICO_STDIO_USB_CONNECTION_WITHOUT_DTR=1)
 
+# W25Q128JV on the PCB. Without this, PICO_BOARD "none" links for 2 MB and leaves
+# PICO_FLASH_SIZE_BYTES undefined, which zero_store.cpp needs to find the end of flash.
+pico_override_flash_size(${TARGET_NAME} "(16 * 1024 * 1024)")
+
 # ====================================================================================
 # USB stdio is on so angle readings can be watched over the board's USB connection.
 pico_enable_stdio_uart(${TARGET_NAME} 0)
@@ -120,6 +125,8 @@ target_link_libraries(
   pico_stdlib
   hardware_i2c # talks to the AS5600 over I2C
   hardware_pio # drives ws2812.pio for the status LED
+  hardware_flash # zero_store: erase/program the zero offset sector
+  pico_flash # zero_store: flash_safe_execute parks the other core during the write
   rs485_rp2350 # RS485 physical layer (firmware/shared/rs485)
   modbus_core # shared Modbus RTU core (firmware/shared/modbus-core)
   FreeRTOS-Kernel-Heap4 # SMP kernel; the RP2350 port brings up core 1 itself

@@ -21,6 +21,10 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
     : _bank_group(bank_group),
       _motor_bank(motor_bank)
 {
+    // TODO: GET_FAULT is never sent (MotorBank::get_fault() is unused), so ROS keeps
+    // BankState.fault false while the bank looks fresh. Plan: send it as a 1-byte
+    // fault bitfield, 0 = healthy (driver fault, encoder lost / no magnet / zero not
+    // saved per side), with the bits defined in hi-can so ROS and the TUI can name them.
     _transmissions = {
         std::make_pair(
             static_cast<flagged_address_t>(standard_address_t{

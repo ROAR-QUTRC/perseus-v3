@@ -23,6 +23,7 @@ namespace modbus::profiles::encoder
 
     inline constexpr uint16_t kStatusMagnetDetected = 1u << 0;
     inline constexpr uint16_t kStatusMasterAlive = 1u << 1;
+    inline constexpr uint16_t kStatusZeroNotSaved = 1u << 2;  // zero in use would be lost on reset
 
     struct Angle
     {
@@ -34,6 +35,7 @@ namespace modbus::profiles::encoder
     {
         bool magnet_detected = false;
         bool master_alive = false;
+        bool zero_not_saved = false;
     };
 
     // Both return false unless the response is a successful read of the expected shape.
@@ -52,6 +54,7 @@ namespace modbus::profiles::encoder
             return false;
         out->magnet_detected = (r.regs[0] & kStatusMagnetDetected) != 0;
         out->master_alive = (r.regs[0] & kStatusMasterAlive) != 0;
+        out->zero_not_saved = (r.regs[0] & kStatusZeroNotSaved) != 0;
         return true;
     }
 

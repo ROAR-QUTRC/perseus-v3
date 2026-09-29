@@ -16,6 +16,7 @@
 #include "pico/stdlib.h"
 #include "shared_state.hpp"
 #include "task.h"
+#include "zero_store.hpp"
 
 // AS5600 rotation-direction strap: high = CW, low = CCW. Externally pulled up
 // (a 4th DIP position can ground it), so read as a plain input.
@@ -92,11 +93,19 @@ int main()
     gpio_set_dir(AS5600_DIR_PIN, GPIO_IN);
     bool clockwise = gpio_get(AS5600_DIR_PIN);
 
+    shared.boot_zero_offset = 0;
+    const zero_store::LoadResult zero = zero_store::load(&shared.boot_zero_offset);
+    shared.boot_zero_saved = (zero == zero_store::LoadResult::kOk);
+    const char* zero_text = zero == zero_store::LoadResult::kOk      ? "loaded from flash"
+                            : zero == zero_store::LoadResult::kBlank ? "none saved"
+                                                                     : "FLASH RECORD CORRUPT";
+
     // Repeated for a couple of seconds: a monitor opened just after flashing
     // would miss a one-shot print (USB CDC race).
     for (int i = 0; i < 10; ++i)
     {
-        printf("device id: %u, direction: %s\n", shared.device_id, clockwise ? "CW" : "CCW");
+        printf("device id: %u, direction: %s, zero: %u (%s)\n", shared.device_id, clockwise ? "CW" : "CCW",
+               shared.boot_zero_offset, zero_text);
         sleep_ms(200);
     }
 

@@ -31,13 +31,14 @@ public:
     bool read(Reading* out) const;
 
     // Makes the current position the new zero. A software offset applied on
-    // every read, not an OTP burn, so it is lost on power cycle. Returns false
-    // (offset unchanged) on an I2C error.
-    // TODO: an encoder reboot silently moves the reference back to raw 0; persist
-    // the offset (flash) or have the master re-zero after an encoder reset.
+    // every read, not an OTP burn; encoder_task keeps it in flash (zero_store).
+    // Returns false (offset unchanged) on an I2C error.
     bool zero();
 
     void clear_zero();
+
+    uint16_t zero_offset() const { return zero_offset_; }
+    void set_zero_offset(uint16_t counts) { zero_offset_ = counts % kCountsRange; }
 
 private:
     static constexpr uint8_t kRegStatus = 0x0B;
