@@ -8,7 +8,11 @@ Place your `.drawio` file as close to the markdown file it belongs to as possibl
 
 Then to include the digram use the markdown image syntax. For example, `! [my diagram](example.drawio)`[^1] (but without a space after the `!`, see below) where `my diagram` is the associated alt text and `example.drawio` is the diagram file that is in the same directory as this markdown file. The result is the following:
 
-![my diagram](example.drawio)
+![my diagram](example.drawio#1)
+
+!!! note
+
+    Always add `#1` (the page number) to the end of the diagram file name, as in `example.drawio#1`. draw.io numbers pages from 1, but the exporter plugin asks for page 0 when no number is given, which makes the export fail.
 
 !!! tip
 

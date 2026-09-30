@@ -2,4 +2,4 @@
 title: Electrical
 ---
 
-![Electrical](../../assets/drawio/system-architecture.drawio)
+![Electrical](../../assets/drawio/system-architecture.drawio#1)
