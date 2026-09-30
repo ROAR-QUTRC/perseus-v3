@@ -14,11 +14,11 @@ Keep a hand on the power cut for every phase that moves the bucket.
 These are the values ROS expects. `/payloads/joint_states_deg` shows them in
 degrees.
 
-| Joint | 0 deg | Positive | URDF range |
-|---|---|---|---|
-| `bucket_lift_joint` | arms at the highest point | down | 0 to 71.4 deg |
-| `bucket_tilt_joint` | bucket level | tipping down (dump) | -91.7 (curl) to 28.1 deg |
-| `bucket_jaw_joint` | jaws closed | opening | 0 to 48.0 deg |
+| Joint               | 0 deg                     | Positive            | URDF range               |
+| ------------------- | ------------------------- | ------------------- | ------------------------ |
+| `bucket_lift_joint` | arms at the highest point | down                | 0 to 71.4 deg            |
+| `bucket_tilt_joint` | bucket level              | tipping down (dump) | -91.7 (curl) to 28.1 deg |
+| `bucket_jaw_joint`  | jaws closed               | opening             | 0 to 48.0 deg            |
 
 The firmware reports each encoder in its own frame (its calibrated zero). If that
 frame doesn't match the table, set `offset_deg` and `direction` for the joint in
@@ -88,13 +88,13 @@ To pose the model by hand in degrees instead, run
 
 With the bucket controller powered, watch `candump -L can0`. You should see:
 
-| ID | What | Rate |
-|---|---|---|
-| `02000300`, `02000400` | lift encoder L / R, `GET_ANGLE` | every 50 ms |
-| `02000500`, `02000600` | tilt encoder L / R | every 50 ms |
-| `02000700`, `02000800` | jaw encoder L / R | every 50 ms |
-| `02000003`, `02000103`, `02000203` | lift / tilt / jaw bank `GET_POSITION` | every 50 ms |
-| `02000001`, `02000101`, `02000201` | bank `GET_CURRENT` | every 500 ms |
+| ID                                 | What                                  | Rate         |
+| ---------------------------------- | ------------------------------------- | ------------ |
+| `02000300`, `02000400`             | lift encoder L / R, `GET_ANGLE`       | every 50 ms  |
+| `02000500`, `02000600`             | tilt encoder L / R                    | every 50 ms  |
+| `02000700`, `02000800`             | jaw encoder L / R                     | every 50 ms  |
+| `02000003`, `02000103`, `02000203` | lift / tilt / jaw bank `GET_POSITION` | every 50 ms  |
+| `02000001`, `02000101`, `02000201` | bank `GET_CURRENT`                    | every 500 ms |
 
 `GET_FAULT` (`02000000`, `02000100`, `02000200`) is not transmitted by the current
 firmware, so don't expect it.
@@ -139,10 +139,10 @@ For each axis:
 suggests lift may currently read negative going down, so check that one first.
 
 | Axis | Reading at 0 pose | Increases in + direction? | offset_deg | direction |
-|---|---|---|---|---|
-| lift | | | | |
-| tilt | | | | |
-| jaw | | | | |
+| ---- | ----------------- | ------------------------- | ---------- | --------- |
+| lift |                   |                           |            |           |
+| tilt |                   |                           |            |           |
+| jaw  |                   |                           |            |           |
 
 ## Phase 3: RViz matches the bucket
 
@@ -160,11 +160,11 @@ amount, the rams stay attached, and nothing jitters.
 Still in calibration mode, drive each axis slowly end to end with teleop. Record
 the readings at the mechanical ends.
 
-| Axis | Min reading | Max reading | URDF range |
-|---|---|---|---|
-| lift | | | 0 to 71.4 |
-| tilt | | | -91.7 to 28.1 |
-| jaw | | | 0 to 48.0 |
+| Axis | Min reading | Max reading | URDF range    |
+| ---- | ----------- | ----------- | ------------- |
+| lift |             |             | 0 to 71.4     |
+| tilt |             |             | -91.7 to 28.1 |
+| jaw  |             |             | 0 to 48.0     |
 
 Pass: within a few degrees of the URDF range. If the real travel is smaller, update
 the limits in `description/urdf/bucket.urdf.xacro`. Commands are clamped to those
