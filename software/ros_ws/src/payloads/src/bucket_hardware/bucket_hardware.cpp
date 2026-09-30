@@ -1,5 +1,9 @@
 #include "bucket_hardware/bucket_hardware.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <thread>
+
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
@@ -91,6 +95,30 @@ namespace payloads
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
+            // Optional firmware -> URDF frame calibration; defaults are identity.
+            try
+            {
+                if (auto p = joint_info.parameters.find("offset_deg"); p != joint_info.parameters.end())
+                {
+                    joint.offset_deg = std::stod(p->second);
+                }
+                if (auto p = joint_info.parameters.find("direction"); p != joint_info.parameters.end())
+                {
+                    joint.direction = std::stod(p->second);
+                }
+            }
+            catch (const std::exception&)
+            {
+                RCLCPP_ERROR(logger(), "Joint '%s' has a non-numeric offset_deg or direction",
+                             joint.name.c_str());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+            if (joint.direction != 1.0 && joint.direction != -1.0)
+            {
+                RCLCPP_ERROR(logger(), "Joint '%s' direction must be 1 or -1", joint.name.c_str());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
             // Every joint gets all 3 state interfaces. Commands are bank-level
             // (CAN is setup to only accepts one setpoint per axis), so exactly one joint
             // per axis may declare the 2 command interfaces.
@@ -161,11 +189,7 @@ namespace payloads
                 {
                     if (joint.axis == axis && joint.side == side)
                     {
-                        joint.state_position = state.position;
-                        // TODO: differentiate successive position samples for
-                        // state_velocity, or leave at 0.0 if not needed.
-                        // TODO: surface state.stale somewhere (e.g. fail read() if stale
-                        // for too long, or a diagnostics publisher).
+                        joint.state_position = to_joint_radians(joint, state.degrees);
                         break;
                     }
                 }
@@ -181,8 +205,8 @@ namespace payloads
                     if (joint.axis == axis)
                     {
                         joint.state_current = state.current;
-                        // TODO: surface state.fault / state.average_position (e.g.
-                        // compare average_position against the two encoders' average as a
+                        // TODO: surface state.fault / state.average_degrees (e.g.
+                        // compare average_degrees against the two encoders' average as a
                         // skew check) somewhere - diagnostics publisher, or fail read().
                     }
                 }
@@ -201,6 +225,56 @@ namespace payloads
     hardware_interface::CallbackReturn BucketHardware::on_activate(
         const rclcpp_lifecycle::State& /*previous_state*/)
     {
+        // Wait for a real reading on every joint before any controller can
+        // activate: a controller that starts from a zero state holds, and so
+        // commands, the URDF zero pose.
+        const auto deadline = std::chrono::steady_clock::now() + ACTIVATE_TIMEOUT;
+        const auto all_fresh = [this]()
+        {
+            return std::all_of(joints_.begin(), joints_.end(), [this](const JointHandle& j)
+                               { return !can_->get_last_encoder_state(j.axis, j.side).stale; });
+        };
+        while (can_->poll(), !all_fresh())
+        {
+            if (std::chrono::steady_clock::now() > deadline)
+            {
+                for (const auto& joint : joints_)
+                {
+                    if (can_->get_last_encoder_state(joint.axis, joint.side).stale)
+                    {
+                        RCLCPP_ERROR(logger(), "No encoder data for joint '%s' on %s",
+                                     joint.name.c_str(), can_interface_name_.c_str());
+                    }
+                }
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        // A reading well outside the URDF limits means the firmware zero or the
+        // direction param is wrong, and the limits would clamp commands in the
+        // wrong frame. Refuse rather than move.
+        for (const auto& joint : joints_)
+        {
+            const auto limits = info_.limits.find(joint.name);
+            if (limits == info_.limits.end() || !limits->second.has_position_limits)
+            {
+                continue;
+            }
+            const double margin = LIMIT_MARGIN_DEG * M_PI / 180.0;
+            if (joint.state_position < limits->second.min_position - margin ||
+                joint.state_position > limits->second.max_position + margin)
+            {
+                RCLCPP_ERROR(logger(),
+                             "Joint '%s' reads %.1f deg, outside its limits [%.1f, %.1f] deg - "
+                             "check the firmware zero and the offset_deg/direction params",
+                             joint.name.c_str(), joint.state_position * 180.0 / M_PI,
+                             limits->second.min_position * 180.0 / M_PI,
+                             limits->second.max_position * 180.0 / M_PI);
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+        }
+
         // Seed commands with current state so the first write() doesn't jerk the
         // actuators toward a stale/zero setpoint. perform_command_mode_switch()
         // re-seeds on each claim too, since activation and claiming are separate
@@ -208,8 +282,10 @@ namespace payloads
         for (auto& joint : joints_)
         {
             joint.command_position = joint.state_position;
+            joint.previous_position = joint.state_position;
+            joint.state_velocity = 0.0;
         }
-        activated_at_ = get_clock()->now();
+        active_ = true;
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
@@ -219,6 +295,7 @@ namespace payloads
         // Stop every bank explicitly. The firmware watchdogs a stale SET_SPEED
         // but not a stale SET_POSITION, so without this the bucket would keep
         // driving toward its last setpoint after the controllers stop.
+        active_ = false;
         for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
         {
             can_->stop_axis(static_cast<Axis>(axis_idx));
@@ -316,17 +393,23 @@ namespace payloads
     }
 
     hardware_interface::return_type BucketHardware::read(
-        const rclcpp::Time& time, const rclcpp::Duration& /*period*/)
+        const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
     {
-        // GET_ANGLE is request/response - ask first, or there is nothing to
-        // decode. Replies arrive in the next cycle's poll(), so joint state
-        // trails the bus by one period.
-        can_->request_encoder_angles();
-
         // hi_can::PacketManager is polled, decoding buffered frames. Fires
         // the encoder/bank callbacks registered in on_configure().
         // Must run before joint state is considered current.
         can_->poll();
+
+        const double dt = period.seconds();
+        for (auto& joint : joints_)
+        {
+            if (dt > 0.0)
+            {
+                const double sample = (joint.state_position - joint.previous_position) / dt;
+                joint.state_velocity += VELOCITY_FILTER_ALPHA * (sample - joint.state_velocity);
+            }
+            joint.previous_position = joint.state_position;
+        }
 
         // Refuse to keep running on bad feedback. Returning ERROR makes
         // controller_manager deactivate the controllers, which routes into
@@ -335,9 +418,9 @@ namespace payloads
         // This matters more than it looks: the firmware watchdogs a stale
         // SET_SPEED but NOT a stale SET_POSITION, so on the position path there
         // is no firmware deadman behind us.
-        // Encoders are legitimately stale until the first polled reply arrives,
-        // so don't judge them until the grace period is up.
-        const bool settled = (time - activated_at_) > rclcpp::Duration(STARTUP_GRACE);
+        // on_activate() waits for every encoder, so staleness is only judged once
+        // active; read() also runs while inactive.
+        const bool settled = active_;
 
         for (const auto& joint : joints_)
         {
@@ -379,9 +462,20 @@ namespace payloads
                 // since the firmware follows whichever command arrived last.
                 continue;
             }
-            can_->send_position_command(joint.axis, joint.command_position);
+            can_->send_position_command(joint.axis,
+                                        to_firmware_degrees(joint, joint.command_position));
         }
         return hardware_interface::return_type::OK;
+    }
+
+    double BucketHardware::to_joint_radians(const JointHandle& joint, double firmware_degrees) const
+    {
+        return joint.direction * wrap_degrees(firmware_degrees - joint.offset_deg) * M_PI / 180.0;
+    }
+
+    double BucketHardware::to_firmware_degrees(const JointHandle& joint, double joint_radians) const
+    {
+        return joint.offset_deg + joint.direction * joint_radians * 180.0 / M_PI;
     }
 
 }  // namespace payloads

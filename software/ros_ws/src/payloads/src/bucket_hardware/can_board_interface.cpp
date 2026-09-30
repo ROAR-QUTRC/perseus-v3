@@ -15,7 +15,8 @@ namespace payloads
         namespace bucket_addr = addressing::excavation::bucket::controller;
         namespace bucket_param = parameters::excavation::bucket::controller;
 
-        const uint8_t CAN_TIMEOUT_INTERVAL = 100;  // in milliseconds
+        // Matches the firmware's 50 ms GET_ANGLE / GET_POSITION broadcast period.
+        const uint8_t CAN_TIMEOUT_INTERVAL = 50;  // in milliseconds
 
         const addressing::standard_address_t kDeviceAddress{
             addressing::excavation::SYSTEM_ID, addressing::excavation::bucket::SUBSYSTEM_ID,
@@ -54,32 +55,32 @@ namespace payloads
                 static_cast<uint8_t>(parameter)};
         }
 
-        // The encoder boards are AS5600s: 12-bit, so raw_counts is 0-4095 over a
-        // full revolution post zero-offset (as5600.hpp). The bucket firmware
-        // forwards that count straight into position_t without rescaling
-        // (encoder_parameter_group.cpp), so a radian is 4096/2pi counts.
-        //
-        // This is used in BOTH directions - decoding encoder replies into joint
-        // state, and encoding setpoints for SET_POSITION. The firmware compares
-        // the setpoint directly against raw counts, so if the two ends disagree
-        // on this the on-board PID chases the wrong target.
-        constexpr double kCountsPerRadian = 4096.0 / (2.0 * M_PI);
+        // position_t is tenths of a degree in BOTH directions: GET_ANGLE and
+        // GET_POSITION report degrees x10 (firmware shared_memory.hpp,
+        // kPositionUnitsPerDegree) and SET_POSITION takes the same unit
+        // (motor_bank.hpp). If the two ends disagree on this, the on-board PID
+        // chases the wrong target.
+        constexpr double kUnitsPerDegree = 10.0;
 
         // TODO: confirm against h-bridge current-sense circuit's actual scale -
         // current_t's raw uint16_t is unscaled. Placeholder: 1 count = 1 mA.
         // NOTE: This can change depending on firmware implementation
         constexpr double kCountsPerAmp = 1000.0;
 
-        double decode_position(const std::vector<uint8_t>& data)
+        // Encoders report 0-359.9; a slight overshoot past a zero set at one end of
+        // travel should read as a small negative angle, not ~360.
+        double decode_degrees(const std::vector<uint8_t>& data)
         {
             bucket_param::position_t param(data);
-            return static_cast<double>(param.value) / kCountsPerRadian;
+            return wrap_degrees(static_cast<double>(param.value) / kUnitsPerDegree);
         }
 
-        std::vector<uint8_t> encode_position(double position)
+        // The firmware takes the shortest way round to the target (mod 360), so a
+        // negative setpoint is fine.
+        std::vector<uint8_t> encode_degrees(double degrees)
         {
             bucket_param::position_t param{
-                static_cast<int16_t>(std::lround(position * kCountsPerRadian))};
+                static_cast<int16_t>(std::lround(wrap_degrees(degrees) * kUnitsPerDegree))};
             return param.serialize_data();
         }
 
@@ -160,27 +161,6 @@ namespace payloads
         connected_ = false;
     }
 
-    void CanBoardInterface::request_encoder_angles()
-    {
-        if (!can_interface_)
-        {
-            return;
-        }
-        for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
-        {
-            for (uint8_t side_idx = 0; side_idx < kNumSides; ++side_idx)
-            {
-                const auto address = encoder_address(static_cast<Axis>(axis_idx),
-                                                     static_cast<Side>(side_idx),
-                                                     bucket_addr::encoder_parameter::GET_ANGLE);
-                // RTR, no payload - the reply comes back as a data frame at the
-                // same address, which register_receive_filters() is listening on.
-                can_interface_->transmit(Packet(addressing::flagged_address_t(
-                    static_cast<addressing::raw_address_t>(address), true)));
-            }
-        }
-    }
-
     void CanBoardInterface::poll()
     {
         if (!connected_)
@@ -207,7 +187,7 @@ namespace payloads
 
     void CanBoardInterface::register_receive_filters()
     {
-        // --- Per-encoder GET_ANGLE frames (6 total) ---
+        // --- Per-encoder GET_ANGLE frames (6 total), broadcast by the board ---
         for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
         {
             for (uint8_t side_idx = 0; side_idx < kNumSides; ++side_idx)
@@ -222,7 +202,7 @@ namespace payloads
                     [this, axis, side](const Packet& frame)
                     {
                         EncoderState state;
-                        state.position = decode_position(frame.get_data());
+                        state.degrees = decode_degrees(frame.get_data());
                         state.stale = false;
                         this->on_encoder_received(axis, side, state);
                     },
@@ -271,21 +251,21 @@ namespace payloads
                 *packet_manager_, bank_address(axis, bucket_addr::bank_parameter::GET_POSITION),
                 [update_bank](const Packet& frame)
                 {
-                    const double position = decode_position(frame.get_data());
-                    update_bank([position](BankState& s)
-                                { s.average_position = position; });
+                    const double degrees = decode_degrees(frame.get_data());
+                    update_bank([degrees](BankState& s)
+                                { s.average_degrees = degrees; });
                 });
         }
     }  // register_receive_filters()
 
-    void CanBoardInterface::send_position_command(Axis axis, double position)
+    void CanBoardInterface::send_position_command(Axis axis, double degrees)
     {
         if (!can_interface_)
         {
             return;
         }
         const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_POSITION);
-        Packet packet(addressing::flagged_address_t(address), encode_position(position));
+        Packet packet(addressing::flagged_address_t(address), encode_degrees(degrees));
         can_interface_->transmit(packet);
     }
 

@@ -2,6 +2,7 @@
 #define BUCKET_HARDWARE__CAN_BOARD_INTERFACE_HPP_
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <hi_can_raw.hpp>  // RawCanInterface, Packet, PacketManager
@@ -45,27 +46,36 @@ namespace payloads
         return static_cast<size_t>(axis) * kNumSides + static_cast<size_t>(side);
     }
 
-    /// One encoder's last known reading (encoder_group::GET_ANGLE).
-    /// This is the authoritative per-side position, used for each joint's `position`
-    /// state interface.
+    /// Wrap an angle in degrees into (-180, 180].
+    inline double wrap_degrees(double degrees)
+    {
+        double wrapped = std::fmod(degrees + 180.0, 360.0);
+        if (wrapped <= 0.0)
+        {
+            wrapped += 360.0;
+        }
+        return wrapped - 180.0;
+    }
+
+    /// One encoder's last known reading (encoder_group::GET_ANGLE, broadcast by the
+    /// board every 50 ms). This is the authoritative per-side position, used for each
+    /// joint's `position` state interface.
     ///
-    /// `\position` is in RADIANS (or other linear unit as specified), already
-    /// converted from the raw uint16_t encoder count on the wire
+    /// `degrees` is in the firmware's frame (its calibrated zero and direction),
+    /// wrapped to (-180, 180]. BucketHardware maps it into the URDF joint frame.
     ///
-    /// There is no hardware velocity readback; differentiate successive (position,
-    /// timestamp) samples in bucket_hardware.cpp if a velocity state interface is
-    /// needed OR add it into CAN message options if firmware side.
+    /// There is no hardware velocity readback; BucketHardware differentiates it.
     struct EncoderState
     {
-        double position = 0.0;  // rad/degree/m, per joint convention
-        bool stale = true;      // true until the first real message arrives
+        double degrees = 0.0;
+        bool stale = true;  // true until the first real message arrives
     };
 
     /// One bank's last known reading. Current/fault are bank_parameters, so there is
     /// exactly one of each per axis (not per side). Both side of LIFT/JAWS should
     /// readthe same BankState
     ///
-    /// average_position comes from bank_parameter::GET_POSITION, which the firmware
+    /// average_degrees comes from bank_parameter::GET_POSITION, which the firmware
     /// reports as the average of that bank's two encoders. It is NOT a substitute
     /// for the per-side EncoderState readings. It should be used as a diagnostic
     /// cross-check (flagging skew, webui, etc.), never as a joint's position source
@@ -76,9 +86,9 @@ namespace payloads
     /// more than one fault condition, status_t will change upstream first.
     struct BankState
     {
-        double average_position = 0.0;  // rad/degree/m, bank_parameter::GET_POSITION
-        double current = 0.0;           // amps, bank_parameter::GET_CURRENT
-        bool fault = 0;                 // bank_parameter::GET_FAULT
+        double average_degrees = 0.0;  // firmware frame, bank_parameter::GET_POSITION
+        double current = 0.0;          // amps, bank_parameter::GET_CURRENT
+        bool fault = 0;                // bank_parameter::GET_FAULT
         bool stale = true;
     };
 
@@ -124,18 +134,9 @@ namespace payloads
         /// BucketHardware::read()) - this decodes incoming frames and fires
         /// on_encoder_received()/on_bank_received() and PacketManager's timeout
         /// callbacks. Does nothing if not connected.
-        /// Ask every encoder for its current angle.
         ///
-        /// encoder_parameter::GET_ANGLE is request/response, not a broadcast -
-        /// the bucket firmware replies only to an RTR frame and never volunteers
-        /// an angle (encoder_parameter_group.cpp). So this must be called once
-        /// per control cycle, immediately before poll(), or no encoder data ever
-        /// arrives and every joint stays stale forever.
-        ///
-        /// Replies land in the *next* poll(), so joint state trails the bus by
-        /// one control cycle.
-        void request_encoder_angles();
-
+        /// The board broadcasts GET_ANGLE and GET_POSITION every 50 ms
+        /// (firmware motor_parameter_group.cpp), so nothing needs requesting.
         void poll();
 
         /// Register the function called whenever a new per-encoder angle frame is
@@ -146,11 +147,11 @@ namespace payloads
         /// (current/fault/average-angle) frame is decoded, or when one goes stale.
         void register_bank_callback(BankUpdateCallback callback);
 
-        /// Command a bank to a target position, via bank_parameter::SET_POSITION.
-        /// There is intentionally no per-side overload - both actuators in a bank
-        /// always receive the same setpoint. Called from BucketHardware::write()
-        /// when the position command interface is claimed.
-        void send_position_command(Axis axis, double position);
+        /// Command a bank to a target angle in the firmware's frame, in degrees, via
+        /// bank_parameter::SET_POSITION. There is intentionally no per-side overload -
+        /// both actuators in a bank always receive the same setpoint. Called from
+        /// BucketHardware::write() when the position command interface is claimed.
+        void send_position_command(Axis axis, double degrees);
 
         /// Stop a bank immediately, via a zero bank_parameter::SET_SPEED.
         ///

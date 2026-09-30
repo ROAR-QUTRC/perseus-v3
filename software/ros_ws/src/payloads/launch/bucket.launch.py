@@ -11,8 +11,14 @@ position every frame. Launch one or the other, never both.
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -40,7 +46,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "controller",
             default_value="bucket_trajectory_controller",
-            description="Command controller to spawn: bucket_trajectory_controller (all axes) or bucket_lift_controller",
+            description="Command controller to spawn: bucket_trajectory_controller (all axes), bucket_lift_controller, or none (read-only calibration mode)",
         ),
     ]
 
@@ -106,6 +112,8 @@ def generate_launch_description():
         ],
     )
 
+    # controller:=none is calibration mode: nothing claims a command interface, so
+    # the hardware only reads and bucket_driver teleop can move the bucket.
     bucket_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -115,6 +123,14 @@ def generate_launch_description():
             "--controller-manager",
             f"/{NAMESPACE}/controller_manager",
         ],
+        condition=IfCondition(PythonExpression(["'", controller, "' != 'none'"])),
+    )
+
+    joint_states_deg = Node(
+        package="description",
+        executable="joint_states_deg.py",
+        namespace=NAMESPACE,
+        output="both",
     )
 
     # EVENT HANDLERS
@@ -131,6 +147,7 @@ def generate_launch_description():
         robot_state_publisher,
         control_node,
         joint_state_broadcaster_spawner,
+        joint_states_deg,
     ]
 
     return LaunchDescription(arguments + nodes + [delay_controller_after_broadcaster])

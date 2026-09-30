@@ -18,6 +18,12 @@
     state_interfaces:
       - position
       - velocity
+    # Without these a goal reports SUCCEEDED when its time runs out, even if the
+    # bucket never moved. 0.035 rad = 2 deg.
+    constraints:
+      goal_time: 3.0
+      bucket_lift_joint:
+        goal: 0.035
 /**/bucket_trajectory_controller:
   ros__parameters:
     joints:
@@ -30,3 +36,11 @@
       - position
       - velocity
     allow_partial_joints_goal: true
+    constraints:
+      goal_time: 3.0
+      bucket_lift_joint:
+        goal: 0.035
+      bucket_tilt_joint:
+        goal: 0.035
+      bucket_jaw_joint:
+        goal: 0.035

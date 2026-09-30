@@ -160,9 +160,11 @@ RAM_JOINTS = {
 
 def ram_values(q_lift, q_tilt, q_jaw):
     """Angle and clamped extension of every ram, for the three driven joints."""
-    la, ls = lift_ram(q_lift)
-    ta, ts = tilt_ram(q_tilt)
-    ja, js = jaw_ram(q_jaw)
+    # The kinematics below were derived with lift positive up, tilt positive curl
+    # and jaw positive closing; the URDF joints now count the other way.
+    la, ls = lift_ram(-q_lift)
+    ta, ts = tilt_ram(-q_tilt)
+    ja, js = jaw_ram(-q_jaw)
     return {
         "lift_angle": la,
         "lift_extend": min(max(ls, 0.0), RAM_STROKE),

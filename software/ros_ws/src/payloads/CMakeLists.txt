@@ -118,8 +118,8 @@ target_link_libraries(bucket_hardware PUBLIC hi_can_raw)
 # Install ROS Executable
 install(TARGETS arm_driver DESTINATION lib/${PROJECT_NAME})
 install(TARGETS bucket_driver DESTINATION lib/${PROJECT_NAME})
-install(TARGETS bucket_position_control DESTINATION lib/${PROJECT_NAME})
-# install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
+install(TARGETS bucket_position_control DESTINATION lib/${PROJECT_NAME}
+)# install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
 
 # Install ROS2_control plugin
 install(

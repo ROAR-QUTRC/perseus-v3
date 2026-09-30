@@ -13,6 +13,12 @@
 
     hardware_plugin can be set to mock_components/GenericSystem to exercise
     controllers without the bucket fitted.
+
+    offset_deg and direction map the firmware's angle onto the URDF joint:
+      joint_deg = direction * (firmware_deg - offset_deg)
+    Joint conventions (bucket.urdf.xacro): lift 0 at highest, positive down; tilt
+    0 level, positive dumping; jaw 0 closed, positive opening. Leave the defaults
+    when the firmware calibration already matches them.
   -->
   <xacro:macro name="bucket_ros2_control"
       params="prefix:='' can_interface:='can0' hardware_plugin:='payloads/BucketHardware'">
@@ -22,10 +28,12 @@
         <param name="can_interface">${can_interface}</param>
       </hardware>
 
-      <xacro:macro name="bucket_ros2_control_joint" params="joint axis">
+      <xacro:macro name="bucket_ros2_control_joint" params="joint axis offset_deg:=0.0 direction:=1">
         <joint name="${prefix}${joint}">
           <param name="axis">${axis}</param>
           <param name="side">left</param>
+          <param name="offset_deg">${offset_deg}</param>
+          <param name="direction">${direction}</param>
           <command_interface name="position"/>
           <state_interface name="position"/>
           <state_interface name="velocity"/>

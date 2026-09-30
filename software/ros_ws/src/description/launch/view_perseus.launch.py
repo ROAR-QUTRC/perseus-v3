@@ -70,6 +70,23 @@ def _joint_state_nodes(context):
                 output="screen",
             )
         )
+        # The slider GUI shows radians; echo /joint_states_deg to read degrees.
+        actions.append(
+            Node(
+                package="description",
+                executable="joint_states_deg.py",
+                parameters=[
+                    {
+                        "joints": [
+                            "bucket_lift_joint",
+                            "bucket_tilt_joint",
+                            "bucket_jaw_joint",
+                        ]
+                    }
+                ],
+                output="screen",
+            )
+        )
     return actions
 
 
