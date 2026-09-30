@@ -5,9 +5,12 @@
   ament-cmake,
   joint-state-publisher,
   joint-state-publisher-gui,
+  rclpy,
   realsense2-description,
   robot-state-publisher,
   rviz2,
+  sensor-msgs,
+  std-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-description";
@@ -20,9 +23,12 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     joint-state-publisher
     joint-state-publisher-gui
+    rclpy
     realsense2-description
     robot-state-publisher
     rviz2
+    sensor-msgs
+    std-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 

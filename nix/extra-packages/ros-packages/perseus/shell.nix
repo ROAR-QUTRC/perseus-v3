@@ -53,6 +53,7 @@ pkgs.mkShell {
           joint-state-broadcaster
           joint-state-publisher
           joint-state-publisher-gui
+          joint-trajectory-controller
           joy
           mecanum-drive-controller
           message-filters
@@ -67,7 +68,6 @@ pkgs.mkShell {
           pid-controller
           pluginlib
           point-cloud-transport
-          position-controllers
           qt5.qtbase
           rcl-interfaces
           rclcpp
