@@ -1,35 +1,24 @@
 <?xml version="1.0"?>
 <!--
-  Minimal robot description for running the bucket's own controller_manager.
+  Robot description for the bucket's own controller_manager in the `payloads`
+  namespace. The payload is optional and hot-swappable, so it does not join the
+  drive base's controller_manager.
 
-  The payload gets its own controller_manager in the `payloads` namespace
-  rather than joining the drive base's, because a payload is optional and
-  hot-swappable and the base must not fail to start when no bucket is fitted.
-  That manager still needs a robot_description containing the bucket's
-  <ros2_control> block, which is what this wrapper provides.
-
-  bucket.ros2_control.xacro only *defines* the macro, so it has to be
-  instantiated here - running xacro on it directly yields an empty <robot/>.
-
-  Note this describes no links or joints, only the ros2_control block. TF for
-  the bucket comes from the full robot URDF in the `description` package, which
-  should include the same fragment. Keeping one copy of the fragment in
-  `description` is what stops the two drifting apart.
+  Jazzy's controller_manager reads robot_description from a topic published by
+  robot_state_publisher, which rejects a URDF with no links, so the real bucket
+  geometry is included here. The bucket macro parents bucket_mount to `chassis`,
+  so a bare `chassis` link is the root.
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="bucket">
   <xacro:arg name="can_interface" default="can0"/>
+  <xacro:arg name="hardware_plugin" default="payloads/BucketHardware"/>
 
-  <!--
-    robot_state_publisher rejects a URDF with no links, and Jazzy's
-    controller_manager needs it to publish the robot_description topic - so a
-    kinematic model is mandatory even for a headless control stack. The one
-    included here is PLACEHOLDER geometry; see the warning in bucket.urdf.xacro.
-  -->
-  <link name="bucket_base"/>
+  <link name="chassis"/>
 
+  <xacro:include filename="$(find description)/urdf/inertia_macros.xacro"/>
   <xacro:include filename="$(find description)/urdf/bucket.urdf.xacro"/>
-  <xacro:bucket_description parent="bucket_base"/>
+  <xacro:bucket prefix=""/>
 
   <xacro:include filename="$(find description)/ros2_control/bucket.ros2_control.xacro"/>
-  <xacro:bucket_ros2_control can_interface="$(arg can_interface)"/>
+  <xacro:bucket_ros2_control can_interface="$(arg can_interface)" hardware_plugin="$(arg hardware_plugin)"/>
 </robot>

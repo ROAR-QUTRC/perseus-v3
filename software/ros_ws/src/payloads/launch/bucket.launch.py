@@ -93,7 +93,7 @@ def generate_launch_description():
         executable="spawner",
         namespace=NAMESPACE,
         arguments=[
-            "bucket_position_controller",
+            "bucket_trajectory_controller",
             "--controller-manager",
             f"/{NAMESPACE}/controller_manager",
         ],
