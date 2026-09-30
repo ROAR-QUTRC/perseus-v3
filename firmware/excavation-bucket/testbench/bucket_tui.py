@@ -28,6 +28,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import (
     Button,
+    Checkbox,
     DataTable,
     Footer,
     Input,
@@ -47,6 +48,8 @@ CONTROLLER = "excavation::bucket::controller"
 BANK_GROUP = f"{CONTROLLER}::bank_group"
 BANK_PARAMETER = f"{CONTROLLER}::bank_parameter"
 HOME_PARAMETER = "HOME"  # not in hi-can yet; the Home button does nothing until it is
+ZERO_PARAMETER = "SET_ZERO_POS"  # empty payload, as ROS's zero_axis() sends it
+FAULT_PARAMETER = "GET_FAULT"
 
 # Payload formats aren't in hi-can; these follow the bucket firmware.
 POSITION_UNITS_PER_DEGREE = 10
@@ -61,6 +64,9 @@ KEY_REPEAT_DELAY_S = (
 )
 KEY_REPEAT_GAP_S = 0.15  # once repeating, a gap this long means the key was released
 REFRESH_S = 0.1
+ZERO_CONFIRM_S = 3.0  # Zero needs a second press within this long
+FAULT_STALE_S = 2.0  # no GET_FAULT rate is agreed yet; older than this shows as stale
+RTR_REPLY_TIMEOUT_S = 1.0
 
 CAN_EFF_FLAG = 0x80000000
 CAN_RTR_FLAG = 0x40000000
@@ -229,6 +235,20 @@ class HiCan:
         )
         return device_name, f"{group.name} {name}", qualified
 
+    def parameter_list(self) -> list:
+        """(label, address) for every parameter hi-can defines, sorted by address.
+        Devices without their own groups get the common status group."""
+        entries = []
+        for ids, device in self.devices.items():
+            short_name = device.name.split(".", 1)[
+                -1
+            ]  # the system is in the address anyway
+            for group_id, group in (device.groups or self.common_groups).items():
+                for parameter_id, (name, _) in group.parameters.items():
+                    address = self.pack(*ids, group_id, parameter_id)
+                    entries.append((f"{short_name} {group.name} {name}", address))
+        return sorted(entries, key=lambda entry: entry[1])
+
     def _params(self, members: dict, scope: str) -> dict:
         params = {}
         for name, value in members.items():
@@ -316,11 +336,15 @@ def _percent(data: bytes) -> str:
 
 
 def _amps(data: bytes) -> str:
-    return f"{struct.unpack('<H', data)[0]} A" if len(data) == 2 else ""
+    # Sent in mA.
+    return f"{struct.unpack('<H', data)[0] / 1000:.3f} A" if len(data) == 2 else ""
 
 
 def _fault(data: bytes) -> str:
-    return ("FAULT" if data[0] else "ok") if len(data) == 1 else ""
+    # Planned: 1-byte fault flags, 0 = healthy. Bit names aren't in hi-can yet, so show hex.
+    if len(data) != 1:
+        return ""
+    return "ok" if data[0] == 0 else f"FAULT 0x{data[0]:02X}"
 
 
 DECODERS = {
@@ -329,7 +353,7 @@ DECODERS = {
     f"{CONTROLLER}::encoder_parameter::GET_ANGLE": _degrees,
     f"{BANK_PARAMETER}::SET_SPEED": _percent,
     f"{BANK_PARAMETER}::GET_CURRENT": _amps,
-    f"{BANK_PARAMETER}::GET_FAULT": _fault,
+    f"{BANK_PARAMETER}::{FAULT_PARAMETER}": _fault,
 }
 
 
@@ -345,9 +369,12 @@ class CanBus:
         self.tx.bind((iface,))
         self.tx.setblocking(False)
 
-    def send(self, address: int, data: bytes = b""):
+    def send(self, address: int, data: bytes = b"", rtr: bool = False, dlc: int = 0):
+        """An RTR frame carries no data; `dlc` is the length it asks for."""
+        can_id = address | CAN_EFF_FLAG | (CAN_RTR_FLAG if rtr else 0)
+        length = dlc if rtr else len(data)
         self.tx.send(
-            CAN_FRAME.pack(address | CAN_EFF_FLAG, len(data), data.ljust(8, b"\0"))
+            CAN_FRAME.pack(can_id, length, b"" if rtr else data.ljust(8, b"\0"))
         )
 
     def receive(self):
@@ -423,7 +450,12 @@ class JogPad(Static, can_focus=True):
 class BucketConsole(App):
     TITLE = "Bucket CAN console"
     CSS = """
-    #monitor { height: 1fr; border: round $primary; }
+    #top { height: 1fr; }
+    #monitor { width: 1fr; border: round $primary; }
+    #manual { width: 52; border: round $accent; }
+    #manual_param, #manual Input { width: 1fr; }
+    #manual .row Label { width: 7; }
+    #manual_preview, #manual_reply { height: auto; padding: 0 1; }
     #filterbar, .row { height: auto; }
     #filter { width: 48; }
     #raw_filter { width: 34; }
@@ -436,7 +468,7 @@ class BucketConsole(App):
     #speed, #position { width: 12; }
     #jog { height: 3; border: tall $panel; padding: 0 1; }
     #jog:focus { border: tall $success; }
-    #tx { height: 1; padding: 0 1; }
+    #faults, #tx { height: 1; padding: 0 1; }
     """
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -462,20 +494,50 @@ class BucketConsole(App):
         self.jog_dir = 0
         self.jog_until = 0.0
         self.last_error = ""
+        self.zero_armed_bank = None
+        self.zero_disarm_timer = None
+        # GET_FAULT is tracked whatever the monitor filter shows: address -> bank, bank -> (byte, time)
+        self.fault_banks = (
+            {bucket.address(bank, FAULT_PARAMETER): bank for bank in bucket.banks}
+            if FAULT_PARAMETER in bucket.parameters
+            else {}
+        )
+        self.faults = {}
+        self.manual_params = hican.parameter_list()
+        self.rtr_request = None  # (address, time sent) while waiting for an RTR reply
+        self.timers = []
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="monitor"):
-            with Horizontal(id="filterbar"):
-                options = [
-                    (label, i) for i, (label, _, _) in enumerate(self.hican.filters)
-                ]
+        with Horizontal(id="top"):
+            with Vertical(id="monitor"):
+                with Horizontal(id="filterbar"):
+                    options = [
+                        (label, i) for i, (label, _, _) in enumerate(self.hican.filters)
+                    ]
+                    yield Select(
+                        options, id="filter", allow_blank=False, value=self.filter_index
+                    )
+                    yield Input(placeholder="raw ID or ID/MASK (hex)", id="raw_filter")
+                    yield Label("", id="rate")
+                yield DataTable(show_cursor=False)
+                yield RichLog(max_lines=2000)
+            with Vertical(id="manual"):
                 yield Select(
-                    options, id="filter", allow_blank=False, value=self.filter_index
+                    [(label, i) for i, (label, _) in enumerate(self.manual_params)],
+                    id="manual_param",
+                    prompt="parameter (type to search)",
                 )
-                yield Input(placeholder="raw ID or ID/MASK (hex)", id="raw_filter")
-                yield Label("", id="rate")
-            yield DataTable(show_cursor=False)
-            yield RichLog(max_lines=2000)
+                with Horizontal(classes="row"):
+                    yield Label("ID")
+                    yield Input(placeholder="hex, e.g. 02000004", id="manual_id")
+                with Horizontal(classes="row"):
+                    yield Label("Data")
+                    yield Input(placeholder="hex bytes, e.g. 48 0D", id="manual_data")
+                with Horizontal(classes="row"):
+                    yield Checkbox("RTR", id="manual_rtr")
+                    yield Button("Send", id="manual_send", variant="primary")
+                yield Static("", id="manual_preview")
+                yield Static("", id="manual_reply")
         with Vertical(id="commands"):
             with Horizontal(classes="row"):
                 yield Label("Bank")
@@ -494,20 +556,22 @@ class BucketConsole(App):
                 yield Button("Set position", id="set_position", variant="primary")
                 yield Button("Stop", id="stop", variant="error")
                 yield Button("Home", id="home")
+                yield Button("Zero", id="zero", variant="warning")
+            yield Static("", id="faults")
             yield Static("", id="tx")
         yield Footer()
 
     def on_mount(self) -> None:
         self.query_one("#monitor").border_title = f"{self.iface} · hi-can monitor"
         self.query_one("#commands").border_title = "bucket commands"
+        self.query_one("#manual").border_title = "send manually"
         table = self.query_one(DataTable)
         for key, label, width in (
             ("id", "ID", 8),
-            ("device", "Device", 30),
-            ("param", "Parameter", 22),
+            ("name", "Name", 38),  # system dropped: it's in the ID
             ("data", "Data", 23),
-            ("value", "Value", 9),
-            ("count", "Count", 7),
+            ("value", "Value", 10),
+            ("count", "Count", 6),
             ("hz", "Hz", 4),
         ):
             table.add_column(label, key=key, width=width)
@@ -517,8 +581,10 @@ class BucketConsole(App):
         asyncio.get_running_loop().add_reader(
             self.bus.rx.fileno(), self._on_can_readable
         )
-        self.set_interval(REFRESH_S, self._refresh)
-        self.set_interval(JOG_PERIOD_S, self._jog_tick)
+        self.timers = [
+            self.set_interval(REFRESH_S, self._refresh),
+            self.set_interval(JOG_PERIOD_S, self._jog_tick),
+        ]
         self._show_jog()
         self.query_one(JogPad).focus()
         missing = [name for name in DECODERS if name not in self.hican.parameters]
@@ -537,6 +603,15 @@ class BucketConsole(App):
         now = time.monotonic()
         _, address, mask = self.filter
         for can_id, extended, rtr, data in self.bus.receive():
+            if extended and not rtr and can_id in self.fault_banks:
+                self.faults[self.fault_banks[can_id]] = (data, now)
+            if (
+                self.rtr_request
+                and extended
+                and not rtr
+                and can_id == self.rtr_request[0]
+            ):
+                self._show_rtr_reply(data, now)
             if (can_id & mask) != (address & mask):
                 continue
             key = f"{can_id:08X}" if extended else f"{can_id:03X}"
@@ -567,6 +642,12 @@ class BucketConsole(App):
         self.query_one("#rate", Label).update(
             f"{total} fr/s{'  PAUSED' if self.paused else ''}"
         )
+        self._show_faults(now)
+        if self.rtr_request and now - self.rtr_request[1] > RTR_REPLY_TIMEOUT_S:
+            self.query_one("#manual_reply", Static).update(
+                f"[yellow]no reply on {self.rtr_request[0]:08X} within {RTR_REPLY_TIMEOUT_S:.0f} s[/]"
+            )
+            self.rtr_request = None
         if self.paused:
             return
         if self.show_log:
@@ -585,7 +666,8 @@ class BucketConsole(App):
                 str(len(seen.times)),
             )
             if not seen.shown:
-                table.add_row(key, seen.device, seen.parameter, *cells, key=key)
+                name = f"{seen.device.split('.', 1)[-1]} {seen.parameter}"
+                table.add_row(key, name, *cells, key=key)
                 added = True
             else:
                 for column, old, new in zip(
@@ -640,23 +722,43 @@ class BucketConsole(App):
     async def action_quit(self) -> None:
         if self.jog_dir:
             self._send_speed(0)
+        for timer in self.timers:
+            timer.stop()  # else a last tick can land after the widgets are gone
         self.exit()
 
     # commands
 
     def on_select_changed(self, event: Select.Changed) -> None:
-        if event.select.id == "filter":
+        if event.select.id == "manual_param":
+            if isinstance(event.value, int):
+                address = self.manual_params[event.value][1]
+                self.query_one("#manual_id", Input).value = f"{address:08X}"
+        elif event.select.id == "filter":
             self.query_one("#raw_filter", Input).value = ""
             self._set_filter(*self.hican.filters[event.value])
         elif event.select.id == "bank" and event.value != self.bank:
             if self.jog_dir:
                 self.jog_dir = 0
                 self._send_speed(0)
+            self._disarm_zero()
             self.bank = event.value
             self._show_jog()
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id in ("manual_id", "manual_data"):
+            self._update_manual_preview()
+
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        if event.checkbox.id == "manual_rtr":
+            self.query_one("#manual_data", Input).placeholder = (
+                "length to request, 0-8" if event.value else "hex bytes, e.g. 48 0D"
+            )
+            self._update_manual_preview()
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id == "raw_filter":
+        if event.input.id in ("manual_id", "manual_data"):
+            self.manual_send()
+        elif event.input.id == "raw_filter":
             self._apply_raw_filter(event.value.strip())
         elif event.input.id == "position":
             self.set_position()
@@ -664,9 +766,13 @@ class BucketConsole(App):
             self.action_focus_jog()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        {"set_position": self.set_position, "stop": self.stop, "home": self.home}[
-            event.button.id
-        ]()
+        {
+            "set_position": self.set_position,
+            "stop": self.stop,
+            "home": self.home,
+            "zero": self.zero,
+            "manual_send": self.manual_send,
+        }[event.button.id]()
 
     def jog(self, direction: int) -> None:
         now = time.monotonic()
@@ -724,6 +830,122 @@ class BucketConsole(App):
             return
         self._send(HOME_PARAMETER, b"", "")
 
+    def zero(self) -> None:
+        """First press arms, a second press within ZERO_CONFIRM_S zeroes both of the bank's encoders."""
+        if ZERO_PARAMETER not in self.bucket.parameters:
+            self.notify(
+                f"hi-can has no {BANK_PARAMETER}::{ZERO_PARAMETER}", severity="warning"
+            )
+            return
+        if self.zero_armed_bank == self.bank:
+            self._disarm_zero()
+            self._send(ZERO_PARAMETER, b"", "both encoders")
+            return
+        self.zero_armed_bank = self.bank
+        self.query_one("#zero", Button).label = f"Zero {self.bank}?"
+        self.zero_disarm_timer = self.set_timer(ZERO_CONFIRM_S, self._disarm_zero)
+
+    def _disarm_zero(self) -> None:
+        if self.zero_disarm_timer:
+            self.zero_disarm_timer.stop()
+            self.zero_disarm_timer = None
+        self.zero_armed_bank = None
+        self.query_one("#zero", Button).label = "Zero"
+
+    def _show_faults(self, now: float) -> None:
+        if not self.fault_banks:
+            text = f"[dim]Fault  hi-can has no {FAULT_PARAMETER}[/]"
+        else:
+            parts = []
+            for bank in self.bucket.banks:
+                data, when = self.faults.get(bank, (None, 0.0))
+                if data is None:
+                    parts.append(f"{bank} [dim]no data[/]")
+                    continue
+                value = _fault(data) or f"bad length {len(data)}"
+                colour = "green" if value == "ok" else "red"
+                stale = " [dim](stale)[/]" if now - when > FAULT_STALE_S else ""
+                parts.append(f"{bank} [{colour}]{value}[/]{stale}")
+            text = "Fault  " + "  ·  ".join(parts)
+        self.query_one("#faults", Static).update(text)
+
+    # manual send
+
+    def _manual_frame(self):
+        """(address, data, rtr, dlc) from the manual panel, or an error message."""
+        id_text = self.query_one("#manual_id", Input).value.strip()
+        try:
+            address = int(id_text, 16)
+        except ValueError:
+            return "ID must be hex"
+        if not 0 <= address <= CAN_EFF_MASK:
+            return "ID is over 29 bits"
+
+        text = self.query_one("#manual_data", Input).value.strip()
+        if self.query_one("#manual_rtr", Checkbox).value:
+            try:
+                dlc = int(text or "0")
+            except ValueError:
+                return "RTR: data is the length to request, 0-8"
+            if not 0 <= dlc <= 8:
+                return "RTR: length must be 0-8"
+            return address, b"", True, dlc
+
+        digits = "".join(ch for ch in text if ch not in " ,:-_")
+        if len(digits) % 2:
+            return "odd number of hex digits"
+        try:
+            data = bytes.fromhex(digits)
+        except ValueError:
+            return "data must be hex bytes"
+        if len(data) > 8:
+            return "more than 8 bytes"
+        return address, data, False, len(data)
+
+    def _update_manual_preview(self) -> None:
+        preview = self.query_one("#manual_preview", Static)
+        if not self.query_one("#manual_id", Input).value.strip():
+            preview.update("")
+            return
+        frame = self._manual_frame()
+        if isinstance(frame, str):
+            preview.update(f"[red]{frame}[/]")
+            return
+        address, data, rtr, dlc = frame
+        _, parameter, qualified = self.hican.describe(address)
+        payload = f"R{dlc or ''}" if rtr else data.hex().upper()
+        text = f"{address:08X}#{payload}  {parameter}"
+        decoder = DECODERS.get(qualified)
+        if decoder and not rtr and (value := decoder(data)):
+            text += f" = {value}"
+        preview.update(text)
+
+    def manual_send(self) -> None:
+        frame = self._manual_frame()
+        if isinstance(frame, str):
+            self.notify(frame, severity="error")
+            return
+        address, data, rtr, dlc = frame
+        _, parameter, _ = self.hican.describe(address)
+        if self._send_raw(address, data, rtr, dlc, f"manual {parameter}") and rtr:
+            self.rtr_request = (address, time.monotonic())
+            self.query_one("#manual_reply", Static).update(
+                f"waiting for {address:08X}…"
+            )
+
+    def _show_rtr_reply(self, data: bytes, now: float) -> None:
+        address, sent = self.rtr_request
+        self.rtr_request = None
+        _, parameter, qualified = self.hican.describe(address)
+        decoder = DECODERS.get(qualified)
+        value = decoder(data) if decoder else ""
+        # Periodic broadcasts share the ID, so this is the first frame after the request.
+        self.query_one("#manual_reply", Static).update(
+            f"[green]reply[/] after {(now - sent) * 1000:.0f} ms: "
+            f"{' '.join(f'{b:02X}' for b in data) or '(empty)'}  {parameter}"
+            + (f" = {value}" if value else "")
+        )
+
     def _jog_speed(self) -> float:
         try:
             return max(0.0, min(100.0, float(self.query_one("#speed", Input).value)))
@@ -745,20 +967,26 @@ class BucketConsole(App):
 
     def _send(self, parameter: str, data: bytes, description: str) -> None:
         address = self.bucket.address(self.bank, parameter)
-        frame = f"{address:08X}#{data.hex().upper()}"
+        self._send_raw(
+            address, data, False, 0, f"{self.bank} {parameter} {description}"
+        )
+
+    def _send_raw(
+        self, address: int, data: bytes, rtr: bool, dlc: int, description: str
+    ) -> bool:
+        frame = f"{address:08X}#" + (f"R{dlc or ''}" if rtr else data.hex().upper())
         try:
-            self.bus.send(address, data)
+            self.bus.send(address, data, rtr, dlc)
         except OSError as error:
             message = f"tx failed: {error.strerror or error}"
             if message != self.last_error:
                 self.notify(message, severity="error")
             self.last_error = message
             self.query_one("#tx", Static).update(f"[red]{message}[/]  {frame}")
-            return
+            return False
         self.last_error = ""
-        self.query_one("#tx", Static).update(
-            f"tx {frame}  {self.bank} {parameter} {description}"
-        )
+        self.query_one("#tx", Static).update(f"tx {frame}  {description}")
+        return True
 
 
 def main():

@@ -34,13 +34,13 @@ namespace TILT
 {
     namespace DRIVER_A
     {                                                                       // assuming left
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_47, GPIO_NUM_21};  // driver 5
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_38, GPIO_NUM_37};  // driver 5
         static constexpr EncoderId ENCODER_ID = EncoderId::TiltLeft;        // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x05;                           // for sending over canbus
     }
     namespace DRIVER_B
     {                                                                       // assuming Right
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_14, GPIO_NUM_13};  // driver 6
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_45, GPIO_NUM_48};  // driver 6
         static constexpr EncoderId ENCODER_ID = EncoderId::TiltRight;       // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x06;                           // for sending over canbus
     }
@@ -52,13 +52,13 @@ namespace JAWS
 {
     namespace DRIVER_A
     {                                                                       // assuming left
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_38, GPIO_NUM_37};  // driver 3
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_47, GPIO_NUM_21};  // driver 3 : 38,37
         static constexpr EncoderId ENCODER_ID = EncoderId::JawsLeft;        // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x07;                           // for sending over canbus
     }
     namespace DRIVER_B
     {                                                                       // assuming Right
-        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_45, GPIO_NUM_48};  // driver 4
+        static constexpr pin_pair_t DRIVER_PINS{GPIO_NUM_14, GPIO_NUM_13};  // driver 4 : 45,48
         static constexpr EncoderId ENCODER_ID = EncoderId::JawsRight;       // for reading from bus
         static constexpr uint8_t GROUP_ID = 0x08;                           // for sending over canbus
     }

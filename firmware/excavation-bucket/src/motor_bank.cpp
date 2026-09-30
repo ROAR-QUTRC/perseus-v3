@@ -109,13 +109,13 @@ float MotorBank::get_average_current()
 
 bool MotorBank::is_in_fault() { return digitalRead(_fault_pin) == LOW; }
 
+// GET_CURRENT is in mA, what ROS's bucket_hardware decodes.
 std::vector<uint8_t> MotorBank::get_current()
 {
-    float average_current = this->get_average_current();
-    float clamped = std::clamp(average_current,
-                               static_cast<float>(std::numeric_limits<uint16_t>::min()),
-                               static_cast<float>(std::numeric_limits<uint16_t>::max()));
-    hi_can::parameters::excavation::bucket::controller::current_t current{static_cast<uint16_t>(clamped)};
+    const float milliamps = std::clamp(this->get_average_current() * 1000.0f, 0.0f,
+                                       static_cast<float>(std::numeric_limits<uint16_t>::max()));
+    hi_can::parameters::excavation::bucket::controller::current_t current{
+        static_cast<uint16_t>(std::lround(milliamps))};
     return current.serialize_data();
 };
 
