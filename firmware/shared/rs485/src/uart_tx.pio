@@ -1,0 +1,80 @@
+; uart_tx.pio
+;
+; Transmit-only 8N1 UART (no parity), for the RS485 TX line (GPIO7 on this
+; board). Needed because GPIO7 has no hardware UART1 TX mux option on
+; RP2350 (only uart1_rts/uart1_rx are available there) -- see the class
+; comment in rs485_transport.hpp for the full story. RX still uses the
+; real hardware UART1 (GPIO5); only TX is bit-banged here.
+;
+; One bit is output per "bitloop" iteration, each held for exactly 8 PIO
+; clock cycles -- uart_tx_program_init() below sets the clock divider so
+; that 8 cycles = 1 bit period at the requested baud rate. TX pin is the
+; state machine's sole out/set pin.
+;
+; Frame shape: idle high -> start bit (low, 1 period) -> 8 data bits,
+; LSB first (1 period each) -> stop bit (high, 1 period) -> back to idle
+; high, ready for the next pull().
+.program uart_tx
+
+.wrap_target
+    pull block                 ; Wait here (line stays at whatever it was
+                                ; last set to -- idle-high, see below) until
+                                ; a byte is pushed to the TX FIFO. Not part
+                                ; of the timed bit sequence, can block for
+                                ; any length of time.
+    set x, 7                   ; loop counter: 8 data bits to send. Must
+                                ; happen *before* the start bit below, not
+                                ; after -- it doesn't touch the pin, but it
+                                ; still costs a cycle, and if that cycle
+                                ; landed after the falling edge it would
+                                ; stretch the start bit to 9 cycles and
+                                ; skew every bit after it by 1/8 period.
+                                ; Here it just delays when the line drops,
+                                ; which is harmless since nothing is timed
+                                ; relative to the line yet.
+    set pins, 0        [7]     ; start bit: line low for 8 cycles
+bitloop:
+    out pins, 1        [6]     ; shift 1 bit LSB-first onto the pin (out
+                                ; shift direction is right, see init below)
+                                ; -- this instruction is cycle 1, [6] adds
+                                ; 6 more, giving 7 so far
+    jmp x-- bitloop             ; always decrements x; branches while x was
+                                ; nonzero before the decrement, so this
+                                ; executes 8 times total (x: 7->0). This
+                                ; jmp is the 8th cycle of the bit period,
+                                ; whether or not it branches.
+    set pins, 1        [7]     ; stop bit: line high for 8 cycles
+.wrap                           ; back to `pull block`, line stays high
+
+% c-sdk {
+// Configure and start a state machine to transmit bytes (8N1, TX only) out
+// of `pin`, at `baud` bits/sec.
+static inline void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud) {
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_config c = uart_tx_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, pin, 1);
+    sm_config_set_set_pins(&c, pin, 1);
+    // Shift right -> out pins,1 emits bit 0 first, then bit 1, etc. --
+    // LSB-first, matching UART bit order. Autopull off: the program pulls
+    // explicitly once per frame rather than mid-shift.
+    sm_config_set_out_shift(&c, true, false, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    // 8 PIO cycles per bit period (see the .program comment above) --
+    // clock the state machine at 8x the baud rate.
+    float div = clock_get_hz(clk_sys) / (baud * 8.0f);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+
+    // Force the line high before enabling -- otherwise the pin sits at
+    // whatever pio_gpio_init() left it (not guaranteed high) until the
+    // first byte is sent, which would look like a spurious break
+    // condition on the bus.
+    pio_sm_exec(pio, sm, pio_encode_set(pio_pins, 1));
+
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

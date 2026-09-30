@@ -91,7 +91,7 @@ namespace hi_can
             /// @brief Whether the address is an error frame
             bool is_error = false;
             /// @brief Whether the address is an extended (29-bit) address
-            bool is_extended = true;
+            bool is_extended = true;  // DOES NOT SUPPORT CURRENTLY ESP32-S3
 
             /// @brief Default constructor - zero address, not RTR or error, extended
             constexpr flagged_address_t() = default;
@@ -393,7 +393,7 @@ namespace hi_can
         {
             /// @brief The excavation system ID
             constexpr uint8_t SYSTEM_ID = 0x04;
-            /// @brief Namespace containing all addresses in the arm subsystem
+            /// @brief Namespace containing all addresses in the bucket subsystem
             namespace bucket
             {
                 /// @brief The bucket subsystem ID
@@ -403,37 +403,36 @@ namespace hi_can
                 {
                     /// @brief The bucket controller device ID
                     constexpr uint8_t DEVICE_ID = 0x00;
-                    enum class group
+                    enum class bank_group : uint8_t
                     {
-                        BANK_1 = 0x01,
-                        BANK_2 = 0x02,
-                        BANK_3 = 0x03,
-                        LIFT_BOTH = 0x04,
-                        LIFT_LEFT = 0x05,
-                        LIFT_RIGHT = 0x06,
-                        TILT_BOTH = 0x07,
-                        TILT_LEFT = 0x08,
-                        TILT_RIGHT = 0x09,
-                        JAWS_BOTH = 0x0a,
-                        JAWS_LEFT = 0x0b,
-                        JAWS_RIGHT = 0x0c,
-                        MAGNET = 0x0d,
+                        LIFT = 0x00,
+                        TILT = 0x01,
+                        JAWS = 0x02,
                     };
-                    enum class bank_parameter
+                    enum class bank_parameter : uint8_t
                     {
-                        CURRENT_LIMIT = 0x00,
-                        STATUS = 0x01,
+                        GET_FAULT = 0x00,
+                        GET_CURRENT = 0x01,
+                        SET_SPEED = 0x02,
+                        GET_POSITION = 0x03,
+                        SET_POSITION = 0x04,
+                        SET_PID_PARAMS = 0x05,
+                        SET_ZERO_POS = 0x06,
                     };
-                    enum class actuator_parameter
+
+                    /* Encoder board ROS interface */
+                    enum class encoder_group : uint8_t
                     {
-                        SPEED = 0x00,
-                        POSITION = 0x01,
+                        LIFT_L = 0x03,
+                        LIFT_R = 0x04,
+                        TILT_L = 0x05,
+                        TILT_R = 0x06,
+                        JAWS_L = 0x07,
+                        JAWS_R = 0x08,
                     };
-                    enum class magnet_parameter
+                    enum class encoder_parameter : uint8_t
                     {
-                        ROTATE_SPEED = 0x00,
-                        ROTATE_POSITION = 0x01,
-                        MAGNET_ENABLE = 0x03,
+                        GET_ANGLE = 0x00,
                     };
                 }  // namespace controller
             }  // namespace bucket

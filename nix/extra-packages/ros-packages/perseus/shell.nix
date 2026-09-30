@@ -67,6 +67,7 @@ pkgs.mkShell {
           pid-controller
           pluginlib
           point-cloud-transport
+          position-controllers
           qt5.qtbase
           rcl-interfaces
           rclcpp

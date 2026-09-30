@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>can_diag</name>
+  <version>0.0.1</version>
+  <description>Generic hi-can diagnostic CLI: send an arbitrary CAN packet (RTR request or data frame) to any hi-can address and print/decode whatever response arrives.</description>
+  <maintainer email="jdbretherton12@gmail.com">DanB</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>hi_can_raw</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

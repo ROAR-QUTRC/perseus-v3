@@ -1,0 +1,26 @@
+/**/controller_manager:
+  ros__parameters:
+    update_rate: 20 # Hz - how often controller_manager calls read()/update()/write()
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    # Sends a target position per joint; the hardware interface's write()
+    # forwards it to CAN as SET_POSITION and the board's own PID servos to it.
+    # Position is the only command interface - manual speed control is the
+    # separate teleop driver, outside ros2_control entirely.
+    bucket_position_controller:
+      type: position_controllers/JointGroupPositionController
+# joint_state_broadcaster takes no further parameters - it publishes
+# /joint_states from whatever state interfaces exist automatically.
+/**/bucket_position_controller:
+  ros__parameters:
+    # Only the commandable joint per axis - lift_right/tilt_right/jaws_right
+    # have no command interfaces (see bucket.ros2_control.xacro) and would
+    # cause a claim error if listed here.
+    joints:
+      - lift_left
+      - tilt_left
+      - jaws_left
+    interface_name: position
+# For coordinated multi-axis motion, replace JointGroupPositionController
+# with joint_trajectory_controller/JointTrajectoryController (still only
+# listing the 3 commandable joints above).
