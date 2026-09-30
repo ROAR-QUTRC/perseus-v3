@@ -16,7 +16,7 @@ struct EncoderSample
     bool magnet_detected = false;
     bool valid = false;  // false if the last I2C read failed; reading is meaningless then
     As5600::Reading reading{};
-    int velocity_sign = 0;  // -1/0/1, computed by encoder_task
+    int velocity_sign = 0;    // -1/0/1, computed by encoder_task
     bool zero_saved = false;  // the zero offset in use is stored in flash
 };
 

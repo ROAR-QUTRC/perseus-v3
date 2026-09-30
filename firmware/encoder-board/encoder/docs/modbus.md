@@ -34,14 +34,14 @@ health model and worked examples are in `firmware/shared/modbus-core/README.md`.
 
 All registers are 16-bit holding registers.
 
-| Address | Name                  | Access | Description                                                                 |
-| ------- | --------------------- | ------ | --------------------------------------------------------------------------- |
-| 0       | `kRegAngleRaw`        | R      | AS5600 counts, 0-4095, after the zero offset                                |
-| 1       | `kRegAngleDegreesX10` | R      | Angle in degrees x 10 (1805 = 180.5 degrees)                                |
-| 2       | `kRegZeroCommand`     | W      | Nonzero: make the current position the new zero. Zero: no-op                |
-| 3       | `kRegHeartbeat`       | W      | Any value refreshes the master-alive timer                                  |
-| 4       | `kRegStatus`          | R      | Bitfield, see below                                                         |
-| 5       | `kRegDiscovery`       | R/W    | Nonzero: status LED solid white. Zero: normal operation                     |
+| Address | Name                  | Access | Description                                                  |
+| ------- | --------------------- | ------ | ------------------------------------------------------------ |
+| 0       | `kRegAngleRaw`        | R      | AS5600 counts, 0-4095, after the zero offset                 |
+| 1       | `kRegAngleDegreesX10` | R      | Angle in degrees x 10 (1805 = 180.5 degrees)                 |
+| 2       | `kRegZeroCommand`     | W      | Nonzero: make the current position the new zero. Zero: no-op |
+| 3       | `kRegHeartbeat`       | W      | Any value refreshes the master-alive timer                   |
+| 4       | `kRegStatus`          | R      | Bitfield, see below                                          |
+| 5       | `kRegDiscovery`       | R/W    | Nonzero: status LED solid white. Zero: normal operation      |
 
 - **Angle.** The value is the last sample published by `encoder_task` (section 4),
   not a live read. If the magnet is absent or the I2C read failed, the read
@@ -56,10 +56,10 @@ All registers are 16-bit holding registers.
 
 ### Status bits
 
-| Bit | Name                    | Set when                                                                        |
-| --- | ----------------------- | ------------------------------------------------------------------------------- |
-| 0   | `kStatusMagnetDetected` | The AS5600 detects a magnet                                                     |
-| 1   | `kStatusMasterAlive`    | A heartbeat arrived within the last 3 s                                         |
+| Bit | Name                    | Set when                                                                          |
+| --- | ----------------------- | --------------------------------------------------------------------------------- |
+| 0   | `kStatusMagnetDetected` | The AS5600 detects a magnet                                                       |
+| 1   | `kStatusMasterAlive`    | A heartbeat arrived within the last 3 s                                           |
 | 2   | `kStatusZeroNotSaved`   | The zero in use is not in flash: never zeroed, record corrupt, or the save failed |
 
 ### Exceptions
@@ -141,11 +141,11 @@ checking enabled.
 
 ## 5. Zero Offset Storage
 
-| Item     | Value                                                                                   |
-| -------- | --------------------------------------------------------------------------------------- |
+| Item     | Value                                                                                     |
+| -------- | ----------------------------------------------------------------------------------------- |
 | Location | Second-to-last 4 KiB sector of the 16 MiB W25Q128JV (offset `0xFFE000`)                   |
 | Record   | Magic `"ZERO"`, offset (counts), Modbus CRC16 over both                                   |
-| Load     | `main()`, before the scheduler starts; the result is in the boot banner                  |
+| Load     | `main()`, before the scheduler starts; the result is in the boot banner                   |
 | Save     | `encoder_task`, after a successful zero, unless the offset is unchanged and already saved |
 | Driver   | `drivers/zero_store.cpp`, using `flash_safe_execute()` from `pico_flash`                  |
 
