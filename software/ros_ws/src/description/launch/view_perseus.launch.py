@@ -83,7 +83,7 @@ def generate_launch_description():
         "hardware_plugin", default="mock_components/GenericSystem"
     )
     can_bus = LaunchConfiguration("can_bus", default="")
-    payload = LaunchConfiguration("payload", default="none")
+    payload = LaunchConfiguration("payload", default="bucket")
 
     rsp_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -144,10 +144,10 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "payload",
-                default_value="none",
+                default_value="bucket",
                 description=(
                     "Payload attachment to include on the chassis. Set to "
-                    "'bucket' to add the bucket: frame mount, lift arms, bucket, "
+                    "'none' to omit the bucket: frame mount, lift arms, bucket, "
                     "jaw and rams, with sliders for lift, tilt and jaw"
                 ),
             ),

@@ -32,10 +32,11 @@ Two modes
 * Viewer (``viewer_mode:=true``): there is no Gazebo, only a joint-state slider
   GUI. The GUI's output is routed to ``input_topic`` (default
   /joint_states_raw); this node overwrites the ten ram joints with the exact
-  values and re-publishes the lot on /joint_states for robot_state_publisher.
-  That way moving the lift, tilt or jaw slider moves the rams too. It also
-  republishes the description on /robot_description_sliders with the ram joints
-  fixed, so the slider GUI shows only the joints you can actually move.
+  values, holds the four wheel joints at zero, and re-publishes the lot on
+  /joint_states for robot_state_publisher. That way moving the lift, tilt or
+  jaw slider moves the rams too. It also republishes the description on
+  /robot_description_sliders with the ram and wheel joints fixed, so the
+  slider GUI offers only the joints you can actually move: lift, tilt and jaw.
 
 The rams are cosmetic: their mass is already lumped onto the frame, arm and
 bucket, and they have no collision geometry and no gravity. If this node is not
@@ -130,6 +131,15 @@ def jaw_ram(q_jaw):
     return math.atan2(-vz, vx) - JAW_PHI0, math.hypot(vx, vz) - JAW_LEN0
 
 
+# the four drive-wheel joints: continuous, so they'd otherwise get sliders too;
+# in viewer mode nothing drives them, so they're hidden and held at zero
+WHEEL_JOINTS = (
+    "front_left_wheel_joint",
+    "front_right_wheel_joint",
+    "rear_left_wheel_joint",
+    "rear_right_wheel_joint",
+)
+
 # the ten ram joints, in the order ram_values() returns them per ram group
 RAM_JOINTS = {
     "lift": (
@@ -219,11 +229,13 @@ class BucketRamFollower(Node):
         self.get_logger().info("bucket_ram_follower ready")
 
     def _on_description(self, msg):
-        """Viewer mode: republish the description with the ram joints fixed."""
-        ram_names = {n for group in RAM_JOINTS.values() for n in group}
+        """Viewer mode: republish the description with the ram and wheel
+        joints fixed, so the slider GUI offers only lift, tilt and jaw."""
+        hidden_names = {n for group in RAM_JOINTS.values() for n in group}
+        hidden_names.update(WHEEL_JOINTS)
         root = ET.fromstring(msg.data)
         for joint in root.iter("joint"):
-            if joint.get("name") in ram_names:
+            if joint.get("name") in hidden_names:
                 joint.set("type", "fixed")
                 for tag in ("axis", "limit", "dynamics"):
                     for element in joint.findall(tag):
@@ -233,15 +245,19 @@ class BucketRamFollower(Node):
         self._desc_out.publish(out)
 
     def _on_raw_states(self, msg):
-        """Viewer mode: replace the ram joints with exact values and forward."""
+        """Viewer mode: replace the ram joints with exact values, hold the
+        wheels at zero, and forward."""
         if not msg.name:
             return  # the slider node sends an empty message before it has a robot
         ram_names = {n for group in RAM_JOINTS.values() for n in group}
         names, positions = [], []
         for n, q in zip(msg.name, msg.position):
-            if n not in ram_names:
+            if n not in ram_names and n not in WHEEL_JOINTS:
                 names.append(n)
                 positions.append(q)
+        for n in WHEEL_JOINTS:
+            names.append(n)
+            positions.append(0.0)
         try:
             q_lift = positions[names.index("bucket_lift_joint")]
             q_tilt = positions[names.index("bucket_tilt_joint")]
