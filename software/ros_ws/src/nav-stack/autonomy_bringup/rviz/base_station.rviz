@@ -12,6 +12,7 @@ Panels:
         - /Arena Zones1/Topic1
       Splitter Ratio: 0.5529412031173706
     Tree Height: 325
+    Tree Height: 325
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -19,6 +20,10 @@ Panels:
       - /2D Goal Pose1
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
+  - Class: rviz_plugins/ViewLockPanel
+    Locked: true
+    Name: View Lock
+    View: Far
   - Class: rviz_plugins/ViewLockPanel
     Locked: true
     Name: View Lock
@@ -50,6 +55,8 @@ Panels:
     ExcavationYaw: -0.7246798276901245
     Mode: full
     Name: Mission Control
+    PauseS: 10
+    Task: cycle
     PauseS: 10
     Task: cycle
 Visualization Manager:
@@ -87,6 +94,8 @@ Visualization Manager:
         camera_accel_frame:
           Value: true
         camera_accel_optical_frame:
+          Value: true
+        camera_aligned_depth_to_infra1_frame:
           Value: true
         camera_aligned_depth_to_infra1_frame:
           Value: true
@@ -176,6 +185,9 @@ Visualization Manager:
                     camera_link:
                       camera_accel_frame:
                         camera_accel_optical_frame:
+                          {}
+                      camera_aligned_depth_to_infra1_frame:
+                        {}
                           {}
                       camera_aligned_depth_to_infra1_frame:
                         {}
@@ -369,7 +381,7 @@ Visualization Manager:
       Use Timestamp: false
       Value: false
     - Class: rviz_default_plugins/Image
-      Enabled: true
+      Enabled: false
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -381,7 +393,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /vision/overlay/image/compressed
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Arena Zones
@@ -394,6 +406,18 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /arena/zones
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Mission Waypoints
+      Namespaces:
+        mission_waypoints: true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mission/waypoint_markers
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
@@ -522,6 +546,8 @@ Visualization Manager:
         Value: /goal_pose
     - Class: rviz_plugins/ExcavationPoint
     - Class: rviz_plugins/ConstructionPoint
+    - Class: rviz_plugins/ExcavationPoint
+    - Class: rviz_plugins/ConstructionPoint
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
@@ -529,6 +555,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
+      Distance: 8.126937866210938
       Distance: 8.126937866210938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -610,6 +637,7 @@ Window Geometry:
     collapsed: false
   Topic Health:
     collapsed: false
+  View Lock:
   View Lock:
     collapsed: false
   Width: 1920
