@@ -23,12 +23,24 @@ NAMESPACE = "payloads"
 def generate_launch_description():
     # ARGUMENTS
     can_interface = LaunchConfiguration("can_interface", default="can0")
+    hardware_plugin = LaunchConfiguration("hardware_plugin")
+    controller = LaunchConfiguration("controller")
 
     arguments = [
         DeclareLaunchArgument(
             "can_interface",
             default_value="can0",
             description="CAN interface the bucket controller is on",
+        ),
+        DeclareLaunchArgument(
+            "hardware_plugin",
+            default_value="payloads/BucketHardware",
+            description="ros2_control hardware plugin; mock_components/GenericSystem runs without the bucket",
+        ),
+        DeclareLaunchArgument(
+            "controller",
+            default_value="bucket_trajectory_controller",
+            description="Command controller to spawn: bucket_trajectory_controller (all axes) or bucket_lift_controller",
         ),
     ]
 
@@ -45,6 +57,8 @@ def generate_launch_description():
             ),
             " can_interface:=",
             can_interface,
+            " hardware_plugin:=",
+            hardware_plugin,
         ]
     )
     # Must be declared a string, or the xacro output is passed as a
@@ -66,6 +80,10 @@ def generate_launch_description():
         executable="robot_state_publisher",
         namespace=NAMESPACE,
         parameters=[robot_description],
+        # Only here to feed controller_manager its robot_description. Its TF is
+        # kept off /tf so it cannot fight the main robot_state_publisher, which
+        # owns the bucket frames.
+        remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
         output="both",
     )
 
@@ -93,7 +111,7 @@ def generate_launch_description():
         executable="spawner",
         namespace=NAMESPACE,
         arguments=[
-            "bucket_trajectory_controller",
+            controller,
             "--controller-manager",
             f"/{NAMESPACE}/controller_manager",
         ],

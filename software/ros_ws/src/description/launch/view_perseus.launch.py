@@ -21,8 +21,10 @@ def _joint_state_nodes(context):
     Without something publishing /joint_states, robot_state_publisher emits only the
     FIXED joints on /tf_static -- which does cover every sensor frame, since the mast
     and sensor mounts are all fixed -- but the four continuous wheel joints never
-    appear and the tree is left incomplete. The headless stand-in (gui:=false)
-    publishes them at their defaults so the whole tree resolves.
+    appear and the tree is left incomplete. The headless stand-in (sliders:=false)
+    publishes them at their defaults so the whole tree resolves, and takes any joint
+    found on /payloads/joint_states from there, so the bucket follows its ros2_control
+    stack (payloads bucket.launch.py) when that is running.
 
     With payload:=bucket the rams are not free joints: each is a function of the
     lift, tilt and jaw angles, and nothing else drives them here. So the slider node
@@ -31,7 +33,7 @@ def _joint_state_nodes(context):
     ten ram joints exact, plus a description in which they are fixed so they get no
     slider. robot_state_publisher still reads the real description.
     """
-    gui = LaunchConfiguration("gui")
+    sliders = LaunchConfiguration("sliders")
     bucket = LaunchConfiguration("payload").perform(context) == "bucket"
     remap = (
         [
@@ -47,14 +49,15 @@ def _joint_state_nodes(context):
             executable="joint_state_publisher_gui",
             remappings=remap,
             output="screen",
-            condition=IfCondition(gui),
+            condition=IfCondition(sliders),
         ),
         Node(
             package="joint_state_publisher",
             executable="joint_state_publisher",
+            parameters=[{"source_list": ["/payloads/joint_states"]}],
             remappings=remap,
             output="screen",
-            condition=UnlessCondition(gui),
+            condition=UnlessCondition(sliders),
         ),
     ]
     if bucket:
@@ -73,9 +76,11 @@ def _joint_state_nodes(context):
 def generate_launch_description():
     """View the robot description, or just publish its TF tree.
 
-    gui:=false drops RViz and the joint state slider GUI and leaves only the
-    transforms, which is what you want over SSH -- the RViz here is wrapped in
-    nixGL and needs a display, so it cannot come up on a headless machine at all.
+    gui:=false drops RViz and leaves only the transforms, which is what you want
+    over SSH -- the RViz here is wrapped in nixGL and needs a display, so it cannot
+    come up on a headless machine at all. sliders:=true adds the joint state slider
+    GUI; leave it off when a controller is driving the joints, or both publish
+    /joint_states and the model jitters between them.
     """
     use_sim_time = LaunchConfiguration("use_sim_time", default="false")
     gui = LaunchConfiguration("gui")
@@ -138,8 +143,16 @@ def generate_launch_description():
                 "gui",
                 default_value="true",
                 description=(
-                    "Launch RViz and the joint state slider GUI. Set false to "
-                    "publish the TF tree only, for headless/SSH use"
+                    "Launch RViz. Set false to publish the TF tree only, for "
+                    "headless/SSH use"
+                ),
+            ),
+            DeclareLaunchArgument(
+                "sliders",
+                default_value="false",
+                description=(
+                    "Launch the joint state slider GUI. Off by default so joints "
+                    "follow /payloads/joint_states from the bucket's controller"
                 ),
             ),
             DeclareLaunchArgument(

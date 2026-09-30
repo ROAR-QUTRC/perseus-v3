@@ -6,6 +6,18 @@
     # Position setpoints go to CAN as SET_POSITION; the board's own PID servos to them.
     bucket_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
+    # Claims lift only, so tilt and jaws receive no SET_POSITION frames.
+    bucket_lift_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+/**/bucket_lift_controller:
+  ros__parameters:
+    joints:
+      - bucket_lift_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
 /**/bucket_trajectory_controller:
   ros__parameters:
     joints:
