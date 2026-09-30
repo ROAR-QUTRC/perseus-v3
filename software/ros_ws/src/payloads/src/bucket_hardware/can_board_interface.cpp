@@ -15,7 +15,8 @@ namespace payloads
         namespace bucket_addr = addressing::excavation::bucket::controller;
         namespace bucket_param = parameters::excavation::bucket::controller;
 
-        const uint8_t CAN_TIMEOUT_INTERVAL = 100;  // in milliseconds
+        // Matches the firmware's 50 ms GET_ANGLE / GET_POSITION broadcast period.
+        const uint8_t CAN_TIMEOUT_INTERVAL = 50;  // in milliseconds
 
         const addressing::standard_address_t kDeviceAddress{
             addressing::excavation::SYSTEM_ID, addressing::excavation::bucket::SUBSYSTEM_ID,
@@ -54,36 +55,32 @@ namespace payloads
                 static_cast<uint8_t>(parameter)};
         }
 
-        // TODO: confirm against the encoder firmware - position_t's
-        // raw int16_t is a degree not radians. Placeholder assumes
-        // 1850 = 180.5 degrees. This must match whatever the firmware itself
-        // uses to produce/consume the int16_t defined in hi_can_parameter.hpp
-        constexpr double kCountsPerRadian = 10.0;
+        // position_t is tenths of a degree in BOTH directions: GET_ANGLE and
+        // GET_POSITION report degrees x10 (firmware shared_memory.hpp,
+        // kPositionUnitsPerDegree) and SET_POSITION takes the same unit
+        // (motor_bank.hpp). If the two ends disagree on this, the on-board PID
+        // chases the wrong target.
+        constexpr double kUnitsPerDegree = 10.0;
 
         // TODO: confirm against h-bridge current-sense circuit's actual scale -
         // current_t's raw uint16_t is unscaled. Placeholder: 1 count = 1 mA.
         // NOTE: This can change depending on firmware implementation
         constexpr double kCountsPerAmp = 1000.0;
 
-        double decode_position(const std::vector<uint8_t>& data)
+        // Encoders report 0-359.9; a slight overshoot past a zero set at one end of
+        // travel should read as a small negative angle, not ~360.
+        double decode_degrees(const std::vector<uint8_t>& data)
         {
             bucket_param::position_t param(data);
-            return static_cast<double>(param.value) / kCountsPerRadian;
+            return wrap_degrees(static_cast<double>(param.value) / kUnitsPerDegree);
         }
 
-        std::vector<uint8_t> encode_position(double position)
+        // The firmware takes the shortest way round to the target (mod 360), so a
+        // negative setpoint is fine.
+        std::vector<uint8_t> encode_degrees(double degrees)
         {
             bucket_param::position_t param{
-                static_cast<int16_t>(std::lround(position * kCountsPerRadian))};
-            return param.serialize_data();
-        }
-
-        std::vector<uint8_t> encode_speed(double velocity)
-        {
-            // TODO: confirm speed_t's scale the same way as position - placeholder
-            // reuses kCountsPerRadian as counts-per-(radian/s); almost certainly
-            // wrong, needs the firmware's actual speed unit.
-            bucket_param::speed_t param{static_cast<int16_t>(std::lround(velocity * kCountsPerRadian))};
+                static_cast<int16_t>(std::lround(wrap_degrees(degrees) * kUnitsPerDegree))};
             return param.serialize_data();
         }
 
@@ -173,7 +170,7 @@ namespace payloads
         // Non-blocking: decodes any buffered frames, fires matching callbacks
         // (and any due timeout callbacks), then returns immediately.
         // Nothing here schedules transmissions, since commands are sent directly
-        // via send_position_command()/send_velocity_command() rather than through
+        // via send_position_command()/stop_axis() rather than through
         // PacketManager's interval-transmission machinery.
         packet_manager_->handle_receive();
     }
@@ -190,7 +187,7 @@ namespace payloads
 
     void CanBoardInterface::register_receive_filters()
     {
-        // --- Per-encoder GET_ANGLE frames (6 total) ---
+        // --- Per-encoder GET_ANGLE frames (6 total), broadcast by the board ---
         for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
         {
             for (uint8_t side_idx = 0; side_idx < kNumSides; ++side_idx)
@@ -205,7 +202,7 @@ namespace payloads
                     [this, axis, side](const Packet& frame)
                     {
                         EncoderState state;
-                        state.position = decode_position(frame.get_data());
+                        state.degrees = decode_degrees(frame.get_data());
                         state.stale = false;
                         this->on_encoder_received(axis, side, state);
                     },
@@ -254,32 +251,38 @@ namespace payloads
                 *packet_manager_, bank_address(axis, bucket_addr::bank_parameter::GET_POSITION),
                 [update_bank](const Packet& frame)
                 {
-                    const double position = decode_position(frame.get_data());
-                    update_bank([position](BankState& s)
-                                { s.average_position = position; });
+                    const double degrees = decode_degrees(frame.get_data());
+                    update_bank([degrees](BankState& s)
+                                { s.average_degrees = degrees; });
                 });
         }
     }  // register_receive_filters()
 
-    void CanBoardInterface::send_position_command(Axis axis, double position)
+    void CanBoardInterface::send_position_command(Axis axis, double degrees)
     {
         if (!can_interface_)
         {
             return;
         }
         const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_POSITION);
-        Packet packet(addressing::flagged_address_t(address), encode_position(position));
+        Packet packet(addressing::flagged_address_t(address), encode_degrees(degrees));
         can_interface_->transmit(packet);
     }
 
-    void CanBoardInterface::send_velocity_command(Axis axis, double velocity)
+    void CanBoardInterface::stop_axis(Axis axis)
     {
         if (!can_interface_)
         {
             return;
         }
+        // A zero SET_SPEED both stops the bank and drops the firmware out of
+        // closed-loop position mode, since it picks its control mode from
+        // whichever command arrived last. No scaling is involved - zero is zero
+        // in any units - so this deliberately does not share a conversion with
+        // the teleop driver, which owns general speed commands.
         const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_SPEED);
-        Packet packet(addressing::flagged_address_t(address), encode_speed(velocity));
+        Packet packet(addressing::flagged_address_t(address),
+                      bucket_param::speed_t{0}.serialize_data());
         can_interface_->transmit(packet);
     }
 
@@ -308,21 +311,6 @@ namespace payloads
     //     // See can_board_interface.hpp for type defs.
     //     const auto address = bank_address(axis, bucket_addr::bank_parameter::RESET_TO_ZERO);
     //     Packet packet(addressing::flagged_address_t(address), {});
-    //     can_interface_->transmit(packet);
-    // }
-
-    // void CanBoardInterface::set_axis_sleep(Axis axis, bool sleep)
-    // {
-    //     if (!can_interface_)
-    //     {
-    //         return;
-    //     }
-    //     // TODO: confirm SET_SLEEP reuses status_t (bool) - no dedicated type is
-    //     // declared for it in hi_can_parameter.hpp, only GET_FAULT is explicitly
-    //     // tied to status_t.
-    //     bucket_param::status_t param{sleep};
-    //     const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_SLEEP);
-    //     Packet packet(addressing::flagged_address_t(address), param.serialize_data());
     //     can_interface_->transmit(packet);
     // }
 

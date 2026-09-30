@@ -52,6 +52,7 @@ pkgs.mkShell {
           joint-state-broadcaster
           joint-state-publisher
           joint-state-publisher-gui
+          joint-trajectory-controller
           joy
           mecanum-drive-controller
           message-filters

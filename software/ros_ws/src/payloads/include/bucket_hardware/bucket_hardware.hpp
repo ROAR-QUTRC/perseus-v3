@@ -3,6 +3,7 @@
 #define BUCKET_HARDWARE__BUCKET_HARDWARE_HPP_
 
 #include <array>
+#include <chrono>
 #include <hi_can_raw.hpp>
 #include <memory>
 #include <string>
@@ -25,7 +26,7 @@ namespace payloads
     /// Commands are bank-level (see can_board_interface.hpp), so only ONE joint per axis.
     /// The one declared with command_interfaces in the xacro is commandable
     /// `has_command` reflects this. The other side is state-only: its
-    /// command_position/command_velocity fields are never written by a controller
+    /// command_position field is never written by a controller
     /// and must never be sent to CAN
     struct JointHandle
     {
@@ -34,31 +35,38 @@ namespace payloads
         Side side;
         bool has_command = false;
 
-        // Command interfaces (written by a controller, read by write())
-        // Only meaningful when has_command is true
-        double command_position = 0.0;
-        double command_velocity = 0.0;
+        // Firmware frame -> URDF joint frame, from the <ros2_control> joint params:
+        //   joint_deg = direction * wrap(firmware_deg - offset_deg)
+        double offset_deg = 0.0;
+        double direction = 1.0;
 
-        // State interfaces (written by read(), read by a controller)
-        double state_position = 0.0;  // Raw angle
+        // Command interface (written by a controller, read by write()).
+        // Only meaningful when has_command is true.
+        double command_position = 0.0;
+
+        // Whether a controller currently has the position command interface
+        // claimed. Maintained by perform_command_mode_switch(); write() sends
+        // nothing unless this is true, so deactivating the controller really
+        // does take this node off the bus.
+        bool command_claimed = false;
+
+        // State interfaces (written by read(), read by a controller), in the URDF
+        // joint frame: radians and rad/s.
+        double state_position = 0.0;
         double state_velocity = 0.0;
         double state_current = 0.0;  // exposed as the "effort" state interface
 
-        // ANY OTHER INTERFACES/VALUES go in the above
+        // Last position read(), for differentiating state_velocity.
+        double previous_position = 0.0;
     };
 
     /// @brief ros2_control SystemInterface for the bucket's lift/tilt/jaws
     ///
-    /// Expects exactly 6 joints in the URDF's <ros2_control> block, each tagges
-    /// with "axis" (lift|tilt|jaws) and "side" (left|right) parameters. See
-    /// description/bucket.ros2_control.xacro for the expected format.
-    /// Exactly one joint per axis must declare command_interfaces (position +
-    /// velocity), the other must declare state_interfaces only. This mirrors the CAN
-    /// only accepting bank-level commands.
-    /// Main software/ros_ws/desrciption/ros2_control.xacro URDF file imports
-    /// the bucket.xacro, while maintaining the same names/details for all joints
-    /// so they link correctly. The two files have to match, the bucket.xacro is
-    /// the local copy used by the ros2_control node.
+    /// Joints in the URDF's <ros2_control> block (description/ros2_control/
+    /// bucket.ros2_control.xacro) are tagged with "axis" (lift|tilt|jaws) and "side"
+    /// (left|right), and optionally "offset_deg" and "direction". Exactly one joint
+    /// per axis declares a position command interface, mirroring the CAN board only
+    /// accepting bank-level commands.
     class BucketHardware : public hardware_interface::SystemInterface
     {
     public:
@@ -77,6 +85,14 @@ namespace payloads
         hardware_interface::CallbackReturn on_deactivate(
             const rclcpp_lifecycle::State& previous_state) override;
 
+        hardware_interface::return_type prepare_command_mode_switch(
+            const std::vector<std::string>& start_interfaces,
+            const std::vector<std::string>& stop_interfaces) override;
+
+        hardware_interface::return_type perform_command_mode_switch(
+            const std::vector<std::string>& start_interfaces,
+            const std::vector<std::string>& stop_interfaces) override;
+
         std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
         std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
@@ -89,6 +105,23 @@ namespace payloads
     private:
         static bool parse_axis(const std::string& value, Axis& out);
         static bool parse_side(const std::string& value, Side& out);
+
+        double to_joint_radians(const JointHandle& joint, double firmware_degrees) const;
+        double to_firmware_degrees(const JointHandle& joint, double joint_radians) const;
+
+        /// How long on_activate() waits for every joint's first encoder frame. The
+        /// board broadcasts every 50 ms, so this only trips on a dead bus or encoder.
+        static constexpr auto ACTIVATE_TIMEOUT = std::chrono::seconds(1);
+
+        /// How far outside its URDF limits a joint may read at activation before it
+        /// is treated as a calibration or direction error rather than overshoot.
+        static constexpr double LIMIT_MARGIN_DEG = 5.0;
+
+        /// Low-pass weight on each new velocity sample; the encoders are 0.1 deg
+        /// resolution, so raw differences are steppy.
+        static constexpr double VELOCITY_FILTER_ALPHA = 0.3;
+
+        bool active_ = false;
 
         std::vector<JointHandle> joints_;
         std::unique_ptr<CanBoardInterface> can_;

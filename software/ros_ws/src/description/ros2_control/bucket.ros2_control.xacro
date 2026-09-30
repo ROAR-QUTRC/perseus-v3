@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    ros2_control block for the bucket's three driven joints (see bucket.urdf.xacro).
+
+    Commands are bank-level: the CAN board takes one position setpoint per axis and
+    drives both sides of that axis from it, so each axis is one joint here. The
+    "axis" and "side" params tell BucketHardware which CAN actuator a joint maps to;
+    only the left encoder of each axis is exposed for now.
+
+    Never run this alongside the bucket_driver teleop node. The firmware takes its
+    control mode (speed or position) from whichever command arrived last.
+
+    hardware_plugin can be set to mock_components/GenericSystem to exercise
+    controllers without the bucket fitted.
+
+    offset_deg and direction map the firmware's angle onto the URDF joint:
+      joint_deg = direction * (firmware_deg - offset_deg)
+    Joint conventions (bucket.urdf.xacro): lift 0 at highest, positive down; tilt
+    0 level, positive dumping; jaw 0 closed, positive opening. Leave the defaults
+    when the firmware calibration already matches them.
+  -->
+  <xacro:macro name="bucket_ros2_control"
+      params="prefix:='' can_interface:='can0' hardware_plugin:='payloads/BucketHardware'">
+    <ros2_control name="BucketSystem" type="system">
+      <hardware>
+        <plugin>${hardware_plugin}</plugin>
+        <param name="can_interface">${can_interface}</param>
+      </hardware>
+
+      <xacro:macro name="bucket_ros2_control_joint" params="joint axis offset_deg:=0.0 direction:=1">
+        <joint name="${prefix}${joint}">
+          <param name="axis">${axis}</param>
+          <param name="side">left</param>
+          <param name="offset_deg">${offset_deg}</param>
+          <param name="direction">${direction}</param>
+          <command_interface name="position"/>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+          <state_interface name="effort"/>
+        </joint>
+      </xacro:macro>
+      <xacro:bucket_ros2_control_joint joint="bucket_lift_joint" axis="lift"/>
+      <xacro:bucket_ros2_control_joint joint="bucket_tilt_joint" axis="tilt"/>
+      <xacro:bucket_ros2_control_joint joint="bucket_jaw_joint" axis="jaws"/>
+    </ros2_control>
+  </xacro:macro>
+</robot>

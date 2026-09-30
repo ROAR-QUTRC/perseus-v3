@@ -7,14 +7,18 @@
   ament-lint-auto,
   ament-lint-common,
   controller-manager,
+  description,
   hardware-interface,
   hi-can-raw,
   joint-state-broadcaster,
+  joint-trajectory-controller,
   pluginlib,
   rclcpp,
   rclcpp-lifecycle,
   robot-state-publisher,
   sensor-msgs,
+  std-msgs,
+  xacro,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-payloads";
@@ -31,14 +35,18 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     actuator-msgs
     controller-manager
+    description
     hardware-interface
     hi-can-raw
     joint-state-broadcaster
+    joint-trajectory-controller
     pluginlib
     rclcpp
     rclcpp-lifecycle
     robot-state-publisher
     sensor-msgs
+    std-msgs
+    xacro
   ];
   nativeBuildInputs = [ ament-cmake ];
 
