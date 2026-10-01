@@ -185,7 +185,11 @@ class BucketRamFollower(Node):
         self.declare_parameter("viewer_mode", False)
         self.declare_parameter("input_topic", "/joint_states_raw")
         self.declare_parameter("output_topic", "/joint_states")
+        # On the rover the drive's joint_state_broadcaster owns the wheel joints,
+        # so publishing them here as well would make the wheels jitter to zero.
+        self.declare_parameter("hold_wheels", True)
         self._viewer = bool(self.get_parameter("viewer_mode").value)
+        self._hold_wheels = bool(self.get_parameter("hold_wheels").value)
 
         if self._viewer:
             self._out = self.create_publisher(
@@ -248,7 +252,7 @@ class BucketRamFollower(Node):
 
     def _on_raw_states(self, msg):
         """Viewer mode: replace the ram joints with exact values, hold the
-        wheels at zero, and forward."""
+        wheels at zero (unless hold_wheels is off), and forward."""
         if not msg.name:
             return  # the slider node sends an empty message before it has a robot
         ram_names = {n for group in RAM_JOINTS.values() for n in group}
@@ -257,9 +261,10 @@ class BucketRamFollower(Node):
             if n not in ram_names and n not in WHEEL_JOINTS:
                 names.append(n)
                 positions.append(q)
-        for n in WHEEL_JOINTS:
-            names.append(n)
-            positions.append(0.0)
+        if self._hold_wheels:
+            for n in WHEEL_JOINTS:
+                names.append(n)
+                positions.append(0.0)
         try:
             q_lift = positions[names.index("bucket_lift_joint")]
             q_tilt = positions[names.index("bucket_tilt_joint")]

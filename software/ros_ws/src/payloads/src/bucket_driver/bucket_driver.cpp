@@ -86,10 +86,12 @@ BucketDriver::~BucketDriver()
 void BucketDriver::_actuator_callback(
     const actuator_msgs::msg::Actuators::SharedPtr msg)
 {
-    if (msg->velocity.size() != ACTUATOR_COUNT)
+    // The teleop configs still map a fourth "rotate" axis after lift, tilt and
+    // jaws. This bucket has no bank for it, so extra entries are ignored.
+    if (msg->velocity.size() < ACTUATOR_COUNT)
     {
         RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                              "Expected %zu actuator velocities (lift, tilt, jaws), got %zu - ignoring",
+                              "Expected at least %zu actuator velocities (lift, tilt, jaws), got %zu - ignoring",
                               ACTUATOR_COUNT, msg->velocity.size());
         return;
     }

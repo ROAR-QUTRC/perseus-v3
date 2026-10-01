@@ -14,6 +14,7 @@ from launch.launch_description_sources import (
     AnyLaunchDescriptionSource,
 )
 
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -57,6 +58,18 @@ def generate_launch_description():
             "payload",
             default_value="",
             description="Which payload to boot up with the rover",
+        ),
+        DeclareLaunchArgument(
+            "bucket_controller",
+            default_value="none",
+            choices=["none", "bucket_lift_controller", "bucket_trajectory_controller"],
+            description=(
+                "payload:=bucket only. 'none' reads the encoders for the model "
+                "and leaves the bucket on gamepad teleop. Naming a controller "
+                "commands the bucket over ros2_control instead and drops "
+                "teleop, since the firmware follows whichever command it "
+                "received last"
+            ),
         ),
         # The two low-speed stall mitigations, both off by default so the rover
         # behaves exactly as before unless one is asked for. They are
@@ -172,8 +185,60 @@ def generate_launch_description():
 
     def launch_payload(context):
         payload = context.perform_substitution(LaunchConfiguration("payload"))
-        if payload == "bucket":
-            return [
+        if payload != "bucket":
+            return []
+        bucket_controller = context.perform_substitution(
+            LaunchConfiguration("bucket_controller")
+        )
+        # Set explicitly: an included launch file sees this file's launch
+        # configurations, so without it bucket.launch.py picks up the drive's
+        # hardware_plugin (hardware/VescSystemHardware) and its controller
+        # manager never starts.
+        bucket_hardware = (
+            "payloads/BucketHardware"
+            if context.perform_substitution(hardware_plugin)
+            == "hardware/VescSystemHardware"
+            and not IfCondition(use_mock_hardware).evaluate(context)
+            else "mock_components/GenericSystem"
+        )
+        actions = [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    [
+                        PathJoinSubstitution(
+                            [FindPackageShare("payloads"), "launch", "bucket.launch.py"]
+                        )
+                    ]
+                ),
+                launch_arguments={
+                    "hardware_plugin": bucket_hardware,
+                    "can_interface": can_bus,
+                    "controller": bucket_controller,
+                }.items(),
+            ),
+            # The bucket has its own controller manager, so its joints arrive on
+            # /payloads/joint_states. robot_state_publisher reads /joint_states,
+            # so forward them there with the ten ram joints solved from lift,
+            # tilt and jaw. The drive's broadcaster keeps the wheel joints.
+            Node(
+                package="description",
+                executable="bucket_ram_follower.py",
+                name="bucket_ram_follower",
+                parameters=[
+                    {
+                        "viewer_mode": True,
+                        "input_topic": "/payloads/joint_states",
+                        "output_topic": "/joint_states",
+                        "hold_wheels": False,
+                    }
+                ],
+                output="both",
+            ),
+        ]
+        # Calibration mode claims no command interface, so teleop can run
+        # alongside it. With a controller active it must not.
+        if bucket_controller == "none":
+            actions.append(
                 IncludeLaunchDescription(
                     PythonLaunchDescriptionSource(
                         [
@@ -181,18 +246,15 @@ def generate_launch_description():
                                 [
                                     FindPackageShare("payloads"),
                                     "launch",
-                                    # Teleop (open-loop SET_SPEED) path. The
-                                    # ros2_control stack is bucket.launch.py -
-                                    # only ever run one of the two, since the
-                                    # firmware takes its control mode from
-                                    # whichever command arrived last.
                                     "bucket_teleop.launch.py",
                                 ]
                             )
                         ]
                     ),
+                    launch_arguments={"can_bus": can_bus}.items(),
                 )
-            ]
+            )
+        return actions
 
     launch_files = [
         OpaqueFunction(function=robot_state_publisher),
