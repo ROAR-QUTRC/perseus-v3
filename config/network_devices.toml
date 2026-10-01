@@ -52,8 +52,8 @@ enabled = false
 
 # Dan's machine
 [cookie]
-interface = "wlp3s0"
-ip = "192.168.2.117"
+interface = "enp6s0f4u1"
+ip = "192.168.2.51"
 enabled = true
 
 # Shaan's machine
