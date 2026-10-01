@@ -121,7 +121,7 @@ void setup()
     start_bank_control_task({&motor_bank_lift.value(), &motor_bank_jaws.value(), &motor_bank_tilt.value()});
 }
 
-void loop()
+void loop()  // Add timeout for receiving velocity
 {
     motor_bank_lift->monitor_and_move();
     motor_bank_jaws->monitor_and_move();

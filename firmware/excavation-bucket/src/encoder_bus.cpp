@@ -2,6 +2,8 @@
 
 #include "encoder_bus.hpp"
 
+#include <cmath>
+
 #include "esp_log.h"
 #include "lock.hpp"
 #include "modbus/profiles/encoder.hpp"
@@ -327,7 +329,8 @@ void EncoderBus::on_angle(const modbus::Response& response, void* ctx)
         Lock lock(self.mutex_);
         reading.angle_valid = true;
         reading.raw_counts = angle.raw_counts;
-        reading.degrees = angle.raw_counts * (360.0f / 4096.0f);
+        // -180..180 like atan2, so an encoder a hair past its zero reads -0.1, not 359.9.
+        reading.degrees = std::remainder(angle.raw_counts * (360.0f / 4096.0f), 360.0f);
         reading.angle_timestamp_ms = response.timestamp_ms;
     }
     else if (response.result == modbus::Result::ExceptionReply)

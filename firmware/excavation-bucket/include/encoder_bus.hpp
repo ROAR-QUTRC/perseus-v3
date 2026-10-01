@@ -50,7 +50,7 @@ struct EncoderReading
     // leave the last value in place: check `link` and angle_age_ms().
     bool angle_valid = false;
     uint16_t raw_counts = 0;  // 0-4095, after the board's zero offset
-    float degrees = 0.0f;
+    float degrees = 0.0f;     // -180..180
     uint32_t angle_timestamp_ms = 0;
 
     bool status_valid = false;

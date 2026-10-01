@@ -35,7 +35,7 @@ namespace
 {
     constexpr gpio_num_t NSLEEP = GPIO_NUM_40;
 
-    constexpr float kTargetDegrees = 350.0f;
+    constexpr float kTargetDegrees = -10.0f;  // angles are -180..180
 
     constexpr uint32_t kStallMs = 3000;  // stop if driving but the angle hasn't moved kStallDegrees
     constexpr float kStallDegrees = 0.5f;
@@ -158,7 +158,7 @@ namespace
             printf("%7.2f", *angle);
             if (position)
                 printf(" err %+7.2f",
-                       MotorBank::angle_difference(status.target_position / kPositionUnitsPerDegree, *angle));
+                       status.target_position / kPositionUnitsPerDegree - *angle);
         }
         else if (!reading.present)
             printf("not found");
@@ -209,8 +209,8 @@ void loop()
 
     if (phase == Phase::Discovery && encoder_bus().ready() && angle)
     {
-        printf("\n--- moving to %.0f: shortest way from %.2f is %+.2f deg\n", kTargetDegrees, *angle,
-               MotorBank::angle_difference(kTargetDegrees, *angle));
+        printf("\n--- moving to %.0f: from %.2f that is %+.2f deg\n", kTargetDegrees, *angle,
+               kTargetDegrees - *angle);
         send_position(kTargetDegrees);
         phase = Phase::Moving;
         move_start_ms = now;
@@ -222,7 +222,7 @@ void loop()
         const MotorBank::Status status = lift->get_status();
         const bool driving = status.output_a != 0 || status.output_b != 0;
 
-        if (!driving || std::fabs(MotorBank::angle_difference(*angle, progress_angle)) > kStallDegrees)
+        if (!driving || std::fabs(*angle - progress_angle) > kStallDegrees)
         {
             progress_angle = *angle;
             progress_ms = now;

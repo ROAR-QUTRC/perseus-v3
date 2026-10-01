@@ -46,7 +46,8 @@ public:
     static constexpr float kPositionSpeed = 100.0f;  // the actuators stall at ~10%
     static constexpr float kHoldWindow = 2.0f;
     static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
-    static constexpr int8_t kDriveDirection = 1;  // set -1 if positive speed decreases the angle
+    static constexpr float kMaxAngle = 180.0f;    // angles and targets are -180..180, no wrap-around
+    static constexpr int8_t kDriveDirection = -1;  // set -1 if positive speed decreases the angle
 
     // SET_SPEED and MotorDriver::drive() use int16 duty, +/-32767 = 100%.
     static constexpr int16_t to_duty(float percent) { return static_cast<int16_t>(percent * 32767.0f / 100.0f); }
@@ -85,6 +86,7 @@ public:
     // SET_SPEED: velocity command. A speed outside kSpeedDeadband switches to Velocity mode.
     void set_speed(const int16_t speed) override;
     // SET_POSITION: position command, in position_t units. Switches to Position mode.
+    // A target outside +/-kMaxAngle is ignored.
     void set_target_position(const int16_t position) override;
     // Speed 0 in Velocity mode, which a SET_SPEED of 0 alone can't force. The
     // next SET_POSITION re-arms position control.
@@ -108,12 +110,9 @@ public:
     // mode the control output.
     void control_tick(uint32_t now_ms);
 
-    // Degrees (0-360) of any encoder, or nullopt if it has no valid angle or
+    // Degrees (-180..180) of any encoder, or nullopt if it has no valid angle or
     // it is older than kFeedbackStaleMs.
     static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms);
-
-    // Shortest signed angle from `from` to `to`, in (-180, 180]: 359 to 1 is +2.
-    static float angle_difference(float to, float from);
 
 private:
     static int16_t position_output(float target, std::optional<float> angle, bool* settled);

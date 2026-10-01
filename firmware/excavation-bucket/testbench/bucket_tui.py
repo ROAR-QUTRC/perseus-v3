@@ -552,7 +552,7 @@ class BucketConsole(App):
             yield JogPad(id="jog")
             with Horizontal(classes="row"):
                 yield Label("Position °")
-                yield Input(placeholder="0-360", id="position", type="number")
+                yield Input(placeholder="-180 to 180", id="position", type="number")
                 yield Button("Set position", id="set_position", variant="primary")
                 yield Button("Stop", id="stop", variant="error")
                 yield Button("Home", id="home")
@@ -812,8 +812,8 @@ class BucketConsole(App):
         except ValueError:
             self.notify("Position needs a number of degrees", severity="error")
             return
-        if not 0 <= degrees <= 360:
-            self.notify("Position must be 0-360°", severity="error")
+        if not -180 <= degrees <= 180:
+            self.notify("Position must be -180 to 180°", severity="error")
             return
         self._send(
             "SET_POSITION",

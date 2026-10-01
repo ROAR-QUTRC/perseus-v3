@@ -7,8 +7,11 @@
 
 #include "bank_control_task.hpp"
 #include "encoder_bus.hpp"
+#include "esp_log.h"
 #include "hi_can_parameter.hpp"
 #include "lock.hpp"
+
+static const char* const TAG = "motor_bank";
 
 MotorBank::MotorBank(const bsp::pin_pair_t& driver_A_pins,
                      EncoderId driver_A_encoder_id,
@@ -58,6 +61,13 @@ void MotorBank::set_speed(const int16_t speed)
 
 void MotorBank::set_target_position(const int16_t position)
 {
+    // Angles don't wrap, so a target past +/-kMaxAngle could never be reached.
+    const int16_t limit = static_cast<int16_t>(kMaxAngle * kPositionUnitsPerDegree);
+    if (position < -limit || position > limit)
+    {
+        ESP_LOGW(TAG, "SET_POSITION %.1f deg ignored: outside +/-%.0f", position / kPositionUnitsPerDegree, kMaxAngle);
+        return;
+    }
     {
         Lock lock(_mutex);
         _target_position = position;
@@ -167,9 +177,10 @@ void MotorBank::control_tick(uint32_t now_ms)
     _output_b = output_b;
 }
 
-// kPositionSpeed toward the target, the shortest way round, until within
-// kHoldWindow. An overshoot just drives back. Once stopped it stays stopped
-// until the error passes kResumeWindow, so encoder noise can't chatter.
+// kPositionSpeed straight toward the target until within kHoldWindow. No
+// wrap-around: target and angle are both -180..180 and the joint never crosses
+// +/-180. An overshoot just drives back. Once stopped it stays stopped until
+// the error passes kResumeWindow, so encoder noise can't chatter.
 int16_t MotorBank::position_output(float target, std::optional<float> angle, bool* settled)
 {
     if (!angle)
@@ -178,7 +189,7 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
         return 0;  // no feedback: don't drive blind
     }
 
-    const float error = angle_difference(target, *angle);
+    const float error = target - *angle;
     const float magnitude = std::fabs(error);
 
     if (*settled && magnitude <= kResumeWindow)
@@ -200,12 +211,4 @@ std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
     if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > kFeedbackStaleMs)
         return std::nullopt;
     return reading.degrees;
-}
-
-float MotorBank::angle_difference(float to, float from)
-{
-    float difference = std::fmod(to - from + 180.0f, 360.0f);
-    if (difference <= 0.0f)
-        difference += 360.0f;
-    return difference - 180.0f;
 }
