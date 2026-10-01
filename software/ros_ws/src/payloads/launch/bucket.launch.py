@@ -46,7 +46,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "controller",
             default_value="bucket_trajectory_controller",
-            description="Command controller to spawn: bucket_trajectory_controller (all axes), bucket_lift_controller, or none (read-only calibration mode)",
+            description=(
+                "Command controller to spawn: bucket_trajectory_controller (all "
+                "axes), bucket_lift_controller, bucket_tilt_controller or "
+                "bucket_jaw_controller (one axis each), or none (read-only "
+                "calibration mode)"
+            ),
         ),
     ]
 

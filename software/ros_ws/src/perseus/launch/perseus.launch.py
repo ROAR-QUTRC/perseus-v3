@@ -62,7 +62,13 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "bucket_controller",
             default_value="bucket_lift_controller",
-            choices=["none", "bucket_lift_controller", "bucket_trajectory_controller"],
+            choices=[
+                "none",
+                "bucket_trajectory_controller",
+                "bucket_lift_controller",
+                "bucket_tilt_controller",
+                "bucket_jaw_controller",
+            ],
             description=(
                 "payload:=bucket only. Naming a controller commands the bucket "
                 "over ros2_control and drops teleop, since the firmware follows "

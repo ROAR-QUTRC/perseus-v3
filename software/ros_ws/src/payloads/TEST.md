@@ -220,10 +220,84 @@ Run each check with the power cut in hand.
 
 ## Phase 7: tilt and jaws
 
-Do this only once firmware position mode is confirmed for the tilt and jaw banks
-(`bucket_positions.yaml` has only lift enabled today). Repeat phases 5 and 6 using
-`controller:=bucket_trajectory_controller` and single-joint goals, one axis at a
-time.
+Phases 0 to 4 must have passed for tilt and jaws too: zero, direction and travel
+all checked. Lift passed phases 5 and 6.
+
+### 7a: firmware drive direction (per axis)
+
+The firmware's position loop drives each bank with the sign in
+`DRIVE_DIRECTION` (`firmware/excavation-bucket/include/excavation_config.hpp`).
+It must be `+1` if a positive `SET_SPEED` increases that bank's encoder angle,
+and `-1` if it decreases it. Lift is confirmed as `+1`. Tilt and jaws are not
+confirmed yet. If the sign is wrong, the bank drives away from its target until
+it hits the end stop.
+
+`direction` in the xacro does not fix this. That param only maps the firmware
+angle onto the URDF joint. `DRIVE_DIRECTION` is the motor polarity relative to
+the encoder, inside the firmware.
+
+For tilt and then jaws:
+
+1. Run calibration mode (`controller:=none`) and teleop, and watch
+   `candump -L can0`.
+2. Move the axis slowly with teleop. In `candump`, compare the sign of the bank's
+   `SET_SPEED` frame (`02000102` tilt, `02000202` jaw) with the change in the
+   raw `GET_ANGLE` value for that axis.
+3. If a positive `SET_SPEED` makes the angle go down, set
+   `DRIVE_DIRECTION = -1` for that axis.
+4. Rebuild and flash the firmware.
+
+| Axis | Raw angle with + speed | DRIVE_DIRECTION |
+| ---- | ---------------------- | --------------- |
+| lift | up                     | +1              |
+| tilt |                        |                 |
+| jaw  |                        |                 |
+
+### 7b: single-axis moves
+
+Repeat phases 5 and 6 for each axis with its own controller. Each one claims
+only its own joint, so the other two banks get no `SET_POSITION` frames.
+
+| Axis | Controller               | Joint               | `SET_POSITION` ID |
+| ---- | ------------------------ | ------------------- | ----------------- |
+| tilt | `bucket_tilt_controller` | `bucket_tilt_joint` | `02000104`        |
+| jaw  | `bucket_jaw_controller`  | `bucket_jaw_joint`  | `02000204`        |
+
+```bash
+ros2 launch payloads bucket.launch.py controller:=bucket_tilt_controller
+ros2 action send_goal /payloads/bucket_tilt_controller/follow_joint_trajectory \
+  control_msgs/action/FollowJointTrajectory \
+  "{trajectory: {joint_names: [bucket_tilt_joint],
+    points: [{positions: [<rad>], time_from_start: {sec: 3}}]}}"
+```
+
+For the first goal, send a move of 3 deg, and keep your hand on the power cut.
+If the axis moves away from the target, cut the power. That means
+`DRIVE_DIRECTION` is wrong (see 7a).
+
+### 7c: full controller
+
+When all three axes pass alone, run `controller:=bucket_trajectory_controller`.
+This controller claims all three joints. Every bank then receives a
+`SET_POSITION` frame each cycle. A joint that is not in the goal holds its
+current position.
+
+1. Send single-joint goals, one axis at a time. Check that the other two axes
+   hold still.
+2. Send a goal for all three joints, with small moves on each:
+
+   ```bash
+   ros2 action send_goal /payloads/bucket_trajectory_controller/follow_joint_trajectory \
+     control_msgs/action/FollowJointTrajectory \
+     "{trajectory: {joint_names: [bucket_lift_joint, bucket_tilt_joint, bucket_jaw_joint],
+       points: [{positions: [<lift>, <tilt>, <jaw>], time_from_start: {sec: 5}}]}}"
+   ```
+
+3. Repeat phase 6 check 1 (Ctrl-C mid-move). All three banks must stop.
+
+Pass: every goal returns `SUCCEEDED`, and RViz matches the bucket. Then set the
+`bucket_controller` default in `perseus/launch/perseus.launch.py` to
+`bucket_trajectory_controller`.
 
 ## After the session
 

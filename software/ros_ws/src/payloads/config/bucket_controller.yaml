@@ -6,8 +6,13 @@
     # Position setpoints go to CAN as SET_POSITION; the board's own PID servos to them.
     bucket_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-    # Claims lift only, so tilt and jaws receive no SET_POSITION frames.
+    # Single-axis controllers for bring-up: each claims one joint, so the other
+    # two banks receive no SET_POSITION frames.
     bucket_lift_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    bucket_tilt_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    bucket_jaw_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 /**/bucket_lift_controller:
   ros__parameters:
@@ -23,6 +28,32 @@
     constraints:
       goal_time: 3.0
       bucket_lift_joint:
+        goal: 0.035
+/**/bucket_tilt_controller:
+  ros__parameters:
+    joints:
+      - bucket_tilt_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      goal_time: 3.0
+      bucket_tilt_joint:
+        goal: 0.035
+/**/bucket_jaw_controller:
+  ros__parameters:
+    joints:
+      - bucket_jaw_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      goal_time: 3.0
+      bucket_jaw_joint:
         goal: 0.035
 /**/bucket_trajectory_controller:
   ros__parameters:
