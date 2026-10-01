@@ -61,7 +61,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "bucket_controller",
-            default_value="bucket_lift_controller",
+            default_value="bucket_trajectory_controller",
             choices=[
                 "none",
                 "bucket_trajectory_controller",

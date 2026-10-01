@@ -295,9 +295,11 @@ current position.
 
 3. Repeat phase 6 check 1 (Ctrl-C mid-move). All three banks must stop.
 
-Pass: every goal returns `SUCCEEDED`, and RViz matches the bucket. Then set the
-`bucket_controller` default in `perseus/launch/perseus.launch.py` to
-`bucket_trajectory_controller`.
+Pass: every goal returns `SUCCEEDED`, and RViz matches the bucket.
+
+`perseus/launch/perseus.launch.py` already defaults `bucket_controller` to
+`bucket_trajectory_controller`. Until 7c passes, pass a single-axis controller
+or `bucket_controller:=none` explicitly.
 
 ## After the session
 
