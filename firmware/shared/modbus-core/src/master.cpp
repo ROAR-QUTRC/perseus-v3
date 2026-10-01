@@ -1,9 +1,15 @@
 #include "modbus/master.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 namespace modbus
 {
+    static uint32_t inter_frame_delay_us(uint32_t baud_hz)
+    {
+        return std::max(frame_gap_us(baud_hz), kMinInterFrameDelayUs);
+    }
+
     Response Master::exchange(const uint8_t* request, size_t request_len, uint8_t slave, uint8_t function,
                               uint8_t* rx, size_t* rx_len)
     {
@@ -24,8 +30,8 @@ namespace modbus
         r.timestamp_ms = clock_.now_ms();
         *rx_len = got;
 
-        // The next request must not start until the bus has been silent for a frame gap.
-        clock_.delay_us(gap_us);
+        // The next request must not start until every slave has seen this frame end.
+        clock_.delay_us(inter_frame_delay_us(port_.baud_hz()));
 
         if (got == 0)
         {
@@ -117,8 +123,8 @@ namespace modbus
                 return r;
             }
             // No reply is coming, so nothing else paces the next request: wait out
-            // the inter-frame gap here so callers can't forget to.
-            clock_.delay_us(frame_gap_us(port_.baud_hz()));
+            // the inter-frame delay here so callers can't forget to.
+            clock_.delay_us(inter_frame_delay_us(port_.baud_hz()));
             r.result = Result::Ok;
             r.latency_us = clock_.now_us() - start_us;
             r.timestamp_ms = clock_.now_ms();

@@ -22,6 +22,12 @@ namespace modbus
 
     inline constexpr size_t kMaxResponseRegs = 16;
 
+    // Least silence the master leaves after any frame before its next request.
+    // Longer than frame_gap_us() on purpose: a slave that times the gap in whole
+    // milliseconds (the RP2350 port did until 2026-10) only ends a frame after
+    // 1 ms, and anything sent sooner reaches it glued to the previous frame.
+    inline constexpr uint32_t kMinInterFrameDelayUs = 1500;
+
     struct Response
     {
         Result result = Result::Timeout;

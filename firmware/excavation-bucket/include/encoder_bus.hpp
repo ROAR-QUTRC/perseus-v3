@@ -2,9 +2,11 @@
 //
 // Master side of the joint encoders: two RS485 buses (bsp::RS485_1, RS485_2)
 // polled by the shared modbus core, one FreeRTOS task per bus. Each task first
-// runs discovery (bus 1, then bus 2): three rounds over slaves 1-3, each given
+// runs discovery (bus 1, then bus 2): three rounds over the encoders placed on
+// that bus (ENCODER_BUS / ENCODER_SLAVE in excavation_config.hpp), each given
 // a half-second slot that opens with a 200 ms identify-LED blip followed by an
-// angle poll. Only encoders that answered are polled after.
+// angle poll. Only encoders that answered are polled after; the missing ones
+// are re-probed, one per kReprobePeriodMs, and join as soon as they answer.
 // Control code
 // reads the latest readings with EncoderBus::get() and sends commands with
 // zero() / identify(); it never touches the buses directly.
@@ -43,7 +45,7 @@ const char* to_string(EncoderId id);
 
 struct EncoderReading
 {
-    bool present = false;  // answered the discovery poll at boot; never polled otherwise
+    bool present = false;  // answered a discovery or re-probe poll; not polled until it has
 
     // Set by a good angle read. Cleared when the encoder answers with an
     // exception (no magnet, or a failed I2C read on the board). Link failures
@@ -83,6 +85,9 @@ public:
     static constexpr uint8_t kDiscoveryRounds = 3;
     static constexpr uint32_t kDiscoveryProbeMs = 500;  // slot per encoder
     static constexpr uint32_t kDiscoveryBlipMs = 200;   // identify LED on, at the start of each slot
+    // One missing encoder per bus is probed each period; a probe that gets no
+    // answer costs that bus kResponseTimeoutMs.
+    static constexpr uint32_t kReprobePeriodMs = 1000;
 
     // Installs both UARTs and starts the bus tasks, which discover the
     // encoders and register those in `enabled` (a mask of encoder_bit()).
@@ -133,11 +138,15 @@ private:
     {
         EncoderBus* owner;
         size_t index;
+        bool answered = false;  // a re-probe got a reply; only touched by this encoder's bus task
     };
 
     bool submit(EncoderId id, const modbus::Request& request);
     void run(Bus& bus);
     void discover(Bus& bus, size_t bus_index);
+    bool register_encoder(Bus& bus, size_t index);
+    void reprobe_next_missing(Bus& bus, size_t bus_index, size_t* cursor);
+    void register_answered(Bus& bus, size_t bus_index);
     modbus::Result transact(Bus& bus, modbus::Request request);
     void refresh_stats(const Bus& bus, size_t bus_index);
 
@@ -147,6 +156,7 @@ private:
     static void on_state_change(uint8_t slave, modbus::DeviceState from, modbus::DeviceState to, void* ctx);
     static void on_command_done(const modbus::Response& response, void* ctx);
     static void on_probe_done(const modbus::Response& response, void* ctx);
+    static void on_reprobe_done(const modbus::Response& response, void* ctx);
 
     modbus::Esp32Clock clock_;
     Bus bus1_;

@@ -28,6 +28,10 @@ namespace rs485
     {
         uart_init(uart_, baud_hz_);
         gpio_set_function(rx_pin_, GPIO_FUNC_UART);
+        // The transceiver's receiver output floats while this board drives the
+        // bus (~RE is tied to DE). Without a pull-up the UART can read that as
+        // a break and leave a junk byte in front of the next frame.
+        gpio_pull_up(rx_pin_);
 
         uint offset = pio_add_program(tx_pio_, &uart_tx_program);
         uart_tx_program_init(tx_pio_, tx_sm_, offset, tx_pin_, baud_hz_);
@@ -62,30 +66,23 @@ namespace rs485
         sleep_us(byte_period_us_);
 
         set_driving(false);
+        // Nothing valid can have arrived while this board was driving.
+        flush_rx();
         return true;
-    }
-
-    static uint32_t round_up_to_ms(uint32_t us)
-    {
-        const uint32_t ms = (us + 999u) / 1000u;
-        return ms == 0 ? 1 : ms;
     }
 
     size_t Rp2350Port::receive(uint8_t* buf, size_t cap, uint32_t first_byte_timeout_us,
                                uint32_t frame_gap_us)
     {
-        const uint32_t first_byte_timeout_ms = round_up_to_ms(first_byte_timeout_us);
-        const uint32_t frame_gap_ms = round_up_to_ms(frame_gap_us);
-
         size_t count = 0;
-        absolute_time_t deadline = make_timeout_time_ms(first_byte_timeout_ms);
+        absolute_time_t deadline = make_timeout_time_us(first_byte_timeout_us);
 
         while (count < cap && !time_reached(deadline))
         {
             if (uart_is_readable(uart_))
             {
                 buf[count++] = uart_getc(uart_);
-                deadline = make_timeout_time_ms(frame_gap_ms);  // reset gap timer on each byte
+                deadline = make_timeout_time_us(frame_gap_us);  // reset gap timer on each byte
             }
         }
         return count;

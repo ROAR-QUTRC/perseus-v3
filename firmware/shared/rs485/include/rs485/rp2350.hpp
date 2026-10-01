@@ -51,10 +51,10 @@ namespace rs485
         // further bytes arriving (typical Modbus RTU frame-gap detection).
         // Returns the number of bytes read.
         //
-        // Both timeouts are rounded up to whole milliseconds. That is
-        // deliberate: it keeps the frame-gap behaviour identical to the
-        // firmware from before the shared modbus core (ms granularity), rather
-        // than silently tightening it to the core's microsecond values.
+        // Both timeouts are used as given, in microseconds. They used to be
+        // rounded up to whole milliseconds, which made this side's frame gap
+        // (1 ms at 115200) longer than the master's (335 us): frames the master
+        // sent less than 1 ms apart arrived glued together and failed CRC.
         //
         // Note: this busy-waits on the UART for up to the timeout even when the
         // bus is completely idle, since the timer starts as soon as the call is

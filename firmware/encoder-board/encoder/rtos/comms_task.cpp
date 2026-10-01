@@ -105,11 +105,6 @@ namespace
         case kRegHeartbeat:
             // Any value counts. Heartbeat is this board's convention, so it is
             // handled here rather than in the modbus core.
-            // TODO: heartbeats can stay lost after a master reboot or link loss. Suspected cause:
-            // Rp2350Port::receive() rounds the 3.5-char frame gap up to 1 ms, but the master spaces
-            // frames ~334 us apart, so a heartbeat followed by a poll arrives as one frame and fails
-            // CRC. Fix: master gap >= 2 ms, or stop rounding in receive(); optionally, on a CRC
-            // failure, accept a valid leading 8-byte request.
             comms->heartbeat.note(to_ms_since_boot(get_absolute_time()));
             return true;
         case kRegZeroCommand:

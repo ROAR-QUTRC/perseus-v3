@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "esp_log.h"
+#include "excavation_config.hpp"
 #include "lock.hpp"
 #include "modbus/profiles/encoder.hpp"
 
@@ -14,22 +15,65 @@ namespace
 {
     const char* const TAG = "encoder_bus";
 
-    // Left encoders on bus 1, right on bus 2, so one cable fault leaves each
-    // joint with a working encoder. `slave` is the board's DIP value + 1.
     struct Placement
     {
-        uint8_t bus;
+        uint8_t bus;  // index: ENCODER_BUS - 1
         uint8_t slave;
     };
 
+    // Which bus and Modbus address each encoder is at: set per driver in excavation_config.hpp.
+    constexpr Placement placement_of(EncoderId id)
+    {
+        switch (id)
+        {
+        case LIFT::DRIVER_A::ENCODER_ID:
+            return {LIFT::DRIVER_A::ENCODER_BUS - 1, LIFT::DRIVER_A::ENCODER_SLAVE};
+        case LIFT::DRIVER_B::ENCODER_ID:
+            return {LIFT::DRIVER_B::ENCODER_BUS - 1, LIFT::DRIVER_B::ENCODER_SLAVE};
+        case TILT::DRIVER_A::ENCODER_ID:
+            return {TILT::DRIVER_A::ENCODER_BUS - 1, TILT::DRIVER_A::ENCODER_SLAVE};
+        case TILT::DRIVER_B::ENCODER_ID:
+            return {TILT::DRIVER_B::ENCODER_BUS - 1, TILT::DRIVER_B::ENCODER_SLAVE};
+        case JAWS::DRIVER_A::ENCODER_ID:
+            return {JAWS::DRIVER_A::ENCODER_BUS - 1, JAWS::DRIVER_A::ENCODER_SLAVE};
+        case JAWS::DRIVER_B::ENCODER_ID:
+            return {JAWS::DRIVER_B::ENCODER_BUS - 1, JAWS::DRIVER_B::ENCODER_SLAVE};
+        }
+        return {0xFF, 0};
+    }
+
+    // Indexed by EncoderId.
     constexpr Placement kPlacement[kEncoderCount] = {
-        {0, 1},  // LiftLeft
-        {1, 1},  // LiftRight
-        {0, 2},  // TiltLeft
-        {1, 2},  // TiltRight
-        {0, 3},  // JawsLeft
-        {1, 3},  // JawsRight
+        placement_of(EncoderId::LiftLeft),
+        placement_of(EncoderId::LiftRight),
+        placement_of(EncoderId::TiltLeft),
+        placement_of(EncoderId::TiltRight),
+        placement_of(EncoderId::JawsLeft),
+        placement_of(EncoderId::JawsRight),
     };
+
+    constexpr uint8_t kMaxSlave = 8;  // the encoder's 3-bit DIP value + 1
+
+    constexpr bool placements_valid(size_t bus_count, size_t devices_per_bus)
+    {
+        for (size_t i = 0; i < kEncoderCount; ++i)
+        {
+            if (kPlacement[i].bus >= bus_count || kPlacement[i].slave < 1 || kPlacement[i].slave > kMaxSlave)
+                return false;
+            size_t on_this_bus = 0;
+            for (size_t j = 0; j < kEncoderCount; ++j)
+            {
+                if (kPlacement[j].bus != kPlacement[i].bus)
+                    continue;
+                ++on_this_bus;
+                if (j != i && kPlacement[j].slave == kPlacement[i].slave)
+                    return false;  // two encoders at one address
+            }
+            if (on_this_bus > devices_per_bus)
+                return false;
+        }
+        return true;
+    }
 
     const char* const kNames[kEncoderCount] = {
         "lift_left",
@@ -63,6 +107,9 @@ EncoderBus::EncoderBus()
       bus2_(UART_NUM_2, bsp::RS485_2, clock_, this),
       buses_{&bus1_, &bus2_}
 {
+    static_assert(placements_valid(kBusCount, kDevicesPerBus),
+                  "excavation_config.hpp: each ENCODER_BUS must be 1 or 2, each ENCODER_SLAVE 1-8, "
+                  "with no two encoders at the same address on one bus and at most kDevicesPerBus per bus");
 }
 
 bool EncoderBus::begin(uint8_t enabled)
@@ -171,6 +218,8 @@ void EncoderBus::run(Bus& bus)
     xEventGroupSetBits(events_, discovered_bit(bus_index));
 
     uint32_t last_heartbeat_ms = clock_.now_ms() - kHeartbeatPeriodMs;  // first one goes out immediately
+    uint32_t last_reprobe_ms = clock_.now_ms();
+    size_t reprobe_cursor = 0;
 
     for (;;)
     {
@@ -182,11 +231,92 @@ void EncoderBus::run(Bus& bus)
         if (now - last_heartbeat_ms >= kHeartbeatPeriodMs && bus.mbus.submit(enc::heartbeat_request()))
             last_heartbeat_ms = now;
 
+        if (now - last_reprobe_ms >= kReprobePeriodMs)
+        {
+            last_reprobe_ms = now;
+            reprobe_next_missing(bus, bus_index, &reprobe_cursor);
+        }
+
         if (bus.mbus.step())
+        {
             refresh_stats(bus, bus_index);
+            register_answered(bus, bus_index);
+        }
         else
+        {
             vTaskDelay(1);
+        }
     }
+}
+
+// Queues one angle poll for the next encoder on this bus that hasn't been
+// found, so one plugged in (or re-addressed) after boot still joins.
+void EncoderBus::reprobe_next_missing(Bus& bus, size_t bus_index, size_t* cursor)
+{
+    for (size_t n = 0; n < kEncoderCount; ++n)
+    {
+        const size_t i = (*cursor + n) % kEncoderCount;
+        if (kPlacement[i].bus != bus_index || !(enabled_ & (1u << i)))
+            continue;
+        {
+            Lock lock(mutex_);
+            if (readings_[i].present)
+                continue;
+        }
+
+        modbus::Request poll;
+        poll.slave = kPlacement[i].slave;
+        poll.kind = modbus::Request::Kind::ReadRegs;
+        poll.reg = enc::kRegAngleRaw;
+        poll.value_or_count = 2;
+        poll.on_done = &EncoderBus::on_reprobe_done;
+        poll.ctx = &slots_[i];
+        bus.mbus.submit(poll);
+        *cursor = i + 1;
+        return;
+    }
+}
+
+// Registration changes the scheduler's device list, so it happens here, after
+// step() has returned, rather than inside the reply callback.
+void EncoderBus::register_answered(Bus& bus, size_t bus_index)
+{
+    for (size_t i = 0; i < kEncoderCount; ++i)
+    {
+        if (kPlacement[i].bus != bus_index || !slots_[i].answered)
+            continue;
+        slots_[i].answered = false;
+        if (register_encoder(bus, i))
+            ESP_LOGI(TAG, "bus %u: %s (slave %u) found after boot", static_cast<unsigned>(bus_index + 1), kNames[i],
+                     kPlacement[i].slave);
+    }
+}
+
+// Marks the encoder present and starts polling it. False if it is disabled
+// or the scheduler has no room.
+bool EncoderBus::register_encoder(Bus& bus, size_t index)
+{
+    {
+        Lock lock(mutex_);
+        readings_[index].present = true;
+    }
+
+    if (!(enabled_ & (1u << index)))
+        return false;
+
+    enc::DeviceConfig config;
+    config.slave = kPlacement[index].slave;
+    config.angle_period_ms = kAnglePeriodMs;
+    config.status_period_ms = kStatusPeriodMs;
+    config.on_angle = &EncoderBus::on_angle;
+    config.on_status = &EncoderBus::on_status;
+    config.on_state_change = &EncoderBus::on_state_change;
+    config.ctx = &slots_[index];
+
+    if (bus.mbus.add_device(enc::make_device(config)))
+        return true;
+    ESP_LOGE(TAG, "failed to register %s", kNames[index]);
+    return false;
 }
 
 // Runs before any device is registered, so each step() executes exactly the
@@ -200,7 +330,7 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
 
     ESP_LOGI(TAG, "bus %u: discovering, %u rounds", bus_no, kDiscoveryRounds);
 
-    // kPlacement is in slave order, so each round probes slaves 1, 2, 3.
+    // Each round probes this bus's encoders in EncoderId order.
     for (uint8_t round = 0; round < kDiscoveryRounds; ++round)
     {
         for (size_t i = 0; i < kEncoderCount; ++i)
@@ -260,32 +390,13 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
             ESP_LOGW(TAG, "bus %u: %s (slave %u) flaky, good %u/%u", bus_no, name, slave, good[i],
                      kDiscoveryRounds);
 
-        {
-            Lock lock(mutex_);
-            readings_[i].present = true;
-        }
-
-        if (!(enabled_ & (1u << i)))
-            continue;
-
-        enc::DeviceConfig config;
-        config.slave = slave;
-        config.angle_period_ms = kAnglePeriodMs;
-        config.status_period_ms = kStatusPeriodMs;
-        config.on_angle = &EncoderBus::on_angle;
-        config.on_status = &EncoderBus::on_status;
-        config.on_state_change = &EncoderBus::on_state_change;
-        config.ctx = &slots_[i];
-
-        if (bus.mbus.add_device(enc::make_device(config)))
+        if (register_encoder(bus, i))
             ++registered;
-        else
-            ESP_LOGE(TAG, "failed to register %s", name);
     }
 
     if (registered < kDevicesPerBus)
-        ESP_LOGW(TAG, "bus %u: degraded, polling %u/%u encoders", bus_no, static_cast<unsigned>(registered),
-                 static_cast<unsigned>(kDevicesPerBus));
+        ESP_LOGW(TAG, "bus %u: degraded, polling %u/%u encoders; re-probing the rest", bus_no,
+                 static_cast<unsigned>(registered), static_cast<unsigned>(kDevicesPerBus));
 }
 
 // Runs one request to completion and returns its result.
@@ -374,4 +485,11 @@ void EncoderBus::on_command_done(const modbus::Response& response, void* ctx)
 void EncoderBus::on_probe_done(const modbus::Response& response, void* ctx)
 {
     *static_cast<modbus::Result*>(ctx) = response.result;
+}
+
+// An exception reply still means the board is there (no magnet, for one).
+void EncoderBus::on_reprobe_done(const modbus::Response& response, void* ctx)
+{
+    if (response.result == modbus::Result::Ok || response.result == modbus::Result::ExceptionReply)
+        static_cast<Slot*>(ctx)->answered = true;
 }
