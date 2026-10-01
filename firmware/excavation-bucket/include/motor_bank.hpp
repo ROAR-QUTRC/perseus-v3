@@ -45,8 +45,8 @@ public:
     // Position control: constant speed toward the target, stop within kHoldWindow.
     static constexpr float kPositionSpeed = 100.0f;  // the actuators stall at ~10%
     static constexpr float kHoldWindow = 2.0f;
-    static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
-    static constexpr float kMaxAngle = 180.0f;    // angles and targets are -180..180, no wrap-around
+    static constexpr float kResumeWindow = 3.0f;   // once stopped, restart only past this, so noise can't chatter
+    static constexpr float kMaxAngle = 180.0f;     // angles and targets are -180..180, no wrap-around
     static constexpr int8_t kDriveDirection = -1;  // set -1 if positive speed decreases the angle
 
     // SET_SPEED and MotorDriver::drive() use int16 duty, +/-32767 = 100%.
