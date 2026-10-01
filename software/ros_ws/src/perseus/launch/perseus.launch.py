@@ -61,14 +61,13 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "bucket_controller",
-            default_value="none",
+            default_value="bucket_lift_controller",
             choices=["none", "bucket_lift_controller", "bucket_trajectory_controller"],
             description=(
-                "payload:=bucket only. 'none' reads the encoders for the model "
-                "and leaves the bucket on gamepad teleop. Naming a controller "
-                "commands the bucket over ros2_control instead and drops "
-                "teleop, since the firmware follows whichever command it "
-                "received last"
+                "payload:=bucket only. Naming a controller commands the bucket "
+                "over ros2_control and drops teleop, since the firmware follows "
+                "whichever command it received last. 'none' reads the encoders "
+                "for the model and leaves the bucket on gamepad teleop"
             ),
         ),
         # The two low-speed stall mitigations, both off by default so the rover
