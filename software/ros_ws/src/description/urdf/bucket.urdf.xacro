@@ -58,11 +58,18 @@
            L(a)^2 = r^2 + d^2 + 2*r*d*sin(a + lift_phase)
 
        Retracted (L = 0.365) gives a = -77.61 deg; extended (L = 0.615) gives
-       a = -6.24 deg. So the arms swing 71.36 deg, and at full extension they
-       sit 6.24 deg below the frame's own x axis - they never quite reach
-       horizontal. Joint zero is placed at full extension (top of travel,
-       transport pose) by baking that 6.24 deg into the joint origin, and the
-       joint counts positive DOWN from there: 0 .. 71.36 deg.
+       a = -6.24 deg. So by the CAD the arms swing 71.36 deg, and at full
+       extension they sit 6.24 deg below the frame's own x axis.
+
+       The real bucket disagrees: at the top of travel its arms are level,
+       parallel to the chassis x axis. So joint zero is the top of travel with
+       the arms LEVEL (lift_zero_pitch is 0), and the joint counts positive
+       DOWN from there. Something in the CAD's lift linkage is therefore 25 mm
+       short - level arms need the rams at 0.640 m pin to pin, not 0.615 - and
+       until that is measured the lift rams are given the stroke the CAD
+       geometry needs for it (lift_ram_stroke). The 71.36 deg of travel is kept
+       as the CAD gives it: on the robot it is the command clamp, so it must
+       not exceed the real travel (TEST.md phase 4 measures it).
 
        Worth knowing: the CAD's *exported* pose needs L = 0.640, which is 25 mm
        beyond full extension. That is not an error in the CAD - the toolkit
@@ -80,8 +87,16 @@
                   value="${(actuator_retracted**2
                             - lift_rod_offset*lift_rod_offset - lift_pivot_drop*lift_pivot_drop)
                            / (2*lift_rod_offset*lift_pivot_drop)}"/>
-  <!-- nose-down pitch of the arm at joint zero, relative to the frame -->
-  <xacro:property name="lift_zero_pitch" value="${-(asin(lift_sin_ext) - lift_phase)}"/>
+  <!-- nose-down pitch of the arm at joint zero, relative to the frame: none,
+       since the real arms are level at the top of travel. The CAD alone would
+       give -(asin(lift_sin_ext) - lift_phase), i.e. 6.24 deg. -->
+  <xacro:property name="lift_zero_pitch" value="0.0"/>
+  <!-- the ram extension that level arms need: L(0) minus the retracted length.
+       0.2748 m, against the 0.250 m stroke of a CAD "250mm Actuator". -->
+  <xacro:property name="lift_ram_stroke"
+                  value="${sqrt(lift_rod_offset*lift_rod_offset + lift_pivot_drop*lift_pivot_drop
+                                + 2*lift_rod_offset*lift_pivot_drop*sin(lift_phase))
+                           - actuator_retracted}"/>
   <xacro:property name="lift_lower" value="0.0"/>
   <!-- 71.36 deg -->
   <xacro:property name="lift_upper" value="${asin(lift_sin_ext) - asin(lift_sin_ret)}"/>
@@ -188,7 +203,7 @@
        would change the linkage dynamics. No collision geometry - nothing is
        meant to hit a ram, and leaving it out keeps contact cheap.
        ═══════════════════════════════════════════════════════════════════ -->
-  <xacro:macro name="bucket_ram" params="name parent mesh xyz mesh_rpy axis phi mesh_xyz:='0 0 0'">
+  <xacro:macro name="bucket_ram" params="name parent mesh xyz mesh_rpy axis phi mesh_xyz:='0 0 0' stroke:=${actuator_stroke}">
     <link name="${prefix}${name}_barrel">
       <inertial>
         <origin xyz="0.15 0 0" rpy="0 0 0"/>
@@ -229,7 +244,7 @@
       <child link="${prefix}${name}_shaft"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <axis xyz="${axis}"/>
-      <limit lower="0" upper="${actuator_stroke}" effort="50" velocity="0.5"/>
+      <limit lower="0" upper="${stroke}" effort="50" velocity="0.5"/>
       <dynamics damping="0.5"/>
     </joint>
 
@@ -453,8 +468,8 @@
       </collision>
     </link>
 
-    <!-- Positive lowers. Zero is the top of travel, with the arms 6.24 deg
-         below the frame axis because that is as far as the actuators reach. -->
+    <!-- Positive lowers. Zero is the top of travel, with the arms level:
+         parallel to the frame and chassis x axis, as on the real bucket. -->
     <joint name="${prefix}bucket_lift_joint" type="revolute">
       <parent link="${prefix}bucket_frame"/>
       <child link="${prefix}bucket_lift_arm"/>
@@ -654,10 +669,12 @@
          over the whole workspace: rod end lands within 0.01 mm. -->
     <xacro:bucket_ram name="bucket_ram_lift_left"  parent="bucket_frame" mesh="lift_ram_left"
                       xyz="0.00004 0.099074 -0.24001"
-                      mesh_rpy="0 -1.5707963 -1.5707963" axis="1 0 0" phi="0"/>
+                      mesh_rpy="0 -1.5707963 -1.5707963" axis="1 0 0" phi="0"
+                      stroke="${lift_ram_stroke}"/>
     <xacro:bucket_ram name="bucket_ram_lift_right" parent="bucket_frame" mesh="lift_ram_right"
                       xyz="0.00004 -0.099074 -0.24001"
-                      mesh_rpy="0 -1.5707963 1.5707963" axis="1 0 0" phi="0"/>
+                      mesh_rpy="0 -1.5707963 1.5707963" axis="1 0 0" phi="0"
+                      stroke="${lift_ram_stroke}"/>
     <!-- The tilt ram's barrel is bolted to the plate on the ARMS (the
          tilt_ram_mount pair, via tilt_ram_bracket) and its rod reaches
          forward to the bucket. The CAD export describes it the other way round

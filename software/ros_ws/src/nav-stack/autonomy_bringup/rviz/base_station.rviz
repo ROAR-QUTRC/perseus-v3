@@ -38,16 +38,16 @@ Panels:
     ConstructionFrame: odom
     ConstructionSet: true
     ConstructionSource: map
-    ConstructionX: 1.2873742580413818
-    ConstructionY: 0.2513406276702881
-    ConstructionYaw: -2.7895829677581787
-    Cycles: 1
+    ConstructionX: 5.287785530090332
+    ConstructionY: -3.59982967376709
+    ConstructionYaw: -1.6275378415466946
+    Cycles: 6
     ExcavationFrame: odom
     ExcavationSet: true
     ExcavationSource: map
-    ExcavationX: 6.092129707336426
-    ExcavationY: -2.490840435028076
-    ExcavationYaw: -1.141818881034851
+    ExcavationX: 0.685716986656189
+    ExcavationY: -0.5252904891967773
+    ExcavationYaw: 1.5867965928134657
     Mode: full
     Name: Mission Control
     PauseS: 10
@@ -80,6 +80,12 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        aruco_marker_67:
+          Value: true
+        aruco_marker_68:
+          Value: true
+        aruco_marker_69:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -137,8 +143,6 @@ Visualization Manager:
         camera_accel_frame:
           Value: true
         camera_accel_optical_frame:
-          Value: true
-        camera_aligned_depth_to_infra1_frame:
           Value: true
         camera_bottom_screw_frame:
           Value: true
@@ -218,10 +222,37 @@ Visualization Manager:
               chassis:
                 bucket_mount:
                   bucket_frame:
+                    bucket_lift_arm:
+                      bucket_body:
+                        bucket_jaw:
+                          {}
+                        bucket_jaw_encoder_left:
+                          {}
+                        bucket_jaw_encoder_right:
+                          {}
+                        bucket_ram_jaw_left_barrel:
+                          bucket_ram_jaw_left_shaft:
+                            {}
+                        bucket_ram_jaw_right_barrel:
+                          bucket_ram_jaw_right_shaft:
+                            {}
+                      bucket_ram_tilt_barrel:
+                        bucket_ram_tilt_shaft:
+                          {}
+                      bucket_tilt_encoder_left:
+                        {}
+                      bucket_tilt_encoder_right:
+                        {}
                     bucket_lift_encoder_left:
                       {}
                     bucket_lift_encoder_right:
                       {}
+                    bucket_ram_lift_left_barrel:
+                      bucket_ram_lift_left_shaft:
+                        {}
+                    bucket_ram_lift_right_barrel:
+                      bucket_ram_lift_right_shaft:
+                        {}
                   bucket_lift_arm_pivot_left_lower:
                     {}
                   bucket_lift_arm_pivot_left_upper:
@@ -235,25 +266,32 @@ Visualization Manager:
                     {}
                 left_rocker:
                   front_left_motor:
-                    {}
+                    front_left_wheel:
+                      {}
                   rear_left_motor:
-                    {}
+                    rear_left_wheel:
+                      {}
                 right_rocker:
                   front_right_motor:
-                    {}
+                    front_right_wheel:
+                      {}
                   rear_right_motor:
-                    {}
+                    rear_right_wheel:
+                      {}
                 sensor_mount:
                   camera_bottom_screw_frame:
                     camera_link:
                       camera_accel_frame:
                         camera_accel_optical_frame:
                           {}
-                      camera_aligned_depth_to_infra1_frame:
-                        {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          {}
+                          aruco_marker_67:
+                            {}
+                          aruco_marker_68:
+                            {}
+                          aruco_marker_69:
+                            {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -291,6 +329,10 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         base_link:
           Alpha: 1
           Show Axes: false
@@ -350,46 +392,57 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_jaw_left_barrel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_jaw_left_shaft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_jaw_right_barrel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_jaw_right_shaft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_lift_left_barrel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_lift_left_shaft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_lift_right_barrel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_lift_right_shaft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_tilt_barrel:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_ram_tilt_shaft:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         bucket_tilt_encoder_left:
           Alpha: 1
           Show Axes: false
@@ -853,25 +906,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 14.72824764251709
+      Distance: 8.409383773803711
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.909608781337738
-        Y: -0.152224600315094
-        Z: 0.6223946213722229
+        X: 1.5237207412719727
+        Y: -1.0554901361465454
+        Z: 1.1989107131958008
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.23520100116729736
+      Pitch: 1.1752005815505981
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 3.1211631298065186
+      Yaw: 2.9211971759796143
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
         Distance: 5.78459358215332
@@ -927,7 +980,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001560000040dfc0200000007fb000000100044006900730070006c006100790073010000003f000001b9000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001fe000001280000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000032c000000a10000006400fffffffb0000001200560069006500770020004c006f0063006b01000003d3000000790000005700ffffff00000001000002b60000040dfc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001580000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d00610070010000019d0000010a0000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c01000002ad0000019f0000019f00ffffff000003680000040d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001560000040dfc0200000007fb000000100044006900730070006c006100790073010000003f000001b9000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001fe000001870000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000038b000000640000006400fffffffb0000001200560069006500770020004c006f0063006b01000003f5000000570000005700ffffff00000001000001640000040dfc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001570000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d00610070010000019c0000010a0000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c01000002ac000001a0000001a000ffffff000004ba0000040d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:

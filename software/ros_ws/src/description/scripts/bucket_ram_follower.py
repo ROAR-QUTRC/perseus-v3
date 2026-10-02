@@ -46,7 +46,7 @@ Geometry (all measured from the Onshape export, see perseus_description/cad/buck
 ----------------------------------------------------------------------------
 Lift, in the frame's x-z plane, with the arm pivot at the origin:
 
-    bracket   B = r * (cos a, sin a),  a = a_ext + q_lift
+    bracket   B = r * (cos a, sin a),  a = a_0 + q_lift, a_0 = the bracket angle with the arms level
     ram base  P = (0, -d)
     ram vector V = B - P  ->  angle = atan2(Vz, Vx), extension = |V| - L_ret
 
@@ -74,6 +74,7 @@ LIFT_R = 0.59712  # arm pivot -> lift bracket
 LIFT_D = 0.24000  # arm pivot above the lift-ram pivot
 LIFT_BASE_X = 0.00004  # ram pivot, relative to the arm pivot
 LIFT_BASE_Z = -0.24001
+LIFT_PHASE = -0.016763  # the bracket sits this far below the arm line
 RAM_RETRACTED = 0.365  # pin-to-pin, as drawn in CAD
 RAM_STROKE = 0.250
 
@@ -96,14 +97,24 @@ JAW_STROKE = 0.05
 JAW_PHI0 = -1.54342  # the pitch joint's rest angle (its origin rpy)
 JAW_LEN0 = math.hypot(JAW_PIN0[0] - JAW_BASE[0], JAW_PIN0[1] - JAW_BASE[1])
 
-LIFT_A_EXT = math.asin(
-    ((RAM_RETRACTED + RAM_STROKE) ** 2 - LIFT_R**2 - LIFT_D**2) / (2 * LIFT_R * LIFT_D)
+# Bracket angle at lift zero. The real arms are level at the top of travel, so
+# zero is the arm on the frame's x axis and the bracket LIFT_PHASE below it. The
+# CAD's full extension would put it at asin((L_ext^2 - r^2 - d^2) / 2rd), 6.24 deg
+# lower; see bucket.urdf.xacro.
+LIFT_A_ZERO = LIFT_PHASE
+# The extension level arms need, as lift_ram_stroke in bucket.urdf.xacro.
+LIFT_RAM_STROKE = (
+    math.hypot(
+        LIFT_R * math.cos(LIFT_A_ZERO) - LIFT_BASE_X,
+        LIFT_R * math.sin(LIFT_A_ZERO) - LIFT_BASE_Z,
+    )
+    - RAM_RETRACTED
 )
 
 
 def lift_ram(q_lift):
     """Ram angle in the frame and extension, for a lift joint angle."""
-    a = LIFT_A_EXT + q_lift
+    a = LIFT_A_ZERO + q_lift
     vx = LIFT_R * math.cos(a) - LIFT_BASE_X
     vz = LIFT_R * math.sin(a) - LIFT_BASE_Z
     return math.atan2(vz, vx), math.hypot(vx, vz) - RAM_RETRACTED
@@ -167,7 +178,7 @@ def ram_values(q_lift, q_tilt, q_jaw):
     ja, js = jaw_ram(-q_jaw)
     return {
         "lift_angle": la,
-        "lift_extend": min(max(ls, 0.0), RAM_STROKE),
+        "lift_extend": min(max(ls, 0.0), LIFT_RAM_STROKE),
         "tilt_angle": ta,
         "tilt_extend": min(max(ts, 0.0), RAM_STROKE),
         "jaw_angle": ja,
