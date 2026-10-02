@@ -75,13 +75,18 @@ void setup()
 
     motor_bank_lift.emplace(LIFT::DRIVER_A::DRIVER_PINS, LIFT::DRIVER_A::ENCODER_ID, LIFT::DRIVER_A::GROUP_ID,
                             LIFT::DRIVER_B::DRIVER_PINS, LIFT::DRIVER_B::ENCODER_ID, LIFT::DRIVER_B::GROUP_ID,
-                            LIFT::CURRENT_SENSE, LIFT::FAULT, &encoderBusInstance);
+                            LIFT::CURRENT_SENSE, LIFT::FAULT, LIFT::SPEED_DIRECTION, LIFT::POSITION_DIRECTION,
+                            LIFT::MIN_ANGLE, LIFT::MAX_ANGLE, &encoderBusInstance);
     motor_bank_jaws.emplace(JAWS::DRIVER_A::DRIVER_PINS, JAWS::DRIVER_A::ENCODER_ID, JAWS::DRIVER_A::GROUP_ID,
                             JAWS::DRIVER_B::DRIVER_PINS, JAWS::DRIVER_B::ENCODER_ID, JAWS::DRIVER_B::GROUP_ID,
-                            JAWS::CURRENT_SENSE, JAWS::FAULT, &encoderBusInstance);
+                            JAWS::CURRENT_SENSE, JAWS::FAULT, JAWS::SPEED_DIRECTION, JAWS::POSITION_DIRECTION,
+                            JAWS::MIN_ANGLE, JAWS::MAX_ANGLE, &encoderBusInstance);
     motor_bank_tilt.emplace(TILT::DRIVER_A::DRIVER_PINS, TILT::DRIVER_A::ENCODER_ID, TILT::DRIVER_A::GROUP_ID,
                             TILT::DRIVER_B::DRIVER_PINS, TILT::DRIVER_B::ENCODER_ID, TILT::DRIVER_B::GROUP_ID,
-                            TILT::CURRENT_SENSE, TILT::FAULT, &encoderBusInstance);
+                            TILT::CURRENT_SENSE, TILT::FAULT, TILT::SPEED_DIRECTION, TILT::POSITION_DIRECTION,
+                            TILT::MIN_ANGLE, TILT::MAX_ANGLE, &encoderBusInstance);
+
+    motor_bank_jaws->enable_homing(JAWS::HOME_BITE_CURRENT, JAWS::HOME_IDLE_CURRENT);
 
     motor_bank_lift_parameter_group.emplace(bucket::controller::bank_group::LIFT, motor_bank_lift.value());
     motor_bank_jaws_parameter_group.emplace(bucket::controller::bank_group::JAWS, motor_bank_jaws.value());

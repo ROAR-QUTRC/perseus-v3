@@ -86,6 +86,8 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
                 .timeout = 200ms,
             }),
         // Zeroes both of the bank's encoders; each saves its new offset to flash.
+        // A bank with homing (the jaws) runs its homing sequence instead, which
+        // zeroes them at the clench.
         std::make_pair(
             filter_t{
                 static_cast<flagged_address_t>(standard_address_t{
@@ -98,6 +100,12 @@ MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excav
                                     // The filter ignores the RTR flag; a request for data must not zero.
                                     if (packet.get_is_rtr())
                                         return;
+                                    if (this->_motor_bank.homing_enabled())
+                                    {
+                                        ESP_LOGI(TAG, "SET_ZERO_POS bank %u: homing", static_cast<unsigned>(this->_bank_group));
+                                        this->_motor_bank.start_homing();
+                                        return;
+                                    }
                                     // A position target means something else once the angle is re-zeroed.
                                     this->_motor_bank.stop();
                                     const bool a = encoder_bus().zero(this->_motor_bank.get_driver_A().encoder_id());

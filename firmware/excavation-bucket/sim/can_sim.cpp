@@ -181,7 +181,8 @@ void setup()
     EncoderBus& bus = encoder_bus();
     lift.emplace(LIFT::DRIVER_A::DRIVER_PINS, LIFT::DRIVER_A::ENCODER_ID, LIFT::DRIVER_A::GROUP_ID,
                  LIFT::DRIVER_B::DRIVER_PINS, LIFT::DRIVER_B::ENCODER_ID, LIFT::DRIVER_B::GROUP_ID,
-                 LIFT::CURRENT_SENSE, LIFT::FAULT, &bus);
+                 LIFT::CURRENT_SENSE, LIFT::FAULT, LIFT::SPEED_DIRECTION, LIFT::POSITION_DIRECTION, LIFT::MIN_ANGLE,
+                 LIFT::MAX_ANGLE, &bus);
 
     packet_manager.emplace(sim);
     lift_group.emplace(bank_group::LIFT, lift.value());
