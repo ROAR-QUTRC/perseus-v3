@@ -165,7 +165,7 @@ local_traversability:
     # Range gate, applied in the SENSOR frame before anything else. Below min_range the scan
     # is hitting the rover itself; max_range is kept inside map_length_m / 2 plus a margin
     # because returns outside the window are binned into nothing anyway.
-    min_range_m: 1.0
+    min_range_m: 1.5
     max_range_m: 6.0
     # Also in the sensor frame, so it is immune to LIO z-drift: drop anything this far above
     # the lidar. Canopy/ceiling returns would otherwise become a cell's maximum height.

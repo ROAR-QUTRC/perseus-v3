@@ -3,6 +3,7 @@
 /// @file mission_control_panel.hpp
 /// @brief RViz panel that configures, starts and stops a mission on mission_bt_server.
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QLabel>
@@ -37,6 +38,9 @@ namespace rviz_plugins
     ///                    safe point for that zone.
     ///   Cycles           excavation -> construction -> back to excavation, counted
     ///                    on the way back; progress comes from /mission/status.
+    ///   Bucket           optionally move the bucket to every joint 0 deg and then
+    ///                    to its travel pose before the rover sets off
+    ///                    (StartMission.prepare_bucket).
     ///
     /// Start calls /mission/start (interfaces/StartMission), which returns as soon as
     /// the mission is accepted; everything after that -- phase, cycle count, outcome
@@ -58,7 +62,7 @@ namespace rviz_plugins
         /// @brief Creates the ROS clients, subscriptions and marker publisher.
         void onInitialize() override;
 
-        /// @brief Persists mode, cycles, pause, sources and picked points.
+        /// @brief Persists mode, cycles, pause, the bucket tick box, sources and picked points.
         void save(rviz_common::Config config) const override;
 
         /// @brief Restores the above and redraws the waypoint markers.
@@ -124,6 +128,7 @@ namespace rviz_plugins
         QComboBox* _task_combo{nullptr};
         QSpinBox* _cycles_spin{nullptr};
         QDoubleSpinBox* _pause_spin{nullptr};
+        QCheckBox* _prepare_bucket_check{nullptr};
         ZoneRow _excavation_row;
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.

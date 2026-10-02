@@ -46,6 +46,10 @@ namespace rviz_plugins
         {
             if (phase == "starting")
                 return "Starting...";
+            if (phase == "bucket_to_zero")
+                return "Bucket: moving every joint to 0 deg";
+            if (phase == "bucket_to_travel")
+                return "Bucket: moving to travel pose";
             if (phase == "to_excavation")
                 return "Driving to excavation zone";
             if (phase == "excavating")
@@ -94,6 +98,14 @@ namespace rviz_plugins
         _pause_spin->setMinimumWidth(60);
         _pause_spin->setToolTip("Placeholder for the bucket action at each zone");
 
+        _prepare_bucket_check = new QCheckBox("Move to travel pose before driving");
+        _prepare_bucket_check->setChecked(true);
+        _prepare_bucket_check->setToolTip(
+            "Before the mission sets off: move every bucket joint to 0 deg, then to the\n"
+            "travel pose (mission_bt_server's bucket_travel_*_deg, by default lift 25,\n"
+            "tilt -20, jaw 0), which keeps the bucket out of the lidar's and camera's\n"
+            "view of the ground ahead. Needs the bucket controller running.");
+
         _excavation_row = _build_zone_row();
         _construction_row = _build_zone_row();
         _excavation_widget = _excavation_row.source->parentWidget();
@@ -118,6 +130,7 @@ namespace rviz_plugins
         mission_form->addRow("Mode", _mode_combo);
         mission_form->addRow("Task", _task_combo);
         mission_form->addRow("Run", _run_widget);
+        mission_form->addRow("Bucket", _prepare_bucket_check);
         _task_label = mission_form->labelForField(_task_combo);
         _run_label = mission_form->labelForField(_run_widget);
 
@@ -374,6 +387,7 @@ namespace rviz_plugins
         }
         request->cycles = static_cast<uint32_t>(_cycles_spin->value());
         request->zone_pause_s = _pause_spin->value();
+        request->prepare_bucket = _prepare_bucket_check->isChecked();
         request->use_arena_excavation = _uses_arena(_excavation_row);
         request->use_arena_construction = _uses_arena(_construction_row);
         if (_excavation_point.set)
@@ -497,7 +511,8 @@ namespace rviz_plugins
         // Locked while running, so what the panel shows is what the rover is doing.
         for (QWidget* widget :
              {static_cast<QWidget*>(_mode_combo), static_cast<QWidget*>(_task_combo),
-              static_cast<QWidget*>(_cycles_spin), static_cast<QWidget*>(_pause_spin)})
+              static_cast<QWidget*>(_cycles_spin), static_cast<QWidget*>(_pause_spin),
+              static_cast<QWidget*>(_prepare_bucket_check)})
         {
             widget->setEnabled(!running);
         }
@@ -709,6 +724,7 @@ namespace rviz_plugins
                                                                : "cycle");
         config.mapSetValue("Cycles", _cycles_spin->value());
         config.mapSetValue("PauseS", _pause_spin->value());
+        config.mapSetValue("PrepareBucket", _prepare_bucket_check->isChecked());
         const auto save_zone = [&](const QString& prefix, const ZoneRow& row,
                                    const ZonePoint& point)
         {
@@ -742,6 +758,9 @@ namespace rviz_plugins
         float pause = 0.0f;
         if (config.mapGetFloat("PauseS", &pause))
             _pause_spin->setValue(pause);
+        bool prepare_bucket = true;
+        if (config.mapGetBool("PrepareBucket", &prepare_bucket))
+            _prepare_bucket_check->setChecked(prepare_bucket);
 
         const auto load_zone = [&](const QString& prefix, ZoneRow& row, ZonePoint& point)
         {

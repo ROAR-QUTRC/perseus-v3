@@ -18,6 +18,12 @@
     excavation_service       arena_server's /arena/request_excavation_waypoint
     construction_service     arena_server's /arena/request_construction_waypoint
     cycles_done              int, 0 -- this tree counts it up
+    prepare_bucket           bool: run PrepareBucket before the task
+    bucket_action            the bucket controller's FollowJointTrajectory action
+    bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
+    bucket_travel_tilt_deg
+    bucket_travel_jaw_deg
+    bucket_move_s            how long each PrepareBucket move takes, seconds
     phase                    string -- this tree writes it; the server publishes both on
                              /mission/status as they change
 
@@ -33,16 +39,44 @@
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
 
   <BehaviorTree ID="MainTree">
-    <Switch4 variable="{task}"
-             case_1="full_cycle" case_2="nav_cycle"
-             case_3="nav_excavation" case_4="nav_construction">
-      <SubTree ID="FullAutonomyCycle" _autoremap="true"/>
-      <SubTree ID="NavigationCycle" _autoremap="true"/>
-      <SubTree ID="GoToExcavation" _autoremap="true"/>
-      <SubTree ID="GoToConstruction" _autoremap="true"/>
-      <!-- Unknown task: fail rather than guess. -->
-      <AlwaysFailure/>
-    </Switch4>
+    <Sequence>
+      <IfThenElse>
+        <ScriptCondition code="prepare_bucket"/>
+        <SubTree ID="PrepareBucket" _autoremap="true"/>
+        <AlwaysSuccess/>
+      </IfThenElse>
+      <Switch4 variable="{task}"
+               case_1="full_cycle" case_2="nav_cycle"
+               case_3="nav_excavation" case_4="nav_construction">
+        <SubTree ID="FullAutonomyCycle" _autoremap="true"/>
+        <SubTree ID="NavigationCycle" _autoremap="true"/>
+        <SubTree ID="GoToExcavation" _autoremap="true"/>
+        <SubTree ID="GoToConstruction" _autoremap="true"/>
+        <!-- Unknown task: fail rather than guess. -->
+        <AlwaysFailure/>
+      </Switch4>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Every joint to 0 first - arms level at the top, bucket level, jaws closed - so the
+    move to the travel pose always starts from the same place, then the travel pose:
+    by default lift 25, tilt -20 (curled), jaw 0, which keeps the bucket out of the
+    MID-360's and D455's view of the ground 2 m ahead and beyond while leaving about
+    0.17 m of ground clearance. The pose is mission_bt_server's
+    bucket_travel_*_deg parameters. A failed move fails the mission before the rover
+    drives anywhere.
+  -->
+  <BehaviorTree ID="PrepareBucket">
+    <Sequence>
+      <Script code="phase:='bucket_to_zero'"/>
+      <MoveBucket lift_deg="0" tilt_deg="0" jaw_deg="0"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='bucket_to_travel'"/>
+      <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
+                  jaw_deg="{bucket_travel_jaw_deg}"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+    </Sequence>
   </BehaviorTree>
 
   <BehaviorTree ID="FullAutonomyCycle">

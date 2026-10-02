@@ -38,6 +38,12 @@ geometry_msgs/PoseStamped construction_point
 # FULL_AUTONOMY only: how long the placeholder bucket step holds at each zone, in
 # seconds. <= 0 uses the server's default (2 s).
 float64 zone_pause_s
+
+# Before anything else, move the bucket to every joint 0 deg and then to its travel
+# pose (mission_bt_server's bucket_travel_*_deg parameters), the pose that keeps it
+# out of the lidar's and camera's forward view while driving. Needs the bucket
+# controller running; the mission fails at that step if it is not. Any mode or task.
+bool prepare_bucket
 ---
 # false: refused (a mission is already running, a required point is missing, ...);
 # message says why. true: running -- watch /mission/status.

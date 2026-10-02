@@ -107,6 +107,13 @@ namespace mission_bt_server
         std::string _construction_service_name;
         double _default_zone_pause_s;
 
+        // PrepareBucket's action and travel pose; see the constructor.
+        std::string _bucket_action_name;
+        double _bucket_travel_lift_deg;
+        double _bucket_travel_tilt_deg;
+        double _bucket_travel_jaw_deg;
+        double _bucket_move_s;
+
         // Blackboard entries every nav2_behavior_tree BT node reads in its own
         // constructor (BtServiceNode, BtActionNode) - see bt_action_server_impl.hpp,
         // which this replicates without the LifecycleNode it comes attached to.

@@ -105,6 +105,19 @@ namespace mission_bt_server
         // full-autonomy cycle holds this long at each zone instead.
         _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
 
+        // PrepareBucket (StartMission.prepare_bucket): the bucket controller's action,
+        // and the pose it leaves the bucket in for driving. The default pose keeps the
+        // bucket out of the MID-360's and D455's view of the ground from 2 m ahead
+        // while leaving ~0.17 m of ground clearance; see mission.xml.
+        _bucket_action_name = declare_parameter<std::string>(
+            "bucket_action_name", "/payloads/bucket_trajectory_controller/follow_joint_trajectory");
+        _bucket_travel_lift_deg = declare_parameter<double>("bucket_travel_lift_deg", 25.0);
+        _bucket_travel_tilt_deg = declare_parameter<double>("bucket_travel_tilt_deg", -20.0);
+        _bucket_travel_jaw_deg = declare_parameter<double>("bucket_travel_jaw_deg", 0.0);
+        // Per move. Generous: the controller has to get there within this plus its
+        // 3 s goal_time tolerance, from wherever the bucket was left.
+        _bucket_move_s = declare_parameter<double>("bucket_move_s", 10.0);
+
         // Matches nav2_behavior_tree::BtActionServer's own defaults (bt_loop_duration
         // 10ms, default_server_timeout/default_cancel_timeout 20s,
         // wait_for_service_timeout 1s) so this tree behaves the same as any other
@@ -122,7 +135,7 @@ namespace mission_bt_server
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
-                                     "request_zone_waypoint_bt_node"});
+                                     "request_zone_waypoint_bt_node", "move_bucket_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
         bt_node_options.arguments(
@@ -408,13 +421,20 @@ namespace mission_bt_server
         blackboard->set<std::string>("construction_service", _construction_service_name);
         blackboard->set<int>("cycles_done", 0);
         blackboard->set<std::string>("phase", "starting");
+        blackboard->set<bool>("prepare_bucket", request.prepare_bucket);
+        blackboard->set<std::string>("bucket_action", _bucket_action_name);
+        blackboard->set<double>("bucket_travel_lift_deg", _bucket_travel_lift_deg);
+        blackboard->set<double>("bucket_travel_tilt_deg", _bucket_travel_tilt_deg);
+        blackboard->set<double>("bucket_travel_jaw_deg", _bucket_travel_jaw_deg);
+        blackboard->set<double>("bucket_move_s", _bucket_move_s);
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "
-                    "pause %.1f s",
+                    "pause %.1f s, bucket %s",
                     _task_name(request).c_str(), request.cycles,
                     request.use_arena_excavation ? "arena" : "picked",
-                    request.use_arena_construction ? "arena" : "picked", pause_s);
+                    request.use_arena_construction ? "arena" : "picked", pause_s,
+                    request.prepare_bucket ? "to travel pose first" : "left as is");
 
         BT::Tree tree;
         try

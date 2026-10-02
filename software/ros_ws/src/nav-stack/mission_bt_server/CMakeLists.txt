@@ -37,8 +37,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # INCLUDE DEPENDENCIES
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp interfaces std_srvs geometry_msgs
-                                 behaviortree_cpp nav2_behavior_tree)
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+    rclcpp
+    rclcpp_action
+    interfaces
+    std_srvs
+    geometry_msgs
+    control_msgs
+    behaviortree_cpp
+    nav2_behavior_tree)
 
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
@@ -77,6 +84,16 @@ ament_target_dependencies(
 target_compile_definitions(request_zone_waypoint_bt_node
                            PRIVATE BT_PLUGIN_EXPORT)
 
+# Same convention for MoveBucket, the bucket pose step mission.xml runs before a
+# mission when the panel asks for it.
+add_library(move_bucket_bt_node SHARED
+            src/mission_bt_server/move_bucket_bt_node.cpp)
+target_include_directories(move_bucket_bt_node
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(move_bucket_bt_node PUBLIC rclcpp rclcpp_action
+                          control_msgs behaviortree_cpp)
+target_compile_definitions(move_bucket_bt_node PRIVATE BT_PLUGIN_EXPORT)
+
 add_executable(
   mission_bt_server src/mission_bt_server/mission_bt_server.cpp
                     src/mission_bt_server/mission_bt_server_node.cpp)
@@ -92,7 +109,7 @@ ament_target_dependencies(mission_bt_server PUBLIC
 # (LD_LIBRARY_PATH, which every package's lib/ is on via its ament hook), the
 # same place nav2's own plugin .so's install to.
 install(
-  TARGETS request_zone_waypoint_bt_node
+  TARGETS request_zone_waypoint_bt_node move_bucket_bt_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
