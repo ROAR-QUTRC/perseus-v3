@@ -56,7 +56,7 @@ global_traversability:
     point_buffer_s: 1.0
     # Sensor-frame range gate. Further than local's 6 m because the planner needs to see
     # further than the controller; much past 10 m a 0.1 m grid is too sparse to judge.
-    min_range_m: 1.0
+    min_range_m: 1.6
     max_range_m: 10.0
     max_sensor_height_m: 1.5
     # THE CLASSIFIER, same meaning as the matching local_traversability parameters below --
@@ -165,7 +165,7 @@ local_traversability:
     # Range gate, applied in the SENSOR frame before anything else. Below min_range the scan
     # is hitting the rover itself; max_range is kept inside map_length_m / 2 plus a margin
     # because returns outside the window are binned into nothing anyway.
-    min_range_m: 1.5
+    min_range_m: 1.7
     max_range_m: 6.0
     # Also in the sensor frame, so it is immune to LIO z-drift: drop anything this far above
     # the lidar. Canopy/ceiling returns would otherwise become a cell's maximum height.
@@ -438,7 +438,7 @@ controller_server:
       # raw path, more turns can be taken as a regulated arc instead of a full stop-and-pivot.
       # Re-tune down again if it starts cutting corners too wide for the arena's clearances.
       use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 1.2
+      rotate_to_heading_min_angle: 0.5
       # Rotate-to-heading is BANG-BANG: full rate until the error drops under the threshold,
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
