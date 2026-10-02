@@ -6,10 +6,12 @@
   ament-lint-auto,
   ament-lint-common,
   behaviortree-cpp,
+  control-msgs,
   geometry-msgs,
   interfaces,
   nav2-behavior-tree,
   rclcpp,
+  rclcpp-action,
   std-srvs,
 }:
 buildRosPackage rec {
@@ -26,10 +28,12 @@ buildRosPackage rec {
   ];
   propagatedBuildInputs = [
     behaviortree-cpp
+    control-msgs
     geometry-msgs
     interfaces
     nav2-behavior-tree
     rclcpp
+    rclcpp-action
     std-srvs
   ];
   nativeBuildInputs = [ ament-cmake ];

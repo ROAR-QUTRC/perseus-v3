@@ -39,6 +39,7 @@ pkgs.mkShell {
           builtin-interfaces
           compressed-depth-image-transport
           compressed-image-transport
+          control-msgs
           controller-manager
           cv-bridge
           diff-drive-controller
@@ -70,6 +71,7 @@ pkgs.mkShell {
           qt5.qtbase
           rcl-interfaces
           rclcpp
+          rclcpp-action
           rclcpp-components
           rclcpp-lifecycle
           rclpy
