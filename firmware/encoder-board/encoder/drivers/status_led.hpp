@@ -57,13 +57,13 @@ private:
 
     static constexpr Rgb kColorOff{0, 0, 0};
     static constexpr Rgb kColorStartup{0, 0, 10};  // dim blue
-    static constexpr Rgb kColorOk{0, 255, 0};       // dim green
-    static constexpr Rgb kColorLost{255, 0, 0};     // dim red
+    static constexpr Rgb kColorOk{0, 255, 0};      // dim green
+    static constexpr Rgb kColorLost{255, 0, 0};    // dim red
     // Deliberately much redder than the other dim colours: any real green
     // component washes amber out to pale white at low brightness.
-    static constexpr Rgb kColorMagnetMissing{200, 50, 0};   // dim amber
-    static constexpr Rgb kColorHeartbeatBlip{0, 10, 10};  // dim cyan
-    static constexpr Rgb kColorDiscovery{255, 255, 255};  // full brightness, deliberately not dimmed
+    static constexpr Rgb kColorMagnetMissing{200, 50, 0};  // dim amber
+    static constexpr Rgb kColorHeartbeatBlip{0, 10, 10};   // dim cyan
+    static constexpr Rgb kColorDiscovery{255, 255, 255};   // full brightness, deliberately not dimmed
 
     static constexpr uint32_t kPositiveVelocityMultiplier = 4;  // "rapid" flash
     static constexpr uint32_t kNegativeVelocityMultiplier = 2;
