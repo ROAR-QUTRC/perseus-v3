@@ -184,7 +184,7 @@ struct status_1_t : public BidirectionalSerializable {
   double rpm = 0;
   double current = 0;
   double duty_cycle = 0;
-
+  double power = 0;
   void deserialize_data(const std::vector<uint8_t> &serialized_data) override;
   std::vector<uint8_t> serialize_data() override;
 };

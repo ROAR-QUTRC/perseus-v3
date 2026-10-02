@@ -386,6 +386,31 @@ enum class magnet_parameter {
 namespace space_resources {
 /// @brief The space resources system ID
 constexpr uint8_t SYSTEM_ID = 0x05;
+namespace prospecting {
+constexpr uint8_t SUBSYSTEM_ID = 0x00;
+namespace controller {
+/// @brief The bucket controller device ID
+constexpr uint8_t DEVICE_ID = 0x00;
+enum class group {
+  STATUS = 0x00,
+  DRILL = 0x01,
+  SHAFT = 0x02,
+  CENTRIFUGE = 0x03,
+};
+
+enum class status_parameter{
+  POWER = 0x00,
+};
+enum class drill_parameter {
+  SPEED = 0x00,
+  CURRENT_LIMIT = 0x01,
+};
+enum class shaft_parameter {
+  SPEED = 0x00,
+};
+enum class centrifuge_parameter { DUTY = 0x00 };
+} // namespace controller
+} // namespace prospecting
 } // namespace space_resources
 namespace shared {
 /// @brief System ID for devices not specific to one system only
