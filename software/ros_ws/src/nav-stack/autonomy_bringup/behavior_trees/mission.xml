@@ -31,10 +31,11 @@
   arrival back at excavation. The rover drives to excavation once first, so the loop
   body always starts where it digs.
 
-  PLACEHOLDER: the two Sleep nodes in FullAutonomyCycle stand in for the autonomous
-  bucket actions (dig at excavation, dump at construction), which do not exist yet.
-  Replace each Sleep with the real action node when it does -- nothing else in the tree
-  needs to change.
+  At construction, FullAutonomyCycle dumps the load with the DumpBucket subtree below.
+
+  PLACEHOLDER: the Sleep at excavation in FullAutonomyCycle stands in for the
+  autonomous dig, which does not exist yet. Replace it with the real action node when it
+  does -- nothing else in the tree needs to change.
 -->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
 
@@ -88,14 +89,43 @@
           <!-- PLACEHOLDER for the autonomous dig action. -->
           <Sleep msec="{pause_ms}"/>
           <SubTree ID="GoToConstruction" _autoremap="true"/>
-          <Script code="phase:='depositing'"/>
-          <!-- PLACEHOLDER for the autonomous dump action. -->
-          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="DumpBucket" _autoremap="true"/>
           <SubTree ID="GoToExcavation" _autoremap="true"/>
           <Script code="cycles_done += 1"/>
         </Sequence>
       </Repeat>
       <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Dump the load at the construction zone, then stow the bucket for the drive back.
+    Each step is one MoveBucket goal and moves only the joints it names; the others
+    hold. Angles in degrees (lift positive lowering, tilt positive dumping, jaw positive
+    opening):
+
+      1. lift 20, tilt 20 together   lower the arms and tip the bucket over the pile
+      2. jaw 36                      open the clamshell and let the load out
+      3. tilt -20                    curl back, emptying what is left
+      4. the travel pose, jaw closed lift/tilt/jaw all at once, as PrepareBucket ends
+
+    A step that fails fails the mission there, with the rover still at construction.
+  -->
+  <BehaviorTree ID="DumpBucket">
+    <Sequence>
+      <Script code="phase:='dump_lower_tip'"/>
+      <MoveBucket lift_deg="20" tilt_deg="20"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='dump_open_jaw'"/>
+      <MoveBucket jaw_deg="36"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='dump_curl'"/>
+      <MoveBucket tilt_deg="-20"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='dump_stow'"/>
+      <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
+                  jaw_deg="{bucket_travel_jaw_deg}"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
     </Sequence>
   </BehaviorTree>
 

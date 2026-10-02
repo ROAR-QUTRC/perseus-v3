@@ -22,7 +22,9 @@ namespace mission_bt_server
     ///
     /// The pose is in degrees, in the bucket joint conventions: lift 0 with the arms
     /// level and positive lowering, tilt 0 level and positive dumping, jaw 0 closed
-    /// and positive opening. The goal is one point reached duration_s after it is
+    /// and positive opening. Each of lift_deg, tilt_deg and jaw_deg is optional: only
+    /// the joints given are commanded, and the controller holds the others where they
+    /// are, so <MoveBucket jaw_deg="36"/> opens the jaw and nothing else. The goal is one point reached duration_s after it is
     /// sent; the controller's own goal tolerances (bucket_controller.yaml) decide
     /// whether it arrived.
     ///

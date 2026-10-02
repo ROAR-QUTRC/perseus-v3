@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <functional>
+#include <tuple>
 #include <vector>
 
 namespace mission_bt_server
@@ -44,9 +46,9 @@ namespace mission_bt_server
     BT::PortsList MoveBucketBtNode::providedPorts()
     {
         return {
-            BT::InputPort<double>("lift_deg", "bucket_lift_joint target, degrees"),
-            BT::InputPort<double>("tilt_deg", "bucket_tilt_joint target, degrees"),
-            BT::InputPort<double>("jaw_deg", "bucket_jaw_joint target, degrees"),
+            BT::InputPort<double>("lift_deg", "bucket_lift_joint target, degrees; omit to hold"),
+            BT::InputPort<double>("tilt_deg", "bucket_tilt_joint target, degrees; omit to hold"),
+            BT::InputPort<double>("jaw_deg", "bucket_jaw_joint target, degrees; omit to hold"),
             BT::InputPort<double>("duration_s", 10.0,
                                   "time_from_start of the goal: how long the move takes"),
             BT::InputPort<std::string>("server_name", DEFAULT_ACTION,
@@ -72,18 +74,35 @@ namespace mission_bt_server
 
     BT::NodeStatus MoveBucketBtNode::onStart()
     {
-        double lift = 0.0;
-        double tilt = 0.0;
-        double jaw = 0.0;
-        double duration_s = 10.0;
-        std::string action_name = DEFAULT_ACTION;
-        if (!getInput("lift_deg", lift) || !getInput("tilt_deg", tilt) ||
-            !getInput("jaw_deg", jaw))
+        // Only the joints given a port are commanded; the controller holds the rest
+        // where they are (allow_partial_joints_goal in bucket_controller.yaml).
+        std::vector<std::string> joints;
+        std::vector<double> positions;
+        std::string described;
+        for (const auto& [port, joint, label] :
+             {std::tuple{"lift_deg", "bucket_lift_joint", "lift"},
+              std::tuple{"tilt_deg", "bucket_tilt_joint", "tilt"},
+              std::tuple{"jaw_deg", "bucket_jaw_joint", "jaw"}})
+        {
+            double degrees = 0.0;
+            if (getInput(port, degrees))
+            {
+                joints.emplace_back(joint);
+                positions.push_back(radians(degrees));
+                char text[32];
+                std::snprintf(text, sizeof(text), "%s%s %.1f", described.empty() ? "" : ", ",
+                              label, degrees);
+                described += text;
+            }
+        }
+        if (joints.empty())
         {
             RCLCPP_ERROR(_node->get_logger(),
-                         "MoveBucket: lift_deg, tilt_deg and jaw_deg are all required");
+                         "MoveBucket: give at least one of lift_deg, tilt_deg, jaw_deg");
             return BT::NodeStatus::FAILURE;
         }
+        double duration_s = 10.0;
+        std::string action_name = DEFAULT_ACTION;
         getInput("duration_s", duration_s);
         getInput("server_name", action_name);
         duration_s = std::max(duration_s, 0.5);
@@ -99,10 +118,9 @@ namespace mission_bt_server
         }
 
         FollowJointTrajectory::Goal goal;
-        goal.trajectory.joint_names = {"bucket_lift_joint", "bucket_tilt_joint",
-                                       "bucket_jaw_joint"};
+        goal.trajectory.joint_names = joints;
         trajectory_msgs::msg::JointTrajectoryPoint point;
-        point.positions = {radians(lift), radians(tilt), radians(jaw)};
+        point.positions = positions;
         point.time_from_start = rclcpp::Duration::from_seconds(duration_s);
         goal.trajectory.points.push_back(point);
 
@@ -123,9 +141,8 @@ namespace mission_bt_server
                         std::chrono::duration<double>(duration_s)) +
                     RESULT_GRACE;
 
-        RCLCPP_INFO(_node->get_logger(),
-                    "MoveBucket: lift %.1f, tilt %.1f, jaw %.1f deg over %.1f s", lift, tilt,
-                    jaw, duration_s);
+        RCLCPP_INFO(_node->get_logger(), "MoveBucket: %s deg over %.1f s", described.c_str(),
+                    duration_s);
         _spin(std::chrono::milliseconds(5));
         return onRunning();
     }

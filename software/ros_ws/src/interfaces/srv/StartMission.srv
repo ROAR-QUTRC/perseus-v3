@@ -4,10 +4,10 @@
 # (std_srvs/Trigger) cancels it.
 
 # What the rover does at each zone.
-#   FULL_AUTONOMY    drive between the zones AND run the bucket step at each one. Until
-#                    the autonomous bucket action exists that step is a timed pause
-#                    (zone_pause_s), so the cycle structure can be tested end to end.
-#                    Always cycles; task is ignored.
+#   FULL_AUTONOMY    drive between the zones AND run the bucket step at each one: dump
+#                    the load at construction (mission.xml's DumpBucket), and at
+#                    excavation a timed pause (zone_pause_s) until the autonomous dig
+#                    exists. Always cycles; task is ignored.
 #   NAVIGATION_ONLY  drive only, no bucket step. task picks what to drive.
 uint8 MODE_FULL_AUTONOMY = 0
 uint8 MODE_NAVIGATION_ONLY = 1
@@ -35,7 +35,7 @@ geometry_msgs/PoseStamped excavation_point
 bool use_arena_construction
 geometry_msgs/PoseStamped construction_point
 
-# FULL_AUTONOMY only: how long the placeholder bucket step holds at each zone, in
+# FULL_AUTONOMY only: how long the placeholder dig step holds at excavation, in
 # seconds. <= 0 uses the server's default (2 s).
 float64 zone_pause_s
 

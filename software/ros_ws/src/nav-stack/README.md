@@ -419,15 +419,50 @@ from `navigate_to_pose_w_smoothing.xml`.
 | `NAVIGATION_ONLY` (1) | `GO_TO_EXCAVATION` (1)   | One trip to the excavation point.                                     |
 | `NAVIGATION_ONLY` (1) | `GO_TO_CONSTRUCTION` (2) | One trip to the construction point.                                   |
 
+At construction, the `DumpBucket` subtree dumps the load. Each step is one
+`MoveBucket` goal, and joints a step does not name hold where they are:
+
+1. Lift 20° and tilt 20° together, to lower the arms and tip the bucket.
+2. Jaw to 36°, to open the clamshell.
+3. Tilt to −20°, to curl back and empty the rest.
+4. The travel pose with the jaw closed, all three joints at once.
+
+The steps use `bucket_move_s` and the travel pose parameters below. If a step
+fails, the mission fails there, with the rover still at construction.
+
 > [!IMPORTANT]
-> The dig and dump steps are **placeholders**: timed `Sleep` nodes of
-> `zone_pause_s` seconds (default 2 s). Replace each `Sleep` in
-> `FullAutonomyCycle` with the real bucket action when it exists. Nothing else
-> in the tree has to change.
+> The dig step is still a **placeholder**: a timed `Sleep` of `zone_pause_s`
+> seconds (default 2 s). Replace the `Sleep` in `FullAutonomyCycle` with the
+> real dig action when it exists. Nothing else in the tree has to change.
 
 For each zone, the waypoint comes either from a point picked in RViz or, with
 `use_arena_*: true`, from `arena_server`. The server scores candidates inside
 the zone against `/costmap` for clearance and distance to the rover.
+
+### Bucket travel pose
+
+With `prepare_bucket: true` (the Mission Control panel's **Bucket** tick box,
+on by default), the mission first runs the `PrepareBucket` subtree before any
+mode or task: every bucket joint to 0°, then the travel pose. The default pose
+is lift 25°, tilt −20° (curled), jaw 0°. It keeps the bucket out of the MID-360's
+and D455's view of the ground from 2 m ahead while leaving about 0.17 m of
+ground clearance. With the arms up (lift 0) the bucket hides most of the lidar's
+far-field ground returns.
+
+| Parameter                | Default                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `bucket_action_name`     | `/payloads/bucket_trajectory_controller/follow_joint_trajectory` |
+| `bucket_travel_lift_deg` | `25.0`                                                           |
+| `bucket_travel_tilt_deg` | `-20.0`                                                          |
+| `bucket_travel_jaw_deg`  | `0.0`                                                            |
+| `bucket_move_s`          | `10.0` (each move's `time_from_start`)                           |
+
+Each move is a `MoveBucket` node: one `FollowJointTrajectory` goal, which
+succeeds when the bucket controller reports the pose reached. If the controller
+is not running, the mission fails at `bucket_to_zero` before the rover drives.
+Missions without `prepare_bucket` never touch the bucket and run without the
+controller. Stopping the mission mid-move cancels the goal, and the bucket holds
+where it is.
 
 ### Mission commands from the CLI
 
@@ -437,6 +472,10 @@ The Mission Control panel wraps these services.
 # Two navigation-only cycles, with arena_server picking both waypoints
 ros2 service call /mission/start interfaces/srv/StartMission \
     "{mode: 1, task: 0, cycles: 2, use_arena_excavation: true, use_arena_construction: true}"
+
+# The same, moving the bucket to its travel pose first
+ros2 service call /mission/start interfaces/srv/StartMission \
+    "{mode: 1, task: 0, cycles: 2, use_arena_excavation: true, use_arena_construction: true, prepare_bucket: true}"
 
 # Watch progress (latched: late subscribers get the current state at once)
 ros2 topic echo /mission/status

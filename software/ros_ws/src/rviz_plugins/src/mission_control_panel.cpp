@@ -56,8 +56,14 @@ namespace rviz_plugins
                 return "Excavating (placeholder pause)";
             if (phase == "to_construction")
                 return "Driving to construction zone";
-            if (phase == "depositing")
-                return "Depositing (placeholder pause)";
+            if (phase == "dump_lower_tip")
+                return "Dumping: lowering and tipping the bucket";
+            if (phase == "dump_open_jaw")
+                return "Dumping: opening the jaw";
+            if (phase == "dump_curl")
+                return "Dumping: curling back";
+            if (phase == "dump_stow")
+                return "Dumping: done, stowing the bucket";
             if (phase == "done")
                 return "Done";
             return QString::fromStdString(phase);
@@ -76,8 +82,8 @@ namespace rviz_plugins
         _mode_combo = new QComboBox();
         _mode_combo->addItems({"Full Autonomy", "Navigation Only"});
         _mode_combo->setToolTip(
-            "Full Autonomy: drive between the zones and run the bucket step at each one "
-            "(a timed pause until the bucket action exists).\n"
+            "Full Autonomy: drive between the zones, dump the load at construction, and "
+            "pause at excavation (a timed placeholder until the dig exists).\n"
             "Navigation Only: drive only.");
 
         _task_combo = new QComboBox();
@@ -96,7 +102,7 @@ namespace rviz_plugins
         _pause_spin->setValue(2.0);
         _pause_spin->setSuffix(" s");
         _pause_spin->setMinimumWidth(60);
-        _pause_spin->setToolTip("Placeholder for the bucket action at each zone");
+        _pause_spin->setToolTip("Placeholder for the dig at the excavation zone");
 
         _prepare_bucket_check = new QCheckBox("Move to travel pose before driving");
         _prepare_bucket_check->setChecked(true);
@@ -111,12 +117,12 @@ namespace rviz_plugins
         _excavation_widget = _excavation_row.source->parentWidget();
         _construction_widget = _construction_row.source->parentWidget();
 
-        // Cycles and the bucket pause share one row.
+        // Cycles and the dig pause share one row.
         _run_widget = new QWidget();
         auto* run = new QHBoxLayout(_run_widget);
         run->setContentsMargins(0, 0, 0, 0);
         auto* cycles_caption = new QLabel("Cycles");
-        auto* pause_caption = new QLabel("Bucket pause");
+        auto* pause_caption = new QLabel("Dig pause");
         _cycles_caption = cycles_caption;
         _pause_caption = pause_caption;
         run->addWidget(cycles_caption);

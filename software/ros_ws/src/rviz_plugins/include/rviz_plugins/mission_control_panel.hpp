@@ -29,9 +29,10 @@ namespace rviz_plugins
     /// @brief Mission Control: pick an operation mode and the two zone waypoints,
     /// set the number of cycles, then Start / Stop.
     ///
-    ///   Operation mode   Full Autonomy (drive + the bucket step at each zone -- a
-    ///                    timed pause until the bucket action exists) or Navigation
-    ///                    Only (drive only: cycle, or a single trip to one zone).
+    ///   Operation mode   Full Autonomy (drive + the bucket step at each zone: dump
+    ///                    at construction, and a timed pause at excavation until the
+    ///                    dig exists) or Navigation Only (drive only: cycle, or a
+    ///                    single trip to one zone).
     ///   Zone waypoints   per zone, a point picked on the map with the Excavation /
     ///                    Construction Point tools (click-drag like 2D Goal Pose; a
     ///                    labelled marker stays on the map), or arena_server's own
@@ -133,7 +134,7 @@ namespace rviz_plugins
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.
         QWidget* _task_label{nullptr};
-        // "Run" row: cycles and bucket pause side by side, each half hidden when it
+        // "Run" row: cycles and dig pause side by side, each half hidden when it
         // does not apply, and the whole row when neither does.
         QWidget* _run_label{nullptr};
         QWidget* _run_widget{nullptr};
