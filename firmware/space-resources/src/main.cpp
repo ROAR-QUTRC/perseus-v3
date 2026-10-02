@@ -410,19 +410,11 @@ void setup() {
           .data_callback = handle_shaft_input,
       });
 
-  packet_manager->set_callback(
-      filter_t{static_cast<flagged_address_t>(
-          standard_address_t{DEVICE_ADDRESS, static_cast<uint8_t>(group::SHAFT),
-                             static_cast<uint8_t>(shaft_parameter::ROTATION)})},
-      {
-          .data_callback = handle_shaft_input,
-      });
-
   // setup CENTRIFUGE
   packet_manager->set_callback(
       filter_t{static_cast<flagged_address_t>(standard_address_t{
           DEVICE_ADDRESS, static_cast<uint8_t>(group::CENTRIFUGE),
-          static_cast<uint8_t>(centrifuge_parameter::ROTATE_SPEED)})},
+          static_cast<uint8_t>(centrifuge_parameter::DUTY)})},
       {
           .data_callback = handle_centrifuge_input,
       });
@@ -431,30 +423,34 @@ void setup() {
   // TODO: Update to transmission generator to general Space Resources state
   // vector.
 
-  using namespace parameters::drive::vesc;
+  using namespace parameters::legacy::power::control::power_bus;
+  
   packet_manager->set_transmission_config(
       static_cast<flagged_address_t>(standard_address_t{
-          DEVICE_ADDRESS, static_cast<uint8_t>(group::CENTRIFUGE),
-          static_cast<uint8_t>(centrifuge_parameter::RPM)}),
+          DEVICE_ADDRESS, static_cast<uint8_t>(group::STATUS),
+          static_cast<uint8_t>(status_parameter::POWER)}),
       {
-          .generator =
-              [&]() {
-                if (!VescUartGetValue(VESC_measured_values, VESC_UART_CH)) {
-                  printf(std::format("ERROR: Failed to read VESC: {}\n", 0)
-                             .c_str());
-                  return status_1_t{}.serialize_data();
-                }
-                printf(std::format("PASS: Read VESC: {}\n", 1).c_str());
+        .generator =
+            [&]() {
+              status_t status{};
 
-                status_1_t status{};
-                status.rpm = VESC_measured_values.rpm;
-                status.current = VESC_measured_values.avgInputCurrent;
-                status.duty_cycle = VESC_measured_values.dutyCycleNow;
+              status.status = power_status::ON;
 
-                return status.serialize_data();
-              },
-          .interval = 1000ms,
-          .should_transmit_immediately = true,
+              // V -> mV
+              status.voltage =
+                  static_cast<uint16_t>(BUS_VOLTAGE * 1000.0f);
+
+              // A -> mA
+              status.current =
+                  static_cast<uint32_t>(BUS_CURRENT * 1000.0f);
+
+              printf("POWER: %.2f V, %.2f A, %.2f W\n",
+                     BUS_VOLTAGE,
+                     BUS_CURRENT,
+                     BUS_POWER);
+
+              return status.serialize_data();
+            },
       });
 }
 
@@ -465,9 +461,9 @@ void loop() {
   update_vesc_ramp(centrifuge);
 
   // update global power variables for transmission
-  //BUS_VOLTAGE = INA.getBusVoltage();
-  //BUS_CURRENT = INA.getAmpere();
-  //BUS_POWER = BUS_CURRENT * BUS_VOLTAGE;
+  // BUS_VOLTAGE = INA.getBusVoltage();
+  // BUS_CURRENT = INA.getAmpere();
+  // BUS_POWER = BUS_CURRENT * BUS_VOLTAGE;
 
   delay(1);
 }
@@ -617,7 +613,7 @@ void process_centrifuge_input(
 
   switch (parameter) {
 
-  case centrifuge_parameter::ROTATE_SPEED:
+  case centrifuge_parameter::DUTY:
 
     centrifuge_duty_set =
         static_cast<float>(data) /
