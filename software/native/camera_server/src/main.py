@@ -9,7 +9,7 @@ import os
 from logger import log, enable_debug
 from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
 from message_types import CameraEventType
-from start_stream import start_stream, start_gst_thread
+from gstreamer import start_stream, start_gst_thread, stop_stream
 
 group_description = CameraEventType(type="camera", action="group-description")
 
@@ -158,6 +158,9 @@ def main():
                     log("No target device specified for request-stream action", "ERROR")
                     return
                 start_stream(event, hostname)
+            case "kill-stream":
+                stop_stream(event)
+                pass
 
             case "group-description":
                 # ignore self sent messages

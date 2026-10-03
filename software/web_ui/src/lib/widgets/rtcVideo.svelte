@@ -47,7 +47,7 @@
 		type: 'camera';
 		action:
 			| 'group-description'
-			| 'kill'
+			| 'kill-stream'
 			| 'request-groups'
 			| 'request-stream'
 			| 'group-terminated'
@@ -58,7 +58,7 @@
 			resolution?: { width: number; height: number };
 			transform?: videoTransformType;
 			forceRestart?: boolean;
-			file?: string;
+			redirect?: string;
 		};
 	}
 
@@ -69,7 +69,7 @@
 			height: number;
 		};
 		transform: videoTransformType;
-		file: string | null;
+		redirect: string;
 	}
 </script>
 
@@ -163,7 +163,7 @@
 							data: {
 								resolution: config[device].resolution,
 								transform: config[device].transform,
-								file: config[device].file
+								redirect: config[device].redirect
 							}
 						} as CameraEventType);
 					}
@@ -192,9 +192,8 @@
 					updateAvailableDevices(device, false);
 				});
 				break;
-			case 'kill':
-				break;
 			// Ignore self sent events
+			case 'kill-stream':
 			case 'request-groups':
 			case 'request-stream':
 				break;
@@ -220,7 +219,7 @@
 				name: values.name.value,
 				resolution: { width: 320, height: 240 }, // Default resolution
 				transform: 'none', // Default transform
-				file: null
+				redirect: 'none' // Default redirect
 			};
 
 			// Update settings config field
@@ -234,7 +233,7 @@
 				data: {
 					resolution: config[values.device.value].resolution,
 					transform: config[values.device.value].transform,
-					file: config[values.device.value].file
+					redirect: config[values.device.value].redirect
 				}
 			} as CameraEventType);
 
@@ -270,6 +269,14 @@
 	// -------------------------------------
 
 	const onVideoClose = (device: string) => {
+		// Tell server to kill the stream
+		socket.send({
+			type: 'camera',
+			action: 'kill-stream',
+			target: device
+		} as CameraEventType);
+
+		// Close WebRTC connection and remove from peerConnections
 		if (peerConnections[device]) {
 			peerConnections[device].connection?.close();
 			peerConnections[device].track = null;
@@ -297,7 +304,7 @@
 			data: {
 				resolution: newConfig.resolution,
 				transform: newConfig.transform,
-				file: newConfig.file
+				redirect: newConfig.redirect
 			}
 		} as CameraEventType);
 	};
@@ -310,7 +317,7 @@
 			data: {
 				resolution: config[device].resolution,
 				transform: config[device].transform,
-				file: config[device].file,
+				redirect: config[device].redirect,
 				forceRestart: true
 			}
 		} as CameraEventType);

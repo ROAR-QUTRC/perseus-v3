@@ -5,8 +5,6 @@
 	import { peerConnections } from './signalHandler.svelte';
 	import type { ConfigType, videoTransformType } from '../rtcVideo.svelte';
 	import * as Select from '$lib/components/ui/select/index';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Switch from '$lib/components/ui/switch/switch.svelte';
 	import Label from '$lib/components/ui/label/label.svelte';
 
 	let {
@@ -25,8 +23,7 @@
 	let video = $state<HTMLVideoElement | null>(null);
 
 	let isSettingsOpen = $state<boolean>(false);
-	let fileName = $state<string | undefined | null>();
-	let recording = $state(false);
+	let redirectName = $state<string>('none');
 
 	$effect(() => {
 		if (video) {
@@ -42,8 +39,6 @@
 		`${config.resolution.width}x${config.resolution.height}` || '320x240'
 	);
 
-	let jpegMode = $derived<boolean>(config.convertFromJpeg ?? false);
-
 	let transform = $derived<string>(config.transform || 'none');
 
 	const onValueChange = () => {
@@ -54,8 +49,7 @@
 			name: config.name,
 			resolution: { width, height },
 			transform: transform as videoTransformType,
-			file: fileName ?? null,
-			convertFromJpeg: jpegMode
+			redirect: redirectName
 		};
 		onVideoSettingsChange(device, newConfig);
 	};
@@ -63,23 +57,6 @@
 	const closeButtonHandler = () => {
 		onVideoClose(device);
 		isSettingsOpen = false;
-	};
-
-	const saveToFile = () => {
-		recording = true;
-		onValueChange();
-	};
-
-	const stopRecording = () => {
-		recording = false;
-		fileName = undefined;
-		onValueChange();
-	};
-
-	const changeJpegMode = (e: Event) => {
-		e.preventDefault();
-		e.stopPropagation();
-		onValueChange();
 	};
 </script>
 
@@ -102,49 +79,43 @@
 				<Select.Trigger class="mb-2 w-fit"><p class="pr-2">{resolution}</p></Select.Trigger>
 				<Select.Content>
 					<Select.Item value="320x240">320x240</Select.Item>
-					<Select.Item value="640x360">640x360 - Kibi Only</Select.Item>
 					<Select.Item value="640x480">640x480</Select.Item>
 					<Select.Item value="1280x720">1280x720</Select.Item>
 					<Select.Item value="1920x1080">1920x1080</Select.Item>
 				</Select.Content>
 			</Select.Root>
+			<Label class="mb-2" for="transform">Transform</Label>
 			<Select.Root type="single" bind:value={transform} {onValueChange}>
-				<Select.Trigger class="mb-2 w-fit"><p class="pr-2">{transform}</p></Select.Trigger>
+				<Select.Trigger id="transform" class="mb-2 w-fit">
+					<p class="pr-2">{transform}</p>
+				</Select.Trigger>
 				<Select.Content>
-					<Select.Item value="none">none</Select.Item>
-					<Select.Item value="clockwise">clockwise</Select.Item>
-					<Select.Item value="counterclockwise">counterclockwise</Select.Item>
-					<Select.Item value="rotate-180">rotate-180</Select.Item>
-					<Select.Item value="horizontal-flip">horizontal-flip</Select.Item>
-					<Select.Item value="vertical-flip">vertical-flip</Select.Item>
-					<Select.Item value="upper-left-diagonal">upper-left-diagonal</Select.Item>
-					<Select.Item value="upper-right-diagonal">upper-right-diagonal</Select.Item>
-					<Select.Item value="automatic">automatic</Select.Item>
+					<Select.Item value="none">None</Select.Item>
+					<Select.Item value="clockwise">Clockwise</Select.Item>
+					<Select.Item value="counterclockwise">Counterclockwise</Select.Item>
+					<Select.Item value="rotate-180">Rotate 180</Select.Item>
+					<Select.Item value="horizontal-flip">Horizontal Flip</Select.Item>
+					<Select.Item value="vertical-flip">Vertical Flip</Select.Item>
+					<Select.Item value="upper-left-diagonal">Upper Left Diagonal</Select.Item>
+					<Select.Item value="upper-right-diagonal">Upper Right Diagonal</Select.Item>
+					<Select.Item value="automatic">Automatic</Select.Item>
 				</Select.Content>
 			</Select.Root>
-			<form class="mb-2 flex gap-2">
-				{#if !recording}
-					<Input id="File name" bind:value={fileName} onsubmit={saveToFile} />
-					<Button
-						class="w-[60px]"
-						placeholder="File name"
-						variant="default"
-						size="icon"
-						type="button"
-						onclick={saveToFile}
-					>
-						Save
-					</Button>
-				{:else}
-					<Button onclick={stopRecording}>Stop Recording</Button>
-				{/if}
-			</form>
-
-			<Label class="mb-2" onclick={changeJpegMode}>
-				<Switch bind:checked={jpegMode} />
-				JPEG Mode (Kibi Only)
-			</Label>
-
+			<Label class="mb-2" for="redirect">Stream Redirect</Label>
+			<div class="mb-2">
+				<Select.Root type="single" bind:value={redirectName} {onValueChange}>
+					<Select.Trigger id="redirect" class="w-fit">
+						<p class="pr-2">{redirectName}</p>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="none">None</Select.Item>
+						<Select.Item value="video32">video32</Select.Item>
+						<Select.Item value="video33">video33</Select.Item>
+						<Select.Item value="video34">video34</Select.Item>
+						<Select.Item value="video35">video35</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			</div>
 			<div>
 				<Button size="sm" variant="outline" class="mr-2" onclick={() => onVideoRestart(device)}>
 					Restart
