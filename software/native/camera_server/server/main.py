@@ -9,7 +9,12 @@ import os
 from server.logger import log, enable_debug
 from server.v4l_monitor import start_v4l_monitor, stop_v4l_monitor
 from server.message_types import CameraEventType
-from server.gstreamer import start_stream, start_gst_thread, stop_stream
+from server.gstreamer import (
+    start_stream,
+    start_gst_thread,
+    stop_stream,
+    stop_all_streams,
+)
 
 group_description = CameraEventType(type="camera", action="group-description")
 
@@ -31,6 +36,7 @@ def main():
 
         # cleanup here
         stop_v4l_monitor()
+        stop_all_streams()
 
         log("Bye!")
         sys.exit(0)

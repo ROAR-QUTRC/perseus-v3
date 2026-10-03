@@ -12,9 +12,8 @@ BY_ID_DIR = "/dev/v4l/by-id"
 V4L_DIR = "/sys/class/video4linux"
 VIRTUAL_DEVICE_DIR = "/sys/devices/virtual/video4linux"
 VIRTUAL_DEVICE_COUNT = 4  # Number of virtual devices to create
-VIRTUAL_DEVICE_OFFSET = (
-    32  # Offset virtual devices numbers to avoid collisions when repluggin cameras
-)
+# Offset virtual devices numbers to avoid collisions when replugging cameras
+VIRTUAL_DEVICE_OFFSET = 64
 
 _devices = []
 _lock = threading.Lock()
@@ -195,7 +194,7 @@ def start_v4l_monitor(server_name: str, on_change=None) -> list[str]:
         monitor = pyudev.Monitor.from_netlink(_context)
         monitor.filter_by(subsystem="video4linux")
 
-        _create_virtual_devices(4)  # Create 4 virtual devices
+        _create_virtual_devices(VIRTUAL_DEVICE_COUNT)
         _fix_duplicate_device_names(server_name)
 
         _observer = pyudev.MonitorObserver(

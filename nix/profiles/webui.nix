@@ -1,18 +1,10 @@
 {
   pkgs,
   config,
-  lib,
   ...
 }:
-let
-  kernel-version = (lib.splitString "." pkgs.linux.version);
-  kernel-pkgs =
-    pkgs.linuxKernel.packages.${
-      "linux_" + (lib.head kernel-version) + "_" + (lib.elemAt kernel-version 1)
-    };
-in
+
 {
-  env.KERNEL_VERSION = "linux_" + (lib.head kernel-version) + "_" + (lib.elemAt kernel-version 1);
   packages =
     with pkgs;
     (
@@ -20,7 +12,6 @@ in
         libnice
         tsx
         v4l-utils
-        kernel-pkgs.v4l2loopback
       ]
       ++ flattenDerivationSet camera-server
       # TODO: select only the gst plugins that are needed see:
@@ -46,8 +37,6 @@ in
     };
   };
 
-  # enterShell = "cd ${config.env.DEVENV_ROOT}/software/web_ui";
-
   tasks = {
     "web-ui:init" = {
       exec = ''
@@ -63,20 +52,20 @@ in
   };
 
   scripts = {
-    "web-ui-dev" = {
+    "web_ui_dev" = {
       exec = ''
         cd ${config.env.DEVENV_ROOT}/software/web_ui
         vite dev --host
       '';
     };
-    "web-ui-build" = {
+    "web_ui_build" = {
       exec = ''
         cd ${config.env.DEVENV_ROOT}/software/web_ui
         vite build
         node ./src/server/server.js
       '';
     };
-    "web-ui" = {
+    "web_ui" = {
       exec = ''
         node ${config.env.DEVENV_ROOT}/software/web_ui/src/server/server.js
       '';
