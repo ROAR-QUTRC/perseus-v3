@@ -14,7 +14,7 @@ export const cameraSocket = (socket, server) => {
         signallingServer.stdout.pipe(process.stdout);
         signallingServer.stderr.pipe(process.stderr);
       }
-      server.emit("camera-event", data);
+      server.emit("camera_event", data);
     }
   });
 };

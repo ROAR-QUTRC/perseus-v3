@@ -47,18 +47,18 @@
 		type: 'camera';
 		action:
 			| 'group-description'
-			| 'kill'
+			| 'kill-stream'
 			| 'request-groups'
 			| 'request-stream'
 			| 'group-terminated'
 			| 'device-disconnect';
-		data: {
-			devices?: string[];
+		target?: string;
+		devices?: Array<string>;
+		data?: {
 			resolution?: { width: number; height: number };
 			transform?: videoTransformType;
 			forceRestart?: boolean;
-			file?: string;
-			convertFromJpeg?: boolean;
+			redirect?: string;
 		};
 	}
 
@@ -69,8 +69,7 @@
 			height: number;
 		};
 		transform: videoTransformType;
-		file: string | null;
-		convertFromJpeg: boolean;
+		redirect: string;
 	}
 </script>
 
@@ -89,26 +88,27 @@
 
 	let socket: Socket = io();
 
-	let devices = $state<string[]>([]);
+	// The string id is from /dev/v4l/by-id
+	let devicesNames = $state<Array<string>>([]);
 	let config = $derived<Record<string, ConfigType>>(
 		JSON.parse(settings.groups.setupCamera.config.value!) || {}
 	);
 
-	// Do not modify without updating in the camera server aswell
-	const formatDeviceName = (device: string): string =>
-		device.replace('-video-index0', '').replace('usb-', '').replaceAll('_', ' ');
-
 	const updateAvailableDevices = (device: string, addingNewDevice: boolean) => {
-		if (addingNewDevice && !devices.includes(device)) {
-			devices.push(device);
+		if (addingNewDevice && !devicesNames.includes(device)) {
+			devicesNames.push(device);
 			if (!settings.groups.setupCamera.device.options)
 				settings.groups.setupCamera.device.options = [];
 			settings.groups.setupCamera.device.options.push({
 				value: device,
-				label: formatDeviceName(device)
+				label: device
+					.replace('usb-', '')
+					.replace('-video-index0', '')
+					.replaceAll('-', ' ')
+					.replaceAll('_', ' ')
 			});
-		} else if (!addingNewDevice && devices.includes(device)) {
-			devices = devices.filter((d) => d !== device);
+		} else if (!addingNewDevice && devicesNames.includes(device)) {
+			devicesNames = devicesNames.filter((d) => d !== device);
 			if (settings.groups.setupCamera.device.options) {
 				settings.groups.setupCamera.device.options =
 					settings.groups.setupCamera.device.options.filter((option) => option.value !== device);
@@ -144,25 +144,26 @@
 	});
 
 	// Handle incoming camera events
-	socket.on('camera-event', (event: CameraEventType) => {
+	socket.on('camera_event', (event: CameraEventType) => {
 		switch (event.action) {
 			case 'group-description':
-				event.data!.devices?.forEach((device) => {
+				// update ui options
+				(event.devices ?? []).forEach((device) => {
 					updateAvailableDevices(device, true);
 				});
 
 				// request streams for cameras in config
+				console.log('Requesting streams:', config, event);
 				Object.keys(config).forEach((device) => {
-					if (event.data.devices?.includes(device)) {
+					if (event.devices?.some((d) => device === d)) {
 						socket.send({
 							type: 'camera',
 							action: 'request-stream',
+							target: device,
 							data: {
-								devices: [device],
 								resolution: config[device].resolution,
 								transform: config[device].transform,
-								file: config[device].file,
-								convertFromJpeg: config[device].convertFromJpeg
+								redirect: config[device].redirect
 							}
 						} as CameraEventType);
 					}
@@ -170,11 +171,13 @@
 				break;
 			case 'device-disconnect':
 				// Remove device from the list
-				updateAvailableDevices(event.data.devices![0], false);
+				if (event.target) {
+					updateAvailableDevices(event.target, false);
+				}
 				break;
 			case 'group-terminated':
 				// remove all peer connections for this group
-				event.data.devices?.forEach((device) => {
+				event.devices?.forEach((device) => {
 					if (peerConnections[device]) {
 						peerConnections[device].connection?.close();
 						peerConnections[device] = {
@@ -185,13 +188,12 @@
 							track: null
 						};
 					}
+					// Remove device from the list
+					updateAvailableDevices(device, false);
 				});
-				// Remove device from the list
-				updateAvailableDevices(event.data.devices![0], false);
-				break;
-			case 'kill':
 				break;
 			// Ignore self sent events
+			case 'kill-stream':
 			case 'request-groups':
 			case 'request-stream':
 				break;
@@ -217,8 +219,7 @@
 				name: values.name.value,
 				resolution: { width: 320, height: 240 }, // Default resolution
 				transform: 'none', // Default transform
-				file: null,
-				convertFromJpeg: false
+				redirect: 'none' // Default redirect
 			};
 
 			// Update settings config field
@@ -228,12 +229,11 @@
 			socket.send({
 				type: 'camera',
 				action: 'request-stream',
+				target: values.device.value,
 				data: {
-					devices: [values.device.value],
 					resolution: config[values.device.value].resolution,
 					transform: config[values.device.value].transform,
-					file: config[values.device.value].file,
-					convertFromJpeg: config[values.device.value].convertFromJpeg
+					redirect: config[values.device.value].redirect
 				}
 			} as CameraEventType);
 
@@ -247,7 +247,7 @@
 		};
 
 		// send initial request for camera groups
-		socket.send({ type: 'camera', action: 'request-groups' } as CameraEventType);
+		socket.send({ type: 'camera', action: 'request-groups', data: {} } as CameraEventType);
 
 		connectToSignallingServer(window.location.hostname);
 		return () => {
@@ -269,6 +269,14 @@
 	// -------------------------------------
 
 	const onVideoClose = (device: string) => {
+		// Tell server to kill the stream
+		socket.send({
+			type: 'camera',
+			action: 'kill-stream',
+			target: device
+		} as CameraEventType);
+
+		// Close WebRTC connection and remove from peerConnections
 		if (peerConnections[device]) {
 			peerConnections[device].connection?.close();
 			peerConnections[device].track = null;
@@ -292,12 +300,11 @@
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
+			target: device,
 			data: {
-				devices: [device],
 				resolution: newConfig.resolution,
 				transform: newConfig.transform,
-				file: newConfig.file,
-				convertFromJpeg: newConfig.convertFromJpeg
+				redirect: newConfig.redirect
 			}
 		} as CameraEventType);
 	};
@@ -306,12 +313,11 @@
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
+			target: device,
 			data: {
-				devices: [device],
 				resolution: config[device].resolution,
 				transform: config[device].transform,
-				file: config[device].file,
-				convertFromJpeg: config[device].convertFromJpeg,
+				redirect: config[device].redirect,
 				forceRestart: true
 			}
 		} as CameraEventType);
@@ -332,7 +338,9 @@
 	{/if}
 	<div class="flex flex-row flex-wrap">
 		{#each Object.keys(peerConnections) as peer}
-			<div class="relative m-2 min-h-[320px] min-w-[480px] overflow-hidden rounded-lg border">
+			<div
+				class={`relative m-2 min-h-[240px] min-w-[320px] h-[${config[peer]?.resolution?.height || 320}px] w-[${config[peer]?.resolution?.width || 480}px] overflow-hidden rounded-lg border`}
+			>
 				<VideoWrapper
 					device={peer}
 					config={config[peer]}
