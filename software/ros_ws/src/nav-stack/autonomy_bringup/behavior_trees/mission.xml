@@ -17,14 +17,14 @@
     construction_point       PoseStamped
     excavation_service       arena_server's /arena/request_excavation_waypoint
     construction_service     arena_server's /arena/request_construction_waypoint
-    cycles_done              int, 0 -- this tree counts it up
+    cycles_done              int, 0  this tree counts it up
     prepare_bucket           bool: run PrepareBucket before the task
     bucket_action            the bucket controller's FollowJointTrajectory action
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
     bucket_travel_tilt_deg
     bucket_travel_jaw_deg
     bucket_move_s            how long each PrepareBucket move takes, seconds
-    phase                    string -- this tree writes it; the server publishes both on
+    phase                    string this tree writes it; the server publishes both on
                              /mission/status as they change
 
   A cycle is excavation -> construction -> back to excavation, and it is counted on
@@ -33,10 +33,10 @@
 
   At construction, FullAutonomyCycle dumps the load with the DumpBucket subtree below.
 
-  PLACEHOLDER: the Sleep at excavation in FullAutonomyCycle stands in for the
+  <!PLACEHOLDER: the Sleep at excavation in FullAutonomyCycle stands in for the
   autonomous dig, which does not exist yet. Replace it with the real action node when it
-  does -- nothing else in the tree needs to change.
--->
+  does exist, and nothing else in the tree needs to change.--> 
+
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
 
   <BehaviorTree ID="MainTree">
