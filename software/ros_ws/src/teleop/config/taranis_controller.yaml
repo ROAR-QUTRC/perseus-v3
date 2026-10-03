@@ -5,7 +5,7 @@ generic_controller:
     timeout_ns: 150000000
     drive:
       forward:
-        turbo: -2.5
+        turbo: -1.2
         axis: 0
         scaling: -0.7
         enable:
@@ -17,7 +17,7 @@ generic_controller:
           is_less_than: true
           threshold: -0.2
       turn:
-        turbo: 2.5
+        turbo: 1.5
         axis: 2
         scaling: 1.0
         enable:
