@@ -336,3 +336,11 @@ def stop_stream(event: CameraEventType):
         if instance.pipeline is not None:
             instance.pipeline.set_state(Gst.State.NULL)
         del gst_instances[device]
+
+
+def stop_all_streams():
+    with gst_lock:
+        for device, instance in list(gst_instances.items()):
+            if instance.pipeline is not None:
+                instance.pipeline.set_state(Gst.State.NULL)
+            del gst_instances[device]
