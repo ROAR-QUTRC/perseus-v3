@@ -49,6 +49,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     pluginlib
     geometry_msgs
     nav_msgs
+    std_msgs
     std_srvs
     tf2
     tf2_ros

@@ -38,6 +38,21 @@ namespace rviz_plugins
         constexpr int SOURCE_MAP = 0;
         constexpr int SOURCE_ARENA = 1;
 
+        // Controller dropdown: label shown, and the controller_server plugin name the
+        // behaviour tree's ControllerSelector expects (navigation.yaml's
+        // controller_plugins).
+        struct ControllerChoice
+        {
+            const char* label;
+            const char* plugin;
+        };
+        const ControllerChoice CONTROLLERS[] = {
+            {"RPP (Regulated Pure Pursuit)", "FollowPath"},
+            {"DWB", "DWB"},
+        };
+        constexpr int CONTROLLER_RPP = 0;
+        const QString CONTROLLER_TOPIC = "/controller_selector";
+
         // The same two status colours the original panel used.
         const QString GOOD = "#2e8b2e";
         const QString BAD = "#b32424";
@@ -112,6 +127,17 @@ namespace rviz_plugins
             "tilt -20, jaw 0), which keeps the bucket out of the lidar's and camera's\n"
             "view of the ground ahead. Needs the bucket controller running.");
 
+        _controller_combo = new QComboBox();
+        for (const auto& choice : CONTROLLERS)
+            _controller_combo->addItem(choice.label, QString(choice.plugin));
+        _controller_combo->setToolTip(
+            "Which controller follows the planned path. Applied as soon as it is picked\n"
+            "(published latched on /controller_selector, so it also survives a navigation\n"
+            "restart); locked while a mission runs.\n"
+            "RPP: pivots to the path heading, then pure pursuit; forward only.\n"
+            "DWB: samples trajectories against the rover's full footprint; may reverse\n"
+            "briefly to back out of a zone.");
+
         _excavation_row = _build_zone_row();
         _construction_row = _build_zone_row();
         _excavation_widget = _excavation_row.source->parentWidget();
@@ -137,6 +163,7 @@ namespace rviz_plugins
         mission_form->addRow("Task", _task_combo);
         mission_form->addRow("Run", _run_widget);
         mission_form->addRow("Bucket", _prepare_bucket_check);
+        mission_form->addRow("Controller", _controller_combo);
         _task_label = mission_form->labelForField(_task_combo);
         _run_label = mission_form->labelForField(_run_widget);
 
@@ -215,6 +242,8 @@ namespace rviz_plugins
             connect(row->source, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                     &MissionControlPanel::_on_source_changed);
         }
+        connect(_controller_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                &MissionControlPanel::_on_controller_changed);
         connect(_excavation_row.pick_button, &QPushButton::clicked, this,
                 &MissionControlPanel::_on_pick_excavation);
         connect(_construction_row.pick_button, &QPushButton::clicked, this,
@@ -289,11 +318,16 @@ namespace rviz_plugins
         // Latched so the markers survive RViz reopening the display.
         _marker_pub = _node->create_publisher<visualization_msgs::msg::MarkerArray>(
             "/mission/waypoint_markers", latched);
+        // Latched, matching nav2's ControllerSelector subscription, so bt_navigator
+        // picks up the panel's choice even when navigation starts after RViz.
+        _controller_pub = _node->create_publisher<std_msgs::msg::String>(
+            CONTROLLER_TOPIC.toStdString(), latched);
 
         _poll_timer = new QTimer(this);
         connect(_poll_timer, &QTimer::timeout, this, &MissionControlPanel::_poll);
         _poll_timer->start(POLL_PERIOD_MS);
         _publish_markers();
+        _publish_controller();
     }
 
     void MissionControlPanel::_poll()
@@ -438,6 +472,22 @@ namespace rviz_plugins
         _publish_markers();
     }
 
+    void MissionControlPanel::_on_controller_changed()
+    {
+        _publish_controller();
+        if (_controller_pub)
+            _set_message("Controller: " + _controller_combo->currentText());
+    }
+
+    void MissionControlPanel::_publish_controller()
+    {
+        if (!_controller_pub)
+            return;
+        std_msgs::msg::String msg;
+        msg.data = _controller_combo->currentData().toString().toStdString();
+        _controller_pub->publish(msg);
+    }
+
     void MissionControlPanel::_activate_tool(const QString& class_id)
     {
         auto* tools = getDisplayContext()->getToolManager();
@@ -518,7 +568,8 @@ namespace rviz_plugins
         for (QWidget* widget :
              {static_cast<QWidget*>(_mode_combo), static_cast<QWidget*>(_task_combo),
               static_cast<QWidget*>(_cycles_spin), static_cast<QWidget*>(_pause_spin),
-              static_cast<QWidget*>(_prepare_bucket_check)})
+              static_cast<QWidget*>(_prepare_bucket_check),
+              static_cast<QWidget*>(_controller_combo)})
         {
             widget->setEnabled(!running);
         }
@@ -731,6 +782,7 @@ namespace rviz_plugins
         config.mapSetValue("Cycles", _cycles_spin->value());
         config.mapSetValue("PauseS", _pause_spin->value());
         config.mapSetValue("PrepareBucket", _prepare_bucket_check->isChecked());
+        config.mapSetValue("Controller", _controller_combo->currentData().toString());
         const auto save_zone = [&](const QString& prefix, const ZoneRow& row,
                                    const ZonePoint& point)
         {
@@ -767,6 +819,13 @@ namespace rviz_plugins
         bool prepare_bucket = true;
         if (config.mapGetBool("PrepareBucket", &prepare_bucket))
             _prepare_bucket_check->setChecked(prepare_bucket);
+        if (config.mapGetString("Controller", &text))
+        {
+            // An unknown name (e.g. a config saved with a since-removed choice) falls
+            // back to RPP, the behaviour tree's own default.
+            const int index = _controller_combo->findData(text);
+            _controller_combo->setCurrentIndex(index >= 0 ? index : CONTROLLER_RPP);
+        }
 
         const auto load_zone = [&](const QString& prefix, ZoneRow& row, ZonePoint& point)
         {
