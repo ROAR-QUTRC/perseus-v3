@@ -6,10 +6,10 @@ from time import sleep
 from pydantic import ValidationError
 import os
 
-from logger import log, enable_debug
-from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
-from message_types import CameraEventType
-from gstreamer import start_stream, start_gst_thread, stop_stream
+from server.logger import log, enable_debug
+from server.v4l_monitor import start_v4l_monitor, stop_v4l_monitor
+from server.message_types import CameraEventType
+from server.gstreamer import start_stream, start_gst_thread, stop_stream
 
 group_description = CameraEventType(type="camera", action="group-description")
 
@@ -50,7 +50,9 @@ def main():
     port = 3000
     server_name = "cam_server"
 
-    with open("config.json", "r") as f:
+    with open(
+        f"{os.environ['DEVENV_ROOT']}/software/native/camera_server/config.json", "r"
+    ) as f:
         config = json.load(f)
         server_name = config.get("name", "cam_server")
         if "hostname" in config:

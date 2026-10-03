@@ -7,6 +7,7 @@ if lsmod | grep -q '^v4l2loopback'; then
   exit 0
 fi
 
+# shellcheck disable=SC1091
 . /etc/os-release
 
 case "$ID" in

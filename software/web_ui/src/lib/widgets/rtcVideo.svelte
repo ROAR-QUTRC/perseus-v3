@@ -338,7 +338,9 @@
 	{/if}
 	<div class="flex flex-row flex-wrap">
 		{#each Object.keys(peerConnections) as peer}
-			<div class="relative m-2 min-h-[320px] min-w-[480px] overflow-hidden rounded-lg border">
+			<div
+				class={`relative m-2 min-h-[240px] min-w-[320px] h-[${config[peer]?.resolution?.height || 320}px] w-[${config[peer]?.resolution?.width || 480}px] overflow-hidden rounded-lg border`}
+			>
 				<VideoWrapper
 					device={peer}
 					config={config[peer]}

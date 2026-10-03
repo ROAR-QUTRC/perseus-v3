@@ -8,7 +8,7 @@ setup(
     install_requires=[],
     entry_points={
         "console_scripts": [
-            "camera_server=src.main:main",
+            "camera_server=server.main:main",
         ],
     },
 )
