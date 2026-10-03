@@ -111,11 +111,12 @@ mis-zeroed encoder, so fix that before going further.
 
 ## Phase 2: zero and direction (read-only)
 
-Run the stack in calibration mode, which sends no commands. Start teleop alongside
-it, with the gamepad.
+Run the stack in calibration mode, which sends no commands of its own.
+`controller:=teleop` starts the gamepad teleop (`bucket_driver`) alongside it;
+use `controller:=none` to only read.
 
 ```bash
-ros2 launch payloads bucket.launch.py controller:=none
+ros2 launch payloads bucket.launch.py controller:=teleop
 ros2 topic echo /payloads/joint_states_deg
 ```
 
@@ -238,7 +239,7 @@ the encoder, inside the firmware.
 
 For tilt and then jaws:
 
-1. Run calibration mode (`controller:=none`) and teleop, and watch
+1. Run calibration mode with teleop (`controller:=teleop`), and watch
    `candump -L can0`.
 2. Move the axis slowly with teleop. In `candump`, compare the sign of the bank's
    `SET_SPEED` frame (`02000102` tilt, `02000202` jaw) with the change in the

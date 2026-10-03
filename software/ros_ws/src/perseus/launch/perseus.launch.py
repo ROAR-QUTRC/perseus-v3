@@ -64,6 +64,7 @@ def generate_launch_description():
             default_value="bucket_trajectory_controller",
             choices=[
                 "none",
+                "teleop",
                 "bucket_trajectory_controller",
                 "bucket_lift_controller",
                 "bucket_tilt_controller",
@@ -72,8 +73,9 @@ def generate_launch_description():
             description=(
                 "payload:=bucket only. Naming a controller commands the bucket "
                 "over ros2_control and drops teleop, since the firmware follows "
-                "whichever command it received last. 'none' reads the encoders "
-                "for the model and leaves the bucket on gamepad teleop"
+                "whichever command it received last. 'none' only reads the "
+                "encoders for the model, and 'teleop' does the same and also "
+                "drives the bucket from the gamepad"
             ),
         ),
         # The two low-speed stall mitigations, both off by default so the rover
@@ -240,25 +242,6 @@ def generate_launch_description():
                 output="both",
             ),
         ]
-        # Calibration mode claims no command interface, so teleop can run
-        # alongside it. With a controller active it must not.
-        if bucket_controller == "none":
-            actions.append(
-                IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(
-                        [
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("payloads"),
-                                    "launch",
-                                    "bucket_teleop.launch.py",
-                                ]
-                            )
-                        ]
-                    ),
-                    launch_arguments={"can_bus": can_bus}.items(),
-                )
-            )
         return actions
 
     launch_files = [

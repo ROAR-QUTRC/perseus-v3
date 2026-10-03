@@ -6,13 +6,20 @@ over CAN with SET_POSITION, letting the board's own PID servo to each setpoint.
 Deliberately kept separate from bucket_teleop.launch.py: the firmware picks its
 control mode from whichever command it received last, so if both stacks
 transmit at once each bank flips between open-loop speed and closed-loop
-position every frame. Launch one or the other, never both.
+position every frame. controller:=teleop is the one safe way to combine them:
+no command controller is spawned, so the hardware only reads the encoders and
+bucket_teleop.launch.py is included to drive the bucket from the gamepad.
 """
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    RegisterEventHandler,
+)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     Command,
     LaunchConfiguration,
@@ -49,8 +56,9 @@ def generate_launch_description():
             description=(
                 "Command controller to spawn: bucket_trajectory_controller (all "
                 "axes), bucket_lift_controller, bucket_tilt_controller or "
-                "bucket_jaw_controller (one axis each), or none (read-only "
-                "calibration mode)"
+                "bucket_jaw_controller (one axis each), none (read-only "
+                "calibration mode), or teleop (read-only plus the gamepad "
+                "bucket_driver)"
             ),
         ),
     ]
@@ -119,6 +127,7 @@ def generate_launch_description():
 
     # controller:=none is calibration mode: nothing claims a command interface, so
     # the hardware only reads and bucket_driver teleop can move the bucket.
+    # controller:=teleop is the same, with that teleop started here too.
     bucket_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -128,7 +137,19 @@ def generate_launch_description():
             "--controller-manager",
             f"/{NAMESPACE}/controller_manager",
         ],
-        condition=IfCondition(PythonExpression(["'", controller, "' != 'none'"])),
+        condition=IfCondition(
+            PythonExpression(["'", controller, "' not in ('none', 'teleop')"])
+        ),
+    )
+
+    bucket_teleop = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("payloads"), "launch", "bucket_teleop.launch.py"]
+            )
+        ),
+        launch_arguments={"can_bus": can_interface}.items(),
+        condition=IfCondition(PythonExpression(["'", controller, "' == 'teleop'"])),
     )
 
     joint_states_deg = Node(
@@ -153,6 +174,7 @@ def generate_launch_description():
         control_node,
         joint_state_broadcaster_spawner,
         joint_states_deg,
+        bucket_teleop,
     ]
 
     return LaunchDescription(arguments + nodes + [delay_controller_after_broadcaster])
