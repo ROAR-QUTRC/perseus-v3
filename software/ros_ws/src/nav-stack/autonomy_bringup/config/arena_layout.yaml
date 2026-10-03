@@ -136,9 +136,15 @@ arena_server:
     # means the rover then reverses and/or drives forward on the spot, which a
     # single clear cell says nothing about - a cell can be free with an
     # obstacle immediately beside it. 0 disables this, falling back to the
-    # single-cell check. construction_zone gets no equivalent parameter: it is
-    # a drop-off point, not somewhere the rover manoeuvres back and forth.
+    # single-cell check.
     excavation_clearance_radius_m: 1.3
+    # The same check for construction_zone. It is only a drop-off point, but the
+    # rover turns around there every cycle, and its bucket and rear axle sweep
+    # ~0.93 m around base_link in a pivot. 0.6 m of cells at or under
+    # waypoint_max_cost keeps any obstacle edge ~1.35 m away (cost 50 is ~0.75 m
+    # out from an obstacle at global_traversability's inflation settings). Smaller
+    # than excavation's because construction_zone is only 2.05 x 3.41 m.
+    construction_clearance_radius_m: 0.6
     # Whether an unmapped cell (costmap value -1, or simply outside the area
     # the costmap currently covers) is treated as free rather than rejected -
     # both for a candidate's own cell and everywhere inside

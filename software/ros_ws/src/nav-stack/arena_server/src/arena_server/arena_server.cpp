@@ -53,6 +53,8 @@ namespace arena_server
             declare_parameter<double>("construction_wall_standoff_m", 0.3);
         _excavation_clearance_radius_m =
             declare_parameter<double>("excavation_clearance_radius_m", 1.0);
+        _construction_clearance_radius_m =
+            declare_parameter<double>("construction_clearance_radius_m", 0.0);
         _waypoint_unknown_is_free =
             declare_parameter<bool>("waypoint_unknown_is_free", false);
 
@@ -965,7 +967,8 @@ namespace arena_server
         std::string error;
         response->success = _find_safe_point(
             "construction_zone", _construction_avoid_zone_name,
-            _construction_wall_standoff_m, 0.0, response->waypoint, response->cost,
+            _construction_wall_standoff_m, _construction_clearance_radius_m,
+            response->waypoint, response->cost,
             response->costmap_age_s, error);
         response->message = error;
         if (!response->success)

@@ -259,10 +259,15 @@ namespace arena_server
         // just the point's own cell - because digging there means the rover then
         // reverses and/or drives forward on the spot, which a single clear cell
         // says nothing about: a cell can be free with an obstacle immediately
-        // beside it. 0 disables this (falls back to the single-cell check), which
-        // is what construction_zone gets - it is a drop-off point, not somewhere
-        // the rover manoeuvres back and forth from.
+        // beside it. 0 disables this (falls back to the single-cell check).
         double _excavation_clearance_radius_m{1.0};
+        // The same check for the construction_zone waypoint. It is only a drop-off
+        // point, but every cycle the rover still has to turn around there to head
+        // back, and base_link is not the middle of the rover: the bucket and rear
+        // axle sweep ~0.93 m around it in a pivot. In sim, a construction waypoint
+        // 1.07 m from a boulder trapped the rover with its bucket on the rock.
+        // Default 0 keeps the old single-cell behaviour.
+        double _construction_clearance_radius_m{0.0};
         // Whether an unmapped cell (costmap value -1, or simply outside the area
         // the costmap currently covers) is treated as free rather than rejected.
         //
