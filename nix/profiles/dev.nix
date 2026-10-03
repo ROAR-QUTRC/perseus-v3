@@ -28,6 +28,21 @@ in
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
     ${ros_ws.env.shellHook}
 
+    # The Nix cc wrapper only injects NIX_CFLAGS_COMPILE when it actually
+    # runs the compiler, so anything that inspects compile commands without
+    # executing them (language servers, linters) cannot see those include
+    # paths. Mirror them into CPATH, which clang-based tools read natively,
+    # so any editor opened in this shell works without per-project
+    # configuration.
+    _prev=
+    for _arg in ''${NIX_CFLAGS_COMPILE-}; do
+      if [ "$_prev" = -isystem ] || [ "$_prev" = -I ]; then
+        export CPATH="''${CPATH:+$CPATH:}$_arg"
+      fi
+      _prev="$_arg"
+    done
+    unset _prev _arg
+
     echo -e "\e[38;5;208m______                                    _____ ";
     echo -e "| ___ \\                                  |____ |";
     echo -e "| |_/ /__ _ __ ___  ___ _   _ ___  __   __   / /";

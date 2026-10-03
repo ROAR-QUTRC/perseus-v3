@@ -1,0 +1,5 @@
+# Point the language server at the workspace-level compilation database
+# that colcon writes (see colcon_defaults.yaml). Paths are relative to
+# this file.
+[project]
+compile_commands_paths = ["build/compile_commands.json"]
