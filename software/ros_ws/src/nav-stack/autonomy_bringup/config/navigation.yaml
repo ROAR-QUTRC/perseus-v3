@@ -466,9 +466,33 @@ controller_server:
       # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
       # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
-      plugin: "dwb_core::DWBLocalPlanner"
+      #
+      # Wrapped in RotationShimController. Every zone leg starts with the path behind the
+      # rover, and DWB alone dithered there: in sim the best left and right pivots scored
+      # 61.2 vs 63.3, swapping as the rover turned, so it flipped direction for 20 s until the
+      # progress checker gave up (Oscillation only forbids a flip within 0.2 rad). Above
+      # angular_dist_threshold the shim makes ONE committed, footprint-checked pivot toward
+      # the path, then hands over to DWB. The shim passes its own name to DWB, so the DWB.*
+      # parameters below are unchanged and /controller_selector still says "DWB".
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      angular_dist_threshold: 0.785
+      forward_sampling_distance: 0.5
+      # max_vel_theta. RPP pivots at 0.175 (see FollowPath), which is most of its slow time;
+      # 0.28 is still well above the ~0.15 rad/s stall.
+      rotate_to_heading_angular_vel: 0.28
+      # Matches acc_lim_theta below, so the pivot ramps as gently as DWB's own turns.
+      max_angular_accel: 1.0
+      simulate_ahead_time: 1.0
+      # The same dither happened at the goal: inside xy_goal_tolerance DWB's RotateToGoal
+      # left/right pivots scored 68.6 vs 66.4 and swapped as it turned. true hands the final
+      # turn to the shim too, one committed pivot to the goal's heading.
+      rotate_to_goal_heading: true
       debug_trajectory_details: true
-      min_vel_x: 0.0
+      # Negative: DWB may reverse to line up with the path or goal (e.g. backing out of a
+      # zone instead of pivoting on the spot), at half cruise speed because there is less
+      # sensing behind. PreferForward below keeps reversing the exception, not the habit.
+      min_vel_x: -0.15
       min_vel_y: 0.0
       # y is zero throughout: the rover cannot strafe. Limits match safe_speed.yaml.
       max_vel_x: 0.28
@@ -480,15 +504,19 @@ controller_server:
       min_speed_theta: 0.15
       acc_lim_x: 1.0
       acc_lim_y: 0.0
-      acc_lim_theta: 3.2
+      # Smoothness: 1.0 rad/s^2 caps the angular-velocity window DWB samples each 0.1 s cycle
+      # to +-0.1 rad/s around the current rate. At 3.2 it could jump full-left to full-right
+      # between cycles, which is what made it weave on straight legs.
+      acc_lim_theta: 1.0
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -3.2
+      decel_lim_theta: -1.0
       # vy_samples 1 because there is no lateral motion to sample.
       vx_samples: 10
       vy_samples: 1
       vtheta_samples: 20
-      sim_time: 1.5
+      # Longer rollouts score where the rover is heading, not just the next 0.4 m.
+      sim_time: 2.0
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
@@ -497,14 +525,35 @@ controller_server:
       trans_stopped_velocity: 0.07
       short_circuit_trajectory_evaluation: true
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      # BaseObstacle is deliberately near-zero: the costmap's own inflation already encodes
-      # obstacle cost, so scoring it again double-counts. The Path/Goal critics dominate.
-      BaseObstacle.scale: 0.02
+      critics: ["RotateToGoal", "Oscillation", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PreferForward"]
+      # Penalises negative vx (penalty) and creeping without turning (strafe_*); its
+      # theta_scale term is set to 0 so it does not also tax ordinary turning.
+      # 10: reversing is for backing out at zones, not cruising -- the live terrain grid
+      # has no coverage behind the rover.
+      PreferForward.scale: 10.0
+      PreferForward.penalty: 1.0
+      PreferForward.strafe_x: 0.05
+      PreferForward.strafe_theta: 0.15
+      PreferForward.theta_scale: 0.0
+      # ObstacleFootprint, not BaseObstacle: BaseObstacle only checks the cell under
+      # base_link, and this rover extends 0.78 m behind and 0.90 m ahead of it.
+      # Rejects any trajectory that puts the footprint on a lethal cell and otherwise scores the
+      # worst cell the footprint touches. Was 0.02 on the theory that the costmap's inflation
+      # already encodes obstacle cost -- but nothing else in DWB scores it, so at 0.02 a near-
+      # obstacle cell cost ~5 against the path critics' ~40 and DWB cut through margins.
+      # 0.1. Safety is the footprint REJECTING lethal cells (plus footprint_padding); this
+      # scale only sets how much DWB prefers clearance. At 0.4 a goal 1.4 m from the north wall
+      # was unreachable: with base_link 0.4 m short, the bucket (0.9 m ahead) was already in
+      # the wall's 90-99 inflation band, every forward step cost more than it gained, and it
+      # stalled until the progress checker fired. (0.4 had been raised for boulder_3 grazes,
+      # which were the rock being unmapped, not this weight.)
+      ObstacleFootprint.scale: 0.1
       PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
+      # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
+      # tiny heading errors scored as nothing until the rover was already off-line.
+      PathAlign.forward_point_distance: 0.325
       GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
+      GoalAlign.forward_point_distance: 0.325
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0
