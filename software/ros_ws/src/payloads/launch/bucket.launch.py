@@ -99,10 +99,10 @@ def generate_launch_description():
         executable="robot_state_publisher",
         namespace=NAMESPACE,
         parameters=[robot_description],
-        # Only here to feed controller_manager its robot_description. Its TF is
-        # kept off /tf so it cannot fight the main robot_state_publisher, which
-        # owns the bucket frames.
-        remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
+        # Also publishes the bucket frames on the global /tf and /tf_static, so the
+        # standalone bucket shows up in RViz without the rest of the rover. Under
+        # perseus.launch.py the main robot_state_publisher publishes the same
+        # chassis -> bucket frames as well.
         output="both",
     )
 
