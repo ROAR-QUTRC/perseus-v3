@@ -85,7 +85,7 @@ global_traversability:
     # 0.04 speckled the whole driven area. The additions at 0.05 sit on rock edges and walls.
     # 0.05 alone is not safe: sand noise and wheel ruts put 520 cells under the path. It only
     # works together with log_odds_hit below, which rejects that noise because it flickers.
-    max_height_above_ground_m: 0.05
+    max_height_above_ground_m: 0.08
     max_step_down_m: 0.15
     obstacle_height_cap_m: 1.0
     ground_margin_m: 0.10
@@ -120,8 +120,12 @@ global_traversability:
     treat_unknown_as_obstacle: false
     # Inflation, same semantics as nav2's InflationLayer. nav2 does NOT inflate on top of
     # this -- neither costmap loads an inflation layer.
-    robot_radius_m: 0.5
-    inflation_radius_m: 0.8
+    # 0.6, not 0.5: the rover is 0.87 m wide (wheel edges at +-0.435 m), so 0.5 left a
+    # planned path ~0.07 m from scraping a rock beside it, less one 0.1 m cell -- in sim it
+    # side-swiped and then reversed onto boulder_3. 0.6 is half-width plus ~0.17 m. Fore/aft
+    # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
+    robot_radius_m: 0.6
+    inflation_radius_m: 0.75
     cost_scaling_factor: 3.2
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
@@ -245,8 +249,8 @@ local_traversability:
     treat_unknown_as_obstacle: false
     # Same inflation semantics and the same values as the global node, so a cell does not
     # change cost depending on which of the two saw it.
-    robot_radius_m: 0.5
-    inflation_radius_m: 0.8
+    robot_radius_m: 0.6
+    inflation_radius_m: 0.87
     cost_scaling_factor: 3.2
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
