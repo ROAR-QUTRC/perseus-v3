@@ -35,7 +35,7 @@ using namespace hi_can;
 using namespace hi_can::addressing;
 using namespace hi_can::addressing::excavation;
 
-static const char* const TAG = "main"; // For ESP_LOGing
+static const char* const TAG = "main";  // For ESP_LOGing
 
 TwaiInterface* can_interface = nullptr;
 std::optional<PacketManager> packet_manager;
@@ -166,7 +166,7 @@ void loop()  // Add timeout for receiving velocity
     motor_bank_tilt->monitor_and_move();
 
     // Bus-off recovery first, so a restarted driver is running before the transmit pass.
-    can_interface->handle(); // This is the ESP's specific handler with twai, error handling and recovery
+    can_interface->handle();  // This is the ESP's specific handler with twai, error handling and recovery
     try
     {
         packet_manager->handle();
