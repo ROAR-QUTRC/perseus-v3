@@ -64,6 +64,6 @@ enabled = false
 
 # Mozz's machine
 [latitude]
-interface = "en01"
+interface = "eno1"
 ip = "192.168.2.161"
 enabled = true
