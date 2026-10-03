@@ -265,7 +265,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     ):
         log("Elements could not be linked.", "ERROR")
         return
-    
+
     # Configure plugins
     source.set_property("device", f"{BY_ID_DIR}/{device}")
     caps_filter.set_property("caps", caps)
@@ -289,7 +289,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         if not flip.link(webrtc_sink):
             log("Elements could not be linked.", "ERROR")
             return
-        
+
     webrtc_sink.set_property("stun-server", "NULL")
     # library typing is wrong we get a tuple here
     meta, _ = cast(
