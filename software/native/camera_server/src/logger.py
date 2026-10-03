@@ -17,18 +17,18 @@ def enable_debug():
     show_debug_logs = True
 
 
-log_level_type = Literal["DEBUG", "INFO", "WARN", "ERROR"]
+log_level_type = Literal["DEBUG", "OK", "WARN", "ERROR"]
 
 
-def log(values: object, level: log_level_type = "INFO"):
+def log(values: object, level: log_level_type = "OK"):
     if level == "DEBUG" and not show_debug_logs:
         return  # Skip debug messages if debug logging is not enabled
     color = BLUE
     match level:
         case "DEBUG":
-            color = GREEN
-        case "INFO":
             color = BLUE
+        case "OK":
+            color = GREEN
         case "WARN":
             color = YELLOW
         case "ERROR":

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import os
 from typing import Optional, cast
 
 from message_types import CameraEventType, VideoTransformType
@@ -7,9 +6,7 @@ from logger import log, log_level_type
 import gi
 import threading
 
-from v4l_monitor import BY_ID_DIR
-
-os.environ["FC_DEBUG"] = "-1"
+from v4l_monitor import BY_ID_DIR, DEV_DIR
 
 gi.require_version("GLib", "2.0")
 gi.require_version("GObject", "2.0")
@@ -28,13 +25,13 @@ class GstInstance:
     height: int
     transform: VideoTransformType
     pipeline: Optional[Gst.Pipeline] = field(repr=False)
-    file: Optional[str] = None
+    redirect: Optional[str] = None
 
 
 Gst.init()
 
 gst_lock = threading.Lock()
-gst_instances: dict[str, GstInstance] = {}  # {videoXX: GstInstance}
+gst_instances: dict[str, GstInstance] = {}  # {human readable id: GstInstance}
 
 glib_loop: GLib.MainLoop | None = None
 glib_thread: threading.Thread | None = None
@@ -69,7 +66,7 @@ def _instance_changed(old: GstInstance, new: GstInstance) -> bool:
         old.width != new.width
         or old.height != new.height
         or old.transform != new.transform
-        or old.file != new.file
+        or old.redirect != new.redirect
     )
 
 
@@ -81,7 +78,7 @@ def _on_gst_message(_, message: Gst.Message, device: str):
     src_name = src.get_name() if hasattr(src, "get_name") else None
 
     detail = ""
-    log_level = "INFO"
+    log_level = "OK"
     try:
         if t == Gst.MessageType.STATE_CHANGED:
             if src_name != device:
@@ -144,7 +141,7 @@ def _on_gst_message(_, message: Gst.Message, device: str):
                 {
                     Gst.MessageType.ERROR: "ERROR",
                     Gst.MessageType.WARNING: "WARN",
-                    Gst.MessageType.INFO: "INFO",
+                    Gst.MessageType.INFO: "OK",
                 }[t],
             )
             gerror, debug = parse_fn()
@@ -195,7 +192,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         transform=event.data.transform
         if event.data and event.data.transform
         else "none",
-        file=event.data.file if event.data and event.data.file else None,
+        redirect=event.data.redirect if event.data and event.data.redirect else "none",
         pipeline=None,
     )
     force_restart = (
@@ -216,8 +213,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             )
             return
         log(
-            f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})",
-            "INFO",
+            f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})"
         )
 
         # Remove the old instance if it exists
@@ -235,8 +231,11 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     caps_filter = _create_element("capsfilter", "caps")
     convert = _create_element("videoconvert", "convert")
     flip = _create_element("videoflip", "flip")
-    sink = _create_element("webrtcsink", "sink")
-    # sink = _create_element("autovideosink", "sink")
+    tee = _create_element("tee", "tee")
+    v4l2_queue = _create_element("queue", "v4l2_queue")
+    webrtc_queue = _create_element("queue", "webrtc_queue")
+    v4l2_sink = _create_element("v4l2sink", "v4l2_sink")
+    webrtc_sink = _create_element("webrtcsink", "webrtc_sink")
 
     # Create the empty pipeline
     new_instance.pipeline = Gst.Pipeline.new(device)
@@ -247,34 +246,57 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         or not caps_filter
         or not convert
         or not flip
-        or not sink
+        or not tee
+        or not v4l2_queue
+        or not webrtc_queue
+        or not v4l2_sink
+        or not webrtc_sink
     ):
         log("Not all elements could be created.", "ERROR")
         return
 
     # Build the pipeline. Note that we are NOT linking the source at this
     # point. We will do it later.
-    new_instance.pipeline.add(source, caps_filter, convert, flip, sink)
+    new_instance.pipeline.add(source, caps_filter, convert, flip, webrtc_sink)
     if (
         not source.link(caps_filter)
         or not caps_filter.link(convert)
         or not convert.link(flip)
-        or not flip.link(sink)
     ):
         log("Elements could not be linked.", "ERROR")
         return
-
+    
     # Configure plugins
     source.set_property("device", f"{BY_ID_DIR}/{device}")
     caps_filter.set_property("caps", caps)
     flip.set_property("method", new_instance.transform)
-    sink.set_property("stun-server", "NULL")
+
+    if new_instance.redirect != "none":
+        new_instance.pipeline.add(tee, v4l2_queue, v4l2_sink, webrtc_queue)
+        if (
+            not flip.link(tee)
+            or not tee.link(v4l2_queue)
+            or not v4l2_queue.link(v4l2_sink)
+            or not tee.link(webrtc_queue)
+            or not webrtc_queue.link(webrtc_sink)
+        ):
+            log("Elements could not be linked.", "ERROR")
+            return
+
+        v4l2_sink.set_property("device", f"{DEV_DIR}/{new_instance.redirect}")
+
+    else:
+        if not flip.link(webrtc_sink):
+            log("Elements could not be linked.", "ERROR")
+            return
+        
+    webrtc_sink.set_property("stun-server", "NULL")
     # library typing is wrong we get a tuple here
     meta, _ = cast(
         tuple[Gst.Structure, None], Gst.Structure.from_string(f"meta,device={device}")
     )
-    sink.set_property("meta", meta)
-    signaller = sink.get_property("signaller")
+    webrtc_sink.set_property("meta", meta)
+    signaller = webrtc_sink.get_property("signaller")
     if signaller is None:
         log("Failed to get signaller from webrtcsink", "ERROR")
         return
@@ -297,3 +319,20 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     with gst_lock:
         gst_instances[device] = new_instance
+
+
+def stop_stream(event: CameraEventType):
+    device = event.target if event.target else None
+    if device is None:
+        log("No device specified in event", "ERROR")
+        return
+
+    with gst_lock:
+        instance = gst_instances.get(device, None)
+        if instance is None:
+            log(f"No stream running for device: {device}", "DEBUG")
+            return
+        log(f"Stopping stream for device: {device}")
+        if instance.pipeline is not None:
+            instance.pipeline.set_state(Gst.State.NULL)
+        del gst_instances[device]

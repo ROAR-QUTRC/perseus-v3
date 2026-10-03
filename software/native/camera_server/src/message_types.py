@@ -15,7 +15,7 @@ VideoTransformType = Literal[
 
 CameraAction = Literal[
     "group-description",
-    "kill",
+    "kill-stream",
     "request-groups",
     "request-stream",
     "group-terminated",
@@ -32,7 +32,7 @@ class CameraEventData(BaseModel):
     resolution: Optional[Resolution] = None
     transform: Optional[VideoTransformType] = None
     forceRestart: Optional[bool] = None
-    file: Optional[str] = None
+    redirect: Optional[str] = None
 
 
 class CameraEventType(BaseModel):
