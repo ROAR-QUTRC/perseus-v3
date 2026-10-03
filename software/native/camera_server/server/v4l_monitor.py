@@ -2,9 +2,10 @@
 import os
 import threading
 import pyudev
-from logger import log
 from pathlib import Path
 import subprocess
+
+from server.logger import log
 
 DEV_DIR = "/dev/"
 BY_ID_DIR = "/dev/v4l/by-id"
@@ -21,10 +22,6 @@ _context = None
 _observer = None
 
 
-# TODO:
-# This does not clean the symlinks when the camera disconnects.
-# Maybe rely on calling a sudo command on a timer to maintain the sudo grace period
-# Since we will need to sudo to remove the symlinks but dont want to halt the server
 def _fix_duplicate_device_names(server_name: str):
 
     # Find all the real video capture devices
@@ -61,30 +58,16 @@ def _fix_duplicate_device_names(server_name: str):
                         "DEBUG",
                     )
                     remove_symlink = True
-                print(
-                    real_device_path in symlinks_map.values(),
-                    real_device_path.replace(DEV_DIR, ""),
-                )
                 if real_device_path in symlinks_map.values():
                     log(f"Dupe detected {by_id} -> {real_device_dir}", "ERROR")
-                    print(
-                        by_id_str,
-                        by_id_str.replace(BY_ID_DIR, ""),
-                        f"{server_name}_cam_",
-                    )
                     if by_id_str.replace(BY_ID_DIR + "/", "").startswith(
                         f"{server_name}_cam_"
                     ):
                         remove_symlink = True
-                    # TODO: if the the good symlink is found last then it will not be removed
-                    #       otherwise find the bad one and remove it instead
                     # else:
-                    #     # must find other device and remove it instead
-                    #     # print(real_device_path)
-                    #     # index_of_duplicate = list(symlinks_map.values()).index(real_device_path)
-                    #     # by_id = Path(os.path.join(BY_ID_DIR, list(symlinks_map.keys())[index_of_duplicate]))
-                    #     # del symlinks_map[list(symlinks_map.keys())[index_of_duplicate]]
-                    #     # remove_symlink = True
+                    #      TODO: if the the good symlink is found last then it will not be removed
+                    #      otherwise find the bad one and remove it instead
+                    #      must find other device and remove it instead
                 if remove_symlink:
                     try:
                         subprocess.run(["sudo", "rm", by_id_str], check=True)

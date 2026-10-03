@@ -81,10 +81,5 @@ in
         node ${config.env.DEVENV_ROOT}/software/web_ui/src/server/server.js
       '';
     };
-    "camera-server" = {
-      exec = ''
-        tsx ${config.env.DEVENV_ROOT}/software/web_ui/pi-server/index.ts
-      '';
-    };
   };
 }
