@@ -524,7 +524,16 @@ local_costmap:
     ros__parameters:
       global_frame: odom
       robot_base_frame: base_footprint
-      robot_radius: 0.3
+      # The real outline, from TF (wheels at x +0.225 / -0.625, y +-0.365, r 0.15, 0.14 wide;
+      # travel-pose bucket to x ~+0.90, and at ~0.17 m clearance it can strike a 0.2 m
+      # boulder). base_link is NOT the middle of the rover: it reaches 0.78 m behind and 0.90 m
+      # ahead, and sweeps ~0.93 m when it pivots. The old robot_radius 0.3 circle missed the
+      # whole rear axle, so the controller backed and pivoted the rear wheels into boulders.
+      # Controller and behaviour_server (spin/backup) both collision-check this.
+      footprint: "[[0.90, 0.25], [0.90, -0.25], [0.375, -0.435], [-0.775, -0.435], [-0.775, 0.435], [0.375, 0.435]]"
+      # Covers the 0.1 m cell rounding: without it DWB would accept trajectories whose edge
+      # lands in the same cell as a rock's edge.
+      footprint_padding: 0.03
       update_frequency: 5.0
       publish_frequency: 2.0
       rolling_window: true
@@ -538,6 +547,10 @@ local_costmap:
       # what makes terrain_layer's -1 cells (most of a live local window at any instant)
       # read as free rather than as an obstacle, which is what lets use_maximum be safe.
       trinary_costmap: false
+      # 100: only cells the traversability grids call an obstacle are lethal. The footprint
+      # above is what keeps the body off them; the 90-99 inflation band in front of an
+      # obstacle stays a (high) cost rather than a wall, or a 1.7 m body could never get
+      # near the zones.
       lethal_cost_threshold: 100
       unknown_cost_value: 255
       track_unknown_space: false
