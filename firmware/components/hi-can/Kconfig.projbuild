@@ -1,17 +1,20 @@
 menu "Hi-CAN Configuration"
-    config HI_CAN_BUS_RECOVERY_ATTEMPTS
-        int "Bus recovery attempts"
-        default "5"
-        range "1" "10"
+    config HI_CAN_BUS_RECOVERY_INTERVAL
+        int "Bus-off recovery interval (ms)"
+        default "1000"
+        range "0" "60000"
         help
-            Number of times to attempt recovery if node enters an error state
+            Minimum time between bus-off recoveries. The first recovery starts
+            straight away; a node that keeps going bus-off (e.g. a wiring fault)
+            retries at most this often, so it can't flood the bus with error frames.
     
     config HI_CAN_BUS_TX_TIME
         int "TX message maximum queue time"
         default "100"
         range "0" "10000"
         help
-            Time to wait in ms to attempt to queue a packet transmission
+            Time to wait in ms to attempt to queue a packet transmission. If the
+            queue is still full, the packet is dropped. 0 never waits.
     
     choice HI_CAN_BUS_BAUD_RATE
         prompt "Baud rate"

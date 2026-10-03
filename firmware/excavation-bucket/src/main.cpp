@@ -11,6 +11,8 @@
 #include "bank_encoder_map.hpp"
 #include "encoder_bus.hpp"
 #include "encoder_parameter_group.hpp"
+#include "esp_log.h"
+#include "esp_system.h"
 #include "excavation_config.hpp"
 #include "hi_can_address.hpp"
 #include "motor_bank.hpp"
@@ -33,6 +35,9 @@ using namespace hi_can;
 using namespace hi_can::addressing;
 using namespace hi_can::addressing::excavation;
 
+static const char* const TAG = "main";
+
+TwaiInterface* can_interface = nullptr;
 std::optional<PacketManager> packet_manager;
 
 /* This order is incorrect, it is lift, tilt and jaws.*/
@@ -63,8 +68,35 @@ constexpr standard_address_t DEVICE_ADDRESS{
     bucket::controller::DEVICE_ID,
 };
 
+// Tells a crash (panic) apart from a watchdog reset, a brownout or a power cycle.
+static const char* reset_reason_name(esp_reset_reason_t reason)
+{
+    switch (reason)
+    {
+    case ESP_RST_POWERON:
+        return "power-on";
+    case ESP_RST_EXT:
+        return "reset pin";
+    case ESP_RST_SW:
+        return "software restart";
+    case ESP_RST_PANIC:
+        return "panic (crash)";
+    case ESP_RST_INT_WDT:
+    case ESP_RST_TASK_WDT:
+    case ESP_RST_WDT:
+        return "watchdog";
+    case ESP_RST_BROWNOUT:
+        return "brownout";
+    default:
+        return "other";
+    }
+}
+
 void setup()
 {
+    const esp_reset_reason_t reset_reason = esp_reset_reason();
+    ESP_LOGW(TAG, "reset reason: %s (%d)", reset_reason_name(reset_reason), static_cast<int>(reset_reason));
+
     // reset drivers
     pinMode(NSLEEP, OUTPUT);
     digitalWrite(NSLEEP, LOW);
@@ -98,6 +130,7 @@ void setup()
             .address = static_cast<flagged_address_t>(DEVICE_ADDRESS),
             .mask = DEVICE_MASK,
         });
+    can_interface = &interface;
     packet_manager.emplace(interface);
 
     // Add the CAN motor groups
@@ -131,6 +164,25 @@ void loop()  // Add timeout for receiving velocity
     motor_bank_lift->monitor_and_move();
     motor_bank_jaws->monitor_and_move();
     motor_bank_tilt->monitor_and_move();
-    packet_manager->handle();      // Potential issue is hi-can not handling transmit failure to ack from can0 on jetson (Bad can cable or something), Twai will through an exception and crash the board. This for now is handled by sdkconfig.debug, where hi-can-no-ack is set to true. spooky.
+
+    // Bus-off recovery first, so a restarted driver is running before the transmit pass.
+    can_interface->handle();
+    try
+    {
+        packet_manager->handle();
+    }
+    catch (const std::exception& e)
+    {
+        // Bus faults no longer throw (transmit drops the frame). This is for
+        // malformed frames or hi-can bugs: staying on the bus beats a reboot,
+        // which costs ROS ~10 s of encoder rediscovery.
+        static uint32_t errors = 0;
+        static uint32_t last_log_ms = 0;
+        if (++errors == 1 || millis() - last_log_ms >= 1000)
+        {
+            last_log_ms = millis();
+            ESP_LOGE(TAG, "CAN error #%lu: %s", static_cast<unsigned long>(errors), e.what());
+        }
+    }
     vTaskDelay(pdMS_TO_TICKS(1));  // Techically delay(1) works since arduino core treats delay as the same thing, but semantics
 }

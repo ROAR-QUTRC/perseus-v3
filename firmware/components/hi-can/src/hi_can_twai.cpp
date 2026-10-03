@@ -8,7 +8,10 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "esp_log.h"
 #include "sdkconfig.h"
+
+static const char* const TAG = "hi_can_twai";
 
 using namespace bsp;
 using namespace hi_can;
@@ -39,6 +42,8 @@ TwaiInterface::TwaiInterface(pin_pair_t pins, uint8_t controller_id,
     twai_general_config_t general_config = TWAI_GENERAL_CONFIG_DEFAULT_V2(
         controller_id, std::get<0>(pins), std::get<1>(pins), TWAI_MODE_NO_ACK);
 #endif
+
+    general_config.tx_queue_len = TX_QUEUE_LEN;
 
 #if defined(CONFIG_HI_CAN_BAUD_1M)
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_1MBITS();
@@ -111,14 +116,22 @@ void TwaiInterface::transmit(const Packet& packet)
     message.self = false;          // not self-reception
     message.dlc_non_comp = false;  // data length code is <= 8
 
-    if (esp_err_t err = twai_transmit_v2(
-            _twai_bus, &message, pdMS_TO_TICKS(CONFIG_HI_CAN_BUS_TX_TIME));
-        err != ESP_OK)
+    const esp_err_t err = twai_transmit_v2(
+        _twai_bus, &message, pdMS_TO_TICKS(CONFIG_HI_CAN_BUS_TX_TIME));
+    if (err == ESP_OK)
+        return;
+
+    // TIMEOUT: TX queue full (busy bus, or no ACK in normal mode).
+    // INVALID_STATE: bus-off or recovering. Both are faults on the bus, not in
+    // the caller, so the frame is dropped; handle() logs the count.
+    if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_STATE)
     {
-        throw std::runtime_error(
-            std::format("Failed to transmit packet {:#08x}: {}",
-                        packet.get_address().address, esp_err_to_name(err)));
+        ++_dropped_frames;
+        return;
     }
+    throw std::runtime_error(
+        std::format("Failed to transmit packet {:#08x}: {}",
+                    packet.get_address().address, esp_err_to_name(err)));
 }
 std::optional<Packet> TwaiInterface::receive(bool blocking)
 {
@@ -144,26 +157,51 @@ std::optional<Packet> TwaiInterface::receive(bool blocking)
     return packet;
 }
 
+// Works from the driver state rather than alerts, so a missed alert can't
+// leave the bus stuck.
 void TwaiInterface::handle()
 {
-    uint32_t alerts;
-    if (twai_read_alerts_v2(_twai_bus, &alerts, 0) != ESP_OK)
+    if (_twai_bus == nullptr)
+        return;
+
+    twai_status_info_t status;
+    if (twai_get_status_info_v2(_twai_bus, &status) != ESP_OK)
+        return;
+
+    const auto now = steady_clock::now();
+    switch (status.state)
     {
-        throw std::runtime_error("Failed to read alerts");
+    case TWAI_STATE_BUS_OFF:
+        // Straight away the first time; a node that keeps going bus-off retries
+        // once per interval, so a wiring fault can't flood the bus with error frames.
+        if ((!_last_recovery ||
+             now - *_last_recovery >= milliseconds(CONFIG_HI_CAN_BUS_RECOVERY_INTERVAL)) &&
+            twai_initiate_recovery_v2(_twai_bus) == ESP_OK)
+        {
+            _last_recovery = now;
+            ESP_LOGW(TAG, "bus-off (TEC %lu), recovering",
+                     static_cast<unsigned long>(status.tx_error_counter));
+        }
+        break;
+    case TWAI_STATE_STOPPED:
+        // Where the driver parks after a recovery; it won't transmit until restarted.
+        if (twai_start_v2(_twai_bus) == ESP_OK)
+            ESP_LOGI(TAG, "bus recovered, driver restarted");
+        break;
+    default:  // RUNNING, or RECOVERING (waiting for 128 idle periods on the bus)
+        break;
     }
-    if (alerts & TWAI_ALERT_BUS_OFF)
+
+    if (_dropped_frames > 0 && now - _last_drop_log >= 1s)
     {
-        if (_recovery_attempt_count++ >= CONFIG_HI_CAN_BUS_RECOVERY_ATTEMPTS)
-        {
-            throw std::runtime_error("Recovery attempts failed");
-        }
-        if (twai_initiate_recovery_v2(_twai_bus) != ESP_OK)
-        {
-            throw std::runtime_error("Failed to initiate error recovery");
-        }
+        ESP_LOGW(TAG, "dropped %lu frames; TEC %lu, REC %lu, %lu bus errors",
+                 static_cast<unsigned long>(_dropped_frames),
+                 static_cast<unsigned long>(status.tx_error_counter),
+                 static_cast<unsigned long>(status.rx_error_counter),
+                 static_cast<unsigned long>(status.bus_error_count));
+        _dropped_frames = 0;
+        _last_drop_log = now;
     }
-    else if (alerts & TWAI_ALERT_BUS_RECOVERED)
-        _recovery_attempt_count = 0;
 }
 
 TwaiInterface&

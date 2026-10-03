@@ -40,7 +40,9 @@ namespace hi_can
          * @brief Handle error detection and recovery on the underlying TWAI bus
          *
          * This function must be called regularly to ensure that the bus recovers and
-         * has errors handled correctly.
+         * has errors handled correctly. A bus-off controller is recovered (at most
+         * once per CONFIG_HI_CAN_BUS_RECOVERY_INTERVAL ms) and restarted, and frames
+         * dropped by transmit() are logged once a second.
          *
          */
         void handle();
@@ -55,18 +57,26 @@ namespace hi_can
             swap(first._controller_id, second._controller_id);
             swap(first._twai_bus, second._twai_bus);
             swap(first._received_packets, second._received_packets);
+            swap(first._dropped_frames, second._dropped_frames);
+            swap(first._last_recovery, second._last_recovery);
+            swap(first._last_drop_log, second._last_drop_log);
         }
 
     private:
         static constexpr uint8_t INVALID_INTERFACE_ID = 255;
+        // Room for a whole burst of periodic transmissions, so a healthy bus never makes transmit() wait.
+        static constexpr uint32_t TX_QUEUE_LEN = 16;
         TwaiInterface() = default;  // FOR MOVE SEMANTICS ONLY
         TwaiInterface(bsp::pin_pair_t pins, uint8_t controller_id,
                       addressing::filter_t filter);
 
         uint8_t _controller_id = INVALID_INTERFACE_ID;
-        twai_handle_t _twai_bus;
+        twai_handle_t _twai_bus = nullptr;  // stays null if the driver install fails
 
-        uint _recovery_attempt_count = 0;
+        // Frames transmit() dropped because the bus was off or the TX queue was full.
+        uint32_t _dropped_frames = 0;
+        std::optional<std::chrono::steady_clock::time_point> _last_recovery;
+        std::chrono::steady_clock::time_point _last_drop_log{};
 
         std::vector<Packet> _received_packets;
     };
