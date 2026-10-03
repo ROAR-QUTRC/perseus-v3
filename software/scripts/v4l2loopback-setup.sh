@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euo pipefail
+set -eu
 
 # This script assumes the default package manager on each distro
 if lsmod | grep -q '^v4l2loopback'; then
@@ -11,12 +11,12 @@ fi
 
 case "$ID" in
   ubuntu | debian)
-    echo "Detected $PRETTY_NAME — installing v4l2loopback-dkms via apt"
+    echo "Detected $PRETTY_NAME - installing v4l2loopback-dkms via apt"
     sudo apt-get update
-    sudo apt-get install -y v4l2loopback-dkms
+    sudo apt-get install -y v4l2loopback-dkms v4l2loopback-utils
     ;;
   arch)
-    echo "Detected Arch Linux — installing v4l2loopback-dkms via pacman"
+    echo "Detected Arch Linux - installing v4l2loopback-dkms via pacman"
     sudo pacman -S --needed --noconfirm v4l2loopback-dkms linux-headers
     ;;
   nixos)
