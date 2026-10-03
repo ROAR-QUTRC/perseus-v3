@@ -17,7 +17,7 @@ generic_controller:
           is_less_than: true
           threshold: -0.2
       turn:
-        turbo: 1.5
+        turbo: 2.5
         axis: 2
         scaling: 1.0
         enable:
