@@ -54,6 +54,16 @@ namespace rviz_plugins
         constexpr int CONTROLLER_RPP = 0;
         const QString CONTROLLER_TOPIC = "/controller_selector";
 
+        // Planner dropdown, the same way: label, and the planner_server plugin name the
+        // behaviour tree's PlannerSelector expects (navigation.yaml's planner_plugins).
+        const ControllerChoice PLANNERS[] = {
+            {"ThetaStar (any-angle)", "ThetaStar"},
+            {"Lattice (heading-aware)", "Lattice"},
+            {"NavFn (grid)", "GridBased"},
+        };
+        constexpr int PLANNER_THETA_STAR = 0;
+        const QString PLANNER_TOPIC = "/planner_selector";
+
         // The same two status colours the original panel used.
         const QString GOOD = "#2e8b2e";
         const QString BAD = "#b32424";
@@ -219,6 +229,20 @@ namespace rviz_plugins
             "DWB: samples trajectories against the rover's full footprint; may reverse\n"
             "briefly to back out of a zone.");
 
+        _planner_combo = new QComboBox();
+        for (const auto& choice : PLANNERS)
+            _planner_combo->addItem(choice.label, QString(choice.plugin));
+        _planner_combo->setToolTip(
+            "Which planner plans the path. Applied as soon as it is picked (published\n"
+            "latched on /planner_selector, so it also survives a navigation restart);\n"
+            "locked while a mission runs.\n"
+            "ThetaStar: any-angle line-of-sight path; ignores heading, so the controller\n"
+            "pivots onto it at the start and onto the goal heading at the end.\n"
+            "Lattice: plans from the rover's heading to the goal's with 1 m arcs and\n"
+            "turn-in-place, checking the full footprint; fewer pivots on the zone trips,\n"
+            "weaker when it has to turn round.\n"
+            "NavFn: grid Dijkstra; ignores heading, 45/90 deg steps the smoother rounds off.");
+
         _excavation_row = _build_zone_row();
         _construction_row = _build_zone_row();
         _excavation_widget = _excavation_row.source->parentWidget();
@@ -241,6 +265,7 @@ namespace rviz_plugins
         mission_form->addRow("Mode", _mode_combo);
         mission_form->addRow("Task", _task_combo);
         mission_form->addRow("Bucket", _prepare_bucket_check);
+        mission_form->addRow("Planner", _planner_combo);
         mission_form->addRow("Controller", controller_row);
         _task_label = mission_form->labelForField(_task_combo);
 
@@ -317,6 +342,8 @@ namespace rviz_plugins
         }
         connect(_controller_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                 &MissionControlPanel::_on_controller_changed);
+        connect(_planner_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                &MissionControlPanel::_on_planner_changed);
         connect(_excavation_row.pick_button, &QPushButton::clicked, this,
                 &MissionControlPanel::_on_pick_excavation);
         connect(_construction_row.pick_button, &QPushButton::clicked, this,
@@ -395,12 +422,16 @@ namespace rviz_plugins
         // picks up the panel's choice even when navigation starts after RViz.
         _controller_pub = _node->create_publisher<std_msgs::msg::String>(
             CONTROLLER_TOPIC.toStdString(), latched);
+        // Latched for the same reason, matching nav2's PlannerSelector subscription.
+        _planner_pub = _node->create_publisher<std_msgs::msg::String>(
+            PLANNER_TOPIC.toStdString(), latched);
 
         _poll_timer = new QTimer(this);
         connect(_poll_timer, &QTimer::timeout, this, &MissionControlPanel::_poll);
         _poll_timer->start(POLL_PERIOD_MS);
         _publish_markers();
         _publish_controller();
+        _publish_planner();
     }
 
     void MissionControlPanel::_poll()
@@ -565,6 +596,22 @@ namespace rviz_plugins
         _controller_pub->publish(msg);
     }
 
+    void MissionControlPanel::_on_planner_changed()
+    {
+        _publish_planner();
+        if (_planner_pub)
+            _set_message("Planner: " + _planner_combo->currentText());
+    }
+
+    void MissionControlPanel::_publish_planner()
+    {
+        if (!_planner_pub)
+            return;
+        std_msgs::msg::String msg;
+        msg.data = _planner_combo->currentData().toString().toStdString();
+        _planner_pub->publish(msg);
+    }
+
     void MissionControlPanel::_activate_tool(const QString& class_id)
     {
         auto* tools = getDisplayContext()->getToolManager();
@@ -657,7 +704,8 @@ namespace rviz_plugins
              {static_cast<QWidget*>(_mode_combo), static_cast<QWidget*>(_task_combo),
               static_cast<QWidget*>(_cycles_spin),
               static_cast<QWidget*>(_prepare_bucket_check),
-              static_cast<QWidget*>(_controller_combo)})
+              static_cast<QWidget*>(_controller_combo),
+              static_cast<QWidget*>(_planner_combo)})
         {
             widget->setEnabled(!running);
         }
@@ -983,6 +1031,7 @@ namespace rviz_plugins
         config.mapSetValue("Cycles", _cycles_spin->value());
         config.mapSetValue("PrepareBucket", _prepare_bucket_check->isChecked());
         config.mapSetValue("Controller", _controller_combo->currentData().toString());
+        config.mapSetValue("Planner", _planner_combo->currentData().toString());
         const auto save_zone = [&](const QString& prefix, const ZoneRow& row,
                                    const ZonePoint& point)
         {
@@ -1024,6 +1073,12 @@ namespace rviz_plugins
             // back to RPP, the behaviour tree's own default.
             const int index = _controller_combo->findData(text);
             _controller_combo->setCurrentIndex(index >= 0 ? index : CONTROLLER_RPP);
+        }
+        if (config.mapGetString("Planner", &text))
+        {
+            // Unknown names fall back to ThetaStar, the behaviour tree's own default.
+            const int index = _planner_combo->findData(text);
+            _planner_combo->setCurrentIndex(index >= 0 ? index : PLANNER_THETA_STAR);
         }
 
         const auto load_zone = [&](const QString& prefix, ZoneRow& row, ZonePoint& point)

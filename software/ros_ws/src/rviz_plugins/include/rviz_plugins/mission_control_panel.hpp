@@ -43,6 +43,9 @@ namespace rviz_plugins
     ///   Bucket           optionally move the bucket to every joint 0 deg and then
     ///                    to its travel pose before the rover sets off
     ///                    (StartMission.prepare_bucket).
+    ///   Planner          which planner_server plugin plans the path (ThetaStar,
+    ///                    Lattice or NavFn), published latched on /planner_selector,
+    ///                    which the behaviour tree's PlannerSelector reads every tick.
     ///   Controller       which controller_server plugin follows the path (RPP or
     ///                    DWB), published latched on /controller_selector, which the
     ///                    behaviour tree's ControllerSelector reads every tick.
@@ -67,7 +70,7 @@ namespace rviz_plugins
         /// @brief Creates the ROS clients, subscriptions and marker publisher.
         void onInitialize() override;
 
-        /// @brief Persists mode, cycles, the bucket tick box, controller, sources
+        /// @brief Persists mode, cycles, the bucket tick box, planner, controller, sources
         /// and picked points.
         void save(rviz_common::Config config) const override;
 
@@ -83,6 +86,8 @@ namespace rviz_plugins
         void _on_source_changed();
         /// @brief Publishes the newly chosen controller on /controller_selector.
         void _on_controller_changed();
+        /// @brief Publishes the newly chosen planner on /planner_selector.
+        void _on_planner_changed();
         /// @brief Re-derives every widget's visibility/enabled state from the
         /// current selections and mission state.
         void _refresh_controls();
@@ -129,6 +134,9 @@ namespace rviz_plugins
         /// @brief Publishes the selected controller's plugin name, latched.
         void _publish_controller();
 
+        /// @brief Publishes the selected planner's plugin name, latched.
+        void _publish_planner();
+
         bool _full_autonomy() const;
         bool _dump_only() const;
         bool _dig_only() const;
@@ -155,6 +163,7 @@ namespace rviz_plugins
         QSpinBox* _cycles_spin{nullptr};
         QCheckBox* _prepare_bucket_check{nullptr};
         QComboBox* _controller_combo{nullptr};
+        QComboBox* _planner_combo{nullptr};
         ZoneRow _excavation_row;
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.
@@ -202,6 +211,7 @@ namespace rviz_plugins
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr _construction_sub;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _marker_pub;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _controller_pub;
+        rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _planner_pub;
 
         std::optional<rclcpp::Client<interfaces::srv::StartMission>::FutureAndRequestId>
             _pending_start;
