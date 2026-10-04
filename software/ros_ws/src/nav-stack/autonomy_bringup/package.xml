@@ -28,7 +28,7 @@
   <!-- imu_processors components and point_cloud_compress.launch.py, both brought up by
        localisation.launch.py, plus livox.launch.py under enable_sensors:=true -->
   <depend>sensors</depend>
-  <!-- vision.launch.py, which localisation.launch.py includes for stereo_odometry, the
+  <!-- vision.launch.py, which localisation.launch.py includes for orb_slam_odometry, the
        EKF's odom1: standalone, or with enable_sensors:=true composed into the RealSense
        driver's container. Launched by name at runtime, so nothing here links against it. -->
   <exec_depend>vision</exec_depend>

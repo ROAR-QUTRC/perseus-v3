@@ -11,6 +11,7 @@
 #include <array>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <memory>
+#include <mutex>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -24,9 +25,9 @@ namespace vision
         std::string odom_frame_id{"odom"};
         std::string base_link_frame_id{"base_link"};
         std::string sensor_frame_id{"camera"};
-        std::string odometry_topic{"/vision/stereo_odometry/odometry"};
-        std::string pose_topic{"/vision/stereo_odometry/pose"};
-        // "~/" makes this private to the owning node, e.g. "/stereo_odometry/reset_pose"
+        std::string odometry_topic{"/vision/orb_slam_odometry/odometry"};
+        std::string pose_topic{"/vision/orb_slam_odometry/pose"};
+        // "~/" makes this private to the owning node, e.g. "/orb_slam_odometry/reset_pose"
         // rather than a bare "/reset_pose" shared across the whole graph.
         std::string reset_service_name{"~/reset_pose"};
         bool should_publish_tf{true};
@@ -41,9 +42,9 @@ namespace vision
     ///        continuous base-frame pose, and publishes it as odometry, a pose, and TF.
     ///
     /// Composed into any node that estimates incremental motion (currently only
-    /// StereoOdometry), keeping pose integration/publishing separate from how the
-    /// motion delta itself is estimated. This can be reused as-is by a future
-    /// incremental-pose sensor node.
+    /// OrbSlamOdometry, which feeds it the step between consecutive tracked poses),
+    /// keeping pose integration/publishing separate from how the motion delta itself is
+    /// estimated.
     class OdometryPublisher
     {
     public:
@@ -86,6 +87,9 @@ namespace vision
             std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
         rclcpp::Node& _node;
+        // Guards everything below: a node may integrate from its own worker thread while
+        // the reset service runs on the executor's.
+        mutable std::mutex _mutex;
         odometry_publisher_config_t _config;
 
         tf2_ros::Buffer _tf_buffer;

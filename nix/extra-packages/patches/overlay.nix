@@ -6,4 +6,7 @@ final: prev: {
   bievr-ros-common = final.callPackage ./bievr-ros-common { };
   livox-sdk2 = final.callPackage ./livox-sdk2 { };
   livox-ros-driver2 = final.callPackage ./livox-ros-driver2 { };
+  # Headless ORB-SLAM3 for vision's orb_slam_odometry. Called in this scope so it links the
+  # same OpenCV as cv_bridge and the rest of vision.
+  orb-slam3 = final.callPackage ./orb-slam3 { };
 }

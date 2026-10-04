@@ -14,7 +14,7 @@ ekf_filter_node:
     # robot_localization scans odomN from N=0 and stops at the first index it does not find,
     # so BIEVR-LIO has to occupy odom0 -- leaving it at odom1 with no odom0 present would make
     # the filter skip it silently and fuse nothing but the gyro. The same applies to odom2
-    # (wheel vy): it is only read because odom1 exists, so if stereo_odometry is ever
+    # (wheel vy): it is only read because odom1 exists, so if orb_slam_odometry is ever
     # removed, renumber the wheels to odom1 or they are silently dropped too.
     # ----- BIEVR-LIO (3D pose backbone) -----
     # Full 6-DOF pose from LiDAR-inertial odometry, and now the only source of translation at
@@ -58,47 +58,52 @@ ekf_filter_node:
     # tight enough to catch a bad scan also silently discards good pose updates whenever that
     # estimate is optimistic.
     #
-    # ----- stereo_odometry (libviso2, second pose source) -----
+    # ----- orb_slam_odometry (ORB-SLAM3 stereo, second pose source) -----
     # A genuinely independent measurement of the same pose: a different sensor (RealSense
-    # infra1/infra2 stereo pair, not the Livox), a different algorithm (libviso2 feature
-    # matching, not LiDAR scan registration), so its failure modes do not line up with
-    # odom0's. It has a real covariance too, not a zero -- see
-    # vision/src/stereo_odometry/stereo_odometry.cpp's STANDARD_POSE_COVARIANCE and
-    # LOST_TRACKING_VARIANCE, fixed constants rather than odom0's per-scan estimate, but
-    # honestly present, which is what actually matters for the filter's blending and
-    # gating both working at all.
-    odom1: /vision/stereo_odometry/odometry
-    # Differential, not absolute, unlike odom0. Both odom0 and stereo_odometry are drift-
-    # prone dead-reckoning with no shared external reference, so fusing stereo_odometry's
+    # infra1/infra2 stereo pair, not the Livox), a different algorithm (ORB features tracked
+    # against a local keyframe map, not LiDAR scan registration), so its failure modes do
+    # not line up with odom0's. It replaced libviso2 in this slot; one visual source, not
+    # both, since two estimators on the same images fail together and the filter would
+    # count the camera twice.
+    #
+    # The covariance tracks tracking quality: vision.yaml's orb_slam_odometry.covariance
+    # values while enough map points are tracked, scaled up as fewer are, and the
+    # lost-tracking 9999 while not tracking or across a map discontinuity -- where the node
+    # publishes an identity step, so its output never jumps.
+    odom1: /vision/orb_slam_odometry/odometry
+    # Differential, not absolute, unlike odom0. Both odom0 and orb_slam_odometry are drift-
+    # prone dead-reckoning with no shared external reference, so fusing orb_slam_odometry's
     # own integrated pose as a second *absolute* measurement would have it fight odom0
     # increasingly hard as the two independently drift apart -- worse the longer the run
     # goes, and with a fixed (not growing) covariance on either side nothing in the filter
-    # models that growing disagreement. Differential fuses the *change* in stereo_odometry's
+    # models that growing disagreement. Differential fuses the *change* in orb_slam_odometry's
     # pose between consecutive messages instead, which stays valid however far the two
     # sources' absolute origins have drifted from each other.
     odom1_differential: true
     odom1_relative: false
-    # Pose only, same reasoning as odom0's twist: stereo_odometry's twist is computed as
+    # Pose only, same reasoning as odom0's twist: orb_slam_odometry's twist is computed as
     # this same pass's pose delta divided by dt (see OdometryPublisher::integrate_and_publish),
     # so it is correlated with the pose in the same message rather than independent of it.
     # Fusing BIEVR-LIO's twist for that exact reason measurably worsened the filter (see
     # odom0_config above); untested here, but the mechanism is identical, so it starts off.
     #                 x     y     z     roll  pitch yaw   vx     vy     vz     vroll  vpitch vyaw   ax     ay     az
     odom1_config: [true, true, true, true, true, true, false, false, false, false, false, false, false, false, false]
-    # Rate depends on how fast the infra pair is actually delivered and libviso2 keeps up
-    # with it -- likely well under odom0's 10 Hz once feature matching cost is accounted
-    # for. 10 still only needs to cover a brief stall, same as odom0.
+    # Rate is vision.yaml's processing_frequency_hz (15 Hz) when ORB-SLAM3 keeps up, less
+    # when it does not. 10 still only needs to cover a brief stall, same as odom0.
     odom1_queue_size: 10
     odom1_nodelay: true
     # No rejection thresholds here either, and for the same reason as odom0: trust the
-    # covariance (here, the binary good-track/lost-track split) rather than a second,
-    # redundant gate on top of it.
+    # covariance (here, scaled by tracked map points, and 9999 when lost) rather than a
+    # second, redundant gate on top of it.
     #
-    # In practice odom1 contributes almost nothing at the moment: its fixed 0.1 m^2 pose
-    # covariance is ~10^4x odom0's, so the filter all but ignores it. That is just as well --
-    # on rock_nav_test_2 it measured only ~0.33x of BIEVR-LIO's displacement over 5 s windows
-    # (wheels: 1.14x) and drifted 2.5 m in z against LIO's 0.6 m. Fix that scale before
-    # tightening its covariance, or it will shrink the trajectory.
+    # In practice odom1 contributes almost nothing at the moment: its best-case 0.1 m^2 pose
+    # covariance (libviso2's, kept so the swap does not by itself reweight vision) is ~10^4x
+    # odom0's, so the filter all but ignores it. That was just as well for libviso2 -- on
+    # rock_nav_test_2 it measured only ~0.33x of BIEVR-LIO's displacement over 5 s windows
+    # (wheels: 1.14x) and drifted 2.5 m in z against LIO's 0.6 m. ORB-SLAM3 stereo takes its
+    # metric scale from the calibrated baseline, but measure it against odom0 (or Gazebo
+    # ground truth) before tightening vision.yaml's covariance, or a scale error will shrink
+    # the trajectory.
     #
     # ----- diff drive wheel odometry (vy only: the no-sideslip constraint) -----
     # vy only. A diff drive reports vy = 0 by construction, so this asserts "the rover does

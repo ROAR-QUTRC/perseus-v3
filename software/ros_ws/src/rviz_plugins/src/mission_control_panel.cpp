@@ -4,7 +4,6 @@
 #include "rviz_plugins/mission_control_panel.hpp"
 
 #include <QFormLayout>
-#include <QGraphicsBlurEffect>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -94,6 +93,84 @@ namespace rviz_plugins
             return QString::fromStdString(phase);
         }
 
+        // The phases one cycle of each mission steps through, in order, as mission.xml
+        // writes them. The progress display counts how many of these are done; each
+        // counts the same, which is crude (a drive takes longer than a bucket move),
+        // so the time estimate switches to measured cycle times once one finishes.
+        const std::vector<std::string> DIG_PHASES = {"dig_tilt", "dig_lower", "dig_push",
+                                                     "dig_curl", "dig_carry"};
+        const std::vector<std::string> DUMP_PHASES = {"dump_lower_tip", "dump_open_jaw",
+                                                      "dump_curl", "dump_stow"};
+        const std::vector<std::string> FULL_CYCLE_PHASES = {
+            "dig_tilt", "dig_lower", "dig_push", "dig_curl",
+            "dig_carry", "to_construction", "dump_lower_tip", "dump_open_jaw",
+            "dump_curl", "dump_stow", "to_excavation"};
+        const std::vector<std::string> NAV_CYCLE_PHASES = {"to_construction",
+                                                           "to_excavation"};
+        const std::vector<std::string> NO_PHASES = {};
+
+        const std::vector<std::string>& cycle_phases(const MissionStatus& status)
+        {
+            switch (status.mode)
+            {
+            case StartMission::Request::MODE_FULL_AUTONOMY:
+                return FULL_CYCLE_PHASES;
+            case StartMission::Request::MODE_DUMP_ONLY:
+                return DUMP_PHASES;
+            case StartMission::Request::MODE_DIG_ONLY:
+                return DIG_PHASES;
+            default:
+                return status.task == StartMission::Request::TASK_CYCLE ? NAV_CYCLE_PHASES
+                                                                        : NO_PHASES;
+            }
+        }
+
+        /// @brief "m:ss", or "h:mm:ss" past an hour.
+        QString clock_text(qint64 ms)
+        {
+            const qint64 s = std::max<qint64>(0, (ms + 500) / 1000);
+            if (s >= 3600)
+                return QString("%1:%2:%3")
+                    .arg(s / 3600)
+                    .arg((s / 60) % 60, 2, 10, QChar('0'))
+                    .arg(s % 60, 2, 10, QChar('0'));
+            return QString("%1:%2").arg(s / 60).arg(s % 60, 2, 10, QChar('0'));
+        }
+
+        // Start's own look, idle. While a mission runs the button is the progress
+        // bar instead: the same green filled to the fraction done over a grey track.
+        const QString START_STYLE =
+            "QPushButton { background: #2e9e4f; color: white; border: 1px solid #237a3d;"
+            " border-radius: 4px; padding: 6px; font-weight: bold; }"
+            "QPushButton:hover { background: #34b058; }"
+            "QPushButton:pressed { background: #257f40; }"
+            "QPushButton:disabled { background: #a9d4b5; color: #eef7f1;"
+            " border-color: #a9d4b5; }";
+        const QString FILL = "#2e9e4f";
+        const QString TRACK = "#7d8c82";
+
+        QString progress_style(double fraction)
+        {
+            QString background;
+            if (fraction <= 0.0)
+                background = TRACK;
+            else if (fraction >= 1.0)
+                background = FILL;
+            else
+                background = QString(
+                                 "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 %1, "
+                                 "stop:%2 %1, stop:%3 %4, stop:1 %4)")
+                                 .arg(FILL)
+                                 .arg(fraction, 0, 'f', 4)
+                                 .arg(std::min(1.0, fraction + 0.0005), 0, 'f', 4)
+                                 .arg(TRACK);
+            return QString(
+                       "QPushButton, QPushButton:disabled { background: %1; color: white;"
+                       " border: 1px solid #237a3d; border-radius: 4px; padding: 6px;"
+                       " font-weight: bold; }")
+                .arg(background);
+        }
+
         double yaw_of(const geometry_msgs::msg::Quaternion& q)
         {
             return std::atan2(2.0 * (q.w * q.z + q.x * q.y),
@@ -147,23 +224,25 @@ namespace rviz_plugins
         _excavation_widget = _excavation_row.source->parentWidget();
         _construction_widget = _construction_row.source->parentWidget();
 
-        _run_widget = new QWidget();
-        auto* run = new QHBoxLayout(_run_widget);
-        run->setContentsMargins(0, 0, 0, 0);
+        // Controller and the cycle count share a row: Cycles is only shown for the
+        // modes that cycle, and on its own it was a whole row for one small spinbox.
+        auto* controller_row = new QWidget();
+        auto* controller_layout = new QHBoxLayout(controller_row);
+        controller_layout->setContentsMargins(0, 0, 0, 0);
         auto* cycles_caption = new QLabel("Cycles");
         _cycles_caption = cycles_caption;
-        run->addWidget(cycles_caption);
-        run->addWidget(_cycles_spin, 1);
+        controller_layout->addWidget(_controller_combo, 1);
+        controller_layout->addSpacing(8);
+        controller_layout->addWidget(cycles_caption);
+        controller_layout->addWidget(_cycles_spin);
 
         auto* mission_box = new QGroupBox("Mission");
         auto* mission_form = new QFormLayout(mission_box);
         mission_form->addRow("Mode", _mode_combo);
         mission_form->addRow("Task", _task_combo);
-        mission_form->addRow("Run", _run_widget);
         mission_form->addRow("Bucket", _prepare_bucket_check);
-        mission_form->addRow("Controller", _controller_combo);
+        mission_form->addRow("Controller", controller_row);
         _task_label = mission_form->labelForField(_task_combo);
-        _run_label = mission_form->labelForField(_run_widget);
 
         // A grid rather than a QFormLayout: Qt 5's form layout leaves a hidden row's
         // space behind (Construction on a single trip to excavation), a grid does not.
@@ -189,20 +268,16 @@ namespace rviz_plugins
         for (auto* box : {mission_box, waypoint_box})
             box->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-        _progress = new QProgressBar();
         _phase_label = new QLabel("Idle");
         _phase_label->setWordWrap(true);
 
         // The only styled widgets in the panel: green/red so Start and Stop can be
-        // told apart at a glance, with washed-out versions when disabled.
+        // told apart at a glance, with washed-out versions when disabled. While a
+        // mission runs, Start doubles as its progress bar (_refresh_start_button).
         _start_button = new QPushButton("Start");
-        _start_button->setStyleSheet(
-            "QPushButton { background: #2e9e4f; color: white; border: 1px solid #237a3d;"
-            " border-radius: 4px; padding: 6px; font-weight: bold; }"
-            "QPushButton:hover { background: #34b058; }"
-            "QPushButton:pressed { background: #257f40; }"
-            "QPushButton:disabled { background: #a9d4b5; color: #eef7f1;"
-            " border-color: #a9d4b5; }");
+        _start_button->setStyleSheet(START_STYLE);
+        _start_text = "Start";
+        _start_style = START_STYLE;
         _stop_button = new QPushButton("Stop");
         _stop_button->setStyleSheet(
             "QPushButton { background: #c93636; color: white; border: 1px solid #9e2a2a;"
@@ -224,7 +299,6 @@ namespace rviz_plugins
         layout->addWidget(waypoint_box);
         layout->addSpacing(4);
         layout->addWidget(_phase_label);
-        layout->addWidget(_progress);
         layout->addLayout(buttons);
         layout->addWidget(_message_label);
         layout->addStretch(1);
@@ -346,6 +420,7 @@ namespace rviz_plugins
         {
             _status = *status;
             _have_status = true;
+            _track_progress();
             changed = true;
         }
         if (excavation)
@@ -393,6 +468,8 @@ namespace rviz_plugins
 
         if (changed)
             _refresh_controls();
+        else if (_running())
+            _refresh_start_button();  // the elapsed / remaining time keeps moving
     }
 
     // ---------------------------------------------------------------------------
@@ -560,8 +637,6 @@ namespace rviz_plugins
         _task_combo->setVisible(navigation);
         _cycles_caption->setVisible(cycling);
         _cycles_spin->setVisible(cycling);
-        _run_label->setVisible(cycling);
-        _run_widget->setVisible(cycling);
         _waypoint_box->setVisible(!bucket_step);
         _excavation_label->setVisible(!single_construction);
         _excavation_widget->setVisible(!single_construction);
@@ -627,6 +702,8 @@ namespace rviz_plugins
         else if (_have_status && _status.state == MissionStatus::STATE_SUCCEEDED)
         {
             text = "Complete: " + QString::fromStdString(_status.message);
+            if (_last_run_ms >= 0)
+                text += " in " + clock_text(_last_run_ms);
             colour = GOOD;
         }
         else if (_have_status && (_status.state == MissionStatus::STATE_FAILED ||
@@ -645,32 +722,136 @@ namespace rviz_plugins
         _phase_label->setStyleSheet(colour.isEmpty() ? QString()
                                                      : QString("color: %1;").arg(colour));
 
-        // Progress.
-        const bool show_cycles = _have_status && _status.cycles_target > 0 &&
-                                 _status.state != MissionStatus::STATE_IDLE;
-        const int target = show_cycles ? static_cast<int>(_status.cycles_target)
-                                       : _cycles_spin->value();
-        _progress->setVisible(cycling || show_cycles);
-        _progress->setRange(0, std::max(1, target));
-        _progress->setValue(show_cycles ? static_cast<int>(_status.cycles_completed) : 0);
-        _progress->setFormat(QString("%1 / %2 cycles")
-                                 .arg(show_cycles ? _status.cycles_completed : 0)
-                                 .arg(target));
-
-        // Start / Stop. Start is blurred as well as disabled while a mission runs, so
-        // it reads as unavailable at a glance.
+        // Start / Stop. While a mission runs Start is disabled and shows its progress.
         _start_button->setEnabled(!running && _server_ready && missing.isEmpty());
         _stop_button->setEnabled(running);
-        const bool blurred = _start_button->graphicsEffect() != nullptr;
-        if (running && !blurred)
+        _refresh_start_button();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Progress
+    // ---------------------------------------------------------------------------
+
+    void MissionControlPanel::_track_progress()
+    {
+        const bool running = _status.state == MissionStatus::STATE_RUNNING;
+        if (running && !_was_running)
         {
-            auto* blur = new QGraphicsBlurEffect(_start_button);
-            blur->setBlurRadius(2.5);
-            _start_button->setGraphicsEffect(blur);
+            _run_clock.start();
+            _in_cycle = false;
+            _work_start_ms = -1;
+            _cycle_start_ms = -1;
+            _cycle_ms_sum = 0;
+            _cycles_timed = 0;
+            _cycles_seen = 0;
+            _last_run_ms = -1;
         }
-        else if (!running && blurred)
+        if (!running && _was_running)
+            _last_run_ms = _run_clock.elapsed();
+        _was_running = running;
+        if (!running)
+            return;
+
+        const qint64 now = _run_clock.elapsed();
+        // A cycle ends on arrival back at excavation; the next one's work starts with
+        // its first phase. The phase still reads to_excavation until then.
+        if (_status.cycles_completed > _cycles_seen)
         {
-            _start_button->setGraphicsEffect(nullptr);
+            // Only cycles whose start was seen are timed: a panel opened mid-mission
+            // gets cycles_completed > 0 with no time to put against them.
+            if (_cycle_start_ms >= 0)
+            {
+                _cycle_ms_sum += now - _cycle_start_ms;
+                _cycles_timed += _status.cycles_completed - _cycles_seen;
+            }
+            _cycles_seen = _status.cycles_completed;
+            _cycle_start_ms = now;
+            _in_cycle = false;
+        }
+        const auto& phases = cycle_phases(_status);
+        const auto it = std::find(phases.begin(), phases.end(), _status.phase);
+        // to_excavation is both the drive out before the first cycle and the last leg
+        // of every cycle; it only counts as the latter once the cycle's work began.
+        const bool drive_out = _status.phase == "to_excavation" && !_in_cycle;
+        if (it != phases.end() && !drive_out && !_in_cycle)
+        {
+            _in_cycle = true;
+            if (_work_start_ms < 0)
+                _work_start_ms = now;
+            if (_cycle_start_ms < 0)
+                _cycle_start_ms = now;
+        }
+    }
+
+    std::optional<double> MissionControlPanel::_progress_fraction() const
+    {
+        const auto& phases = cycle_phases(_status);
+        if (phases.empty())
+            return std::nullopt;
+        if (_status.phase == "done")
+            return 1.0;
+        const double target = std::max<uint32_t>(1, _status.cycles_target);
+        double in_cycle = 0.0;
+        const auto it = std::find(phases.begin(), phases.end(), _status.phase);
+        if (_in_cycle && it != phases.end())
+            in_cycle = static_cast<double>(it - phases.begin()) / phases.size();
+        return std::clamp((_status.cycles_completed + in_cycle) / target, 0.0, 1.0);
+    }
+
+    std::optional<qint64> MissionControlPanel::_remaining_ms(double fraction) const
+    {
+        const qint64 now = _run_clock.elapsed();
+        if (_cycles_timed >= 1 && _status.cycles_target > _cycles_seen)
+        {
+            const double mean = static_cast<double>(_cycle_ms_sum) / _cycles_timed;
+            const double left = mean * (_status.cycles_target - _cycles_seen) -
+                                (now - _cycle_start_ms);
+            return static_cast<qint64>(std::max(0.0, left));
+        }
+        if (_work_start_ms >= 0 && fraction > 0.0 && fraction < 1.0)
+        {
+            const double worked = static_cast<double>(now - _work_start_ms);
+            return static_cast<qint64>(worked / fraction * (1.0 - fraction));
+        }
+        return std::nullopt;
+    }
+
+    void MissionControlPanel::_refresh_start_button()
+    {
+        QString text = "Start";
+        QString style = START_STYLE;
+        if (_running())
+        {
+            const auto fraction = _progress_fraction();
+            if (!fraction)
+            {
+                // A single trip: nothing to count, so how long it has been going.
+                text = "Running  \u00b7  " + clock_text(_run_clock.elapsed());
+                style = progress_style(0.0);
+            }
+            else
+            {
+                text = QString("%1%").arg(static_cast<int>(*fraction * 100.0));
+                if (_status.cycles_target > 1)
+                    text += QString("  \u00b7  cycle %1/%2")
+                                .arg(std::min(_status.cycles_completed + 1,
+                                              _status.cycles_target))
+                                .arg(_status.cycles_target);
+                const auto left = _remaining_ms(*fraction);
+                text += left ? "  \u00b7  ~" + clock_text(*left) + " left"
+                             : QString("  \u00b7  estimating\u2026");
+                style = progress_style(*fraction);
+            }
+        }
+        if (text != _start_text)
+        {
+            _start_button->setText(text);
+            _start_text = text;
+        }
+        if (style != _start_style)
+        {
+            _start_button->setStyleSheet(style);
+            _start_style = style;
         }
     }
 

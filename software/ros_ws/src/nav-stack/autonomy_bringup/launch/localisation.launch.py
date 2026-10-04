@@ -27,16 +27,17 @@ top for Gazebo, which publishes a differently shaped cloud: BIEVR-LIO merges its
 files per key, so the sim's differences are just the handful of keys that file sets.
 
 A second, independent pose source is fused alongside BIEVR-LIO: vision's
-stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), which arrives as odom1
-in ekf_config.yaml. It is brought up by including vision/vision.launch.py, which is also
+orb_slam_odometry (ORB-SLAM3 stereo against the RealSense infra1/infra2 pair), which
+arrives as odom1 in ekf_config.yaml. It is brought up by including vision/vision.launch.py, which is also
 where `enable_sensors:=` is forwarded:
 
   enable_sensors:=false (default)  The sensor drivers are assumed to be running already,
                                    from sensors/sensors.launch.py in their own terminal.
-                                   vision.launch.py runs stereo_odometry as its own process.
+                                   vision.launch.py runs orb_slam_odometry as its own
+                                   process.
   enable_sensors:=true             This file brings up the Livox driver itself, and
                                    vision.launch.py brings up the RealSense and loads
-                                   stereo_odometry as a component into the camera's
+                                   orb_slam_odometry as a component into the camera's
                                    container -- 30 Hz on the infra pair against roughly
                                    4 Hz standalone. vision.launch.py's docstring has the
                                    measurements.
@@ -46,9 +47,9 @@ started by hand -- and defaulting to true would open the sensors a second time a
 existing ones and fail with "Device or resource busy".
 
 The ArUco, cube and overlay nodes are forwarded as aruco:=, cube:= and overlay:=. ArUco
-and overlay are on by default and cube is off, so a plain run is stereo odometry plus
+and overlay are on by default and cube is off, so a plain run is visual odometry plus
 marker detection; whichever are on follow the same enable_sensors placement as
-stereo_odometry. Either way the EKF only names the topic and
+orb_slam_odometry. Either way the EKF only names the topic and
 fuses whatever appears on it, so nothing downstream branches on this choice.
 """
 
@@ -206,12 +207,12 @@ def launch_setup(context, *args, **kwargs):
                             [FindPackageShare("vision"), "launch", "vision.launch.py"]
                         )
                     ),
-                    # stereo_odometry is pinned on because it is the reason this include
+                    # orb_slam_odometry is pinned on because it is the reason this include
                     # exists; the detectors are this file's own toggles, forwarded.
                     launch_arguments={
                         "enable_sensors": LaunchConfiguration("enable_sensors"),
                         "use_sim_time": use_sim_time,
-                        "stereo_odometry": "true",
+                        "orb_slam_odometry": "true",
                         "aruco": LaunchConfiguration("aruco"),
                         "cube": LaunchConfiguration("cube"),
                         "overlay": LaunchConfiguration("overlay"),
@@ -401,7 +402,7 @@ def generate_launch_description():
         # `enable_sensors:=1` would read as false and silently skip the sensors.
         choices=["true", "false"],
         description="Bring the Livox driver up from this file, and have vision.launch.py "
-        "bring up the RealSense with stereo_odometry composed into its container -- 30 Hz on "
+        "bring up the RealSense with orb_slam_odometry composed into its container -- 30 Hz on "
         "the infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
         "when the drivers are already running from sensors/sensors.launch.py, in which case "
         "the vision nodes run standalone instead. See the module docstring.",

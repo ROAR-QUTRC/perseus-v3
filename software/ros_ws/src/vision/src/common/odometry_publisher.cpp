@@ -1,7 +1,7 @@
 /// @file odometry_publisher.cpp
 /// @brief Implementation of incremental pose integration and publishing.
 
-#include "vision/stereo_odometry/odometry_publisher.hpp"
+#include "vision/common/odometry_publisher.hpp"
 
 #include <tf2/exceptions.h>
 
@@ -45,26 +45,31 @@ namespace vision
 
     void OdometryPublisher::set_sensor_frame_id(const std::string& frame_id)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         _config.sensor_frame_id = frame_id;
     }
 
     std::string OdometryPublisher::get_sensor_frame_id() const
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         return _config.sensor_frame_id;
     }
 
     void OdometryPublisher::set_pose_covariance(const std::array<double, 36>& covariance)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         _pose_covariance = covariance;
     }
 
     void OdometryPublisher::set_twist_covariance(const std::array<double, 36>& covariance)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         _twist_covariance = covariance;
     }
 
     void OdometryPublisher::set_initial_pose(const tf2::Transform& pose)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         if (_config.is_initial_pose_in_camera_frame)
         {
             _integrated_pose = pose;
@@ -79,6 +84,7 @@ namespace vision
 
     void OdometryPublisher::integrate_and_publish(const tf2::Transform& delta_transform, const rclcpp::Time& timestamp)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         if (_config.sensor_frame_id.empty())
         {
             RCLCPP_ERROR(_node.get_logger(), "integrate_and_publish() called with unknown sensor frame id");
@@ -181,6 +187,7 @@ namespace vision
         const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
         _integrated_pose = tf2::Transform::getIdentity();
         _has_last_update_time = false;
         response->success = true;

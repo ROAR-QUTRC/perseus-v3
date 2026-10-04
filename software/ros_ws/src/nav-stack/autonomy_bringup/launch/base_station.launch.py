@@ -22,7 +22,15 @@ Arguments:
     rviz_config   path to an RViz config, to open a different view without editing this file
     use_sim_time  set true when following a simulated robot, so displays honour /clock
     use_nixgl     wrap RViz in nixGL for GPU access; true matches the other launch files
-                  in this repo, false runs rviz2 directly on a machine with working drivers
+                  in this repo, false runs rviz2 directly on a machine with working drivers.
+                  Uses an installed `nixGL` command if there is one, which needs no
+                  internet; otherwise `nix run github:nix-community/nixGL`, which does,
+                  every launch. Install it once, while online, with
+                      nix profile add --impure github:nix-community/nixGL
+                  and check it suits the GPU that drives the screen: on an NVIDIA
+                  open-kernel-module driver nixGL's detection fails and builds the Mesa
+                  wrapper. Reinstall after switching the screen to a different GPU or,
+                  for an NVIDIA wrapper, after a driver update
     decompress    run the Draco decoders; false when the rover is sending raw clouds, or
                   when another process on this machine already decodes them
     mesh          reconstruct a surface from the decoded map cloud, published as a marker
@@ -35,6 +43,8 @@ Arguments:
     controller_type  controller config for the override, as teleop's controller.launch.py
                   type:= -- taranis, xbox, logitech or 8bitdo
 """
+
+import shutil
 
 from launch import LaunchDescription
 from launch.actions import (
@@ -135,18 +145,19 @@ def generate_launch_description():
         "RMW_QOS_POLICY_DEPTH": "100",
     }
 
+    # An installed nixGL (see the module docstring) runs offline. `nix run` on the flake
+    # resolves github:nix-community/nixGL every launch, so without internet RViz never
+    # starts. And plain rviz2 is no fallback: the Nix-built RViz cannot find the GL
+    # drivers on its own and fails to create its GLX window.
+    installed_nixgl = shutil.which("nixGL")
+    nixgl_cmd = (
+        [installed_nixgl]
+        if installed_nixgl
+        else ["nix", "run", "--impure", "github:nix-community/nixGL", "--"]
+    )
     rviz_nixgl = ExecuteProcess(
         condition=IfCondition(use_nixgl),
-        cmd=[
-            "nix",
-            "run",
-            "--impure",
-            "github:nix-community/nixGL",
-            "--",
-            "rviz2",
-            "-d",
-            rviz_config,
-        ],
+        cmd=[*nixgl_cmd, "rviz2", "-d", rviz_config],
         output="screen",
         additional_env=rviz_env,
     )

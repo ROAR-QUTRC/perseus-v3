@@ -63,6 +63,7 @@ pkgs.mkShell {
           nlohmann_json
           onnxruntime
           opencv
+          orb-slam3
           pcl
           pcl-conversions
           pid-controller
