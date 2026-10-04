@@ -138,7 +138,7 @@ flowchart LR
     subgraph Localisation["localisation.launch.py"]
         BIAS["imu_bias_estimator + remover"]
         LIO["BIEVR-LIO"]
-        VO["stereo_odometry"]
+        VO["orb_slam_odometry"]
         EKF["ekf_filter_node"]
         FP["flat_footprint_broadcaster"]
         ARENA["arena_server"]
@@ -238,7 +238,7 @@ controller_server -> velocity_smoother --(cmd_vel_nav_stamped)--> twist_mux -> d
     `MissionStatus`, `MobilityStatus`, `SystemHealth` and friends.
   - `sensors`: Livox and RealSense drivers, IMU bias processing, Draco
     point-cloud compression, `cloud_mesher`.
-  - `vision`: `stereo_odometry` and the ArUco detector.
+  - `vision`: `orb_slam_odometry` (ORB-SLAM3 stereo VO) and the ArUco detector.
   - `perseus`: `twist_mux` and the diff-drive controller.
   - `teleop`: joystick override.
   - `rviz_plugins`: Topic Health, Arena Minimap, Mobility Efficiency,
@@ -321,8 +321,8 @@ and robot description must be up before odometry can publish.
 
     Pass `enable_sensors:=true` instead of running step 1 to have this file
     start the Livox and RealSense itself. That also composes
-    `stereo_odometry` into the camera container, which runs at 30 Hz instead
-    of about 4 Hz standalone.
+    `orb_slam_odometry` into the camera container, which gets the infra pair
+    at 30 Hz instead of about 4 Hz standalone.
 
 1.  Start navigation. **From here the rover can move.**
 
@@ -509,10 +509,41 @@ All launch files are in `autonomy_bringup/launch`.
 
 ### `localisation.launch.py` arguments
 
-Brings up the IMU bias container, BIEVR-LIO, the EKF, `stereo_odometry` and
+Brings up the IMU bias container, BIEVR-LIO, the EKF, `orb_slam_odometry` and
 the ArUco detector (via `vision.launch.py`), `flat_footprint_broadcaster`,
 `arena_server`, `mobility_watchdog`, `health_monitor` and the rover-side Draco
 compressor.
+
+### Visual odometry: ORB-SLAM3
+
+The EKF's second pose source (`odom1`) is `vision`'s `orb_slam_odometry`:
+ORB-SLAM3 in stereo mode on the D455 infra pair. It replaced libviso2, whose
+scale was badly off (about 0.33x of the LIO's displacement on
+`rock_nav_test_2`).
+
+- **Output never jumps.** ORB-SLAM3's pose jumps on relocalisation, a new map
+  or a map correction. The node publishes only the step between consecutive
+  tracked frames in the same map. Across any discontinuity it publishes an
+  identity step with variance 9999, which the EKF ignores.
+- **Covariance follows tracking.** The `covariance.*` variances in
+  `vision/config/vision.yaml` hold while 150+ map points are tracked, and scale
+  up as fewer are, to at most 20x. Below 30 points the step counts as lost.
+- **Loop closing is off.** An odometry source has no use for it, and it costs
+  CPU in bursts.
+- **Startup.** ORB-SLAM3 loads a 139 MB text vocabulary on the first stereo
+  pair, which takes about 5 s on a desktop and longer on the Orange Pi.
+  Nothing is published until then.
+- **CPU.** Frames are thinned to `processing_frequency_hz` (15 Hz). Tracking
+  took 17 ms median per frame on a desktop. Check the time per frame
+  (`/vision/orb_slam_odometry/info`, `runtime_s`) on the Orange Pi before
+  raising it.
+
+Replayed `rock_nav_test_2` (first 240 s, about 30 m driven): 5 s displacement
+was 0.94x the LIO's (libviso2 0.32x); 92% of frames tracked, 3 steps rejected
+as jumps, no map changes.
+
+The library is the headless `orb-slam3` Nix package
+(`nix/extra-packages/patches/orb-slam3`), which also installs the vocabulary.
 
 | Argument            | Default                  | Description                                                               |
 | ------------------- | ------------------------ | ------------------------------------------------------------------------- |
