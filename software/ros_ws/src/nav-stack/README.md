@@ -761,6 +761,15 @@ ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"
 ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"
 ```
 
+The planners are `GridBased` (NavFn), `ThetaStar` (the default) and `Lattice`
+(Smac State Lattice). The first two plan a point through the inflated
+costmap and ignore heading, so the controller pivots onto the path at the
+start and onto the goal heading at the end. `Lattice` plans from the rover's
+actual heading to the goal's, with 1 m arcs and turn-in-place, checking the
+real footprint at every pose. Offline it cut pivoting on the zone trips to
+one pivot each (ThetaStar: two or three), but turning round for a goal behind
+the rover is its weak case. See its block in `navigation.yaml`.
+
 ## Debugging and tuning
 
 ### Testing the planner with `plan_probe.py`

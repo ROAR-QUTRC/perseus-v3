@@ -53,6 +53,10 @@ def generate_launch_description():
     # The Mission Control panel's Start/Stop missions: full autonomy or navigation only,
     # cycling between the zones or a single trip. Built from the tree above.
     mission_cycle_bt_xml = os.path.join(share, "behavior_trees", "mission.xml")
+    # The Lattice planner's motion primitives; an absolute path for the same reason.
+    lattice_primitives = os.path.join(
+        share, "config", "lattice", "diff_10cm_1m_radius.json"
+    )
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -97,7 +101,12 @@ def generate_launch_description():
         ),
         nav2_node("nav2_controller", "controller_server", "controller_server"),
         nav2_node("nav2_smoother", "smoother_server", "smoother_server"),
-        nav2_node("nav2_planner", "planner_server", "planner_server"),
+        nav2_node(
+            "nav2_planner",
+            "planner_server",
+            "planner_server",
+            extra_params=[{"Lattice.lattice_filepath": lattice_primitives}],
+        ),
         nav2_node("nav2_behaviors", "behavior_server", "behavior_server"),
         nav2_node(
             "nav2_bt_navigator",
