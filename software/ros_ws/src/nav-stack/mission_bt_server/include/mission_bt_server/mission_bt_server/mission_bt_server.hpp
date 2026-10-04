@@ -105,7 +105,6 @@ namespace mission_bt_server
         std::string _mission_bt_xml_path;
         std::string _excavation_service_name;
         std::string _construction_service_name;
-        double _default_zone_pause_s;
 
         // PrepareBucket's action and travel pose; see the constructor.
         std::string _bucket_action_name;
@@ -113,6 +112,15 @@ namespace mission_bt_server
         double _bucket_travel_tilt_deg;
         double _bucket_travel_jaw_deg;
         double _bucket_move_s;
+
+        // DigBucket's pose, creeps and carry; see the constructor.
+        double _dig_tilt_deg;
+        double _dig_lift_deg;
+        double _dig_push_m;
+        double _dig_curl_tilt_deg;
+        double _dig_carry_m;
+        double _dig_carry_lift_deg;
+        double _dig_speed;
 
         // Blackboard entries every nav2_behavior_tree BT node reads in its own
         // constructor (BtServiceNode, BtActionNode) - see bt_action_server_impl.hpp,

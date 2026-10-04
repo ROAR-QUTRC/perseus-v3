@@ -430,10 +430,11 @@ At construction, the `DumpBucket` subtree dumps the load. Each step is one
 The steps use `bucket_move_s` and the travel pose parameters below. If a step
 fails, the mission fails there, with the rover still at construction.
 
-> [!IMPORTANT]
-> The dig step is still a **placeholder**: a timed `Sleep` of `zone_pause_s`
-> seconds (default 2 s). Replace the `Sleep` in `FullAutonomyCycle` with the
-> real dig action when it exists. Nothing else in the tree has to change.
+At excavation the cycle digs with the `DigBucket` subtree: tilt the cutting edge
+down, lower the arms, creep forward to cut, curl the bucket up, then creep on
+while the arms rise to the carrying pose (lift 0, tilt −28). Its angles,
+distances and speed are `mission_bt_server`'s `dig_*` parameters; the sequence
+is documented at `DigBucket` in `mission.xml`.
 
 For each zone, the waypoint comes either from a point picked in RViz or, with
 `use_arena_*: true`, from `arena_server`. The server scores candidates inside

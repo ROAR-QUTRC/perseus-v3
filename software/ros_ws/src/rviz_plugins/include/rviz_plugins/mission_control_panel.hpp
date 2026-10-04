@@ -5,7 +5,6 @@
 
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDoubleSpinBox>
 #include <QLabel>
 #include <QProgressBar>
 #include <QPushButton>
@@ -30,10 +29,11 @@ namespace rviz_plugins
     /// @brief Mission Control: pick an operation mode and the two zone waypoints,
     /// set the number of cycles, then Start / Stop.
     ///
-    ///   Operation mode   Full Autonomy (drive + the bucket step at each zone: dump
-    ///                    at construction, and a timed pause at excavation until the
-    ///                    dig exists) or Navigation Only (drive only: cycle, or a
-    ///                    single trip to one zone).
+    ///   Operation mode   Full Autonomy (drive + the bucket step at each zone: dig
+    ///                    at excavation, dump at construction), Navigation Only (drive only: cycle, or a
+    ///                    single trip to one zone), Dump only (no driving: run the
+    ///                    dump sequence once, where the rover stands) or Dig only (one
+    ///                    dig pass from where the rover stands, creeping straight ahead).
     ///   Zone waypoints   per zone, a point picked on the map with the Excavation /
     ///                    Construction Point tools (click-drag like 2D Goal Pose; a
     ///                    labelled marker stays on the map), or arena_server's own
@@ -67,7 +67,7 @@ namespace rviz_plugins
         /// @brief Creates the ROS clients, subscriptions and marker publisher.
         void onInitialize() override;
 
-        /// @brief Persists mode, cycles, pause, the bucket tick box, controller, sources
+        /// @brief Persists mode, cycles, the bucket tick box, controller, sources
         /// and picked points.
         void save(rviz_common::Config config) const override;
 
@@ -130,6 +130,8 @@ namespace rviz_plugins
         void _publish_controller();
 
         bool _full_autonomy() const;
+        bool _dump_only() const;
+        bool _dig_only() const;
         bool _uses_arena(const ZoneRow& row) const;
         bool _running() const;
         void _set_message(const QString& text, const QString& colour = QString());
@@ -138,23 +140,21 @@ namespace rviz_plugins
         QComboBox* _mode_combo{nullptr};
         QComboBox* _task_combo{nullptr};
         QSpinBox* _cycles_spin{nullptr};
-        QDoubleSpinBox* _pause_spin{nullptr};
         QCheckBox* _prepare_bucket_check{nullptr};
         QComboBox* _controller_combo{nullptr};
         ZoneRow _excavation_row;
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.
         QWidget* _task_label{nullptr};
-        // "Run" row: cycles and dig pause side by side, each half hidden when it
-        // does not apply, and the whole row when neither does.
+        // "Run" row: the cycle count, hidden when the mode does not cycle.
         QWidget* _run_label{nullptr};
         QWidget* _run_widget{nullptr};
         QWidget* _cycles_caption{nullptr};
-        QWidget* _pause_caption{nullptr};
         QWidget* _excavation_label{nullptr};
         QWidget* _excavation_widget{nullptr};
         QWidget* _construction_label{nullptr};
         QWidget* _construction_widget{nullptr};
+        QWidget* _waypoint_box{nullptr};
         QProgressBar* _progress{nullptr};
         QLabel* _phase_label{nullptr};
         QPushButton* _start_button{nullptr};

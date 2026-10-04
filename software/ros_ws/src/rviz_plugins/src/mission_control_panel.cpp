@@ -32,6 +32,8 @@ namespace rviz_plugins
         // Dropdown indices.
         constexpr int MODE_FULL_AUTONOMY = 0;
         constexpr int MODE_NAVIGATION_ONLY = 1;
+        constexpr int MODE_DUMP_ONLY = 2;
+        constexpr int MODE_DIG_ONLY = 3;
         constexpr int TASK_CYCLE = 0;
         constexpr int TASK_EXCAVATION = 1;
         constexpr int TASK_CONSTRUCTION = 2;
@@ -67,8 +69,6 @@ namespace rviz_plugins
                 return "Bucket: moving to travel pose";
             if (phase == "to_excavation")
                 return "Driving to excavation zone";
-            if (phase == "excavating")
-                return "Excavating (placeholder pause)";
             if (phase == "to_construction")
                 return "Driving to construction zone";
             if (phase == "dump_lower_tip")
@@ -79,6 +79,16 @@ namespace rviz_plugins
                 return "Dumping: curling back";
             if (phase == "dump_stow")
                 return "Dumping: done, stowing the bucket";
+            if (phase == "dig_tilt")
+                return "Digging: tipping the cutting edge down";
+            if (phase == "dig_lower")
+                return "Digging: lowering the arms into the regolith";
+            if (phase == "dig_push")
+                return "Digging: creeping forward to cut";
+            if (phase == "dig_curl")
+                return "Digging: curling the bucket up";
+            if (phase == "dig_carry")
+                return "Digging: creeping on while raising the arms";
             if (phase == "done")
                 return "Done";
             return QString::fromStdString(phase);
@@ -95,11 +105,14 @@ namespace rviz_plugins
         : rviz_common::Panel(parent)
     {
         _mode_combo = new QComboBox();
-        _mode_combo->addItems({"Full Autonomy", "Navigation Only"});
+        _mode_combo->addItems({"Full Autonomy", "Navigation Only", "Dump only", "Dig only"});
         _mode_combo->setToolTip(
-            "Full Autonomy: drive between the zones, dump the load at construction, and "
-            "pause at excavation (a timed placeholder until the dig exists).\n"
-            "Navigation Only: drive only.");
+            "Full Autonomy: drive between the zones, dig at excavation and dump the load "
+            "at construction.\n"
+            "Navigation Only: drive only.\n"
+            "Dump only: no driving - run the dump sequence once, where the rover stands.\n"
+            "Dig only: one dig pass from where the rover stands; it creeps ~0.6 m straight "
+            "ahead while digging, so point it at the regolith first.");
 
         _task_combo = new QComboBox();
         _task_combo->addItems({"Cycle between zones", "Go to excavation", "Go to construction"});
@@ -109,15 +122,6 @@ namespace rviz_plugins
         _cycles_spin->setValue(1);
         _cycles_spin->setMinimumWidth(50);
         _cycles_spin->setToolTip("One cycle: excavation -> construction -> back to excavation");
-
-        _pause_spin = new QDoubleSpinBox();
-        _pause_spin->setRange(0.5, 60.0);
-        _pause_spin->setSingleStep(0.5);
-        _pause_spin->setDecimals(1);
-        _pause_spin->setValue(2.0);
-        _pause_spin->setSuffix(" s");
-        _pause_spin->setMinimumWidth(60);
-        _pause_spin->setToolTip("Placeholder for the dig at the excavation zone");
 
         _prepare_bucket_check = new QCheckBox("Move to travel pose before driving");
         _prepare_bucket_check->setChecked(true);
@@ -143,19 +147,13 @@ namespace rviz_plugins
         _excavation_widget = _excavation_row.source->parentWidget();
         _construction_widget = _construction_row.source->parentWidget();
 
-        // Cycles and the dig pause share one row.
         _run_widget = new QWidget();
         auto* run = new QHBoxLayout(_run_widget);
         run->setContentsMargins(0, 0, 0, 0);
         auto* cycles_caption = new QLabel("Cycles");
-        auto* pause_caption = new QLabel("Dig pause");
         _cycles_caption = cycles_caption;
-        _pause_caption = pause_caption;
         run->addWidget(cycles_caption);
         run->addWidget(_cycles_spin, 1);
-        run->addSpacing(8);
-        run->addWidget(pause_caption);
-        run->addWidget(_pause_spin, 1);
 
         auto* mission_box = new QGroupBox("Mission");
         auto* mission_form = new QFormLayout(mission_box);
@@ -170,6 +168,7 @@ namespace rviz_plugins
         // A grid rather than a QFormLayout: Qt 5's form layout leaves a hidden row's
         // space behind (Construction on a single trip to excavation), a grid does not.
         auto* waypoint_box = new QGroupBox("Waypoints");
+        _waypoint_box = waypoint_box;
         auto* waypoint_grid = new QGridLayout(waypoint_box);
         auto* excavation_label = new QLabel("Excavation");
         auto* construction_label = new QLabel("Construction");
@@ -412,6 +411,8 @@ namespace rviz_plugins
 
         auto request = std::make_shared<StartMission::Request>();
         request->mode = _full_autonomy() ? StartMission::Request::MODE_FULL_AUTONOMY
+                        : _dump_only()   ? StartMission::Request::MODE_DUMP_ONLY
+                        : _dig_only()    ? StartMission::Request::MODE_DIG_ONLY
                                          : StartMission::Request::MODE_NAVIGATION_ONLY;
         switch (_task_combo->currentIndex())
         {
@@ -426,7 +427,6 @@ namespace rviz_plugins
             break;
         }
         request->cycles = static_cast<uint32_t>(_cycles_spin->value());
-        request->zone_pause_s = _pause_spin->value();
         request->prepare_bucket = _prepare_bucket_check->isChecked();
         request->use_arena_excavation = _uses_arena(_excavation_row);
         request->use_arena_construction = _uses_arena(_construction_row);
@@ -519,6 +519,16 @@ namespace rviz_plugins
         return _mode_combo->currentIndex() == MODE_FULL_AUTONOMY;
     }
 
+    bool MissionControlPanel::_dump_only() const
+    {
+        return _mode_combo->currentIndex() == MODE_DUMP_ONLY;
+    }
+
+    bool MissionControlPanel::_dig_only() const
+    {
+        return _mode_combo->currentIndex() == MODE_DIG_ONLY;
+    }
+
     bool MissionControlPanel::_uses_arena(const ZoneRow& row) const
     {
         return row.source->currentIndex() == SOURCE_ARENA;
@@ -536,20 +546,23 @@ namespace rviz_plugins
     {
         const bool running = _running() || _pending_start.has_value();
         const bool full = _full_autonomy();
+        // Dump only and Dig only are single bucket steps where the rover stands.
+        const bool bucket_step = _dump_only() || _dig_only();
+        const bool navigation = !full && !bucket_step;
         const int task = _task_combo->currentIndex();
-        const bool single_excavation = !full && task == TASK_EXCAVATION;
-        const bool single_construction = !full && task == TASK_CONSTRUCTION;
-        const bool cycling = !single_excavation && !single_construction;
+        const bool single_excavation = navigation && task == TASK_EXCAVATION;
+        const bool single_construction = navigation && task == TASK_CONSTRUCTION;
+        const bool cycling = !bucket_step && !single_excavation && !single_construction;
 
-        // Only the fields that apply to the chosen mode and task are shown.
-        _task_label->setVisible(!full);
-        _task_combo->setVisible(!full);
+        // Only the fields that apply to the chosen mode and task are shown. Dump only
+        // and Dig only drive to no zone, so they need no task, cycles or waypoints.
+        _task_label->setVisible(navigation);
+        _task_combo->setVisible(navigation);
         _cycles_caption->setVisible(cycling);
         _cycles_spin->setVisible(cycling);
-        _pause_caption->setVisible(full);
-        _pause_spin->setVisible(full);
-        _run_label->setVisible(cycling || full);
-        _run_widget->setVisible(cycling || full);
+        _run_label->setVisible(cycling);
+        _run_widget->setVisible(cycling);
+        _waypoint_box->setVisible(!bucket_step);
         _excavation_label->setVisible(!single_construction);
         _excavation_widget->setVisible(!single_construction);
         _construction_label->setVisible(!single_excavation);
@@ -567,7 +580,7 @@ namespace rviz_plugins
         // Locked while running, so what the panel shows is what the rover is doing.
         for (QWidget* widget :
              {static_cast<QWidget*>(_mode_combo), static_cast<QWidget*>(_task_combo),
-              static_cast<QWidget*>(_cycles_spin), static_cast<QWidget*>(_pause_spin),
+              static_cast<QWidget*>(_cycles_spin),
               static_cast<QWidget*>(_prepare_bucket_check),
               static_cast<QWidget*>(_controller_combo)})
         {
@@ -586,11 +599,15 @@ namespace rviz_plugins
         // Caught here rather than left for the server to refuse, so the panel says
         // what is missing before Start is pressed.
         QString missing;
-        if (!single_construction && !_uses_arena(_excavation_row) && !_excavation_point.set)
-            missing = "excavation";
-        else if (!single_excavation && !_uses_arena(_construction_row) &&
-                 !_construction_point.set)
-            missing = "construction";
+        if (!bucket_step)
+        {
+            if (!single_construction && !_uses_arena(_excavation_row) &&
+                !_excavation_point.set)
+                missing = "excavation";
+            else if (!single_excavation && !_uses_arena(_construction_row) &&
+                     !_construction_point.set)
+                missing = "construction";
+        }
 
         // Status line.
         QString text;
@@ -774,13 +791,15 @@ namespace rviz_plugins
     void MissionControlPanel::save(rviz_common::Config config) const
     {
         rviz_common::Panel::save(config);
-        config.mapSetValue("Mode", _full_autonomy() ? "full" : "navigation");
+        config.mapSetValue("Mode", _full_autonomy() ? "full"
+                                   : _dump_only()   ? "dump"
+                                   : _dig_only()    ? "dig"
+                                                    : "navigation");
         const int task = _task_combo->currentIndex();
         config.mapSetValue("Task", task == TASK_EXCAVATION     ? "excavation"
                                    : task == TASK_CONSTRUCTION ? "construction"
                                                                : "cycle");
         config.mapSetValue("Cycles", _cycles_spin->value());
-        config.mapSetValue("PauseS", _pause_spin->value());
         config.mapSetValue("PrepareBucket", _prepare_bucket_check->isChecked());
         config.mapSetValue("Controller", _controller_combo->currentData().toString());
         const auto save_zone = [&](const QString& prefix, const ZoneRow& row,
@@ -803,6 +822,8 @@ namespace rviz_plugins
         QString text;
         if (config.mapGetString("Mode", &text))
             _mode_combo->setCurrentIndex(text == "navigation" ? MODE_NAVIGATION_ONLY
+                                         : text == "dump"     ? MODE_DUMP_ONLY
+                                         : text == "dig"      ? MODE_DIG_ONLY
                                                               : MODE_FULL_AUTONOMY);
         if (config.mapGetString("Task", &text))
         {
@@ -813,9 +834,6 @@ namespace rviz_plugins
         int cycles = 0;
         if (config.mapGetInt("Cycles", &cycles))
             _cycles_spin->setValue(cycles);
-        float pause = 0.0f;
-        if (config.mapGetFloat("PauseS", &pause))
-            _pause_spin->setValue(pause);
         bool prepare_bucket = true;
         if (config.mapGetBool("PrepareBucket", &prepare_bucket))
             _prepare_bucket_check->setChecked(prepare_bucket);

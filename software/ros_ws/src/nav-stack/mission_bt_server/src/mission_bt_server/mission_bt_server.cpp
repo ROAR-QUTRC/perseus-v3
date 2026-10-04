@@ -17,23 +17,33 @@ namespace mission_bt_server
         using StartMission = interfaces::srv::StartMission;
         using MissionStatus = interfaces::msg::MissionStatus;
 
-        /// @brief True for the tasks that drive to both zones.
+        bool navigation_only(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_NAVIGATION_ONLY;
+        }
+
+        /// @brief True for the tasks that drive to both zones. task only means
+        /// something in NAVIGATION_ONLY, so it is checked only there -- a DUMP_ONLY
+        /// request's task is whatever the panel left in it.
         bool is_cycle(const StartMission::Request& request)
         {
             return request.mode == StartMission::Request::MODE_FULL_AUTONOMY ||
-                   request.task == StartMission::Request::TASK_CYCLE;
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_CYCLE);
         }
 
         bool needs_excavation(const StartMission::Request& request)
         {
             return is_cycle(request) ||
-                   request.task == StartMission::Request::TASK_GO_TO_EXCAVATION;
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_GO_TO_EXCAVATION);
         }
 
         bool needs_construction(const StartMission::Request& request)
         {
             return is_cycle(request) ||
-                   request.task == StartMission::Request::TASK_GO_TO_CONSTRUCTION;
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_GO_TO_CONSTRUCTION);
         }
 
         /// @brief A picked point with its stamp zeroed. NavigateToPose resolves the
@@ -101,10 +111,6 @@ namespace mission_bt_server
         _construction_service_name = declare_parameter<std::string>(
             "construction_service_name", "/arena/request_construction_waypoint");
 
-        // Placeholder bucket step: until the autonomous dig/dump actions exist, the
-        // full-autonomy cycle holds this long at each zone instead.
-        _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
-
         // PrepareBucket (StartMission.prepare_bucket): the bucket controller's action,
         // and the pose it leaves the bucket in for driving. The default pose keeps the
         // bucket out of the MID-360's and D455's view of the ground from 2 m ahead
@@ -117,6 +123,32 @@ namespace mission_bt_server
         // Per move. Generous: the controller has to get there within this plus its
         // 3 s goal_time tolerance, from wherever the bucket was left.
         _bucket_move_s = declare_parameter<double>("bucket_move_s", 10.0);
+
+        // DigBucket (StartMission MODE_DIG_ONLY); the sequence is in mission.xml. Joint
+        // angles in degrees as for the travel pose: tilt positive tips the bucket down,
+        // lift positive lowers the arms.
+        //   dig_tilt_deg        cutting edge down, before the arms lower. The tilt joint
+        //                       stops at 28.1 deg (bucket.urdf.xacro's tilt_upper), and a
+        //                       target it cannot reach fails the move on the controller's
+        //                       2 deg goal tolerance, so 28 is as far as it goes.
+        //   dig_lift_deg        arms down into the regolith: at tilt 28 the tray floor
+        //                       meets grade near lift 30 and sits ~5 cm under at 35.
+        //   dig_push_m          creep straight ahead with the edge in, at dig_speed.
+        //   dig_curl_tilt_deg   curl the bucket up to hold the load.
+        //   dig_carry_m         creep on while the arms rise to dig_carry_lift_deg, the
+        //                       carrying pose: 0 is arms level at the top, so the curled
+        //                       bucket rides as high as it goes. The rise takes the
+        //                       longer of the drive and bucket_move_s, so a long lift is
+        //                       not rushed to fit a short creep.
+        //   dig_speed           both creeps, m/s. The ESCs stall below ~0.34 rad/s at the
+        //                       wheel (~0.05 m/s), so keep it clear of that.
+        _dig_tilt_deg = declare_parameter<double>("dig_tilt_deg", 28.0);
+        _dig_lift_deg = declare_parameter<double>("dig_lift_deg", 32.0);
+        _dig_push_m = declare_parameter<double>("dig_push_m", 0.20);
+        _dig_curl_tilt_deg = declare_parameter<double>("dig_curl_tilt_deg", -28.0);
+        _dig_carry_m = declare_parameter<double>("dig_carry_m", 0.40);
+        _dig_carry_lift_deg = declare_parameter<double>("dig_carry_lift_deg", 0.0);
+        _dig_speed = declare_parameter<double>("dig_speed", 0.08);
 
         // Matches nav2_behavior_tree::BtActionServer's own defaults (bt_loop_duration
         // 10ms, default_server_timeout/default_cancel_timeout 20s,
@@ -135,6 +167,7 @@ namespace mission_bt_server
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
+                                     "nav2_drive_on_heading_bt_node",
                                      "request_zone_waypoint_bt_node", "move_bucket_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
@@ -296,7 +329,9 @@ namespace mission_bt_server
     std::string MissionBtServer::_validate(const StartMission::Request& request)
     {
         if (request.mode != StartMission::Request::MODE_FULL_AUTONOMY &&
-            request.mode != StartMission::Request::MODE_NAVIGATION_ONLY)
+            request.mode != StartMission::Request::MODE_NAVIGATION_ONLY &&
+            request.mode != StartMission::Request::MODE_DUMP_ONLY &&
+            request.mode != StartMission::Request::MODE_DIG_ONLY)
         {
             return "unknown mode " + std::to_string(request.mode);
         }
@@ -329,6 +364,14 @@ namespace mission_bt_server
         if (request.mode == StartMission::Request::MODE_FULL_AUTONOMY)
         {
             return "full_cycle";
+        }
+        if (request.mode == StartMission::Request::MODE_DUMP_ONLY)
+        {
+            return "dump";
+        }
+        if (request.mode == StartMission::Request::MODE_DIG_ONLY)
+        {
+            return "dig";
         }
         switch (request.task)
         {
@@ -399,16 +442,9 @@ namespace mission_bt_server
         status.phase = "starting";
         _publish_status(status, true);
 
-        const double pause_s =
-            request.zone_pause_s > 0.0 ? request.zone_pause_s : _default_zone_pause_s;
-
         auto blackboard = _make_blackboard();
         blackboard->set<std::string>("task", _task_name(request));
         blackboard->set<int>("cycles", static_cast<int>(std::max<uint32_t>(1, request.cycles)));
-        // unsigned, not int: BT.CPP's Sleep declares msec as unsigned and refuses to
-        // build the tree on a blackboard entry of any other type.
-        blackboard->set<unsigned>("pause_ms",
-                                  static_cast<unsigned>(std::lround(pause_s * 1000.0)));
         blackboard->set<bool>("use_arena_excavation", request.use_arena_excavation);
         blackboard->set<bool>("use_arena_construction", request.use_arena_construction);
         blackboard->set<geometry_msgs::msg::PoseStamped>("excavation_point",
@@ -427,13 +463,28 @@ namespace mission_bt_server
         blackboard->set<double>("bucket_travel_tilt_deg", _bucket_travel_tilt_deg);
         blackboard->set<double>("bucket_travel_jaw_deg", _bucket_travel_jaw_deg);
         blackboard->set<double>("bucket_move_s", _bucket_move_s);
+        blackboard->set<double>("dig_tilt_deg", _dig_tilt_deg);
+        blackboard->set<double>("dig_lift_deg", _dig_lift_deg);
+        blackboard->set<double>("dig_push_m", _dig_push_m);
+        blackboard->set<double>("dig_curl_tilt_deg", _dig_curl_tilt_deg);
+        blackboard->set<double>("dig_carry_m", _dig_carry_m);
+        blackboard->set<double>("dig_carry_lift_deg", _dig_carry_lift_deg);
+        blackboard->set<double>("dig_speed", _dig_speed);
+        // The carry's drive and lift start together; the lift gets at least
+        // bucket_move_s, since 32 -> 0 deg in a 5 s creep would outrun the rams.
+        const double carry_s = _dig_carry_m / std::max(_dig_speed, 0.01);
+        blackboard->set<double>("dig_carry_s", std::max(carry_s, _bucket_move_s));
+        // DriveOnHeading gives up after time_allowance; leave room for the ramp-up.
+        blackboard->set<double>("dig_push_allowance_s",
+                                _dig_push_m / std::max(_dig_speed, 0.01) + 10.0);
+        blackboard->set<double>("dig_carry_allowance_s", carry_s + 10.0);
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "
-                    "pause %.1f s, bucket %s",
+                    "bucket %s",
                     _task_name(request).c_str(), request.cycles,
                     request.use_arena_excavation ? "arena" : "picked",
-                    request.use_arena_construction ? "arena" : "picked", pause_s,
+                    request.use_arena_construction ? "arena" : "picked",
                     request.prepare_bucket ? "to travel pose first" : "left as is");
 
         BT::Tree tree;

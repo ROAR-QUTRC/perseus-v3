@@ -679,13 +679,16 @@ behavior_server:
     local_footprint_topic: local_costmap/published_footprint
     global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
-    # The three the default tree calls. AssistedTeleop has no place on a rover whose teleop
-    # already outranks nav2 in twist_mux.
-    behavior_plugins: ["spin", "backup", "wait"]
+    # The three the default tree calls, plus drive_on_heading for the dig's creeps
+    # (mission.xml DigBucket). AssistedTeleop has no place on a rover whose teleop already
+    # outranks nav2 in twist_mux.
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
     spin:
       plugin: "nav2_behaviors::Spin"
     backup:
       plugin: "nav2_behaviors::BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors::DriveOnHeading"
     wait:
       plugin: "nav2_behaviors::Wait"
     local_frame: odom

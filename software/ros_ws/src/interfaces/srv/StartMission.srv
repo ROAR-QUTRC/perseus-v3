@@ -5,12 +5,20 @@
 
 # What the rover does at each zone.
 #   FULL_AUTONOMY    drive between the zones AND run the bucket step at each one: dump
-#                    the load at construction (mission.xml's DumpBucket), and at
-#                    excavation a timed pause (zone_pause_s) until the autonomous dig
-#                    exists. Always cycles; task is ignored.
+#                    the load at construction (mission.xml's DumpBucket) and dig at
+#                    excavation (DigBucket). Always cycles; task is ignored.
 #   NAVIGATION_ONLY  drive only, no bucket step. task picks what to drive.
+#   DUMP_ONLY        no driving: run the dump sequence (mission.xml's DumpBucket) once,
+#                    where the rover stands. task, cycles and both points are ignored;
+#                    prepare_bucket still applies.
+#   DIG_ONLY         one dig pass (mission.xml's DigBucket) from where the rover stands:
+#                    the only driving is the dig's own short creeps straight ahead.
+#                    task, cycles and both points are ignored; prepare_bucket still
+#                    applies.
 uint8 MODE_FULL_AUTONOMY = 0
 uint8 MODE_NAVIGATION_ONLY = 1
+uint8 MODE_DUMP_ONLY = 2
+uint8 MODE_DIG_ONLY = 3
 uint8 mode
 
 # NAVIGATION_ONLY only.
@@ -35,8 +43,8 @@ geometry_msgs/PoseStamped excavation_point
 bool use_arena_construction
 geometry_msgs/PoseStamped construction_point
 
-# FULL_AUTONOMY only: how long the placeholder dig step holds at excavation, in
-# seconds. <= 0 uses the server's default (2 s).
+# Ignored. It set the timed pause that stood in for the dig at excavation before
+# DigBucket replaced it; kept so existing clients and recordings still match.
 float64 zone_pause_s
 
 # Before anything else, move the bucket to every joint 0 deg and then to its travel
