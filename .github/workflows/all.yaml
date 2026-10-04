@@ -110,7 +110,8 @@ jobs:
         run: devenv --profile docs shell build # builds docs in docs/site
       # From here, deploying to the website repo
       - name: Checkout website repo
-        if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
+        if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') }}
+        # if: ${{ (needs.global-vars.outputs.can-push-commits == 'true') && (needs.global-vars.outputs.is-main == 'true') }}
         id: checkout-website
         uses: actions/checkout@v7
         with:
