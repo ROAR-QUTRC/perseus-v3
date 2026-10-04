@@ -1,7 +1,8 @@
 """Rover half of the point cloud link: voxel downsample, then Draco compress.
 
 For each of the two clouds worth sending to the base station -- the live Livox
-scan and BIEVR-LIO's map -- this runs a `voxel_downsampler` to thin
+scan and BIEVR-LIO's map, both with the ceiling cropped off by
+height_crop.launch.py -- this runs a `voxel_downsampler` to thin
 the cloud, then a `point_cloud_transport` `republish` node to encode the thinned
 cloud as Draco on `<downsampled topic>/draco`.
 
@@ -18,12 +19,13 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-# Each stream is (node name prefix, raw input topic, downsampled base topic).
+# Each stream is (node name prefix, input topic, downsampled base topic). The
+# inputs are height_crop's outputs, so the base station never sees the ceiling.
 # The Draco topic is the base topic with a "/draco" suffix, which is what the
 # draco publisher plugin appends of its own accord.
 STREAMS = (
-    ("livox", "/livox/lidar", "/livox/lidar/downsampled"),
-    ("laser_map", "/Laser_map", "/Laser_map/downsampled"),
+    ("livox", "/livox/lidar/cropped", "/livox/lidar/downsampled"),
+    ("laser_map", "/Laser_map/cropped", "/Laser_map/downsampled"),
 )
 
 

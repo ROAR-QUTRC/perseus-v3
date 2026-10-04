@@ -295,8 +295,23 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    # The rover half of the point cloud link: voxel downsamples the live Livox scan and
-    # /Laser_map (BIEVR-LIO's map, remapped above and published every
+    # Crops the ceiling (anything over 1.5 m above odom) out of the live Livox scan and
+    # /Laser_map, onto /livox/lidar/cropped and /Laser_map/cropped. The traversability
+    # nodes and the downlink below read those; BIEVR-LIO keeps the raw scan. It needs
+    # odom <- livox_frame, which this file's EKF provides. See sensors/config/height_crop.yaml.
+    height_crop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("sensors"), "launch", "height_crop.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
+    # The rover half of the point cloud link: voxel downsamples the cropped Livox scan
+    # and the cropped /Laser_map (BIEVR-LIO's map, remapped above and published every
     # publish.map_interval_s), then Draco encodes both for the base station. Its two inputs
     # are exactly what this stack consumes and produces, so it comes up with them; the
     # base station runs sensors/point_cloud_decompress.launch.py against the Draco topics.
@@ -335,6 +350,7 @@ def launch_setup(context, *args, **kwargs):
             GroupAction([arena_server_launch], scoped=True),
             GroupAction([watchdog_launch], scoped=True),
             GroupAction([health_check_launch], scoped=True),
+            GroupAction([height_crop_launch], scoped=True),
             GroupAction([point_cloud_compress_launch], scoped=True),
         ]
     )

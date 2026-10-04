@@ -27,6 +27,9 @@
     topics:
       # Livox MID-360 pointcloud. publish_freq in sensors/launch/livox.launch.py.
       - /livox/lidar
+      # The same scan with the ceiling cropped off (sensors/height_crop), which the
+      # traversability nodes read. Silent while the scan is, or while odom TF is missing.
+      - /livox/lidar/cropped
       # Raw IMU from the MID-360's built-in ICM40609.
       - /livox/imu
       # Bias-corrected IMU from sensors/bias_remover; the EKF's imu0 input. Same rate as
@@ -58,6 +61,7 @@
       - /camera/camera/infra2/image_rect_raw
     expected_rates_hz:
       - 10.0 # /livox/lidar
+      - 10.0 # /livox/lidar/cropped
       - 200.0 # /livox/imu
       - 200.0 # /livox/imu/corrected
       - 10.0 # /Odometry

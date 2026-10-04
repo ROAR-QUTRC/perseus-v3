@@ -36,7 +36,10 @@
 # stitched across minutes would read the drift between two visits as a step.
 global_traversability:
   ros__parameters:
-    pointcloud_topic: "/livox/lidar"
+    # Ceiling cropped (sensors/height_crop, run by localisation.launch.py: nothing over
+    # 1.5 m above odom). max_sensor_height_m below still applies on top, in the sensor
+    # frame. BIEVR-LIO alone reads the raw /livox/lidar.
+    pointcloud_topic: "/livox/lidar/cropped"
     # No map frame -- see the header of this file. Must match global_costmap's global_frame.
     global_frame: "odom"
     robot_frame: "base_footprint"
@@ -146,9 +149,13 @@ global_traversability:
 # deterministic.
 local_traversability:
   ros__parameters:
-    # Raw, not /Laser_map. Point this at /livox/lidar/filtered to run behind the dust
-    # filter (sensors/config/dust_filter.yaml) if dust starts producing false obstacles.
-    pointcloud_topic: "/livox/lidar"
+    # The live scan, not /Laser_map, with the ceiling cropped (sensors/height_crop, run
+    # by localisation.launch.py: nothing over 1.5 m above odom). max_sensor_height_m
+    # below still applies on top, in the sensor frame. BIEVR-LIO alone reads the raw
+    # /livox/lidar. If dust starts producing false obstacles, run the dust filter
+    # (sensors/config/dust_filter.yaml) on /livox/lidar and point the crop's
+    # input_topic at its /livox/lidar/filtered.
+    pointcloud_topic: "/livox/lidar/cropped"
     # Must match local_costmap's global_frame below, or its static layer silently drops
     # every grid this publishes. There is no map frame -- see the header of this file.
     global_frame: "odom"
