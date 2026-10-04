@@ -3290,7 +3290,7 @@
 		)
 		(uuid "61a3254c-7093-465f-945b-8dac7dfa7c6e")
 	)
-	(text "TO PERSEUS"
+	(text "TO PERSEUS (M8 SOCKET)"
 		(exclude_from_sim no)
 		(at 73.914 110.236 0)
 		(effects
@@ -3378,9 +3378,9 @@
 		)
 		(uuid "f283e59b-ee3f-42fb-97e0-a43fafbb977a")
 	)
-	(text_box "OVLO = 36V\nUVLO = 7V\nRPP = -40V\nI_{FUSE} = 20A\nI_{Inrush} = 3A @ 972uF \nt_{cooldown} = 1.2s (OC FAULT)"
+	(text_box "OVLO = 36V\nUVLO = 7V\nRPP (down to) = -40V\nI_{FUSE} = 20A\nI_{Inrush} = 2A @ 972uF \nt_{cooldown} = 1.2s (OC FAULT)"
 		(exclude_from_sim no)
-		(at 71.12 15.24 0)
+		(at 69.85 15.24 0)
 		(size 34.29 14.1714)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke
@@ -3396,7 +3396,7 @@
 			)
 			(justify left top)
 		)
-		(uuid "05352050-5c09-4c9d-a04d-fe900a6832b7")
+		(uuid "1dc86989-c8bd-42e1-94de-0aeec0de6073")
 	)
 	(text_box "FAULT is useless as power is disconnected on FAULT"
 		(exclude_from_sim no)
@@ -3440,7 +3440,7 @@
 	)
 	(text_box "Input Capacitance:\nPROTECTION: 100uF\nESC: 660uF \nDRILL: 101uF\nSHAFT: 101uF\nSMOL-BRAIN: 10uF\nTotal: 972uF"
 		(exclude_from_sim no)
-		(at 121.92 15.24 0)
+		(at 15.24 13.97 0)
 		(size 24.13 19.05)
 		(margins 0.9525 0.9525 0.9525 0.9525)
 		(stroke

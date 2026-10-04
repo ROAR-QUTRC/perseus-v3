@@ -2168,7 +2168,7 @@
 		)
 		(uuid "c5de744b-4238-4ae9-8170-4b6cf3b270a0")
 	)
-	(text_box "OVLO = 36V\nUVLO = 7V\nRPP = -40V\nI_{FUSE} = 20A\nI_{Inrush} = 2A @ 972uF \nt_{cooldown} = 1.2s (OC FAULT)"
+	(text_box "OVLO = 36V\nUVLO = 7V\nRPP (down to) = -40V\nI_{FUSE} = 20A\nI_{Inrush} = 2A @ 972uF \nt_{cooldown} = 1.2s (OC FAULT)"
 		(exclude_from_sim no)
 		(at 66.04 81.0786 0)
 		(size 34.29 14.1714)

@@ -913,7 +913,7 @@
         "uuid": "f59e042e-9012-4c53-939a-670fd6fb4f69"
       }
     ],
-    "used_designators": "SHUNT1,Rilim1,H1-4,J1-15,GND_TP1,Q1-5,U1-8,D1-6,A1,C1-38,Rcomp1-2,TP1-5,JP1,Cbst1,L1-3,3V3_TP1,NT1-2,R1-32,RSHUNT1,CComp1-3,#PWR1-80,Cilim1,24V_TP1",
+    "used_designators": "SHUNT1,Rilim1,H1-4,Q1-5,GND_TP1,U1-8,D1-6,C1-38,A1,J1-15,Rcomp1-2,TP1-5,JP1,R1-32,CComp1-3,RSHUNT1,Cbst1,L1-3,3V3_TP1,NT1-2,#PWR1-80,Cilim1,24V_TP1",
     "variants": []
   },
   "sheets": [
