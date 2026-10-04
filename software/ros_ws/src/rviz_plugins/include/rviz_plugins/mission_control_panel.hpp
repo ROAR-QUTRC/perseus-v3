@@ -5,8 +5,8 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QElapsedTimer>
 #include <QLabel>
-#include <QProgressBar>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QString>
@@ -136,6 +136,19 @@ namespace rviz_plugins
         bool _running() const;
         void _set_message(const QString& text, const QString& colour = QString());
 
+        /// @brief Updates the run's timing (start, cycle boundaries) from a new status.
+        void _track_progress();
+        /// @brief How far through the running mission is, 0..1, from the cycles done
+        /// and the phases done in the current cycle; nullopt for a single trip, which
+        /// has no steps to count.
+        std::optional<double> _progress_fraction() const;
+        /// @brief Estimated milliseconds left: the mean measured cycle time once a
+        /// cycle has finished, extrapolated from the phases done before that; nullopt
+        /// while there is nothing to go on yet.
+        std::optional<qint64> _remaining_ms(double fraction) const;
+        /// @brief Start as a button when idle, as the progress bar while running.
+        void _refresh_start_button();
+
         // ---- widgets ----
         QComboBox* _mode_combo{nullptr};
         QComboBox* _task_combo{nullptr};
@@ -146,16 +159,14 @@ namespace rviz_plugins
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.
         QWidget* _task_label{nullptr};
-        // "Run" row: the cycle count, hidden when the mode does not cycle.
-        QWidget* _run_label{nullptr};
-        QWidget* _run_widget{nullptr};
+        // Cycles caption, beside its spinbox on the Controller row; both hidden when
+        // the mode does not cycle.
         QWidget* _cycles_caption{nullptr};
         QWidget* _excavation_label{nullptr};
         QWidget* _excavation_widget{nullptr};
         QWidget* _construction_label{nullptr};
         QWidget* _construction_widget{nullptr};
         QWidget* _waypoint_box{nullptr};
-        QProgressBar* _progress{nullptr};
         QLabel* _phase_label{nullptr};
         QPushButton* _start_button{nullptr};
         QPushButton* _stop_button{nullptr};
@@ -168,6 +179,19 @@ namespace rviz_plugins
         interfaces::msg::MissionStatus _status;
         bool _have_status{false};
         bool _server_ready{false};
+
+        // ---- run timing, for the progress display; wall clock ----
+        QElapsedTimer _run_clock;  // started when a mission is seen running
+        bool _was_running{false};
+        bool _in_cycle{false};       // a phase of the current cycle's work has begun
+        qint64 _work_start_ms{-1};   // first in-cycle phase (after the drive out)
+        qint64 _cycle_start_ms{-1};  // start of the current cycle's work
+        qint64 _cycle_ms_sum{0};     // total time of the cycles timed so far
+        uint32_t _cycles_timed{0};   // cycles whose start and end were both seen
+        uint32_t _cycles_seen{0};    // cycles_completed at the last update
+        qint64 _last_run_ms{-1};     // duration of the last mission, once it ends
+        QString _start_text;         // what the Start button last showed, to skip
+        QString _start_style;        // restyling it on every poll
 
         // ---- ROS ----
         rclcpp::Node::SharedPtr _node;
