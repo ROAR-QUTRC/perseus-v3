@@ -269,7 +269,7 @@ publish:
   # Position is sized to that jitter. Orientation was 0.0003, sized as a fallback only; as a
   # floor that is ~1 deg sigma against ~0.2 deg of measured jitter, which would hand
   # attitude to the gyro, so it is 0.00003 (~0.3 deg), the value the replay A/B used.
-  odom_position_variance: 0.0004 # m^2, x/y/z diagonal floor
+  odom_position_variance: 0.012 # m^2, x/y/z diagonal floor
   odom_orientation_variance: 0.00003 # rad^2, roll/pitch/yaw diagonal floor
   # Twist has no per-scan estimate, so these are always used as-is. Distinct units from the
   # pose pair above (velocity, not position), so reusing those would be dimensionally wrong.

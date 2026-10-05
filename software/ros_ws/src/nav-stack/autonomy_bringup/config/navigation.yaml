@@ -53,7 +53,7 @@ global_traversability:
     update_period_s: 0.5
     # Republish /costmap. Inflation and the OccupancyGrid conversion scale with the WHOLE
     # map, so this is the one to slow down once the map is arena-sized.
-    publish_period_s: 1.0
+    publish_period_s: 0.5
     # The drift-free window. Same 1 s as local. With update_period_s 0.5 every scan is
     # classified twice, which the log-odds values below are tuned for.
     point_buffer_s: 1.0
@@ -257,15 +257,15 @@ local_traversability:
     # Same inflation semantics and the same values as the global node, so a cell does not
     # change cost depending on which of the two saw it.
     robot_radius_m: 0.6
-    inflation_radius_m: 0.87
-    cost_scaling_factor: 3.2
+    inflation_radius_m: 0.8
+    cost_scaling_factor: 2.8
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
 planner_server:
   ros__parameters:
     # Only warns if planning is slower than this; nothing plans on a timer.
-    expected_planner_frequency: 1.0
+    expected_planner_frequency: 0.75
     # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
     # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
     # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
@@ -299,7 +299,7 @@ planner_server:
       # let real cost still steer it around expensive terrain, same balance GridBased's
       # Dijkstra gets for free from the costmap values it searches over directly.
       w_euc_cost: 1.0
-      w_traversal_cost: 2.0
+      w_traversal_cost: 10.0
       # Same reasoning and same value as GridBased's allow_unknown above (UNMAPPED, 2 of 3):
       # this reads the same costmap under the same track_unknown_space: false regime, so it
       # needs the same policy on routing through ground the lidar has not seen yet.
@@ -375,8 +375,8 @@ global_costmap:
       footprint: "[[0.90, 0.25], [0.90, -0.25], [0.375, -0.435], [-0.775, -0.435], [-0.775, 0.435], [0.375, 0.435]]"
       footprint_padding: 0.03
       # /costmap only republishes every publish_period_s (1 s); polling faster re-copies it.
-      update_frequency: 1.0
-      publish_frequency: 1.0
+      update_frequency: 2.5
+      publish_frequency: 1.8
       rolling_window: false
       # width/height/resolution omitted on purpose: the static layer resizes the master
       # costmap to whatever /costmap arrives with.
@@ -392,7 +392,7 @@ global_costmap:
       # highest input cost the returned path crossed: 99 (grazing a wall at 0.02 m) with it
       # nested and ignored, 42 with it set here.
       trinary_costmap: false
-      lethal_cost_threshold: 100
+      lethal_cost_threshold: 99
       # UNMAPPED (3 of 3). NO_INFORMATION is 255 and every collision check treats >= 253 as
       # a collision, so tracking unknown makes unmapped ground indistinguishable from a
       # wall -- RPP commands zero and the rover stalls silently until the progress checker
