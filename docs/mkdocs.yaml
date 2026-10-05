@@ -66,6 +66,7 @@ plugins:
       # fixes some problems still broken:
       drawio_args:
         - --no-sandbox
+        - --disable-gpu # headless ci runner has no GPU, skips GPU init and its error spam
 markdown_extensions:
   # Callouts
   - admonition # adds admonitions
