@@ -71,10 +71,10 @@ The name spells out the job:
   goals can be given in guidebook coordinates.
 - **Terrain-aware costmaps from the raw scan.** Two traversability nodes share
   one height-difference classifier:
-    - `global_traversability` remembers the whole arena with log-odds, for the
-      planner.
-    - `local_traversability` forgets after 1 s over a 6 m-range window, for
-      the controller.
+  - `global_traversability` remembers the whole arena with log-odds, for the
+    planner.
+  - `local_traversability` forgets after 1 s over a 6 m-range window, for
+    the controller.
 - **Three planners and two controllers, switchable live.** ThetaStar
   (default), Smac Lattice and NavFn; Regulated Pure Pursuit (default) and DWB.
   Pick them from the Mission Control panel or a topic, with no restart. See
@@ -278,10 +278,10 @@ restarting anything.
   Both lock while a mission runs.
 - **Command line,** before sending the next goal:
 
-    ```shell
-    ros2 topic pub -1 /planner_selector std_msgs/String "{data: Lattice}"
-    ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"
-    ```
+  ```shell
+  ros2 topic pub -1 /planner_selector std_msgs/String "{data: Lattice}"
+  ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"
+  ```
 
 Both topics are latched (transient local, reliable), and the behaviour tree's
 `PlannerSelector` and `ControllerSelector` read them on every tick. With
@@ -298,11 +298,11 @@ ros2 topic hz /evaluation    # messages: DWB is driving; silence: RPP
 
 ### Loaded planners
 
-| Name (`planner_id`) | Plugin                      | Plans in       | Checks           | Good at                                       | Weak at                                    |
-| ------------------- | --------------------------- | -------------- | ---------------- | --------------------------------------------- | ------------------------------------------ |
-| `ThetaStar`         | Theta\* (any-angle A\*)     | x, y           | Inflated circle  | Straight, short paths; the default            | Ignores heading; pivots at start and goal  |
-| `Lattice`           | Smac State Lattice          | x, y, heading  | Real footprint   | Fewest pivots; tight gaps; arriving facing in | Turning round for a goal behind the rover  |
-| `GridBased`         | NavFn (Dijkstra)            | x, y           | Inflated circle  | Always finds a path if one exists             | 45°/90° grid corners, more pivoting        |
+| Name (`planner_id`) | Plugin                  | Plans in      | Checks          | Good at                                       | Weak at                                   |
+| ------------------- | ----------------------- | ------------- | --------------- | --------------------------------------------- | ----------------------------------------- |
+| `ThetaStar`         | Theta\* (any-angle A\*) | x, y          | Inflated circle | Straight, short paths; the default            | Ignores heading; pivots at start and goal |
+| `Lattice`           | Smac State Lattice      | x, y, heading | Real footprint  | Fewest pivots; tight gaps; arriving facing in | Turning round for a goal behind the rover |
+| `GridBased`         | NavFn (Dijkstra)        | x, y          | Inflated circle | Always finds a path if one exists             | 45°/90° grid corners, more pivoting       |
 
 #### ThetaStar (default)
 
@@ -338,13 +338,13 @@ never checks.
 
 Offline on a synthetic arena costmap, driving each plan with an RPP model:
 
-| Trip                          | Lattice                  | ThetaStar                |
-| ----------------------------- | ------------------------ | ------------------------ |
-| Start → construction          | 4° pivoting, 0 pivots    | 117°, 2 pivots           |
-| Construction → excavation     | 60°, 1 pivot (+0.95 m)   | 188°, 2 pivots           |
-| Excavation → berm face        | 100°, 1 pivot (+0.36 m)  | 363°, 3 pivots           |
-| Turning round for a goal      | 526°, 9 pivots           | 321°, 2 pivots           |
-| 0.93 m gap by boulder_7       | Refuses it               | Plans a clipping pivot   |
+| Trip                      | Lattice                 | ThetaStar              |
+| ------------------------- | ----------------------- | ---------------------- |
+| Start → construction      | 4° pivoting, 0 pivots   | 117°, 2 pivots         |
+| Construction → excavation | 60°, 1 pivot (+0.95 m)  | 188°, 2 pivots         |
+| Excavation → berm face    | 100°, 1 pivot (+0.36 m) | 363°, 3 pivots         |
+| Turning round for a goal  | 526°, 9 pivots          | 321°, 2 pivots         |
+| 0.93 m gap by boulder_7   | Refuses it              | Plans a clipping pivot |
 
 Use Lattice when the rover must arrive facing a particular way (the berm
 face, a dig line) or thread a narrow gap. It is still the challenger:
@@ -361,10 +361,10 @@ the other two fail to plan.
 
 ### Loaded controllers
 
-| Name (`controller_id`) | Plugin                                   | How it drives                                        | Obstacles                                   | Reverse                 |
-| ---------------------- | ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------- | ----------------------- |
-| `FollowPath`           | Regulated Pure Pursuit                   | Geometric arc to one lookahead point on the path     | Stops before a collision; never steers away | No                      |
-| `DWB`                  | Rotation Shim wrapping DWB local planner | Simulates and scores 200 trajectories every cycle    | Footprint-checked; steers around            | Yes, up to 0.15 m/s     |
+| Name (`controller_id`) | Plugin                                   | How it drives                                     | Obstacles                                   | Reverse             |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------- | ------------------- |
+| `FollowPath`           | Regulated Pure Pursuit                   | Geometric arc to one lookahead point on the path  | Stops before a collision; never steers away | No                  |
+| `DWB`                  | Rotation Shim wrapping DWB local planner | Simulates and scores 200 trajectories every cycle | Footprint-checked; steers around            | Yes, up to 0.15 m/s |
 
 #### FollowPath: Regulated Pure Pursuit (default)
 
@@ -383,16 +383,16 @@ Above 0.5 rad of heading error it stops and pivots instead of arcing.
 DWB samples 10 linear × 20 angular velocities, simulates each for 2 s, and
 scores the resulting trajectories with critics:
 
-| Critic              | Scale | Rewards                                                         |
-| ------------------- | ----- | --------------------------------------------------------------- |
-| `PathDist`          | 32    | Staying close to the global path                                |
-| `PathAlign`         | 32    | Facing along the path (0.325 m ahead of the axle)               |
-| `GoalDist`          | 24    | Getting closer to the goal                                      |
-| `GoalAlign`         | 24    | Facing the goal                                                 |
-| `RotateToGoal`      | 32    | Turning to the goal heading once inside the goal tolerance      |
-| `ObstacleFootprint` | 0.1   | Clearance for the whole footprint; rejects any lethal contact   |
-| `PreferForward`     | 10    | Driving forward; reversing and creeping are the exception       |
-| `Oscillation`       | —     | Rejects flip-flopping direction                                 |
+| Critic              | Scale | Rewards                                                       |
+| ------------------- | ----- | ------------------------------------------------------------- |
+| `PathDist`          | 32    | Staying close to the global path                              |
+| `PathAlign`         | 32    | Facing along the path (0.325 m ahead of the axle)             |
+| `GoalDist`          | 24    | Getting closer to the goal                                    |
+| `GoalAlign`         | 24    | Facing the goal                                               |
+| `RotateToGoal`      | 32    | Turning to the goal heading once inside the goal tolerance    |
+| `ObstacleFootprint` | 0.1   | Clearance for the whole footprint; rejects any lethal contact |
+| `PreferForward`     | 10    | Driving forward; reversing and creeping are the exception     |
+| `Oscillation`       | —     | Rejects flip-flopping direction                               |
 
 The `RotationShimController` wraps it. When the path is more than 0.785 rad
 (45°) off the rover's heading, at the start of nearly every zone leg, the shim
@@ -405,14 +405,14 @@ scored within a few points of each other and it dithered between them for
 Measured in Gazebo on the zone cycle, three navigation-only cycles each, same
 waypoints, from the starting zone:
 
-| Metric                        | RPP (`FollowPath`)        | DWB                       |
-| ----------------------------- | ------------------------- | ------------------------- |
-| Cycles completed              | 3 / 3                     | 3 / 3                     |
-| Total time                    | 230.4 s                   | 170.8 s                   |
-| Cycle times                   | 78.9 / 83.0 / 68.5 s      | 57.3 / 56.6 / 56.9 s      |
-| Recoveries triggered          | 1                         | 0                         |
-| Distance driven               | 37.6 m                    | 33.7 m                    |
-| Time creeping or pivoting     | 115 s                     | 68 s                      |
+| Metric                    | RPP (`FollowPath`)   | DWB                  |
+| ------------------------- | -------------------- | -------------------- |
+| Cycles completed          | 3 / 3                | 3 / 3                |
+| Total time                | 230.4 s              | 170.8 s              |
+| Cycle times               | 78.9 / 83.0 / 68.5 s | 57.3 / 56.6 / 56.9 s |
+| Recoveries triggered      | 1                    | 0                    |
+| Distance driven           | 37.6 m               | 33.7 m               |
+| Time creeping or pivoting | 115 s                | 68 s                 |
 
 What the numbers mean:
 
@@ -442,15 +442,15 @@ plugin to `planner_plugins` or `controller_plugins` in `navigation.yaml`, add
 its option to the Mission Control panel's list, and it becomes selectable the
 same way.
 
-| Option                   | Package                         | Kind       | Fit for Perseus                                                                                                                        |
-| ------------------------ | ------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Smac 2D                  | `nav2_smac_planner`             | Planner    | Good. Cost-aware 8-connected A\*, a better-behaved NavFn. Ignores heading like ThetaStar.                                              |
-| Smac Hybrid-A\*          | `nav2_smac_planner`             | Planner    | Poor. Built for car-like turning radii (Dubins / Reeds-Shepp); cannot use the rover's turn-in-place. Lattice covers this need better. |
-| MPPI                     | `nav2_mppi_controller`          | Controller | **Do not use.** The Nix build (xtensor 0.25) reverses away from a straight path. It was removed from the stack.                        |
-| Graceful                 | `nav2_graceful_controller`      | Controller | Worth trying. Smooth pose-following control law for diff drives, with its own in-place rotation; lighter than DWB.                     |
-| Rotation Shim            | `nav2_rotation_shim_controller` | Wrapper    | Already used around DWB. Could also wrap RPP, but RPP has its own rotate-to-heading.                                                   |
-| Savitzky-Golay smoother  | `nav2_smoother`                 | Smoother   | Cheap noise smoothing; doesn't reduce corners as much as the simple smoother.                                                          |
-| Constrained smoother     | `nav2_constrained_smoother`     | Smoother   | Respects a minimum turning radius and keeps clearance; slower. Worth trying with ThetaStar.                                            |
+| Option                  | Package                         | Kind       | Fit for Perseus                                                                                                                       |
+| ----------------------- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Smac 2D                 | `nav2_smac_planner`             | Planner    | Good. Cost-aware 8-connected A\*, a better-behaved NavFn. Ignores heading like ThetaStar.                                             |
+| Smac Hybrid-A\*         | `nav2_smac_planner`             | Planner    | Poor. Built for car-like turning radii (Dubins / Reeds-Shepp); cannot use the rover's turn-in-place. Lattice covers this need better. |
+| MPPI                    | `nav2_mppi_controller`          | Controller | **Do not use.** The Nix build (xtensor 0.25) reverses away from a straight path. It was removed from the stack.                       |
+| Graceful                | `nav2_graceful_controller`      | Controller | Worth trying. Smooth pose-following control law for diff drives, with its own in-place rotation; lighter than DWB.                    |
+| Rotation Shim           | `nav2_rotation_shim_controller` | Wrapper    | Already used around DWB. Could also wrap RPP, but RPP has its own rotate-to-heading.                                                  |
+| Savitzky-Golay smoother | `nav2_smoother`                 | Smoother   | Cheap noise smoothing; doesn't reduce corners as much as the simple smoother.                                                         |
+| Constrained smoother    | `nav2_constrained_smoother`     | Smoother   | Respects a minimum turning radius and keeps clearance; slower. Worth trying with ThetaStar.                                           |
 
 ### Path smoothing
 
@@ -480,27 +480,27 @@ creeps.
   which pins the distro for you.
 - A C++20 compiler and CMake ≥ 3.23.
 - ROS dependencies:
-    - `navigation2` (planner, controller, smoother, behaviors, bt_navigator,
-      waypoint_follower, velocity_smoother, lifecycle_manager)
-    - `nav2_theta_star_planner`, `nav2_smac_planner`,
-      `nav2_regulated_pure_pursuit_controller`, `dwb_core`,
-      `nav2_rotation_shim_controller`
-    - `robot_localization`
-    - `behaviortree_cpp` (BTCPP v4) and `nav2_behavior_tree`
-    - `tf2_ros`, `visualization_msgs`, `nav_msgs`, `sensor_msgs`, `std_srvs`
+  - `navigation2` (planner, controller, smoother, behaviors, bt_navigator,
+    waypoint_follower, velocity_smoother, lifecycle_manager)
+  - `nav2_theta_star_planner`, `nav2_smac_planner`,
+    `nav2_regulated_pure_pursuit_controller`, `dwb_core`,
+    `nav2_rotation_shim_controller`
+  - `robot_localization`
+  - `behaviortree_cpp` (BTCPP v4) and `nav2_behavior_tree`
+  - `tf2_ros`, `visualization_msgs`, `nav_msgs`, `sensor_msgs`, `std_srvs`
 - Perseus workspace packages HOUSECAT depends on:
-    - `bievr_lio_ros2`: LiDAR-inertial odometry.
-    - `interfaces`: `LocaliseInArena`, `RequestZoneWaypoint`, `StartMission`,
-      `MissionStatus`, `MobilityStatus`, `SystemHealth` and friends.
-    - `sensors`: Livox and RealSense drivers, IMU bias processing, Draco
-      point-cloud compression, `cloud_mesher`.
-    - `vision`: `orb_slam_odometry` (ORB-SLAM3 stereo VO) and the ArUco
-      detector.
-    - `perseus`: `twist_mux` and the diff-drive controller.
-    - `payloads`: the bucket's `FollowJointTrajectory` controller.
-    - `teleop`: joystick override.
-    - `rviz_plugins`: Topic Health, Arena Minimap, Mobility Efficiency,
-      Mission Control and View Lock panels.
+  - `bievr_lio_ros2`: LiDAR-inertial odometry.
+  - `interfaces`: `LocaliseInArena`, `RequestZoneWaypoint`, `StartMission`,
+    `MissionStatus`, `MobilityStatus`, `SystemHealth` and friends.
+  - `sensors`: Livox and RealSense drivers, IMU bias processing, Draco
+    point-cloud compression, `cloud_mesher`.
+  - `vision`: `orb_slam_odometry` (ORB-SLAM3 stereo VO) and the ArUco
+    detector.
+  - `perseus`: `twist_mux` and the diff-drive controller.
+  - `payloads`: the bucket's `FollowJointTrajectory` controller.
+  - `teleop`: joystick override.
+  - `rviz_plugins`: Topic Health, Arena Minimap, Mobility Efficiency,
+    Mission Control and View Lock panels.
 
 ### Hardware
 
@@ -624,11 +624,11 @@ ros2 launch autonomy_bringup base_station.launch.py use_sim_time:=true
   about 45 DDS participants, so raise CycloneDDS's
   `MaxAutoParticipantIndex` from its default:
 
-    ```shell
-    export ROS_DOMAIN_ID=87
-    export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
-    export CYCLONEDDS_URI="$CYCLONEDDS_URI,<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>100</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
-    ```
+  ```shell
+  export ROS_DOMAIN_ID=87
+  export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+  export CYCLONEDDS_URI="$CYCLONEDDS_URI,<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>100</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
+  ```
 
 ## Base station
 
@@ -654,7 +654,7 @@ estimates or plans. It runs:
 | Topic Health        | `/health_check/health`      | Rate, bandwidth and staleness per monitored topic. The fastest way to tell a link problem from a dead node. |
 | Arena Minimap       | `/arena/robot_pose`         | 2D overhead arena with rover position and heading, drawn from the local layout file.                        |
 | Mobility Efficiency | `/watchdog/mobility_status` | Percentage of commanded linear and angular motion achieved.                                                 |
-| Mission Control     | `/mission/*`                | Mode, task, cycles, zone points, bucket prep, planner and controller; Start, Stop and progress.            |
+| Mission Control     | `/mission/*`                | Mode, task, cycles, zone points, bucket prep, planner and controller; Start, Stop and progress.             |
 | View Lock           | —                           | Locks the camera to preset follow views.                                                                    |
 
 ### Mission Control panel
@@ -705,14 +705,14 @@ planner and controller are selected.
 
 ### Mission modes
 
-| Mode                  | Task                     | Behaviour                                                                     |
-| --------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| `FULL_AUTONOMY` (0)   | ignored                  | To excavation, then `cycles` × (dig → construction → dump → excavation).      |
-| `NAVIGATION_ONLY` (1) | `CYCLE` (0)              | To excavation, then `cycles` × (construction → excavation), no bucket steps.  |
-| `NAVIGATION_ONLY` (1) | `GO_TO_EXCAVATION` (1)   | One trip to the excavation point.                                             |
-| `NAVIGATION_ONLY` (1) | `GO_TO_CONSTRUCTION` (2) | One trip to the construction point.                                           |
-| `DUMP_ONLY` (2)       | ignored                  | No driving: one `DumpBucket` where the rover stands.                          |
-| `DIG_ONLY` (3)        | ignored                  | One `DigBucket` pass from where the rover stands; only the dig's own creeps.  |
+| Mode                  | Task                     | Behaviour                                                                    |
+| --------------------- | ------------------------ | ---------------------------------------------------------------------------- |
+| `FULL_AUTONOMY` (0)   | ignored                  | To excavation, then `cycles` × (dig → construction → dump → excavation).     |
+| `NAVIGATION_ONLY` (1) | `CYCLE` (0)              | To excavation, then `cycles` × (construction → excavation), no bucket steps. |
+| `NAVIGATION_ONLY` (1) | `GO_TO_EXCAVATION` (1)   | One trip to the excavation point.                                            |
+| `NAVIGATION_ONLY` (1) | `GO_TO_CONSTRUCTION` (2) | One trip to the construction point.                                          |
+| `DUMP_ONLY` (2)       | ignored                  | No driving: one `DumpBucket` where the rover stands.                         |
+| `DIG_ONLY` (3)        | ignored                  | One `DigBucket` pass from where the rover stands; only the dig's own creeps. |
 
 A cycle is counted on arrival back at excavation. `prepare_bucket` applies in
 every mode.
@@ -1001,16 +1001,16 @@ Looks up `odom -> base_link` and broadcasts `odom -> base_footprint` at
 
 ### `mission_bt_server`
 
-| Interface     | Name                               | Type                                                         |
-| ------------- | ---------------------------------- | ------------------------------------------------------------ |
-| Service       | `/mission/start`                   | `interfaces/srv/StartMission`                                |
-| Service       | `/mission/stop`                    | `std_srvs/srv/Trigger`                                       |
-| Service       | `/mission/go_to_excavation_zone`   | `std_srvs/srv/Trigger`                                       |
-| Service       | `/mission/go_to_construction_zone` | `std_srvs/srv/Trigger`                                       |
-| Publishes     | `/mission/status`                  | `interfaces/msg/MissionStatus` (latched)                     |
-| Action client | `/navigate_to_pose`                | `nav2_msgs/action/NavigateToPose`                            |
-| Action client | `/drive_on_heading`                | `nav2_msgs/action/DriveOnHeading` (dig creeps)               |
-| Action client | bucket controller                  | `control_msgs/action/FollowJointTrajectory` (`MoveBucket`)   |
+| Interface     | Name                               | Type                                                       |
+| ------------- | ---------------------------------- | ---------------------------------------------------------- |
+| Service       | `/mission/start`                   | `interfaces/srv/StartMission`                              |
+| Service       | `/mission/stop`                    | `std_srvs/srv/Trigger`                                     |
+| Service       | `/mission/go_to_excavation_zone`   | `std_srvs/srv/Trigger`                                     |
+| Service       | `/mission/go_to_construction_zone` | `std_srvs/srv/Trigger`                                     |
+| Publishes     | `/mission/status`                  | `interfaces/msg/MissionStatus` (latched)                   |
+| Action client | `/navigate_to_pose`                | `nav2_msgs/action/NavigateToPose`                          |
+| Action client | `/drive_on_heading`                | `nav2_msgs/action/DriveOnHeading` (dig creeps)             |
+| Action client | bucket controller                  | `control_msgs/action/FollowJointTrajectory` (`MoveBucket`) |
 
 It registers two custom BT nodes: `RequestZoneWaypoint`, which calls an
 `arena_server` waypoint service and writes the result to the blackboard, and
@@ -1085,16 +1085,16 @@ walls.
 
 ### Key terrain parameters
 
-| Parameter                   | Global | Local | Why                                                                     |
-| --------------------------- | ------ | ----- | ----------------------------------------------------------------------- |
-| `resolution_m`              | 0.1    | 0.1   | Must match the Lattice primitives' grid.                                |
-| `max_range_m`               | 10.0   | 6.0   | How far out each node classifies.                                       |
-| `max_slope_deg`             | 40     | 40    | Drivable slope allowance. Lower values map small rocks better.          |
-| `max_step_up_m`             | 0.2    | 0.2   | A floor this far above local ground is an obstacle.                     |
-| `max_step_down_m`           | 0.15   | 0.15  | A hole or edge this deep is an obstacle.                                |
-| `max_height_above_ground_m` | 0.08   | 0.2   | Something standing this tall in a cell is an obstacle.                  |
-| `robot_radius_m`            | 0.6    | 0.6   | Lethal radius around each obstacle, for the rover's real half-width.    |
-| `inflation_radius_m`        | 0.75   | 0.8   | Where inflation cost falls to zero.                                     |
+| Parameter                   | Global | Local | Why                                                                  |
+| --------------------------- | ------ | ----- | -------------------------------------------------------------------- |
+| `resolution_m`              | 0.1    | 0.1   | Must match the Lattice primitives' grid.                             |
+| `max_range_m`               | 10.0   | 6.0   | How far out each node classifies.                                    |
+| `max_slope_deg`             | 40     | 40    | Drivable slope allowance. Lower values map small rocks better.       |
+| `max_step_up_m`             | 0.2    | 0.2   | A floor this far above local ground is an obstacle.                  |
+| `max_step_down_m`           | 0.15   | 0.15  | A hole or edge this deep is an obstacle.                             |
+| `max_height_above_ground_m` | 0.08   | 0.2   | Something standing this tall in a cell is an obstacle.               |
+| `robot_radius_m`            | 0.6    | 0.6   | Lethal radius around each obstacle, for the rover's real half-width. |
+| `inflation_radius_m`        | 0.75   | 0.8   | Where inflation cost falls to zero.                                  |
 
 ### Key navigation parameters
 
