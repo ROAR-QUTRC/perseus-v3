@@ -14,6 +14,7 @@ from rclpy.qos import (
 from sensor_msgs.msg import Joy
 from moveit_msgs.srv import ServoCommandType
 from std_msgs.msg import Bool, Empty, Float64
+from teleop.speed_control import SpeedControl
 
 
 class TeleopNode(Node):
@@ -24,6 +25,11 @@ class TeleopNode(Node):
         self.declare_parameter("max_linear_speed", 0.20)  # m/s
         self.declare_parameter("max_joint_speed", 0.75)  # rad/s
         self.declare_parameter("max_gripper_speed", 0.02)  # m/s per finger
+        self.declare_parameter("speed_scale_min", 0.25)
+        self.declare_parameter("speed_scale_default", 0.50)
+        self.declare_parameter("speed_scale_increment", 0.25)
+        self.declare_parameter("speed_scale_max", 1.00)
+        self.declare_parameter("speed_dpad_axis", 7)
         self.declare_parameter("deadzone", 0.08)
         self.declare_parameter("joy_timeout", 0.25)  # seconds
         self.declare_parameter("mode_switch_settle_time", 0.1)  # seconds
@@ -34,6 +40,13 @@ class TeleopNode(Node):
         self.max_linear = self.get_parameter("max_linear_speed").value
         self.max_joint = self.get_parameter("max_joint_speed").value
         self.max_gripper = self.get_parameter("max_gripper_speed").value
+        self.speed_dpad_axis = self.get_parameter("speed_dpad_axis").value
+        self.speed_control = SpeedControl(
+            self.get_parameter("speed_scale_min").value,
+            self.get_parameter("speed_scale_default").value,
+            self.get_parameter("speed_scale_increment").value,
+            self.get_parameter("speed_scale_max").value,
+        )
         self.deadzone = self.get_parameter("deadzone").value
         self.joy_timeout = self.get_parameter("joy_timeout").value
         self.mode_switch_settle_time = self.get_parameter(
@@ -129,7 +142,16 @@ class TeleopNode(Node):
         self.get_logger().info(
             "Teleoperation started: LOCKED, Cartesian mode requested"
         )
+        self.log_speed()
         self.publish_enabled_state()
+
+    def log_speed(self):
+        scale = self.speed_control.scale
+        self.get_logger().info(
+            f"Arm speed: {scale:.0%} "
+            f"(linear {self.max_linear * scale:.3f} m/s, "
+            f"joint {self.max_joint * scale:.3f} rad/s)"
+        )
 
     def publish_enabled_state(self):
         state = Bool()
@@ -229,8 +251,9 @@ class TeleopNode(Node):
         self.ensure_servo_mode()
 
     def joy_callback(self, msg):
+        required_axes = max(8, self.speed_dpad_axis + 1)
         required_buttons = max(13, self.toggle_button + 1, self.mode_toggle_button + 1)
-        if len(msg.axes) < 8 or len(msg.buttons) < required_buttons:
+        if len(msg.axes) < required_axes or len(msg.buttons) < required_buttons:
             self.get_logger().error("Unexpected /joy controller mapping")
 
             if self.enabled:
@@ -241,6 +264,9 @@ class TeleopNode(Node):
             return
 
         self.last_joy_time = self.get_clock().now()
+
+        if self.speed_control.update(msg.axes[self.speed_dpad_axis]):
+            self.log_speed()
 
         toggle_pressed = bool(msg.buttons[self.toggle_button])
         mode_toggle_pressed = bool(msg.buttons[self.mode_toggle_button])
@@ -315,13 +341,15 @@ class TeleopNode(Node):
         self.shoulder_velocity = 0.0
 
         if self.requested_mode == "cartesian":
+            linear_speed = self.max_linear * self.speed_control.scale
             self.command = [
-                0.0 if r1_held else right_y * self.max_linear,
-                lateral * self.max_linear,
-                0.0 if l1_held else left_y * self.max_linear,
+                0.0 if r1_held else right_y * linear_speed,
+                lateral * linear_speed,
+                0.0 if l1_held else left_y * linear_speed,
             ]
         else:
-            self.shoulder_velocity = lateral * self.max_joint
+            joint_speed = self.max_joint * self.speed_control.scale
+            self.shoulder_velocity = lateral * joint_speed
 
         close_amount = self.trigger_amount(msg.axes[2])
         open_amount = self.trigger_amount(msg.axes[5])
