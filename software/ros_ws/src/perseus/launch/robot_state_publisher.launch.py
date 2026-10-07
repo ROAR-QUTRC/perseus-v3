@@ -18,6 +18,9 @@ def generate_launch_description():
     can_bus = LaunchConfiguration("can_bus", default="")
     min_command_erpm = LaunchConfiguration("min_command_erpm", default="0")
     payload = LaunchConfiguration("payload", default="none")
+    bucket_hardware_plugin = LaunchConfiguration(
+        "bucket_hardware_plugin", default="payloads/BucketHardware"
+    )
 
     # XACRO FILES
     robot_description_xacro = PathJoinSubstitution(
@@ -39,6 +42,8 @@ def generate_launch_description():
                 min_command_erpm,
                 " payload:=",
                 payload,
+                " bucket_hardware_plugin:=",
+                bucket_hardware_plugin,
             ]
         ),
         value_type=str,

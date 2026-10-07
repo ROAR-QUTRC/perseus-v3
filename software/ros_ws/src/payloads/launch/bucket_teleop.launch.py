@@ -1,13 +1,13 @@
 """Manual (teleop) control of the excavation bucket.
 
-Starts only the open-loop bucket_driver, which turns the Actuators messages
-published by teleop's generic_controller into bank-level SET_SPEED frames.
+Starts the open-loop bucket_driver, which turns the Actuators messages published by
+teleop's generic_controller into bank-level SET_SPEED frames.
 
-Deliberately kept separate from bucket.launch.py (the ros2_control stack): the
-firmware picks its control mode from whichever command it received last, so if
-both stacks transmit at once each bank flips between open-loop speed and
-closed-loop position every frame. Launching one or the other is what keeps them
-mutually exclusive.
+It runs alongside the ros2_control stack as an operator override. The firmware picks
+its control mode from whichever command it received last, so bucket_driver does not
+just transmit over a running trajectory: the first stick input past its deadband
+deactivates the bucket's command controllers, and only then do speeds go out. The
+/bucket/rearm service hands control back to autonomy.
 """
 
 from launch import LaunchDescription

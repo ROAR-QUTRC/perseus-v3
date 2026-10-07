@@ -39,6 +39,15 @@ namespace payloads
     };
 
     constexpr size_t kNumAxes = 3;
+
+    /// SET_SPEED duty (int16, +/-32767 = 100%) that takes a bank out of position
+    /// mode without moving it. The firmware ignores SET_SPEEDs inside +/-1% while
+    /// in position mode (so teleop's stream of zeros can't cancel a setpoint), which
+    /// means a plain zero does NOT stop a bank that is driving to a SET_POSITION.
+    /// 2% is just outside that deadband and well under the ~10% the actuators need
+    /// to move at all; a zero follows it. Same trick as STOP_NUDGE_PERCENT in
+    /// firmware/excavation-bucket/testbench/bucket_tui.py.
+    constexpr int16_t kStopNudgeDuty = 655;
     constexpr size_t kNumSides = 2;
 
     inline size_t index_of(Axis axis, Side side)
@@ -153,13 +162,14 @@ namespace payloads
         /// BucketHardware::write() when the position command interface is claimed.
         void send_position_command(Axis axis, double degrees);
 
-        /// Stop a bank immediately, via a zero bank_parameter::SET_SPEED.
+        /// Stop a bank immediately and drop it out of position mode: a
+        /// bank_parameter::SET_SPEED of kStopNudgeDuty, then one of zero.
         ///
-        /// This is the only SET_SPEED this class sends - general speed control
-        /// belongs to the standalone teleop driver, which must never run at the
-        /// same time as the ros2_control stack. Called from
-        /// BucketHardware::on_deactivate() so controllers stop the bucket
-        /// promptly rather than waiting out the firmware's command timeout.
+        /// These are the only SET_SPEEDs this class sends - general speed control
+        /// belongs to the teleop driver (bucket_driver). Called from
+        /// BucketHardware::on_deactivate() and when a controller releases a joint,
+        /// so the bucket stops promptly rather than driving on toward its last
+        /// setpoint, which the firmware never times out.
         void stop_axis(Axis axis);
 
         /// One-shot: zero a bank's encoder reference (bank_parameter::SET_ZERO_POS).

@@ -22,9 +22,9 @@ def _joint_state_nodes(context):
     FIXED joints on /tf_static -- which does cover every sensor frame, since the mast
     and sensor mounts are all fixed -- but the four continuous wheel joints never
     appear and the tree is left incomplete. The headless stand-in (sliders:=false)
-    publishes them at their defaults so the whole tree resolves, and takes any joint
-    found on /payloads/joint_states from there, so the bucket follows its ros2_control
-    stack (payloads bucket.launch.py) when that is running.
+    publishes them at their defaults so the whole tree resolves.
+
+    None of this runs with live:=true, which is for watching a running stack.
 
     With payload:=bucket the rams are not free joints: each is a function of the
     lift, tilt and jaw angles, and nothing else drives them here. So the slider node
@@ -33,6 +33,8 @@ def _joint_state_nodes(context):
     ten ram joints exact, plus a description in which they are fixed so they get no
     slider. robot_state_publisher still reads the real description.
     """
+    if IfCondition(LaunchConfiguration("live")).evaluate(context):
+        return []
     sliders = LaunchConfiguration("sliders")
     bucket = LaunchConfiguration("payload").perform(context) == "bucket"
     remap = (
@@ -54,7 +56,6 @@ def _joint_state_nodes(context):
         Node(
             package="joint_state_publisher",
             executable="joint_state_publisher",
-            parameters=[{"source_list": ["/payloads/joint_states"]}],
             remappings=remap,
             output="screen",
             condition=UnlessCondition(sliders),
@@ -96,8 +97,14 @@ def generate_launch_description():
     gui:=false drops RViz and leaves only the transforms, which is what you want
     over SSH -- the RViz here is wrapped in nixGL and needs a display, so it cannot
     come up on a headless machine at all. sliders:=true adds the joint state slider
-    GUI; leave it off when a controller is driving the joints, or both publish
-    /joint_states and the model jitters between them.
+    GUI.
+
+    live:=true is for watching a running robot, real or simulated (perseus.launch.py,
+    payloads' bucket.launch.py, or either against rover_can_sim.py on vcan): RViz
+    only. Those stacks already publish the description and every joint, the bucket's
+    rams included, and a second robot_state_publisher or joint_state_publisher here
+    would publish the joints at their defaults over the real ones - the bucket
+    flickers to 0, 0, 0.
     """
     use_sim_time = LaunchConfiguration("use_sim_time", default="false")
     gui = LaunchConfiguration("gui")
@@ -106,6 +113,8 @@ def generate_launch_description():
     )
     can_bus = LaunchConfiguration("can_bus", default="")
     payload = LaunchConfiguration("payload", default="bucket")
+
+    live = LaunchConfiguration("live")
 
     rsp_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -125,6 +134,7 @@ def generate_launch_description():
             "can_bus": can_bus,
             "payload": payload,
         }.items(),
+        condition=UnlessCondition(live),
     )
 
     # RViz with nixGL support
@@ -165,11 +175,19 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "live",
+                default_value="false",
+                description=(
+                    "Watch a running robot or simulator: RViz only, nothing that "
+                    "publishes the description or joint states"
+                ),
+            ),
+            DeclareLaunchArgument(
                 "sliders",
                 default_value="false",
                 description=(
-                    "Launch the joint state slider GUI. Off by default so joints "
-                    "follow /payloads/joint_states from the bucket's controller"
+                    "Launch the joint state slider GUI to pose lift, tilt and jaw by "
+                    "hand"
                 ),
             ),
             DeclareLaunchArgument(

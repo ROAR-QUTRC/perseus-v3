@@ -24,6 +24,8 @@
   <exec_depend>pid_controller</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros2controlcli</exec_depend>
+  <!-- payload:=bucket: the bucket's hardware plugin, controllers and teleop -->
+  <exec_depend>payloads</exec_depend>
 
   <!-- launching -->
   <exec_depend>ros2launch</exec_depend>

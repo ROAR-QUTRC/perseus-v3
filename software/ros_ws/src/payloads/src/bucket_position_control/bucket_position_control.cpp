@@ -7,6 +7,8 @@
 #include <hi_can_parameter.hpp>
 #include <stdexcept>
 
+#include "bucket_hardware/can_board_interface.hpp"  // kStopNudgeDuty
+
 namespace
 {
     using namespace hi_can;  // NOLINT
@@ -107,17 +109,18 @@ BucketPositionControl::BucketPositionControl(const rclcpp::NodeOptions& options)
 BucketPositionControl::~BucketPositionControl()
 {
     // SET_POSITION has no firmware watchdog, so the banks would keep holding
-    // the last setpoint forever. A zero SET_SPEED stops them and drops the
-    // firmware out of position mode.
+    // the last setpoint forever. A zero SET_SPEED alone does not stop them (the
+    // firmware ignores it in position mode), so nudge first: see kStopNudgeDuty.
     try
     {
         for (size_t i = 0; i < ACTUATOR_COUNT; i++)
         {
             if (!_enabled[i])
                 continue;
-            _can_interface.transmit(
-                Packet(bank_address(BANKS[i], bucket_addr::bank_parameter::SET_SPEED),
-                       bucket_param::speed_t{0}.serialize_data()));
+            for (const int16_t duty : {payloads::kStopNudgeDuty, int16_t{0}})
+                _can_interface.transmit(
+                    Packet(bank_address(BANKS[i], bucket_addr::bank_parameter::SET_SPEED),
+                           bucket_param::speed_t{duty}.serialize_data()));
         }
     }
     catch (const std::exception& e)

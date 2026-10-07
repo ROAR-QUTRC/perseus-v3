@@ -111,58 +111,10 @@ namespace mission_bt_server
         _construction_service_name = declare_parameter<std::string>(
             "construction_service_name", "/arena/request_construction_waypoint");
 
-        // PrepareBucket (StartMission.prepare_bucket): the bucket controller's action,
-        // and the pose it leaves the bucket in for driving. The default pose keeps the
-        // bucket out of the MID-360's and D455's view of the ground from 2 m ahead
-        // while leaving ~0.17 m of ground clearance; see mission.xml.
-        _bucket_action_name = declare_parameter<std::string>(
-            "bucket_action_name", "/payloads/bucket_trajectory_controller/follow_joint_trajectory");
-        _bucket_travel_lift_deg = declare_parameter<double>("bucket_travel_lift_deg", 25.0);
-        _bucket_travel_tilt_deg = declare_parameter<double>("bucket_travel_tilt_deg", -20.0);
-        _bucket_travel_jaw_deg = declare_parameter<double>("bucket_travel_jaw_deg", 0.0);
-        // Per move. Generous: the controller has to get there within this plus its
-        // 3 s goal_time tolerance, from wherever the bucket was left.
-        _bucket_move_s = declare_parameter<double>("bucket_move_s", 10.0);
-
-        // DigBucket (StartMission MODE_DIG_ONLY); the sequence is in mission.xml. Joint
-        // angles in degrees as for the travel pose: tilt positive tips the bucket down,
-        // lift positive lowers the arms.
-        //   dig_tilt_deg        cutting edge down, before the arms lower. The tilt joint
-        //                       stops at 28.1 deg (bucket.urdf.xacro's tilt_upper), and a
-        //                       target it cannot reach fails the move on the controller's
-        //                       2 deg goal tolerance, so 28 is as far as it goes.
-        //   dig_lift_deg        arms down into the regolith: at tilt 28 the tray floor
-        //                       meets grade near lift 30 and sits ~5 cm under at 35.
-        //   dig_push_m          creep straight ahead with the edge in, at dig_speed.
-        //   dig_curl_tilt_deg   curl the bucket up to hold the load.
-        //   dig_carry_m         creep on while the arms rise to dig_carry_lift_deg, the
-        //                       carrying pose: 0 is arms level at the top, so the curled
-        //                       bucket rides as high as it goes. The rise takes the
-        //                       longer of the drive and bucket_move_s, so a long lift is
-        //                       not rushed to fit a short creep.
-        //   dig_speed           both creeps, m/s. The ESCs stall below ~0.34 rad/s at the
-        //                       wheel (~0.05 m/s), so keep it clear of that.
-        _dig_tilt_deg = declare_parameter<double>("dig_tilt_deg", 28.0);
-        _dig_lift_deg = declare_parameter<double>("dig_lift_deg", 32.0);
-        _dig_push_m = declare_parameter<double>("dig_push_m", 0.20);
-        _dig_curl_tilt_deg = declare_parameter<double>("dig_curl_tilt_deg", -28.0);
-        _dig_carry_m = declare_parameter<double>("dig_carry_m", 0.40);
-        _dig_carry_lift_deg = declare_parameter<double>("dig_carry_lift_deg", 0.0);
-        _dig_speed = declare_parameter<double>("dig_speed", 0.08);
-
-        // Matches nav2_behavior_tree::BtActionServer's own defaults (bt_loop_duration
-        // 10ms, default_server_timeout/default_cancel_timeout 20s,
-        // wait_for_service_timeout 1s) so this tree behaves the same as any other
-        // nav2 BT with respect to how fast it ticks and how long it tolerates a slow
-        // server ack - only the overall navigation itself is unbounded by these.
-        _bt_loop_duration = std::chrono::milliseconds(
-            declare_parameter<int>("bt_loop_duration_ms", 10));
-        _server_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("default_server_timeout_ms", 20000));
-        _cancel_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("default_cancel_timeout_ms", 20000));
-        _wait_for_service_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("wait_for_service_timeout_ms", 1000));
+        // PrepareBucket's travel pose, DigBucket's pose and creeps, and the nav2 BT
+        // timeouts: shared with bucket_cli, which runs the same subtrees.
+        _bucket = BucketMissionParams::declare(*this);
+        _timeouts = BtTimeouts::declare(*this);
 
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
@@ -230,13 +182,7 @@ namespace mission_bt_server
     BT::Blackboard::Ptr MissionBtServer::_make_blackboard() const
     {
         auto blackboard = BT::Blackboard::create();
-        blackboard->set<rclcpp::Node::SharedPtr>("node", _bt_client_node);
-        blackboard->set<std::chrono::milliseconds>("server_timeout", _server_timeout);
-        blackboard->set<std::chrono::milliseconds>("cancel_timeout", _cancel_timeout);
-        blackboard->set<std::chrono::milliseconds>("bt_loop_duration",
-                                                   _bt_loop_duration);
-        blackboard->set<std::chrono::milliseconds>("wait_for_service_timeout",
-                                                   _wait_for_service_timeout);
+        _timeouts.apply(*blackboard, _bt_client_node);
         return blackboard;
     }
 
@@ -245,7 +191,7 @@ namespace mission_bt_server
     {
         auto is_canceling = [this]()
         { return _stop_requested.load() || !rclcpp::ok(); };
-        const auto status = _engine->run(&tree, on_loop, is_canceling, _bt_loop_duration);
+        const auto status = _engine->run(&tree, on_loop, is_canceling, _timeouts.bt_loop_duration);
         // Cancels whatever action is still in flight -- on a stop, the
         // NavigateToPose goal the rover is driving on.
         _engine->haltAllActions(tree);
@@ -458,26 +404,7 @@ namespace mission_bt_server
         blackboard->set<int>("cycles_done", 0);
         blackboard->set<std::string>("phase", "starting");
         blackboard->set<bool>("prepare_bucket", request.prepare_bucket);
-        blackboard->set<std::string>("bucket_action", _bucket_action_name);
-        blackboard->set<double>("bucket_travel_lift_deg", _bucket_travel_lift_deg);
-        blackboard->set<double>("bucket_travel_tilt_deg", _bucket_travel_tilt_deg);
-        blackboard->set<double>("bucket_travel_jaw_deg", _bucket_travel_jaw_deg);
-        blackboard->set<double>("bucket_move_s", _bucket_move_s);
-        blackboard->set<double>("dig_tilt_deg", _dig_tilt_deg);
-        blackboard->set<double>("dig_lift_deg", _dig_lift_deg);
-        blackboard->set<double>("dig_push_m", _dig_push_m);
-        blackboard->set<double>("dig_curl_tilt_deg", _dig_curl_tilt_deg);
-        blackboard->set<double>("dig_carry_m", _dig_carry_m);
-        blackboard->set<double>("dig_carry_lift_deg", _dig_carry_lift_deg);
-        blackboard->set<double>("dig_speed", _dig_speed);
-        // The carry's drive and lift start together; the lift gets at least
-        // bucket_move_s, since 32 -> 0 deg in a 5 s creep would outrun the rams.
-        const double carry_s = _dig_carry_m / std::max(_dig_speed, 0.01);
-        blackboard->set<double>("dig_carry_s", std::max(carry_s, _bucket_move_s));
-        // DriveOnHeading gives up after time_allowance; leave room for the ramp-up.
-        blackboard->set<double>("dig_push_allowance_s",
-                                _dig_push_m / std::max(_dig_speed, 0.01) + 10.0);
-        blackboard->set<double>("dig_carry_allowance_s", carry_s + 10.0);
+        _bucket.apply(*blackboard);
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "

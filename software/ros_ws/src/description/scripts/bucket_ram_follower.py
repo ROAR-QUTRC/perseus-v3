@@ -2,8 +2,14 @@
 """
 Copied from perseus_simulation's scripts/bucket_ram_follower.py (branch bucket-urdf).
 Only the viewer mode (viewer_mode:=true) is used in this repo, started by
-view_perseus.launch.py for payload:=bucket; the Gazebo mode publishes controller
-commands that nothing here consumes.
+view_perseus.launch.py for payload:=bucket to pose the rams from the sliders; the
+Gazebo mode publishes controller commands that nothing here consumes.
+
+On the robot (and on the bench, and against the vcan simulator) the rams come from
+payloads' BucketLinkageBroadcaster instead, inside ros2_control. Its kinematics,
+payloads/include/bucket_linkage/bucket_linkage.hpp, are a port of ram_values()
+below, held to it by payloads/test/test_bucket_linkage.cpp - change one, change
+both.
 
 Drive the excavation bucket's rams so they follow the linkage: the three 250 mm
 rams (two lift, one tilt) and the two 50 mm jaw rams.

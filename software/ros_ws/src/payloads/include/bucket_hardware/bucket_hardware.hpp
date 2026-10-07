@@ -3,7 +3,6 @@
 #define BUCKET_HARDWARE__BUCKET_HARDWARE_HPP_
 
 #include <array>
-#include <chrono>
 #include <hi_can_raw.hpp>
 #include <memory>
 #include <string>
@@ -85,6 +84,9 @@ namespace payloads
         hardware_interface::CallbackReturn on_deactivate(
             const rclcpp_lifecycle::State& previous_state) override;
 
+        hardware_interface::CallbackReturn on_error(
+            const rclcpp_lifecycle::State& previous_state) override;
+
         hardware_interface::return_type prepare_command_mode_switch(
             const std::vector<std::string>& start_interfaces,
             const std::vector<std::string>& stop_interfaces) override;
@@ -106,22 +108,20 @@ namespace payloads
         static bool parse_axis(const std::string& value, Axis& out);
         static bool parse_side(const std::string& value, Side& out);
 
+        /// Stops every bank (see CanBoardInterface::stop_axis) and drops every claim.
+        void stop_all();
+
         double to_joint_radians(const JointHandle& joint, double firmware_degrees) const;
         double to_firmware_degrees(const JointHandle& joint, double joint_radians) const;
 
-        /// How long on_activate() waits for every joint's first encoder frame. The
-        /// board broadcasts every 50 ms, so this only trips on a dead bus or encoder.
-        static constexpr auto ACTIVATE_TIMEOUT = std::chrono::seconds(1);
-
-        /// How far outside its URDF limits a joint may read at activation before it
-        /// is treated as a calibration or direction error rather than overshoot.
+        /// How far outside its URDF limits a joint may read when a controller claims
+        /// it before it is treated as a calibration or direction error rather than
+        /// overshoot.
         static constexpr double LIMIT_MARGIN_DEG = 5.0;
 
         /// Low-pass weight on each new velocity sample; the encoders are 0.1 deg
         /// resolution, so raw differences are steppy.
         static constexpr double VELOCITY_FILTER_ALPHA = 0.3;
-
-        bool active_ = false;
 
         std::vector<JointHandle> joints_;
         std::unique_ptr<CanBoardInterface> can_;

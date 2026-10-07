@@ -1,7 +1,13 @@
 from launch import LaunchDescription
 
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+    RegisterEventHandler,
+)
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     PathJoinSubstitution,
     LaunchConfiguration,
@@ -22,6 +28,7 @@ def launch_setup(context, *args, **kwargs):
     # handlers), not just whether one node runs.
     use_wheel_pid = IfCondition(LaunchConfiguration("use_wheel_pid")).evaluate(context)
     safe_speed = IfCondition(LaunchConfiguration("safe_speed")).evaluate(context)
+    bucket = context.perform_substitution(LaunchConfiguration("payload")) == "bucket"
 
     # CONFIG + DATA FILES
     controller_config = PathJoinSubstitution(
@@ -43,6 +50,12 @@ def launch_setup(context, *args, **kwargs):
         controller_parameters.append(wheel_pid_config)
     if safe_speed:
         controller_parameters.append(safe_speed_config)
+    if bucket:
+        controller_parameters.append(
+            PathJoinSubstitution(
+                [FindPackageShare("payloads"), "config", "bucket_controller.yaml"]
+            )
+        )
     controller_parameters.append(use_sim_time_param)
 
     # NODES
@@ -119,7 +132,102 @@ def launch_setup(context, *args, **kwargs):
             ),
         ]
 
+    if bucket:
+        nodes += bucket_nodes(context, use_sim_time_param)
+
     return nodes + handlers
+
+
+def bucket_nodes(context, use_sim_time_param):
+    """The bucket's controllers, spawned beside the drive's under the one manager.
+
+    Its own chain, not hung off the drive's OnProcessExit handlers, so a bucket that
+    fails to come up (no encoders, no board) can never hold up the drive.
+    """
+    bucket_controller = context.perform_substitution(
+        LaunchConfiguration("bucket_controller")
+    )
+    real = (
+        context.perform_substitution(LaunchConfiguration("bucket_hardware_plugin"))
+        == "payloads/BucketHardware"
+    )
+    teleop = real and IfCondition(LaunchConfiguration("bucket_teleop")).evaluate(
+        context
+    )
+
+    # Read-only, so they run whatever the bucket is doing: the encoder angles and
+    # the ram joints solved from them, both on /joint_states.
+    broadcasters_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["bucket_joint_state_broadcaster", "bucket_linkage_broadcaster"],
+        parameters=[use_sim_time_param],
+    )
+    nodes = [
+        broadcasters_spawner,
+        Node(
+            package="description",
+            executable="joint_states_deg.py",
+            parameters=[
+                {
+                    "joints": [
+                        "bucket_lift_joint",
+                        "bucket_tilt_joint",
+                        "bucket_jaw_joint",
+                    ]
+                },
+                use_sim_time_param,
+            ],
+            output="both",
+        ),
+    ]
+    if bucket_controller != "none":
+        # After the broadcasters, so a failure to read the encoders surfaces before
+        # anything can be commanded. BucketHardware refuses the claim outright
+        # while its encoders are stale or out of range.
+        nodes.append(
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=broadcasters_spawner,
+                    on_exit=[
+                        Node(
+                            package="controller_manager",
+                            executable="spawner",
+                            arguments=[bucket_controller],
+                            parameters=[use_sim_time_param],
+                        )
+                    ],
+                )
+            )
+        )
+    if real:
+        # Brings the bucket's read-only side back after a fault; never re-arms the
+        # command controller by itself.
+        nodes.append(
+            Node(
+                package="payloads",
+                executable="bucket_supervisor.py",
+                output="both",
+            )
+        )
+    if teleop:
+        nodes.append(
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("payloads"),
+                            "launch",
+                            "bucket_teleop.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "can_bus": LaunchConfiguration("can_bus"),
+                }.items(),
+            )
+        )
+    return nodes
 
 
 def generate_launch_description():
@@ -155,4 +263,34 @@ def generate_launch_description():
         ),
     ]
 
-    return LaunchDescription(arguments + [OpaqueFunction(function=launch_setup)])
+    bucket_arguments = [
+        DeclareLaunchArgument(
+            "payload",
+            default_value="",
+            description="'bucket' adds the bucket's controllers to this manager",
+        ),
+        DeclareLaunchArgument(
+            "bucket_controller",
+            default_value="bucket_trajectory_controller",
+            description="See perseus.launch.py",
+        ),
+        DeclareLaunchArgument(
+            "bucket_hardware_plugin",
+            default_value="payloads/BucketHardware",
+            description="The bucket's ros2_control plugin, as put in the URDF",
+        ),
+        DeclareLaunchArgument(
+            "bucket_teleop",
+            default_value="true",
+            description="See perseus.launch.py",
+        ),
+        DeclareLaunchArgument(
+            "can_bus",
+            default_value="can0",
+            description="CAN bus for the bucket teleop driver",
+        ),
+    ]
+
+    return LaunchDescription(
+        arguments + bucket_arguments + [OpaqueFunction(function=launch_setup)]
+    )

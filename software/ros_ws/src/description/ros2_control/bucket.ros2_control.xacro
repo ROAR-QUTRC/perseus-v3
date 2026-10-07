@@ -8,11 +8,18 @@
     "axis" and "side" params tell BucketHardware which CAN actuator a joint maps to;
     only the left encoder of each axis is exposed for now.
 
-    Never run this alongside the bucket_driver teleop node. The firmware takes its
-    control mode (speed or position) from whichever command arrived last.
+    The firmware takes its control mode (speed or position) from whichever command
+    arrived last, so the bucket_driver teleop node runs alongside this as an operator
+    override: a stick input deactivates the controllers that write here before any
+    SET_SPEED goes out (see bucket_driver.cpp).
 
     hardware_plugin can be set to mock_components/GenericSystem to exercise
     controllers without the bucket fitted.
+
+    On the rover this block sits beside the drive's in perseus.urdf.xacro, under the
+    one controller_manager. rw_rate runs the bucket's read()/write() at 20 Hz while
+    the drive runs at the controller_manager's 50 Hz; the board only broadcasts every
+    50 ms, and every write() is three SET_POSITION frames.
 
     offset_deg and direction map the firmware's angle onto the URDF joint:
       joint_deg = direction * (firmware_deg - offset_deg)
@@ -21,8 +28,8 @@
     when the firmware calibration already matches them.
   -->
   <xacro:macro name="bucket_ros2_control"
-      params="prefix:='' can_interface:='can0' hardware_plugin:='payloads/BucketHardware'">
-    <ros2_control name="BucketSystem" type="system">
+      params="prefix:='' can_interface:='can0' hardware_plugin:='payloads/BucketHardware' rw_rate:=20">
+    <ros2_control name="BucketSystem" type="system" rw_rate="${rw_rate}">
       <hardware>
         <plugin>${hardware_plugin}</plugin>
         <param name="can_interface">${can_interface}</param>

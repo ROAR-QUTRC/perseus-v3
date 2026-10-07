@@ -1,8 +1,19 @@
+# The bucket's controllers. Loaded into the rover's one controller_manager by
+# perseus/launch/controllers.launch.py when payload:=bucket, and into the bench
+# controller_manager by bucket.launch.py. No update_rate here: on the rover it would
+# override the drive's 50 Hz. The bucket's hardware runs at its own rw_rate (20 Hz,
+# bucket.ros2_control.xacro), and bucket.launch.py sets 20 Hz for the bench.
 /**/controller_manager:
   ros__parameters:
-    update_rate: 20 # Hz
-    joint_state_broadcaster:
+    # Read-only, and limited to the bucket joints: the drive has its own broadcaster,
+    # so a bucket fault (which deactivates every controller tied to the bucket's
+    # interfaces) leaves the wheel joint states running.
+    bucket_joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
+    # The ten ram joints, solved from lift/tilt/jaw each cycle; see
+    # payloads/include/bucket_linkage/bucket_linkage.hpp.
+    bucket_linkage_broadcaster:
+      type: payloads/BucketLinkageBroadcaster
     # Position setpoints go to CAN as SET_POSITION; the board's own PID servos to them.
     bucket_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
@@ -14,6 +25,22 @@
       type: joint_trajectory_controller/JointTrajectoryController
     bucket_jaw_controller:
       type: joint_trajectory_controller/JointTrajectoryController
+/**/bucket_joint_state_broadcaster:
+  ros__parameters:
+    joints:
+      - bucket_lift_joint
+      - bucket_tilt_joint
+      - bucket_jaw_joint
+    interfaces:
+      - position
+      - velocity
+      - effort
+/**/bucket_linkage_broadcaster:
+  ros__parameters:
+    lift_joint: bucket_lift_joint
+    tilt_joint: bucket_tilt_joint
+    jaw_joint: bucket_jaw_joint
+    publish_rate: 20.0
 /**/bucket_lift_controller:
   ros__parameters:
     joints:

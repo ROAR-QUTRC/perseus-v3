@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <thread>
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
@@ -225,77 +224,53 @@ namespace payloads
     hardware_interface::CallbackReturn BucketHardware::on_activate(
         const rclcpp_lifecycle::State& /*previous_state*/)
     {
-        // Wait for a real reading on every joint before any controller can
-        // activate: a controller that starts from a zero state holds, and so
-        // commands, the URDF zero pose.
-        const auto deadline = std::chrono::steady_clock::now() + ACTIVATE_TIMEOUT;
-        const auto all_fresh = [this]()
-        {
-            return std::all_of(joints_.begin(), joints_.end(), [this](const JointHandle& j)
-                               { return !can_->get_last_encoder_state(j.axis, j.side).stale; });
-        };
-        while (can_->poll(), !all_fresh())
-        {
-            if (std::chrono::steady_clock::now() > deadline)
-            {
-                for (const auto& joint : joints_)
-                {
-                    if (can_->get_last_encoder_state(joint.axis, joint.side).stale)
-                    {
-                        RCLCPP_ERROR(logger(), "No encoder data for joint '%s' on %s",
-                                     joint.name.c_str(), can_interface_name_.c_str());
-                    }
-                }
-                return hardware_interface::CallbackReturn::ERROR;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-
-        // A reading well outside the URDF limits means the firmware zero or the
-        // direction param is wrong, and the limits would clamp commands in the
-        // wrong frame. Refuse rather than move.
-        for (const auto& joint : joints_)
-        {
-            const auto limits = info_.limits.find(joint.name);
-            if (limits == info_.limits.end() || !limits->second.has_position_limits)
-            {
-                continue;
-            }
-            const double margin = LIMIT_MARGIN_DEG * M_PI / 180.0;
-            if (joint.state_position < limits->second.min_position - margin ||
-                joint.state_position > limits->second.max_position + margin)
-            {
-                RCLCPP_ERROR(logger(),
-                             "Joint '%s' reads %.1f deg, outside its limits [%.1f, %.1f] deg - "
-                             "check the firmware zero and the offset_deg/direction params",
-                             joint.name.c_str(), joint.state_position * 180.0 / M_PI,
-                             limits->second.min_position * 180.0 / M_PI,
-                             limits->second.max_position * 180.0 / M_PI);
-                return hardware_interface::CallbackReturn::ERROR;
-            }
-        }
-
+        // Deliberately does not wait for the encoders. The bucket shares the drive's
+        // controller_manager, and re-activating it after a fault happens from a
+        // service call that holds the resource manager - blocking here would stall
+        // the drive's control loop. The checks that need real readings run when a
+        // controller claims a command interface instead (prepare_command_mode_switch).
+        //
         // Seed commands with current state so the first write() doesn't jerk the
         // actuators toward a stale/zero setpoint. perform_command_mode_switch()
         // re-seeds on each claim too, since activation and claiming are separate
         // events and state_position moves in between.
+        //
+        // Nothing is claimed until a controller claims it. After a read() error
+        // the claims were never released (on_error, not on_deactivate), and a stale
+        // claim would make the next read() error again straight away.
         for (auto& joint : joints_)
         {
             joint.command_position = joint.state_position;
             joint.previous_position = joint.state_position;
             joint.state_velocity = 0.0;
+            joint.command_claimed = false;
         }
-        active_ = true;
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
     hardware_interface::CallbackReturn BucketHardware::on_deactivate(
         const rclcpp_lifecycle::State& /*previous_state*/)
     {
-        // Stop every bank explicitly. The firmware watchdogs a stale SET_SPEED
-        // but not a stale SET_POSITION, so without this the bucket would keep
-        // driving toward its last setpoint after the controllers stop.
-        active_ = false;
+        // The firmware watchdogs a stale SET_SPEED but not a stale SET_POSITION, so
+        // without this the bucket would keep driving toward its last setpoint after
+        // the controllers stop.
+        stop_all();
+        return hardware_interface::CallbackReturn::SUCCESS;
+    }
+
+    hardware_interface::CallbackReturn BucketHardware::on_error(
+        const rclcpp_lifecycle::State& /*previous_state*/)
+    {
+        // Where a read() or write() error lands: controller_manager sends the
+        // component through on_error to unconfigured, never through on_deactivate.
+        // read() has already stopped the banks; stop again in case this came from
+        // somewhere else.
+        stop_all();
+        return hardware_interface::CallbackReturn::SUCCESS;
+    }
+
+    void BucketHardware::stop_all()
+    {
         for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
         {
             can_->stop_axis(static_cast<Axis>(axis_idx));
@@ -304,19 +279,63 @@ namespace payloads
         {
             joint.command_claimed = false;
         }
-        return hardware_interface::CallbackReturn::SUCCESS;
     }
 
     hardware_interface::return_type BucketHardware::prepare_command_mode_switch(
         const std::vector<std::string>& start_interfaces,
-        const std::vector<std::string>& stop_interfaces)
+        const std::vector<std::string>& /*stop_interfaces*/)
     {
-        // Position is the only command interface this hardware exports, so any
-        // claim controller_manager can construct is one we can honour. Validation
-        // that only one joint per axis is commandable happened back in on_init().
-        (void)start_interfaces;
-        (void)stop_interfaces;
-        return hardware_interface::return_type::OK;
+        // The gate on commanding the bucket. Position is the only command interface
+        // this hardware exports, so the question is only whether each joint being
+        // claimed has a reading worth holding: a controller that starts from a zero
+        // or stale state holds, and so commands, that pose.
+        //
+        // Runs on controller_manager's switch thread while read() runs in the
+        // control loop, so this uses only CanBoardInterface's mutex-guarded cache -
+        // never poll(), and never the joints' state doubles that read() writes.
+        bool ok = true;
+        for (const auto& joint : joints_)
+        {
+            const std::string interface_name = joint.name + "/" + hardware_interface::HW_IF_POSITION;
+            if (std::find(start_interfaces.begin(), start_interfaces.end(), interface_name) ==
+                start_interfaces.end())
+            {
+                continue;
+            }
+
+            const auto encoder = can_->get_last_encoder_state(joint.axis, joint.side);
+            if (encoder.stale)
+            {
+                RCLCPP_ERROR(logger(), "Refusing to command '%s': no current encoder data on %s",
+                             joint.name.c_str(), can_interface_name_.c_str());
+                ok = false;
+                continue;
+            }
+
+            // A reading well outside the URDF limits means the firmware zero or the
+            // direction param is wrong, and the controller would hold the joint in
+            // the wrong frame. Refuse rather than move.
+            const auto limits = info_.limits.find(joint.name);
+            if (limits == info_.limits.end() || !limits->second.has_position_limits)
+            {
+                continue;
+            }
+            const double position = to_joint_radians(joint, encoder.degrees);
+            const double margin = LIMIT_MARGIN_DEG * M_PI / 180.0;
+            if (position < limits->second.min_position - margin ||
+                position > limits->second.max_position + margin)
+            {
+                RCLCPP_ERROR(logger(),
+                             "Refusing to command '%s': it reads %.1f deg, outside its limits "
+                             "[%.1f, %.1f] deg - check the firmware zero and the "
+                             "offset_deg/direction params",
+                             joint.name.c_str(), position * 180.0 / M_PI,
+                             limits->second.min_position * 180.0 / M_PI,
+                             limits->second.max_position * 180.0 / M_PI);
+                ok = false;
+            }
+        }
+        return ok ? hardware_interface::return_type::OK : hardware_interface::return_type::ERROR;
     }
 
     hardware_interface::return_type BucketHardware::perform_command_mode_switch(
@@ -411,36 +430,55 @@ namespace payloads
             joint.previous_position = joint.state_position;
         }
 
-        // Refuse to keep running on bad feedback. Returning ERROR makes
-        // controller_manager deactivate the controllers, which routes into
-        // on_deactivate() and stops the bucket.
+        // Bad feedback only matters while something is commanding the bucket.
+        // Returning ERROR makes controller_manager deactivate every controller tied
+        // to this component's interfaces - the bucket's broadcasters and command
+        // controller, never the drive's - and send the component to unconfigured
+        // through on_error(). The banks are stopped here first, so the stop goes out
+        // in this cycle whatever the manager does next. bucket_supervisor.py brings
+        // the read-only side back.
         //
         // This matters more than it looks: the firmware watchdogs a stale
         // SET_SPEED but NOT a stale SET_POSITION, so on the position path there
         // is no firmware deadman behind us.
-        // on_activate() waits for every encoder, so staleness is only judged once
-        // active; read() also runs while inactive.
-        const bool settled = active_;
-
+        //
+        // With nothing claimed (calibration mode, operator override, or the board
+        // not up yet) the joints just hold their last reading and the model stops
+        // moving; erroring then would only take the broadcasters down for nothing.
         for (const auto& joint : joints_)
         {
-            if (settled && can_->get_last_encoder_state(joint.axis, joint.side).stale)
+            if (!can_->get_last_encoder_state(joint.axis, joint.side).stale)
+            {
+                continue;
+            }
+            if (joint.command_claimed)
             {
                 RCLCPP_ERROR_THROTTLE(
                     get_logger(), *get_clock(), 1000,
                     "Encoder for joint '%s' is stale - stopping", joint.name.c_str());
+                stop_all();
                 return hardware_interface::return_type::ERROR;
             }
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                                 "No current encoder data for joint '%s' on %s",
+                                 joint.name.c_str(), can_interface_name_.c_str());
         }
-        for (uint8_t axis_idx = 0; axis_idx < kNumAxes; ++axis_idx)
+        for (const auto& joint : joints_)
         {
-            const auto axis = static_cast<Axis>(axis_idx);
-            if (settled && can_->get_last_bank_state(axis).fault)
+            if (!can_->get_last_bank_state(joint.axis).fault)
+            {
+                continue;
+            }
+            if (joint.command_claimed)
             {
                 RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,
-                                      "Bank %d reports a fault - stopping", axis_idx);
+                                      "Bank for joint '%s' reports a fault - stopping",
+                                      joint.name.c_str());
+                stop_all();
                 return hardware_interface::return_type::ERROR;
             }
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                                 "Bank for joint '%s' reports a fault", joint.name.c_str());
         }
 
         return hardware_interface::return_type::OK;
@@ -458,7 +496,7 @@ namespace payloads
                 // Silence is deliberate when nothing has claimed the interface.
                 // Transmitting the last setpoint anyway would keep the firmware's
                 // command timer fed - so its watchdog would never fire - and
-                // would fight the standalone teleop driver for control mode,
+                // would fight the teleop operator override for control mode,
                 // since the firmware follows whichever command arrived last.
                 continue;
             }

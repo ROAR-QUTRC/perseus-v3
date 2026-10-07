@@ -16,6 +16,8 @@
 #include <thread>
 #include <vector>
 
+#include "mission_bt_server/mission_bt_server/bucket_mission_params.hpp"
+
 namespace mission_bt_server
 {
 
@@ -106,29 +108,10 @@ namespace mission_bt_server
         std::string _excavation_service_name;
         std::string _construction_service_name;
 
-        // PrepareBucket's action and travel pose; see the constructor.
-        std::string _bucket_action_name;
-        double _bucket_travel_lift_deg;
-        double _bucket_travel_tilt_deg;
-        double _bucket_travel_jaw_deg;
-        double _bucket_move_s;
-
-        // DigBucket's pose, creeps and carry; see the constructor.
-        double _dig_tilt_deg;
-        double _dig_lift_deg;
-        double _dig_push_m;
-        double _dig_curl_tilt_deg;
-        double _dig_carry_m;
-        double _dig_carry_lift_deg;
-        double _dig_speed;
-
-        // Blackboard entries every nav2_behavior_tree BT node reads in its own
-        // constructor (BtServiceNode, BtActionNode) - see bt_action_server_impl.hpp,
-        // which this replicates without the LifecycleNode it comes attached to.
-        std::chrono::milliseconds _bt_loop_duration;
-        std::chrono::milliseconds _server_timeout;
-        std::chrono::milliseconds _cancel_timeout;
-        std::chrono::milliseconds _wait_for_service_timeout;
+        // PrepareBucket's travel pose, DigBucket's pose and creeps, and the nav2 BT
+        // timeouts; see bucket_mission_params.hpp.
+        BucketMissionParams _bucket;
+        BtTimeouts _timeouts;
 
         // A plain node distinct from `this`, purely so the BT nodes have an
         // rclcpp::Node::SharedPtr to construct clients against before `this` could

@@ -4,15 +4,26 @@ This is the procedure for bringing up the bucket's ros2_control stack
 (`bucket.launch.py`, `payloads/BucketHardware`) on the real bucket for the first
 time. Work through the phases in order. Each one assumes the previous one passed.
 
-The stack sends the bucket position setpoints (`SET_POSITION`), and the firmware's
-own PID drives to them. **The firmware does not watchdog position commands.** If
-the CAN link drops mid-move, the bucket keeps driving towards the last setpoint.
-Keep a hand on the power cut for every phase that moves the bucket.
+On the rover the bucket is a second hardware component under the drive's one
+`controller_manager` (`perseus.launch.py payload:=bucket`). `bucket.launch.py` is
+the bench version of the same thing without the drive: the same controllers, topic
+and action names, so everything here carries straight over. Never run the two
+together.
+
+The stack sends the bucket position setpoints (`SET_POSITION`), and the firmware
+drives flat out to each one and stops within 2 deg. **The firmware does not
+watchdog position commands.** If the CAN link drops mid-move, the bucket keeps
+driving towards the last setpoint. Keep a hand on the power cut for every phase
+that moves the bucket.
+
+The gamepad teleop (`bucket_driver`) always runs alongside as an operator override.
+Moving a stick past its deadband deactivates the trajectory controller and hands the
+bucket to the gamepad (`SET_SPEED`); `ros2 run payloads bucket_supervisor.py --rearm`
+hands it back, the same command as after a fault.
 
 ## Joint conventions
 
-These are the values ROS expects. `/payloads/joint_states_deg` shows them in
-degrees.
+These are the values ROS expects. `/joint_states_deg` shows them in degrees.
 
 | Joint               | 0 deg                     | Positive            | URDF range               |
 | ------------------- | ------------------------- | ------------------- | ------------------------ |
@@ -42,7 +53,7 @@ Hardware:
   show whether each magnet is detected.
 - A way to measure angle: a phone inclinometer app or a protractor. A marker to
   mark the zero poses.
-- A gamepad for `bucket_driver` teleop, used in phases 2 and 4.
+- A gamepad for `bucket_driver` teleop, used in phases 2, 4 and 8.
 - A second person if possible: one on the power cut, one on the laptop.
 
 Software, on the laptop:
@@ -50,7 +61,7 @@ Software, on the laptop:
 ```bash
 devenv shell
 cd software/ros_ws
-colcon build --packages-up-to payloads description
+colcon build --packages-up-to payloads description mission_bt_server
 source install/setup.bash
 ros2 pkg prefix joint_trajectory_controller   # must print a path
 ```
@@ -70,19 +81,69 @@ This has already passed on the dev machine. Repeat it after any code change.
 
 ```bash
 ros2 launch payloads bucket.launch.py hardware_plugin:=mock_components/GenericSystem
-ros2 launch description view_perseus.launch.py            # second terminal
-ros2 action send_goal /payloads/bucket_trajectory_controller/follow_joint_trajectory \
-  control_msgs/action/FollowJointTrajectory \
-  "{trajectory: {joint_names: [bucket_lift_joint, bucket_tilt_joint, bucket_jaw_joint],
-    points: [{positions: [0.7854, -0.2618, 0.5236], time_from_start: {sec: 3}}]}}"
+ros2 launch description view_perseus.launch.py live:=true   # second terminal
+ros2 run mission_bt_server bucket_cli move --lift 45 --tilt -15 --jaw 30 --duration 3
 ```
 
-Pass: the goal returns `SUCCEEDED`, `/joint_states_deg` reads 45 / -15 / 30, and
-RViz shows the bucket lowered, curled and open, with the rams attached.
+Pass: `bucket_cli` prints `succeeded`, `/joint_states_deg` reads 45 / -15 / 30, and
+RViz shows the bucket lowered, curled and open, with the rams attached. The rams
+come from `bucket_linkage_broadcaster`. Always use `live:=true` against a running
+stack: without it `view_perseus.launch.py` brings its own `robot_state_publisher` and
+`joint_state_publisher`, which publish every joint at 0 over the real ones and make
+the bucket flicker.
+
+The same against the whole rover, mocked:
+`ros2 launch perseus perseus.launch.py payload:=bucket use_mock_hardware:=true`.
 
 To pose the model by hand in degrees instead, run
 `ros2 launch description view_perseus.launch.py sliders:=true` and
 `ros2 topic echo /joint_states_deg`. The sliders themselves are in radians.
+
+## Phase 0b: the real hardware plugins on vcan (no bucket needed)
+
+`rover_can_sim.py` stands in for the rover's CAN bus: the four drive VESCs and the
+bucket board, with the bucket firmware's mode rules (the 1% `SET_SPEED` deadband,
+flat-out position moves, no position watchdog). So this runs the real
+`VescSystemHardware` and `BucketHardware`, end to end.
+
+```bash
+software/scripts/vcan-setup.sh vcan0                                   # once per boot
+ros2 run payloads rover_can_sim.py --iface vcan0 --mode sweep --axis lift
+ros2 launch perseus perseus.launch.py payload:=bucket can_bus:=vcan0 bucket_controller:=none
+ros2 launch description view_perseus.launch.py live:=true
+```
+
+Pass: the arms sweep up and down with their rams, driven only by the `GET_ANGLE`
+stream, and `/joint_states_deg` follows.
+
+Then restart the simulator in follow mode (`rover_can_sim.py --iface vcan0`) and the
+launch with the default controller, and run the mission behaviours:
+
+```bash
+ros2 run mission_bt_server bucket_cli move --lift 30
+ros2 run mission_bt_server bucket_cli prepare
+ros2 run mission_bt_server bucket_cli dump
+ros2 run mission_bt_server bucket_cli dig --drive stub
+```
+
+Pass: each prints `succeeded` and the simulator's angles agree. Then the failures,
+typed into the simulator:
+
+- `drop lift_left` mid-move: the bucket stops (the simulator's banks go to
+  `vel +0.0%`, and `bucket_trajectory_controller` goes inactive), while
+  `diff_drive_base_controller` stays active with the wheels still on `/joint_states`.
+  `bucket_supervisor` brings `BucketSystem` and the broadcasters back on its own.
+  `restore`, then `ros2 run payloads bucket_supervisor.py --rearm` re-arms the
+  trajectory controller.
+- Ctrl-C the launch mid-move: the simulator shows a 2% then 0 `SET_SPEED` and the
+  bank leaves position mode.
+- Operator override: run `bucket_cli dump`, and part-way through publish a stick
+  input in another terminal:
+  `ros2 topic pub -r 20 /bucket_actuators actuator_msgs/msg/Actuators "{velocity: [0.05, 0.0, 0.0]}"`.
+  `bucket_cli` fails with "operator override", the trajectory controller goes
+  inactive, and the lift moves under `SET_SPEED`. Stop the publisher, then
+  `ros2 run payloads bucket_supervisor.py --rearm`: the controller comes back
+  holding where the bucket is.
 
 ## Phase 1: CAN link (bucket powered, no ROS)
 
@@ -99,6 +160,10 @@ With the bucket controller powered, watch `candump -L can0`. You should see:
 `GET_FAULT` (`02000000`, `02000100`, `02000200`) is not transmitted by the current
 firmware, so don't expect it.
 
+Expect zero `SET_SPEED` frames too (`02000002#0000` and so on, every 50 ms) once the
+ROS stack is up: that is the teleop's idle stream, which the firmware ignores in
+position mode.
+
 The data is a little-endian int16 in tenths of a degree. For example, `2C01` is
 0x012C = 300 = 30.0 deg.
 
@@ -111,21 +176,22 @@ mis-zeroed encoder, so fix that before going further.
 
 ## Phase 2: zero and direction (read-only)
 
-Run the stack in calibration mode, which sends no commands of its own.
-`controller:=teleop` starts the gamepad teleop (`bucket_driver`) alongside it;
-use `controller:=none` to only read.
+Run the stack in calibration mode, which sends no position commands. The gamepad
+teleop (`bucket_driver`) runs alongside, so the sticks move the bucket.
 
 ```bash
-ros2 launch payloads bucket.launch.py controller:=teleop
-ros2 topic echo /payloads/joint_states_deg
+ros2 launch payloads bucket.launch.py controller:=none
+ros2 topic echo /joint_states_deg
 ```
 
-If activation fails, read the log line:
+If the log complains, read the line:
 
-- `No encoder data for joint ...`: no `GET_ANGLE` frames arrived. Recheck phase 1.
-- `reads X deg, outside its limits [...]`: the firmware zero or direction doesn't
-  match the table. Note X, fix `offset_deg` or `direction` in the xacro, rebuild
-  `description`, and relaunch.
+- `No current encoder data for joint ...`: no `GET_ANGLE` frames are arriving.
+  Recheck phase 1.
+- `Refusing to command ... reads X deg, outside its limits [...]` (when a controller
+  is spawned, phase 5 on): the firmware zero or direction doesn't match the table.
+  Note X, fix `offset_deg` or `direction` in the xacro, rebuild `description`, and
+  relaunch.
 
 For each axis:
 
@@ -150,7 +216,7 @@ suggests lift may currently read negative going down, so check that one first.
 Keep phase 2 running, then:
 
 ```bash
-ros2 launch description view_perseus.launch.py     # sliders off, the default
+ros2 launch description view_perseus.launch.py live:=true
 ```
 
 Pass: as you drive each axis with teleop, the model moves the same way by the same
@@ -168,26 +234,25 @@ the readings at the mechanical ends.
 | jaw  |             |             | 0 to 48.0     |
 
 Pass: within a few degrees of the URDF range. If the real travel is smaller, update
-the limits in `description/urdf/bucket.urdf.xacro`. Commands are clamped to those
-limits, so they must never exceed the real travel.
+the limits in `description/urdf/bucket.urdf.xacro`. Nothing clamps commands to those
+limits (the controller_manager's limit enforcement is off), so goals must stay
+inside the real travel.
 
-Stop teleop (`bucket_driver`) now. It must not run from here on.
+From here on, keep your hands off the gamepad unless you mean to take over: any
+stick input past the deadband takes the bucket from the trajectory controller.
 
 ## Phase 5: first closed-loop move (lift only)
 
 ```bash
 ros2 launch payloads bucket.launch.py controller:=bucket_lift_controller
-ros2 topic echo /payloads/joint_states_deg      # note the lift reading, P deg
+ros2 topic echo /joint_states_deg      # note the lift reading, P deg
 ```
 
-Send small moves relative to P. Convert degrees to radians (deg x 0.017453). Start
-with P + 3 deg, then return to P:
+Send small moves relative to P. Start with P + 3 deg, then return to P:
 
 ```bash
-ros2 action send_goal /payloads/bucket_lift_controller/follow_joint_trajectory \
-  control_msgs/action/FollowJointTrajectory \
-  "{trajectory: {joint_names: [bucket_lift_joint],
-    points: [{positions: [<rad>], time_from_start: {sec: 3}}]}}"
+ros2 run mission_bt_server bucket_cli move --lift <deg> --duration 3 \
+  --server /bucket_lift_controller/follow_joint_trajectory
 ```
 
 Check:
@@ -208,8 +273,9 @@ Then try larger moves: 10 deg, then most of the range, at a slow
 Run each check with the power cut in hand.
 
 1. **Ctrl-C mid-move.** Send a long, slow goal, then Ctrl-C the launch halfway.
-   Pass: the bucket stops, and `candump` shows `02000002#0000`, `02000102#0000`
-   and `02000202#0000` (zero `SET_SPEED`).
+   Pass: the bucket stops, and `candump` shows `02000002#8F02` then `02000002#0000`,
+   and the same for `02000102` and `02000202`. The 2% (`8F02`) is what takes a bank
+   out of position mode: the firmware ignores a plain zero there.
 2. **Encoder unplugged.** Unplug the lift-left encoder while the lift is holding.
    Known firmware gap: the board keeps broadcasting the last cached angle, so ROS
    will **not** notice. Record what the bucket does; this is the reason to fix
@@ -217,7 +283,9 @@ Run each check with the power cut in hand.
 3. **CAN unplugged.** Unplug the CAN cable while the lift is holding. Pass: the
    stack logs `Encoder for joint ... is stale - stopping` within about 100 ms. The
    stop command can't reach the board with the cable out, so the bucket holds its
-   last setpoint until the power is cut.
+   last setpoint until the power is cut. Plug it back in: `bucket_supervisor`
+   restores the encoders on `/joint_states`, and
+   `ros2 run payloads bucket_supervisor.py --rearm` re-arms.
 
 ## Phase 7: tilt and jaws
 
@@ -226,29 +294,30 @@ all checked. Lift passed phases 5 and 6.
 
 ### 7a: firmware drive direction (per axis)
 
-The firmware's position loop drives each bank with the sign in
-`DRIVE_DIRECTION` (`firmware/excavation-bucket/include/excavation_config.hpp`).
-It must be `+1` if a positive `SET_SPEED` increases that bank's encoder angle,
-and `-1` if it decreases it. Lift is confirmed as `+1`. Tilt and jaws are not
-confirmed yet. If the sign is wrong, the bank drives away from its target until
-it hits the end stop.
+The firmware's position loop drives every bank with the sign in
+`kDriveDirection` (`firmware/excavation-bucket/include/motor_bank.hpp`; one value
+for all three banks on this branch - `feat/master-encoder-firmware` has a
+`POSITION_DIRECTION` per bank in `excavation_config.hpp`). It must be `+1` if a
+positive `SET_SPEED` increases that bank's encoder angle, and `-1` if it decreases
+it. Lift is confirmed as `+1`. Tilt and jaws are not confirmed yet. If the sign is
+wrong, the bank drives away from its target until it hits the end stop.
 
 `direction` in the xacro does not fix this. That param only maps the firmware
-angle onto the URDF joint. `DRIVE_DIRECTION` is the motor polarity relative to
-the encoder, inside the firmware.
+angle onto the URDF joint. The firmware's sign is the motor polarity relative to
+the encoder.
 
 For tilt and then jaws:
 
-1. Run calibration mode with teleop (`controller:=teleop`), and watch
+1. Run calibration mode (`controller:=none`; the teleop runs alongside), and watch
    `candump -L can0`.
 2. Move the axis slowly with teleop. In `candump`, compare the sign of the bank's
    `SET_SPEED` frame (`02000102` tilt, `02000202` jaw) with the change in the
    raw `GET_ANGLE` value for that axis.
-3. If a positive `SET_SPEED` makes the angle go down, set
-   `DRIVE_DIRECTION = -1` for that axis.
+3. If a positive `SET_SPEED` makes the angle go down, that axis needs a drive
+   direction of `-1` in the firmware.
 4. Rebuild and flash the firmware.
 
-| Axis | Raw angle with + speed | DRIVE_DIRECTION |
+| Axis | Raw angle with + speed | Drive direction |
 | ---- | ---------------------- | --------------- |
 | lift | up                     | +1              |
 | tilt |                        |                 |
@@ -266,10 +335,8 @@ only its own joint, so the other two banks get no `SET_POSITION` frames.
 
 ```bash
 ros2 launch payloads bucket.launch.py controller:=bucket_tilt_controller
-ros2 action send_goal /payloads/bucket_tilt_controller/follow_joint_trajectory \
-  control_msgs/action/FollowJointTrajectory \
-  "{trajectory: {joint_names: [bucket_tilt_joint],
-    points: [{positions: [<rad>], time_from_start: {sec: 3}}]}}"
+ros2 run mission_bt_server bucket_cli move --tilt <deg> --duration 3 \
+  --server /bucket_tilt_controller/follow_joint_trajectory
 ```
 
 For the first goal, send a move of 3 deg, and keep your hand on the power cut.
@@ -288,10 +355,7 @@ current position.
 2. Send a goal for all three joints, with small moves on each:
 
    ```bash
-   ros2 action send_goal /payloads/bucket_trajectory_controller/follow_joint_trajectory \
-     control_msgs/action/FollowJointTrajectory \
-     "{trajectory: {joint_names: [bucket_lift_joint, bucket_tilt_joint, bucket_jaw_joint],
-       points: [{positions: [<lift>, <tilt>, <jaw>], time_from_start: {sec: 5}}]}}"
+   ros2 run mission_bt_server bucket_cli move --lift <deg> --tilt <deg> --jaw <deg> --duration 5
    ```
 
 3. Repeat phase 6 check 1 (Ctrl-C mid-move). All three banks must stop.
@@ -301,6 +365,25 @@ Pass: every goal returns `SUCCEEDED`, and RViz matches the bucket.
 `perseus/launch/perseus.launch.py` already defaults `bucket_controller` to
 `bucket_trajectory_controller`. Until 7c passes, pass a single-axis controller
 or `bucket_controller:=none` explicitly.
+
+## Phase 8: operator override
+
+With `controller:=bucket_trajectory_controller`, start a slow move
+(`bucket_cli move --lift <deg> --duration 15`) and nudge a stick part-way through.
+
+Pass:
+
+- `bucket_cli` fails with "operator override", and `ros2 control list_controllers`
+  shows `bucket_trajectory_controller` inactive.
+- The bucket follows the stick, and stops when you let go.
+- `candump` shows no `SET_POSITION` (`02000004`) frames after the takeover.
+- `bucket_supervisor.py --rearm` succeeds and the bucket stays where you left it,
+  with no jump.
+  A following `bucket_cli move` works.
+- A gentle stick touch below the deadband does not take over.
+
+Then the behaviours: `bucket_cli prepare`, `bucket_cli dump`, and on the rover with
+nav2 up, `bucket_cli dig`.
 
 ## After the session
 

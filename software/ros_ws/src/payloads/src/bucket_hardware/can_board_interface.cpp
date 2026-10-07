@@ -275,15 +275,17 @@ namespace payloads
         {
             return;
         }
-        // A zero SET_SPEED both stops the bank and drops the firmware out of
-        // closed-loop position mode, since it picks its control mode from
-        // whichever command arrived last. No scaling is involved - zero is zero
-        // in any units - so this deliberately does not share a conversion with
-        // the teleop driver, which owns general speed commands.
+        // A zero SET_SPEED alone would leave the bank in position mode, still
+        // driving to its last setpoint: see kStopNudgeDuty. No scaling is involved,
+        // so this deliberately does not share a conversion with the teleop driver,
+        // which owns general speed commands.
         const auto address = bank_address(axis, bucket_addr::bank_parameter::SET_SPEED);
-        Packet packet(addressing::flagged_address_t(address),
-                      bucket_param::speed_t{0}.serialize_data());
-        can_interface_->transmit(packet);
+        for (const int16_t duty : {kStopNudgeDuty, int16_t{0}})
+        {
+            Packet packet(addressing::flagged_address_t(address),
+                          bucket_param::speed_t{duty}.serialize_data());
+            can_interface_->transmit(packet);
+        }
     }
 
     void CanBoardInterface::zero_axis(Axis axis)

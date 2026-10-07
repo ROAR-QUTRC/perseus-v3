@@ -48,6 +48,32 @@ BucketDriver::BucketDriver(const rclcpp::NodeOptions& options)
     if (_max_actuator_speed <= 0.0)
         throw std::invalid_argument("max_actuator_speed must be positive");
 
+    // Operator override. The deadband keeps stick drift from taking the bucket
+    // away from autonomy; anything under it is below the ~10% duty the actuators
+    // need to move anyway.
+    _override_deadband = this->declare_parameter("override_deadband", 0.1);
+    if (_override_deadband <= 0.0 || _override_deadband >= 1.0)
+        throw std::invalid_argument("override_deadband must be between 0 and 1");
+    _override_controllers = this->declare_parameter<std::vector<std::string>>(
+        "override_controllers",
+        {"bucket_trajectory_controller", "bucket_lift_controller",
+         "bucket_tilt_controller", "bucket_jaw_controller"});
+    _rearm_controller = this->declare_parameter<std::string>(
+        "rearm_controller", "bucket_trajectory_controller");
+    const auto controller_manager =
+        this->declare_parameter<std::string>("controller_manager", "/controller_manager");
+    _list_client = this->create_client<ListControllers>(controller_manager + "/list_controllers");
+    _switch_client =
+        this->create_client<SwitchController>(controller_manager + "/switch_controller");
+    // Latched, so anything that starts later (MoveBucket, the CLI) sees it at once.
+    _override_publisher = this->create_publisher<std_msgs::msg::Bool>(
+        "/bucket/operator_override", rclcpp::QoS(1).reliable().transient_local());
+    _set_override(false);
+    _rearm_service = this->create_service<Trigger>(
+        "/bucket/rearm",
+        std::bind(&BucketDriver::_rearm_callback, this, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3));
+
     _can_interface =
         hi_can::RawCanInterface(this->declare_parameter("can_bus", "can0"));
 
@@ -111,6 +137,126 @@ void BucketDriver::_actuator_callback(
     std::copy_n(msg->velocity.begin(), ACTUATOR_COUNT, _speeds.begin());
     _last_command_time = this->now();
     _timed_out = false;
+
+    if (!_override && !_override_requested && _above_deadband(_speeds))
+        _begin_override();
+}
+
+bool BucketDriver::_above_deadband(const std::array<double, ACTUATOR_COUNT>& speeds) const
+{
+    const double threshold = _override_deadband * _max_actuator_speed;
+    return std::any_of(speeds.begin(), speeds.end(),
+                       [threshold](double v)
+                       { return std::abs(v) > threshold; });
+}
+
+void BucketDriver::_begin_override()
+{
+    _override_requested = this->now();
+    RCLCPP_WARN(this->get_logger(), "Operator override: taking the bucket from autonomy");
+
+    if (!_list_client->service_is_ready() || !_switch_client->service_is_ready())
+    {
+        // Nothing to take it from (bench teleop, or controller_manager down). The
+        // timeout in _transmit_callback hands the operator the bucket.
+        return;
+    }
+
+    // Only the ones actually active: deactivating one that isn't loaded makes the
+    // whole switch fail.
+    _list_client->async_send_request(
+        std::make_shared<ListControllers::Request>(),
+        [this](rclcpp::Client<ListControllers>::SharedFuture future)
+        {
+            auto request = std::make_shared<SwitchController::Request>();
+            for (const auto& controller : future.get()->controller)
+            {
+                if (controller.state == "active" &&
+                    std::find(_override_controllers.begin(), _override_controllers.end(),
+                              controller.name) != _override_controllers.end())
+                    request->deactivate_controllers.push_back(controller.name);
+            }
+            if (request->deactivate_controllers.empty())
+            {
+                _set_override(true);
+                return;
+            }
+            request->strictness = SwitchController::Request::BEST_EFFORT;
+            request->activate_asap = true;
+            _switch_client->async_send_request(
+                request,
+                [this, names = request->deactivate_controllers](
+                    rclcpp::Client<SwitchController>::SharedFuture switched)
+                {
+                    if (!switched.get()->ok)
+                        RCLCPP_ERROR(this->get_logger(),
+                                     "Operator override: controller_manager did not confirm "
+                                     "deactivating the bucket controllers");
+                    else
+                        for (const auto& name : names)
+                            RCLCPP_WARN(this->get_logger(), "Operator override: deactivated %s",
+                                        name.c_str());
+                    _set_override(true);
+                });
+        });
+}
+
+void BucketDriver::_set_override(bool active)
+{
+    _override = active;
+    if (active)
+        _override_requested.reset();
+    std_msgs::msg::Bool msg;
+    msg.data = active;
+    _override_publisher->publish(msg);
+}
+
+void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
+                                   std::shared_ptr<rmw_request_id_t> header,
+                                   std::shared_ptr<Trigger::Request> /*request*/)
+{
+    const auto reply = [service, header](bool success, const std::string& message)
+    {
+        Trigger::Response response;
+        response.success = success;
+        response.message = message;
+        service->send_response(*header, response);
+    };
+
+    if (!_timed_out && _above_deadband(_speeds))
+    {
+        reply(false, "a stick is still held - let go of the bucket first");
+        return;
+    }
+    if (!_switch_client->service_is_ready())
+    {
+        reply(false, "controller_manager is not available");
+        return;
+    }
+
+    // STRICT: if it cannot come up (stale encoders, a joint out of range - see
+    // BucketHardware::prepare_command_mode_switch) the operator keeps the bucket.
+    // It starts from the current encoder angles, so the bucket holds where the
+    // operator left it rather than going back to autonomy's last target.
+    auto request = std::make_shared<SwitchController::Request>();
+    request->activate_controllers = {_rearm_controller};
+    request->strictness = SwitchController::Request::STRICT;
+    request->activate_asap = true;
+    _switch_client->async_send_request(
+        request,
+        [this, reply](rclcpp::Client<SwitchController>::SharedFuture future)
+        {
+            if (!future.get()->ok)
+            {
+                reply(false, "could not activate " + _rearm_controller +
+                                 " - see the controller_manager log");
+                return;
+            }
+            _set_override(false);
+            RCLCPP_INFO(this->get_logger(), "Re-armed: %s has the bucket",
+                        _rearm_controller.c_str());
+            reply(true, _rearm_controller + " active");
+        });
 }
 
 void BucketDriver::_transmit_callback()
@@ -128,10 +274,22 @@ void BucketDriver::_transmit_callback()
         _timed_out = true;
     }
 
+    if (_override_requested && (this->now() - *_override_requested) >
+                                   rclcpp::Duration(OVERRIDE_SWITCH_TIMEOUT))
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Operator override: no answer from controller_manager in %ldms - "
+                    "taking the bucket anyway",
+                    static_cast<long>(OVERRIDE_SWITCH_TIMEOUT.count()));
+        _set_override(true);
+    }
+
     // Sent unconditionally, including while zeroed: a steady stream of zeros
     // keeps the banks in a known state and means a gap on the bus unambiguously
-    // signals that this node has died.
-    _write_speeds(_speeds);
+    // signals that this node has died. Zeros sit inside the firmware's deadband,
+    // so they never disturb a position the trajectory controller is holding;
+    // real speeds go out only once the operator has the bucket.
+    _write_speeds(_override ? _speeds : std::array<double, ACTUATOR_COUNT>{});
 }
 
 void BucketDriver::_write_speeds(

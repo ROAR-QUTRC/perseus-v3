@@ -12,13 +12,14 @@
 #include <tuple>
 #include <vector>
 
+#include "mission_bt_server/mission_bt_server/bucket_mission_params.hpp"
+
 namespace mission_bt_server
 {
 
     namespace
     {
-        const char* const DEFAULT_ACTION =
-            "/payloads/bucket_trajectory_controller/follow_joint_trajectory";
+        const char* const DEFAULT_ACTION = DEFAULT_BUCKET_ACTION;
 
         // How long the first tick waits for the controller's action server.
         constexpr auto SERVER_WAIT = std::chrono::seconds(2);
@@ -41,6 +42,13 @@ namespace mission_bt_server
         _callback_group =
             _node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
         _executor.add_callback_group(_callback_group, _node->get_node_base_interface());
+
+        rclcpp::SubscriptionOptions options;
+        options.callback_group = _callback_group;
+        _override_subscription = _node->create_subscription<std_msgs::msg::Bool>(
+            "/bucket/operator_override", rclcpp::QoS(1).reliable().transient_local(),
+            [this](const std_msgs::msg::Bool& msg)
+            { _operator_override = msg.data; }, options);
     }
 
     BT::PortsList MoveBucketBtNode::providedPorts()
@@ -107,12 +115,22 @@ namespace mission_bt_server
         getInput("server_name", action_name);
         duration_s = std::max(duration_s, 0.5);
 
+        _spin(std::chrono::milliseconds(5));  // the latched override flag
+        if (_operator_override)
+        {
+            RCLCPP_ERROR(_node->get_logger(),
+                         "MoveBucket: the operator has the bucket - hand it back with "
+                         "`ros2 run payloads bucket_supervisor.py --rearm` first");
+            return BT::NodeStatus::FAILURE;
+        }
+
         _make_client(action_name);
         if (!_client->wait_for_action_server(SERVER_WAIT))
         {
             RCLCPP_ERROR(_node->get_logger(),
                          "MoveBucket: %s is not available - is the bucket controller "
-                         "running (payload:=bucket, bucket_controller not none)?",
+                         "running (perseus.launch.py payload:=bucket, bucket_controller "
+                         "not none)?",
                          action_name.c_str());
             return BT::NodeStatus::FAILURE;
         }
@@ -151,6 +169,14 @@ namespace mission_bt_server
     {
         _spin(std::chrono::milliseconds(5));
 
+        if (_operator_override)
+        {
+            // Taking over deactivates the controller, which aborts the goal anyway;
+            // say why here rather than waiting for that.
+            RCLCPP_ERROR(_node->get_logger(), "MoveBucket: operator override - stopping");
+            _cancel();
+            return BT::NodeStatus::FAILURE;
+        }
         if (_goal_responded && !_goal_handle)
         {
             RCLCPP_ERROR(_node->get_logger(), "MoveBucket: %s rejected the goal",

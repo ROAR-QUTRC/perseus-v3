@@ -11,6 +11,7 @@
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <string>
 
 namespace mission_bt_server
@@ -39,6 +40,10 @@ namespace mission_bt_server
     /// action client is serviced on the tree's thread and nothing else needs spinning.
     /// Halting it (the mission being stopped) cancels the goal, which leaves the
     /// controller holding the bucket where it is.
+    ///
+    /// While the operator has the bucket (/bucket/operator_override, latched by
+    /// payloads' bucket_driver) it fails at once, and a move already running fails
+    /// the moment the operator takes over, rather than waiting out the controller.
     class MoveBucketBtNode : public BT::StatefulActionNode
     {
     public:
@@ -69,6 +74,8 @@ namespace mission_bt_server
         rclcpp::executors::SingleThreadedExecutor _executor;
         rclcpp_action::Client<FollowJointTrajectory>::SharedPtr _client;
         std::string _action_name;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _override_subscription;
+        bool _operator_override{false};
 
         // Per goal. The callbacks that write these run inside _spin(), on the tree's
         // own thread, so they need no locking.

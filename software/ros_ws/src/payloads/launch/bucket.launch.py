@@ -1,14 +1,15 @@
-"""Autonomous (ros2_control) control of the excavation bucket.
+"""Bench bring-up of the excavation bucket on its own, without the drive.
 
-Brings up a controller_manager in the `payloads` namespace driving the bucket
-over CAN with SET_POSITION, letting the board's own PID servo to each setpoint.
+On the rover the bucket is a second hardware component under the drive's
+controller_manager (perseus.launch.py payload:=bucket), and this file is not used.
+Here it gets a controller_manager of its own, with the same controllers, names and
+topics as on the rover, so everything tested here (bucket_cli, the vcan simulator)
+works there unchanged. Never run it alongside perseus.launch.py: both would be
+/controller_manager.
 
-Deliberately kept separate from bucket_teleop.launch.py: the firmware picks its
-control mode from whichever command it received last, so if both stacks
-transmit at once each bank flips between open-loop speed and closed-loop
-position every frame. controller:=teleop is the one safe way to combine them:
-no command controller is spawned, so the hardware only reads the encoders and
-bucket_teleop.launch.py is included to drive the bucket from the gamepad.
+The gamepad teleop (bucket_driver) runs alongside as an operator override when the
+hardware is real: a stick input deactivates the command controller, and
+`ros2 run payloads bucket_supervisor.py --rearm` hands control back.
 """
 
 from launch import LaunchDescription
@@ -30,14 +31,13 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
-NAMESPACE = "payloads"
-
 
 def generate_launch_description():
     # ARGUMENTS
     can_interface = LaunchConfiguration("can_interface", default="can0")
     hardware_plugin = LaunchConfiguration("hardware_plugin")
     controller = LaunchConfiguration("controller")
+    teleop = LaunchConfiguration("teleop")
 
     arguments = [
         DeclareLaunchArgument(
@@ -53,15 +53,31 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "controller",
             default_value="bucket_trajectory_controller",
+            choices=[
+                "none",
+                "bucket_trajectory_controller",
+                "bucket_lift_controller",
+                "bucket_tilt_controller",
+                "bucket_jaw_controller",
+            ],
             description=(
                 "Command controller to spawn: bucket_trajectory_controller (all "
                 "axes), bucket_lift_controller, bucket_tilt_controller or "
-                "bucket_jaw_controller (one axis each), none (read-only "
-                "calibration mode), or teleop (read-only plus the gamepad "
-                "bucket_driver)"
+                "bucket_jaw_controller (one axis each), or none (read-only "
+                "calibration mode)"
             ),
         ),
+        DeclareLaunchArgument(
+            "teleop",
+            default_value="true",
+            description="Run the gamepad bucket_driver as an operator override (real hardware only)",
+        ),
     ]
+
+    # The real-hardware-only nodes: both talk to the CAN bus or to BucketHardware.
+    real_hardware = PythonExpression(
+        ["'", hardware_plugin, "' == 'payloads/BucketHardware'"]
+    )
 
     # CONFIG + DATA FILES
     robot_description_content = Command(
@@ -92,54 +108,37 @@ def generate_launch_description():
 
     # NODES
     # Jazzy's controller_manager reads robot_description from a *topic*, not a
-    # parameter, so something has to publish it in this namespace or the manager
-    # waits forever at "Waiting for data on 'robot_description' topic".
+    # parameter, so something has to publish it or the manager waits forever at
+    # "Waiting for data on 'robot_description' topic". Also publishes the bucket
+    # frames, so the bucket shows up in RViz on its own.
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        namespace=NAMESPACE,
         parameters=[robot_description],
-        # Also publishes the bucket frames on the global /tf and /tf_static, so the
-        # standalone bucket shows up in RViz without the rest of the rover. Under
-        # perseus.launch.py the main robot_state_publisher publishes the same
-        # chassis -> bucket frames as well.
         output="both",
     )
 
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        namespace=NAMESPACE,
-        parameters=[robot_description, controller_params],
+        # On the rover the drive's 50 Hz applies and the bucket runs at its rw_rate.
+        parameters=[controller_params, {"update_rate": 20}],
         output="both",
     )
 
-    joint_state_broadcaster_spawner = Node(
+    broadcasters_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        namespace=NAMESPACE,
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            f"/{NAMESPACE}/controller_manager",
-        ],
+        arguments=["bucket_joint_state_broadcaster", "bucket_linkage_broadcaster"],
     )
 
     # controller:=none is calibration mode: nothing claims a command interface, so
-    # the hardware only reads and bucket_driver teleop can move the bucket.
-    # controller:=teleop is the same, with that teleop started here too.
+    # the hardware only reads and the teleop moves the bucket.
     bucket_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        namespace=NAMESPACE,
-        arguments=[
-            controller,
-            "--controller-manager",
-            f"/{NAMESPACE}/controller_manager",
-        ],
-        condition=IfCondition(
-            PythonExpression(["'", controller, "' not in ('none', 'teleop')"])
-        ),
+        arguments=[controller],
+        condition=IfCondition(PythonExpression(["'", controller, "' != 'none'"])),
     )
 
     bucket_teleop = IncludeLaunchDescription(
@@ -149,22 +148,33 @@ def generate_launch_description():
             )
         ),
         launch_arguments={"can_bus": can_interface}.items(),
-        condition=IfCondition(PythonExpression(["'", controller, "' == 'teleop'"])),
+        condition=IfCondition(
+            PythonExpression(["(", real_hardware, ") and ('", teleop, "' == 'true')"])
+        ),
+    )
+
+    bucket_supervisor = Node(
+        package="payloads",
+        executable="bucket_supervisor.py",
+        output="both",
+        condition=IfCondition(real_hardware),
     )
 
     joint_states_deg = Node(
         package="description",
         executable="joint_states_deg.py",
-        namespace=NAMESPACE,
+        parameters=[
+            {"joints": ["bucket_lift_joint", "bucket_tilt_joint", "bucket_jaw_joint"]}
+        ],
         output="both",
     )
 
     # EVENT HANDLERS
-    # Spawn the command controller only once the broadcaster is up, so a failure
+    # Spawn the command controller only once the broadcasters are up, so a failure
     # to read encoders surfaces before anything can be commanded.
-    delay_controller_after_broadcaster = RegisterEventHandler(
+    delay_controller_after_broadcasters = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
+            target_action=broadcasters_spawner,
             on_exit=[bucket_controller_spawner],
         )
     )
@@ -172,9 +182,10 @@ def generate_launch_description():
     nodes = [
         robot_state_publisher,
         control_node,
-        joint_state_broadcaster_spawner,
+        broadcasters_spawner,
         joint_states_deg,
         bucket_teleop,
+        bucket_supervisor,
     ]
 
-    return LaunchDescription(arguments + nodes + [delay_controller_after_broadcaster])
+    return LaunchDescription(arguments + nodes + [delay_controller_after_broadcasters])

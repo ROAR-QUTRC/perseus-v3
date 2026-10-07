@@ -45,7 +45,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     geometry_msgs
     control_msgs
     behaviortree_cpp
-    nav2_behavior_tree)
+    nav2_behavior_tree
+    nav2_msgs
+    std_msgs
+    ament_index_cpp)
 
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
@@ -90,13 +93,21 @@ add_library(move_bucket_bt_node SHARED
             src/mission_bt_server/move_bucket_bt_node.cpp)
 target_include_directories(move_bucket_bt_node
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-ament_target_dependencies(move_bucket_bt_node PUBLIC rclcpp rclcpp_action
-                          control_msgs behaviortree_cpp)
+ament_target_dependencies(
+  move_bucket_bt_node
+  PUBLIC
+  rclcpp
+  rclcpp_action
+  control_msgs
+  std_msgs
+  behaviortree_cpp)
 target_compile_definitions(move_bucket_bt_node PRIVATE BT_PLUGIN_EXPORT)
 
 add_executable(
-  mission_bt_server src/mission_bt_server/mission_bt_server.cpp
-                    src/mission_bt_server/mission_bt_server_node.cpp)
+  mission_bt_server
+  src/mission_bt_server/mission_bt_server.cpp
+  src/mission_bt_server/mission_bt_server_node.cpp
+  src/mission_bt_server/bucket_mission_params.cpp)
 target_include_directories(mission_bt_server
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(mission_bt_server PUBLIC
@@ -114,7 +125,14 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-install(TARGETS mission_bt_server DESTINATION lib/${PROJECT_NAME})
+# The mission's bucket behaviours from the command line, for the bench and vcan.
+add_executable(bucket_cli src/bucket_cli/bucket_cli.cpp
+                          src/mission_bt_server/bucket_mission_params.cpp)
+target_include_directories(bucket_cli
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(bucket_cli PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+install(TARGETS mission_bt_server bucket_cli DESTINATION lib/${PROJECT_NAME})
 
 # No config/ or launch/ here on purpose: like arena_server, the launch file
 # and the BT xml live in autonomy_bringup alongside the other stack configs.
