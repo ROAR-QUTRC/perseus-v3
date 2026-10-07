@@ -29,6 +29,7 @@ pkgs.mkShell {
           # Dependencies from package.xml files
           actuator-msgs
           ament-cmake
+          ament-cmake-gtest
           ament-cmake-python
           ament-index-cpp
           ament-lint-auto
@@ -40,7 +41,9 @@ pkgs.mkShell {
           compressed-depth-image-transport
           compressed-image-transport
           control-msgs
+          controller-interface
           controller-manager
+          controller-manager-msgs
           cv-bridge
           diff-drive-controller
           draco-point-cloud-transport
@@ -59,6 +62,7 @@ pkgs.mkShell {
           message-filters
           nav-msgs
           nav2-behavior-tree
+          nav2-msgs
           navigation2
           nlohmann_json
           onnxruntime
@@ -78,6 +82,7 @@ pkgs.mkShell {
           rclpy
           realsense2-camera
           realsense2-description
+          realtime-tools
           robot-localization
           robot-state-publisher
           ros2controlcli

@@ -4,9 +4,12 @@
   buildRosPackage,
   actuator-msgs,
   ament-cmake,
+  ament-cmake-gtest,
   ament-lint-auto,
   ament-lint-common,
+  controller-interface,
   controller-manager,
+  controller-manager-msgs,
   description,
   hardware-interface,
   hi-can-raw,
@@ -15,9 +18,12 @@
   pluginlib,
   rclcpp,
   rclcpp-lifecycle,
+  rclpy,
+  realtime-tools,
   robot-state-publisher,
   sensor-msgs,
   std-msgs,
+  std-srvs,
   xacro,
 }:
 buildRosPackage rec {
@@ -29,12 +35,15 @@ buildRosPackage rec {
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   checkInputs = [
+    ament-cmake-gtest
     ament-lint-auto
     ament-lint-common
   ];
   propagatedBuildInputs = [
     actuator-msgs
+    controller-interface
     controller-manager
+    controller-manager-msgs
     description
     hardware-interface
     hi-can-raw
@@ -43,9 +52,12 @@ buildRosPackage rec {
     pluginlib
     rclcpp
     rclcpp-lifecycle
+    rclpy
+    realtime-tools
     robot-state-publisher
     sensor-msgs
     std-msgs
+    std-srvs
     xacro
   ];
   nativeBuildInputs = [ ament-cmake ];

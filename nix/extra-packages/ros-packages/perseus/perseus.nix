@@ -8,6 +8,7 @@
   hardware,
   joint-state-broadcaster,
   mecanum-drive-controller,
+  payloads,
   pid-controller,
   robot-state-publisher,
   ros2controlcli,
@@ -30,6 +31,7 @@ buildRosPackage rec {
     hardware
     joint-state-broadcaster
     mecanum-drive-controller
+    payloads
     pid-controller
     robot-state-publisher
     ros2controlcli
