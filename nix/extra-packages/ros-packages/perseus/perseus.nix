@@ -3,6 +3,7 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  can-logger,
   controller-manager,
   diff-drive-controller,
   hardware,
@@ -26,6 +27,7 @@ buildRosPackage rec {
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
+    can-logger
     controller-manager
     diff-drive-controller
     hardware

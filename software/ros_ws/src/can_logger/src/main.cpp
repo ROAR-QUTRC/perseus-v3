@@ -30,7 +30,8 @@ namespace
                 "  --out <file>    Output CSV file (default: ~/can_logs/can_log_<time>.csv)\n"
                 "  --help          Show this message\n"
                 "Every received frame is appended to one CSV file. Lines are buffered in\n"
-                "memory (" << BUFFER_LINES
+                "memory ("
+             << BUFFER_LINES
              << " lines) and written out when the buffer fills, every "
              << MAX_FLUSH_INTERVAL.count() << "s, and on exit (Ctrl+C / SIGTERM)."
              << endl;
@@ -118,11 +119,12 @@ int main(int argc, const char** argv)
                 for (const auto byte : data)
                     data_hex += std::format("{:02x}", byte);
 
-                buffer.push_back(std::format("{},{:#010x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},"
-                                             "{},{},{},{}",
-                                             now_us, addr.address, f.system, f.subsystem, f.device,
-                                             f.group, f.parameter, addr.is_rtr ? 1 : 0,
-                                             addr.is_extended ? 1 : 0, data.size(), data_hex));
+                buffer.push_back(std::format(
+                    "{},{:#010x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},"
+                    "{},{},{},{}",
+                    now_us, addr.address, f.system, f.subsystem, f.device,
+                    f.group, f.parameter, addr.is_rtr ? 1 : 0,
+                    addr.is_extended ? 1 : 0, data.size(), data_hex));
                 ++total;
             }
             else
