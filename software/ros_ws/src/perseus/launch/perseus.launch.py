@@ -14,6 +14,7 @@ from launch.launch_description_sources import (
     AnyLaunchDescriptionSource,
 )
 
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -120,6 +121,14 @@ def generate_launch_description():
                 "Raise non-zero ESC speed commands below this ERPM up to it. "
                 "0 disables. A blunter alternative to use_wheel_pid: it gets the "
                 "wheel moving but the actual speed no longer matches the command"
+            ),
+        ),
+        DeclareLaunchArgument(
+            "can_logger",
+            default_value="true",
+            description=(
+                "Run can_logger, which dumps every frame on can_bus to a CSV in "
+                "~/can_logs for offline analysis"
             ),
         ),
     ]
@@ -232,11 +241,20 @@ def generate_launch_description():
         }.items(),
     )
 
+    can_logger = Node(
+        package="can_logger",
+        executable="can_logger",
+        arguments=["--iface", can_bus],
+        output="screen",
+        condition=IfCondition(LaunchConfiguration("can_logger")),
+    )
+
     launch_files = [
         OpaqueFunction(function=robot_state_publisher),
         OpaqueFunction(function=controllers),
         twist_mux_launch,
         rosbridge_launch,
+        can_logger,
     ]
 
     return LaunchDescription(arguments + launch_files)
