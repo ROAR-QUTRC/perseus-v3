@@ -88,7 +88,7 @@ global_traversability:
     # 0.04 speckled the whole driven area. The additions at 0.05 sit on rock edges and walls.
     # 0.05 alone is not safe: sand noise and wheel ruts put 520 cells under the path. It only
     # works together with log_odds_hit below, which rejects that noise because it flickers.
-    max_height_above_ground_m: 0.05
+    max_height_above_ground_m: 0.065
     max_step_down_m: 0.15
     obstacle_height_cap_m: 1.0
     ground_margin_m: 0.10
