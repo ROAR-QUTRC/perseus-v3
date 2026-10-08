@@ -423,7 +423,10 @@ namespace mission_bt_server
         blackboard->set<bool>("prepare_bucket", prepare_bucket);
         const double pause_s =
             request.zone_pause_s > 0.0 ? request.zone_pause_s : _default_zone_pause_s;
-        blackboard->set<int>("pause_ms", static_cast<int>(std::lround(pause_s * 1000.0)));
+        // unsigned: BT::Sleep's msec port is unsigned int, and a blackboard entry created
+        // with another type fails tree creation with a port type mismatch.
+        blackboard->set<unsigned int>("pause_ms",
+                                      static_cast<unsigned int>(std::lround(pause_s * 1000.0)));
         _bucket.apply(*blackboard);
 
         RCLCPP_INFO(get_logger(),
