@@ -42,6 +42,9 @@
       - /odom
       # EKF output. frequency in autonomy_bringup/config/ekf_config.yaml.
       - /odometry/filtered
+
+
+      - /vision/orb_slam_odometry/odometry
       # RealSense D455, watched on the image topics themselves so a stall in image
       # publishing shows up directly rather than being inferred from the camera_info
       # companion beside it.
@@ -66,6 +69,7 @@
       - 200.0 # /livox/imu/corrected
       - 10.0 # /Odometry
       - 50.0 # /odom
+      - 15.0 # /vision/orb_slam_odometry/odometry
       - 30.0 # /odometry/filtered
       # rgb_camera.color_profile in sensors/config/realsense.yaml is 424,240,15
       - 15.0 # /camera/camera/color/image_raw
