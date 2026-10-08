@@ -12,8 +12,11 @@
     DigBucket       no tilt-down before the cut and no curl after it: lower, push, carry
     DumpBucket      no jaw open and no curl: lower to 20, then back to the travel lift
 
-  The bucket_travel_tilt_deg / _jaw_deg, dig_tilt_deg and dig_curl_tilt_deg entries
-  mission_bt_server still sets are unused here.
+  Each lift move also takes a fixed 2 s rather than bucket_move_s; only the dig carry,
+  which runs alongside its creep, still takes dig_carry_s.
+
+  The bucket_move_s, bucket_travel_tilt_deg / _jaw_deg, dig_tilt_deg and
+  dig_curl_tilt_deg entries mission_bt_server still sets are unused here.
 
   See mission.xml for the blackboard entries, the task switch and the cycle semantics.
 -->
@@ -52,10 +55,10 @@
     <Sequence>
       <Script code="phase:='bucket_to_zero'"/>
       <MoveBucket lift_deg="0"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  duration_s="2" server_name="{bucket_action}"/>
       <Script code="phase:='bucket_to_travel'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  duration_s="2" server_name="{bucket_action}"/>
     </Sequence>
   </BehaviorTree>
 
@@ -87,10 +90,10 @@
     <Sequence>
       <Script code="phase:='dump_lower'"/>
       <MoveBucket lift_deg="20"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  duration_s="2" server_name="{bucket_action}"/>
       <Script code="phase:='dump_stow'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  duration_s="2" server_name="{bucket_action}"/>
     </Sequence>
   </BehaviorTree>
 
@@ -120,7 +123,7 @@
     <Sequence>
       <Script code="phase:='dig_lower'"/>
       <MoveBucket lift_deg="{dig_lift_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  duration_s="2" server_name="{bucket_action}"/>
       <Script code="phase:='dig_push'"/>
       <DriveOnHeading dist_to_travel="{dig_push_m}" speed="{dig_speed}"
                       time_allowance="{dig_push_allowance_s}" server_name="drive_on_heading"/>
