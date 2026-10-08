@@ -703,6 +703,11 @@ into bt_navigator's `/navigate_to_pose`, so planning, smoothing, replanning
 and recovery all come from `navigate_to_pose_w_smoothing.xml`, using whichever
 planner and controller are selected.
 
+While the tilt and jaw encoders are not available, launch navigation with
+`bucket_lift_only:=true` to run `behavior_trees/mission_lift_only.xml` instead:
+the same tree with every bucket move commanding the lift alone (no tilt, no jaw).
+For `bucket_cli`, pass `--xml <share>/autonomy_bringup/behavior_trees/mission_lift_only.xml`.
+
 ### Mission modes
 
 | Mode                  | Task                     | Behaviour                                                                    |

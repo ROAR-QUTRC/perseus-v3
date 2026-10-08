@@ -1,0 +1,189 @@
+<!--
+  LIFT-ONLY copy of mission.xml, for while the tilt and jaw encoders are not available.
+  Selected with navigation.launch.py bucket_lift_only:=true, or for bucket_cli by
+  passing this file as its xml option.
+
+  Identical to mission.xml - same subtree IDs, same blackboard entries, so
+  mission_bt_server and bucket_cli need nothing different - except that every MoveBucket
+  names lift_deg and nothing else (the bucket_cli move with only a lift target). The controller
+  holds tilt and jaw where they are. What that drops from the bucket subtrees:
+
+    PrepareBucket   lift to 0, then lift to the travel lift; tilt and jaw untouched
+    DigBucket       no tilt-down before the cut and no curl after it: lower, push, carry
+    DumpBucket      no jaw open and no curl: lower to 20, then back to the travel lift
+
+  The bucket_travel_tilt_deg / _jaw_deg, dig_tilt_deg and dig_curl_tilt_deg entries
+  mission_bt_server still sets are unused here.
+
+  See mission.xml for the blackboard entries, the task switch and the cycle semantics.
+-->
+
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+      <IfThenElse>
+        <ScriptCondition code="prepare_bucket"/>
+        <SubTree ID="PrepareBucket" _autoremap="true"/>
+        <AlwaysSuccess/>
+      </IfThenElse>
+      <Switch6 variable="{task}"
+               case_1="full_cycle" case_2="nav_cycle"
+               case_3="nav_excavation" case_4="nav_construction"
+               case_5="dump" case_6="dig">
+        <SubTree ID="FullAutonomyCycle" _autoremap="true"/>
+        <SubTree ID="NavigationCycle" _autoremap="true"/>
+        <SubTree ID="GoToExcavation" _autoremap="true"/>
+        <SubTree ID="GoToConstruction" _autoremap="true"/>
+        <SubTree ID="DumpOnly" _autoremap="true"/>
+        <SubTree ID="DigOnly" _autoremap="true"/>
+        <!-- Unknown task: fail rather than guess. -->
+        <AlwaysFailure/>
+      </Switch6>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Lift to 0 (arms level at the top) so the move to the travel lift always starts from
+    the same place, then the travel lift (bucket_travel_lift_deg, default 25). A failed
+    move fails the mission before the rover drives anywhere.
+  -->
+  <BehaviorTree ID="PrepareBucket">
+    <Sequence>
+      <Script code="phase:='bucket_to_zero'"/>
+      <MoveBucket lift_deg="0"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='bucket_to_travel'"/>
+      <MoveBucket lift_deg="{bucket_travel_lift_deg}"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="FullAutonomyCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <SubTree ID="DigBucket" _autoremap="true"/>
+          <SubTree ID="GoToConstruction" _autoremap="true"/>
+          <SubTree ID="DumpBucket" _autoremap="true"/>
+          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Lift only (positive lowering):
+
+      1. lift 20                     lower the arms over the pile
+      2. the travel lift             back up for the drive to excavation
+
+    A step that fails fails the mission there, with the rover still at construction.
+  -->
+  <BehaviorTree ID="DumpBucket">
+    <Sequence>
+      <Script code="phase:='dump_lower'"/>
+      <MoveBucket lift_deg="20"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='dump_stow'"/>
+      <MoveBucket lift_deg="{bucket_travel_lift_deg}"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Dump only (StartMission MODE_DUMP_ONLY): DumpBucket once, wherever the rover is
+    standing. No driving.
+  -->
+  <BehaviorTree ID="DumpOnly">
+    <Sequence>
+      <SubTree ID="DumpBucket" _autoremap="true"/>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    One dig pass from where the rover stands, lift only; mission_bt_server's dig_*
+    parameters, defaults in brackets:
+
+      1. lift [32]                   arms down until the edge is in the regolith
+      2. creep [0.20 m] ahead        at [0.08 m/s], cutting
+      3. creep [0.40 m] ahead        while the arms rise to [0]. Both start together;
+                                     the lift takes dig_carry_s
+
+    The creeps are nav2's DriveOnHeading, collision-checked as in mission.xml.
+  -->
+  <BehaviorTree ID="DigBucket">
+    <Sequence>
+      <Script code="phase:='dig_lower'"/>
+      <MoveBucket lift_deg="{dig_lift_deg}"
+                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <Script code="phase:='dig_push'"/>
+      <DriveOnHeading dist_to_travel="{dig_push_m}" speed="{dig_speed}"
+                      time_allowance="{dig_push_allowance_s}" server_name="drive_on_heading"/>
+      <Script code="phase:='dig_carry'"/>
+      <Parallel success_count="2" failure_count="1">
+        <DriveOnHeading dist_to_travel="{dig_carry_m}" speed="{dig_speed}"
+                        time_allowance="{dig_carry_allowance_s}" server_name="drive_on_heading"/>
+        <MoveBucket lift_deg="{dig_carry_lift_deg}"
+                    duration_s="{dig_carry_s}" server_name="{bucket_action}"/>
+      </Parallel>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Dig only (StartMission MODE_DIG_ONLY): DigBucket once, from where the rover stands.
+  -->
+  <BehaviorTree ID="DigOnly">
+    <Sequence>
+      <SubTree ID="DigBucket" _autoremap="true"/>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="NavigationCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <SubTree ID="GoToConstruction" _autoremap="true"/>
+          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GoToExcavation">
+    <Sequence>
+      <Script code="phase:='to_excavation'"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_excavation"/>
+        <Sequence>
+          <RequestZoneWaypoint service_name="{excavation_service}" goal="{excavation_goal}"/>
+          <NavigateToPose goal="{excavation_goal}"/>
+        </Sequence>
+        <NavigateToPose goal="{excavation_point}"/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GoToConstruction">
+    <Sequence>
+      <Script code="phase:='to_construction'"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_construction"/>
+        <Sequence>
+          <RequestZoneWaypoint service_name="{construction_service}" goal="{construction_goal}"/>
+          <NavigateToPose goal="{construction_goal}"/>
+        </Sequence>
+        <NavigateToPose goal="{construction_point}"/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+</root>
