@@ -88,7 +88,7 @@ global_traversability:
     # 0.04 speckled the whole driven area. The additions at 0.05 sit on rock edges and walls.
     # 0.05 alone is not safe: sand noise and wheel ruts put 520 cells under the path. It only
     # works together with log_odds_hit below, which rejects that noise because it flickers.
-    max_height_above_ground_m: 0.08
+    max_height_above_ground_m: 0.05
     max_step_down_m: 0.15
     obstacle_height_cap_m: 1.0
     ground_margin_m: 0.10
@@ -471,8 +471,8 @@ controller_server:
       # Loosened from 0.25: the rover is 0.6 m across on sand and hunts across a tighter
       # goal. Yaw is generous because final heading rarely matters and tightening it means
       # a slow spin at exactly the rate the ESCs stall at.
-      xy_goal_tolerance: 0.35
-      yaw_goal_tolerance: 0.3
+      xy_goal_tolerance: 0.45
+      yaw_goal_tolerance: 0.35
       stateful: true
     FollowPath:
       # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
@@ -520,7 +520,7 @@ controller_server:
       # 0.15 rad/s of body yaw or the wheels stop turning mid-rotation. 0.175 is only
       # 0.025 above that, so this is as slow as in-place turning can safely go. A
       # further reduction must come from somewhere else, not from this value.
-      rotate_to_heading_angular_vel: 0.175
+      rotate_to_heading_angular_vel: 0.2
       # Must be matched by velocity_smoother's max_accel below; the lower one binds.
       max_angular_accel: 3.2
       # Cannot be true alongside use_rotate_to_heading; the controller rejects it.
