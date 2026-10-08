@@ -42,8 +42,6 @@
       - /odom
       # EKF output. frequency in autonomy_bringup/config/ekf_config.yaml.
       - /odometry/filtered
-
-
       - /vision/orb_slam_odometry/odometry
       # RealSense D455, watched on the image topics themselves so a stall in image
       # publishing shows up directly rather than being inferred from the camera_info
