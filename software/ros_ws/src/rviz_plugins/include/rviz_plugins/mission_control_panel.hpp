@@ -5,6 +5,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QPushButton>
@@ -33,7 +34,10 @@ namespace rviz_plugins
     ///                    at excavation, dump at construction), Navigation Only (drive only: cycle, or a
     ///                    single trip to one zone), Dump only (no driving: run the
     ///                    dump sequence once, where the rover stands) or Dig only (one
-    ///                    dig pass from where the rover stands, creeping straight ahead).
+    ///                    dig pass from where the rover stands, creeping straight ahead)
+    ///                    or Full Autonomy (timed stops): Full Autonomy's drive cycle,
+    ///                    stopping for a set time at each zone instead of moving the
+    ///                    bucket, for a rover with no bucket feedback.
     ///   Zone waypoints   per zone, a point picked on the map with the Excavation /
     ///                    Construction Point tools (click-drag like 2D Goal Pose; a
     ///                    labelled marker stays on the map), or arena_server's own
@@ -140,6 +144,7 @@ namespace rviz_plugins
         bool _full_autonomy() const;
         bool _dump_only() const;
         bool _dig_only() const;
+        bool _timed_autonomy() const;
         bool _uses_arena(const ZoneRow& row) const;
         bool _running() const;
         void _set_message(const QString& text, const QString& colour = QString());
@@ -162,12 +167,16 @@ namespace rviz_plugins
         QComboBox* _task_combo{nullptr};
         QSpinBox* _cycles_spin{nullptr};
         QCheckBox* _prepare_bucket_check{nullptr};
+        // Full Autonomy (timed stops) only: seconds stopped at each zone.
+        QDoubleSpinBox* _pause_spin{nullptr};
         QComboBox* _controller_combo{nullptr};
         QComboBox* _planner_combo{nullptr};
         ZoneRow _excavation_row;
         ZoneRow _construction_row;
         // Form rows hidden or shown with the mode: each field's label and its widget.
         QWidget* _task_label{nullptr};
+        QWidget* _bucket_label{nullptr};
+        QWidget* _pause_label{nullptr};
         // Cycles caption, beside its spinbox on the Controller row; both hidden when
         // the mode does not cycle.
         QWidget* _cycles_caption{nullptr};

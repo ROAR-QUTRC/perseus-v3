@@ -11,6 +11,8 @@
     task                     "full_cycle" | "nav_cycle" | "nav_excavation" | "nav_construction"
                              | "dump" (no driving: DumpBucket once, where the rover stands)
                              | "dig" (DigBucket once, from where the rover stands)
+                             | "full_cycle_timed" (FullAutonomyCycle's drive, a timed
+                               stop in place of each bucket step)
     cycles                   int, >= 1
     use_arena_excavation     bool: true asks arena_server, false uses excavation_point
     use_arena_construction   bool, same for construction
@@ -19,6 +21,7 @@
     excavation_service       arena_server's /arena/request_excavation_waypoint
     construction_service     arena_server's /arena/request_construction_waypoint
     cycles_done              int, 0  this tree counts it up
+    pause_ms                 int, how long TimedAutonomyCycle stops at each zone
     prepare_bucket           bool: run PrepareBucket before the task
     bucket_action            the bucket controller's FollowJointTrajectory action
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
@@ -56,8 +59,14 @@
         <SubTree ID="GoToConstruction" _autoremap="true"/>
         <SubTree ID="DumpOnly" _autoremap="true"/>
         <SubTree ID="DigOnly" _autoremap="true"/>
-        <!-- Unknown task: fail rather than guess. -->
-        <AlwaysFailure/>
+        <!-- BT.CPP stops at Switch6, so the seventh task is the default branch's
+             own check. Anything else is still an unknown task: fail rather than
+             guess. -->
+        <IfThenElse>
+          <ScriptCondition code="task == 'full_cycle_timed'"/>
+          <SubTree ID="TimedAutonomyCycle" _autoremap="true"/>
+          <AlwaysFailure/>
+        </IfThenElse>
       </Switch6>
     </Sequence>
   </BehaviorTree>
@@ -127,6 +136,31 @@
       <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
                   jaw_deg="{bucket_travel_jaw_deg}"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    FullAutonomyCycle with the bucket left alone (StartMission MODE_FULL_AUTONOMY_TIMED):
+    the same drives in the same order, with a stop of pause_ms where DigBucket and
+    DumpBucket would run. For exercising the whole mission - waypoints, cycle count,
+    timing - on a rover with no bucket feedback. The phases are excavating and
+    depositing, which the panel shows as timed stops.
+  -->
+  <BehaviorTree ID="TimedAutonomyCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <Script code="phase:='excavating'"/>
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToConstruction" _autoremap="true"/>
+          <Script code="phase:='depositing'"/>
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:='done'"/>
     </Sequence>
   </BehaviorTree>
 

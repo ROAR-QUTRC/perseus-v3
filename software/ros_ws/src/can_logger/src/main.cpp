@@ -61,14 +61,14 @@ int main(int argc, const char** argv)
 
     for (int i = 1; i < argc; ++i)
     {
-        const std::string arg = argv[i];
-        if (arg == "--help" || arg == "-h")
+        const std::string arg = argv[i];     // log the first element of argv as the argument
+        if (arg == "--help" || arg == "-h")  // if the argument is --help or -h, print usage and return 0
         {
             print_usage();
             return 0;
         }
         if (arg == "--iface" && i + 1 < argc)
-            iface = argv[++i];
+            iface = argv[++i];  // log the second argument after --iface as the interface name
         else if (arg == "--out" && i + 1 < argc)
             out_path = argv[++i];
         else

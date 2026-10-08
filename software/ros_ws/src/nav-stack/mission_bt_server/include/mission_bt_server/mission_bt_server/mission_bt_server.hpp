@@ -113,6 +113,10 @@ namespace mission_bt_server
         BucketMissionParams _bucket;
         BtTimeouts _timeouts;
 
+        // How long a FULL_AUTONOMY_TIMED mission stops at each zone when the request
+        // leaves zone_pause_s at 0.
+        double _default_zone_pause_s{2.0};
+
         // A plain node distinct from `this`, purely so the BT nodes have an
         // rclcpp::Node::SharedPtr to construct clients against before `this` could
         // safely offer shared_from_this() (unavailable mid-constructor). Never

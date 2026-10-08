@@ -22,12 +22,20 @@ namespace mission_bt_server
             return request.mode == StartMission::Request::MODE_NAVIGATION_ONLY;
         }
 
+        /// @brief Full autonomy's drive cycle with a timed stop at each zone in place
+        /// of the bucket, for a rover with no bucket feedback.
+        bool timed_autonomy(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_FULL_AUTONOMY_TIMED;
+        }
+
         /// @brief True for the tasks that drive to both zones. task only means
         /// something in NAVIGATION_ONLY, so it is checked only there -- a DUMP_ONLY
         /// request's task is whatever the panel left in it.
         bool is_cycle(const StartMission::Request& request)
         {
             return request.mode == StartMission::Request::MODE_FULL_AUTONOMY ||
+                   timed_autonomy(request) ||
                    (navigation_only(request) &&
                     request.task == StartMission::Request::TASK_CYCLE);
         }
@@ -115,6 +123,7 @@ namespace mission_bt_server
         // timeouts: shared with bucket_cli, which runs the same subtrees.
         _bucket = BucketMissionParams::declare(*this);
         _timeouts = BtTimeouts::declare(*this);
+        _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
 
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
@@ -277,7 +286,8 @@ namespace mission_bt_server
         if (request.mode != StartMission::Request::MODE_FULL_AUTONOMY &&
             request.mode != StartMission::Request::MODE_NAVIGATION_ONLY &&
             request.mode != StartMission::Request::MODE_DUMP_ONLY &&
-            request.mode != StartMission::Request::MODE_DIG_ONLY)
+            request.mode != StartMission::Request::MODE_DIG_ONLY &&
+            !timed_autonomy(request))
         {
             return "unknown mode " + std::to_string(request.mode);
         }
@@ -318,6 +328,10 @@ namespace mission_bt_server
         if (request.mode == StartMission::Request::MODE_DIG_ONLY)
         {
             return "dig";
+        }
+        if (timed_autonomy(request))
+        {
+            return "full_cycle_timed";
         }
         switch (request.task)
         {
@@ -403,7 +417,13 @@ namespace mission_bt_server
         blackboard->set<std::string>("construction_service", _construction_service_name);
         blackboard->set<int>("cycles_done", 0);
         blackboard->set<std::string>("phase", "starting");
-        blackboard->set<bool>("prepare_bucket", request.prepare_bucket);
+        // The timed mode exists for a rover with no bucket feedback, so it never
+        // moves the bucket - not even the travel pose a client may have left ticked.
+        const bool prepare_bucket = request.prepare_bucket && !timed_autonomy(request);
+        blackboard->set<bool>("prepare_bucket", prepare_bucket);
+        const double pause_s =
+            request.zone_pause_s > 0.0 ? request.zone_pause_s : _default_zone_pause_s;
+        blackboard->set<int>("pause_ms", static_cast<int>(std::lround(pause_s * 1000.0)));
         _bucket.apply(*blackboard);
 
         RCLCPP_INFO(get_logger(),
@@ -412,7 +432,12 @@ namespace mission_bt_server
                     _task_name(request).c_str(), request.cycles,
                     request.use_arena_excavation ? "arena" : "picked",
                     request.use_arena_construction ? "arena" : "picked",
-                    request.prepare_bucket ? "to travel pose first" : "left as is");
+                    prepare_bucket ? "to travel pose first" : "left as is");
+        if (timed_autonomy(request))
+        {
+            RCLCPP_INFO(get_logger(), "mission: no bucket moves, %.1f s stop at each zone",
+                        pause_s);
+        }
 
         BT::Tree tree;
         try

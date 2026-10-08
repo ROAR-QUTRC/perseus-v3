@@ -15,10 +15,15 @@
 #                    the only driving is the dig's own short creeps straight ahead.
 #                    task, cycles and both points are ignored; prepare_bucket still
 #                    applies.
+#   FULL_AUTONOMY_TIMED  FULL_AUTONOMY's drive cycle, but the bucket is never moved:
+#                    the rover stops for zone_pause_s at each zone where it would dig
+#                    or dump. For running the whole mission without bucket feedback.
+#                    Always cycles; task is ignored, and so is prepare_bucket.
 uint8 MODE_FULL_AUTONOMY = 0
 uint8 MODE_NAVIGATION_ONLY = 1
 uint8 MODE_DUMP_ONLY = 2
 uint8 MODE_DIG_ONLY = 3
+uint8 MODE_FULL_AUTONOMY_TIMED = 4
 uint8 mode
 
 # NAVIGATION_ONLY only.
@@ -43,14 +48,16 @@ geometry_msgs/PoseStamped excavation_point
 bool use_arena_construction
 geometry_msgs/PoseStamped construction_point
 
-# Ignored. It set the timed pause that stood in for the dig at excavation before
-# DigBucket replaced it; kept so existing clients and recordings still match.
+# FULL_AUTONOMY_TIMED only: how long the rover stops at each zone in place of the
+# dig and the dump, in seconds. <= 0 uses mission_bt_server's default_zone_pause_s.
+# Ignored by every other mode.
 float64 zone_pause_s
 
 # Before anything else, move the bucket to every joint 0 deg and then to its travel
 # pose (mission_bt_server's bucket_travel_*_deg parameters), the pose that keeps it
 # out of the lidar's and camera's forward view while driving. Needs the bucket
-# controller running; the mission fails at that step if it is not. Any mode or task.
+# controller running; the mission fails at that step if it is not. Any mode or task
+# except FULL_AUTONOMY_TIMED, which never moves the bucket.
 bool prepare_bucket
 ---
 # false: refused (a mission is already running, a required point is missing, ...);
