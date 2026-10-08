@@ -21,7 +21,7 @@
     excavation_service       arena_server's /arena/request_excavation_waypoint
     construction_service     arena_server's /arena/request_construction_waypoint
     cycles_done              int, 0  this tree counts it up
-    pause_ms                 int, how long TimedAutonomyCycle stops at each zone
+    pause_ms                 unsigned int, how long TimedAutonomyCycle stops at each zone
     prepare_bucket           bool: run PrepareBucket before the task
     bucket_action            the bucket controller's FollowJointTrajectory action
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
