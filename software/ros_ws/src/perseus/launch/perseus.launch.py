@@ -1,3 +1,5 @@
+import os
+
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -131,6 +133,8 @@ def generate_launch_description():
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
+            # ROSBRIDGE_PORT from the devenv shell (default 9090)
+            "port": os.environ.get("ROSBRIDGE_PORT", "9090"),
         }.items(),
     )
 

@@ -1,4 +1,10 @@
 import * as ROSLIB from "roslib";
+import { env as publicEnv } from "$env/dynamic/public";
+
+// Must match ROSBRIDGE_PORT in devenv.nix (default 9090). Read from the UI server's
+// runtime environment (injected into the page per request), so the server must run
+// inside the devenv shell (yarn host / yarn start) to pick it up.
+const rosbridgePort = publicEnv.PUBLIC_ROSBRIDGE_PORT || "9090";
 
 let rosConnectionWrap = $state<ROSLIB.Ros | false>(false);
 let retryCounter: number = 0;
@@ -8,7 +14,7 @@ export const getRosConnection = () => rosConnectionWrap;
 
 export const connectRos = (address: string) => {
   const rosConnection = new ROSLIB.Ros({
-    url: `ws://${address}:9090`,
+    url: `ws://${address}:${rosbridgePort}`,
   });
 
   // print on connection, close and error
