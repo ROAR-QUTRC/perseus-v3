@@ -17,14 +17,12 @@
 #include <deque>
 #include <optional>
 
-#include "bank_control_task.hpp"
 #include "encoder_bus.hpp"
 #include "excavation_config.hpp"
 #include "hi_can.hpp"
 #include "hi_can_address.hpp"
 #include "motor_bank.hpp"
 #include "motor_bank_parameter_group.hpp"
-#include "motor_parameter_group.hpp"
 
 using namespace hi_can;
 using namespace hi_can::addressing;
@@ -43,14 +41,8 @@ namespace
 
     constexpr uint32_t kPrintPeriodMs = 250;
 
-    constexpr EncoderId kFeedback = LIFT::DRIVER_A::ENCODER_ID;
+    constexpr EncoderId kFeedback = LIFT.a.encoder;
     constexpr uint8_t kSimEncoders = encoder_bit(kFeedback);
-
-    constexpr standard_address_t DEVICE_ADDRESS{
-        excavation::SYSTEM_ID,
-        excavation::bucket::SUBSYSTEM_ID,
-        excavation::bucket::controller::DEVICE_ID,
-    };
 
     enum class Phase
     {
@@ -96,8 +88,6 @@ namespace
     SimInterface sim;
     std::optional<PacketManager> packet_manager;
     std::optional<MotorBank> lift;
-    std::optional<MotorBankParameterGroup> lift_group;
-    std::optional<MotorParameterGroup> lift_left_group;
 
     const char* phase_name(Phase phase)
     {
@@ -115,26 +105,10 @@ namespace
         return "?";
     }
 
-    const char* link_name(modbus::DeviceState state)
-    {
-        switch (state)
-        {
-        case modbus::DeviceState::Unknown:
-            return "unknown";
-        case modbus::DeviceState::Ok:
-            return "ok";
-        case modbus::DeviceState::Degraded:
-            return "degraded";
-        case modbus::DeviceState::Lost:
-            return "lost";
-        }
-        return "?";
-    }
-
     void send_position(float degrees)
     {
         const flagged_address_t address = static_cast<flagged_address_t>(standard_address_t{
-            DEVICE_ADDRESS, static_cast<uint8_t>(bank_group::LIFT), static_cast<uint8_t>(bank_parameter::SET_POSITION)});
+            kBucketAddress, static_cast<uint8_t>(bank_group::LIFT), static_cast<uint8_t>(bank_parameter::SET_POSITION)});
         const auto units = static_cast<int16_t>(std::lround(degrees * kPositionUnitsPerDegree));
         sim.inject(Packet(address, params::position_t{units}.serialize_data()));
     }
@@ -166,7 +140,7 @@ namespace
             printf("invalid");
         else
             printf("stale %lums", static_cast<unsigned long>(reading.angle_age_ms(now)));
-        printf("  (%s %lu/%lu)\n", link_name(reading.link), static_cast<unsigned long>(reading.stats.ok),
+        printf("  (%s %lu/%lu)\n", to_string(reading.link), static_cast<unsigned long>(reading.stats.ok),
                static_cast<unsigned long>(reading.stats.total));
     }
 }  // namespace
@@ -178,22 +152,15 @@ void setup()
     delay(100);
     digitalWrite(NSLEEP, HIGH);
 
-    EncoderBus& bus = encoder_bus();
-    lift.emplace(LIFT::DRIVER_A::DRIVER_PINS, LIFT::DRIVER_A::ENCODER_ID, LIFT::DRIVER_A::GROUP_ID,
-                 LIFT::DRIVER_B::DRIVER_PINS, LIFT::DRIVER_B::ENCODER_ID, LIFT::DRIVER_B::GROUP_ID,
-                 LIFT::CURRENT_SENSE, LIFT::FAULT, LIFT::SPEED_DIRECTION, LIFT::POSITION_DIRECTION, LIFT::MIN_ANGLE,
-                 LIFT::MAX_ANGLE, &bus);
+    lift.emplace(LIFT);
 
     packet_manager.emplace(sim);
-    lift_group.emplace(bank_group::LIFT, lift.value());
-    lift_left_group.emplace(encoder_group::LIFT_L, lift->get_driver_A());
-    packet_manager->add_group(lift_group.value());
-    packet_manager->add_group(lift_left_group.value());
+    packet_manager->add_group(MotorBankParameterGroup(LIFT, lift.value()));
 
-    bus.begin(kSimEncoders);
-    start_bank_control_task({&lift.value(), nullptr, nullptr});
+    encoder_bus().begin(kSimEncoders);
+    MotorBank::start_control_task({&lift.value(), nullptr, nullptr});
 
-    printf("can_sim: lift to %.0f deg at %.0f%%, within %.0f deg, feedback %s for both actuators. Discovery first (~24 s)\n",
+    printf("can_sim: lift to %.0f deg at %.0f%%, within %.0f deg, feedback %s for both actuators. Discovery first (~9 s)\n",
            kTargetDegrees, MotorBank::kPositionSpeed, MotorBank::kHoldWindow, to_string(kFeedback));
 }
 
@@ -255,8 +222,7 @@ void loop()
         }
     }
 
-    // Stands in for loop() in main.cpp: caches angles for GET_ANGLE, runs CAN.
-    lift->monitor_and_move();
+    // Stands in for loop() in main.cpp.
     packet_manager->handle();
 
     // Quiet during discovery (~9 s) so its encoder_bus log lines stay readable.

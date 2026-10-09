@@ -1,117 +1,106 @@
 #include "motor_bank_parameter_group.hpp"
 
+#include <algorithm>
 #include <chrono>
-#include <tuple>
+#include <cmath>
+#include <limits>
+#include <optional>
 
-#include "encoder_bus.hpp"
-#include "esp_log.h"
 #include "hi_can.hpp"
-#include "hi_can_address.hpp"
+
 using namespace std::chrono_literals;
 using namespace hi_can;
 using namespace hi_can::addressing;
-using namespace hi_can::addressing::excavation::bucket::controller;
+using namespace bucket_can;
+namespace params = hi_can::parameters::excavation::bucket::controller;
 
-constexpr standard_address_t DEVICE_ADDRESS{
-    excavation::SYSTEM_ID,
-    excavation::bucket::SUBSYSTEM_ID,
-    excavation::bucket::controller::DEVICE_ID,
-};
-
-static const char* const TAG = "bank";
-
-MotorBankParameterGroup::MotorBankParameterGroup(const hi_can::addressing::excavation::bucket::controller::bank_group bank_group,
-                                                 MotorBank& motor_bank)
-    : _bank_group(bank_group),
-      _motor_bank(motor_bank)
+namespace
 {
-    // TODO: GET_FAULT is never sent (MotorBank::get_fault() is unused), so ROS keeps
+    constexpr auto kReportInterval = 50ms;
+    // hi-can stops the bank after 3 of these with no SET_SPEED.
+    constexpr auto kSpeedTimeout = 200ms;
+
+    template <typename Group, typename Parameter>
+    flagged_address_t address_of(Group group, Parameter parameter)
+    {
+        return static_cast<flagged_address_t>(
+            standard_address_t{kBucketAddress, static_cast<uint8_t>(group), static_cast<uint8_t>(parameter)});
+    }
+
+    // SET_SPEED and SET_POSITION each carry one int16; anything else is ignored.
+    std::optional<int16_t> read_int16(const Packet& packet)
+    {
+        if (packet.get_data().size() != sizeof(int16_t))
+            return std::nullopt;
+        params::position_t value;
+        value.deserialize_data(packet.get_data());
+        return value.value;
+    }
+
+    std::vector<uint8_t> position_data(int16_t position) { return params::position_t{position}.serialize_data(); }
+}  // namespace
+
+MotorBankParameterGroup::MotorBankParameterGroup(const BankConfig& config, MotorBank& bank)
+{
+    // TODO: GET_FAULT is never sent (MotorBank::is_in_fault() is only used by homing), so ROS keeps
     // BankState.fault false while the bank looks fresh. Plan: send it as a 1-byte
     // fault bitfield, 0 = healthy (driver fault, encoder lost / no magnet / zero not
     // saved per side), with the bits defined in hi-can so ROS and the TUI can name them.
-    _transmissions = {
-        std::make_pair(
-            static_cast<flagged_address_t>(standard_address_t{
-                DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                static_cast<uint8_t>(bank_parameter::GET_CURRENT)}),
-            PacketManager::transmission_config_t{
-                .generator = ([this]()
-                              { return this->_motor_bank.get_current(); }),
-                .interval = 50ms}),  // same rate as GET_ANGLE / GET_POSITION
-        std::make_pair(
-            static_cast<flagged_address_t>(standard_address_t{
-                DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                static_cast<uint8_t>(bank_parameter::GET_POSITION)}),
-            PacketManager::transmission_config_t{.generator = ([this]()
-                                                               {
-                                                                    parameters::excavation::bucket::controller::position_t position{this->_motor_bank.get_current_position()};
-                                                                    return position.serialize_data(); }),
-                                                 .interval = 50ms}),
+    const auto report = [this](flagged_address_t address, PacketManager::data_generator_t generator)
+    {
+        _transmissions.emplace_back(address, PacketManager::transmission_config_t{.generator = std::move(generator), .interval = kReportInterval});
     };
-    _callbacks = {
-        std::make_pair(
-            filter_t{
-                static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                    static_cast<uint8_t>(bank_parameter::SET_SPEED)}),
-            },
-            PacketManager::callback_config_t{
-                .data_callback = ([this](const Packet& packet)
-                                  {
-                                    const auto& raw_data = packet.get_data();
-                                    if (raw_data.size() != sizeof(int16_t))
-                                        return;
-                                    parameters::excavation::bucket::controller::speed_t speed;
-                                    speed.deserialize_data(raw_data);
-                                    this->_motor_bank.set_speed(speed.value); }),
-                .timeout_callback = [this]()
-                { this->_motor_bank.set_speed(0); },
-                .timeout = 200ms,
-            }),
-        std::make_pair(
-            filter_t{
-                static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                    static_cast<uint8_t>(bank_parameter::SET_POSITION)}),
-            },
-            PacketManager::callback_config_t{
-                .data_callback = ([this](const Packet& packet)
-                                  {
-                                    const auto& raw_data = packet.get_data();
-                                    if (raw_data.size() != sizeof(int16_t))
-                                        return;
-                                    parameters::excavation::bucket::controller::position_t position;
-                                    position.deserialize_data(raw_data);
-                                    this->_motor_bank.set_target_position(position.value); }),
-                .timeout = 200ms,
-            }),
-        // Zeroes both of the bank's encoders; each saves its new offset to flash.
-        // A bank with homing (the jaws) runs its homing sequence instead, which
-        // zeroes them at the clench.
-        std::make_pair(
-            filter_t{
-                static_cast<flagged_address_t>(standard_address_t{
-                    DEVICE_ADDRESS, static_cast<uint8_t>(_bank_group),
-                    static_cast<uint8_t>(bank_parameter::SET_ZERO_POS)}),
-            },
-            PacketManager::callback_config_t{
-                .data_callback = ([this](const Packet& packet)
-                                  {
-                                    // The filter ignores the RTR flag; a request for data must not zero.
-                                    if (packet.get_is_rtr())
-                                        return;
-                                    if (this->_motor_bank.homing_enabled())
-                                    {
-                                        ESP_LOGI(TAG, "SET_ZERO_POS bank %u: homing", static_cast<unsigned>(this->_bank_group));
-                                        this->_motor_bank.start_homing();
-                                        return;
-                                    }
-                                    // A position target means something else once the angle is re-zeroed.
-                                    this->_motor_bank.stop();
-                                    const bool a = encoder_bus().zero(this->_motor_bank.get_driver_A().encoder_id());
-                                    const bool b = encoder_bus().zero(this->_motor_bank.get_driver_B().encoder_id());
-                                    ESP_LOGI(TAG, "SET_ZERO_POS bank %u: %s", static_cast<unsigned>(this->_bank_group),
-                                             (a && b) ? "zero queued for both encoders" : "not queued (encoder bus not running or busy)"); }),
-            }),
+
+    // GET_CURRENT is in mA, what ROS's bucket_hardware decodes.
+    const auto current = [&bank]
+    {
+        const float milliamps = std::clamp(bank.current_amps() * 1000.0f, 0.0f, static_cast<float>(std::numeric_limits<uint16_t>::max()));
+        return params::current_t{static_cast<uint16_t>(std::lround(milliamps))}.serialize_data();
     };
+    const auto position = [&bank]
+    {
+        return position_data(bank.get_current_position());
+    };
+    report(address_of(config.can_group, bank_parameter::GET_CURRENT), current);
+    report(address_of(config.can_group, bank_parameter::GET_POSITION), position);
+
+    // TODO: this keeps sending the last cached angle after the encoder stops
+    // answering, so ROS never sees it go stale. Only send while the reading is fresh.
+    for (const DriverConfig& driver : {config.a, config.b})
+    {
+        const auto angle = [encoder = driver.encoder]
+        {
+            return position_data(MotorBank::encoder_position(encoder));
+        };
+        report(address_of(driver.can_group, encoder_parameter::GET_ANGLE), angle);
+    }
+
+    const auto on = [this, &config](bank_parameter parameter, PacketManager::callback_config_t callbacks)
+    {
+        _callbacks.emplace_back(filter_t{address_of(config.can_group, parameter)}, std::move(callbacks));
+    };
+
+    const auto set_speed = [&bank](const Packet& packet)
+    {
+        if (const auto speed = read_int16(packet))
+            bank.set_speed(*speed);
+    };
+    const auto speed_timeout = [&bank]
+    {
+        bank.set_speed(0);
+    };
+    const auto set_position = [&bank](const Packet& packet)
+    {
+        if (const auto target = read_int16(packet))
+            bank.set_target_position(*target);
+    };
+    const auto zero = [&bank](const Packet& packet)
+    {
+        // The filter ignores the RTR flag; a request for data must not zero.
+        if (!packet.get_is_rtr())
+            bank.zero();
+    };
+    on(bank_parameter::SET_SPEED, {.data_callback = set_speed, .timeout_callback = speed_timeout, .timeout = kSpeedTimeout});
+    on(bank_parameter::SET_POSITION, {.data_callback = set_position});
+    on(bank_parameter::SET_ZERO_POS, {.data_callback = zero});
 }

@@ -8,8 +8,8 @@
 // angle poll. Only encoders that answered are polled after; the missing ones
 // are re-probed, one per kReprobePeriodMs, and join as soon as they answer.
 // Control code
-// reads the latest readings with EncoderBus::get() and sends commands with
-// zero() / identify(); it never touches the buses directly.
+// reads the latest readings with EncoderBus::get() and zeroes an encoder with
+// zero(); it never touches the buses directly.
 
 #pragma once
 
@@ -42,6 +42,7 @@ inline constexpr uint8_t kAllEncoders = (1u << kEncoderCount) - 1;
 constexpr uint8_t encoder_bit(EncoderId id) { return 1u << static_cast<uint8_t>(id); }
 
 const char* to_string(EncoderId id);
+const char* to_string(modbus::DeviceState state);
 
 struct EncoderReading
 {
@@ -104,9 +105,8 @@ public:
     // Clock the reading timestamps come from, for computing ages.
     uint32_t now_ms() { return clock_.now_ms(); }
 
-    // Queued for the bus task. Return false if the queue is full or not started.
+    // Queued for the bus task. Returns false if the queue is full or not started.
     bool zero(EncoderId id);
-    bool identify(EncoderId id, bool on);
 
 private:
     friend EncoderBus& encoder_bus();

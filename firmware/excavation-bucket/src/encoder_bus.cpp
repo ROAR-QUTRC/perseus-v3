@@ -24,22 +24,11 @@ namespace
     // Which bus and Modbus address each encoder is at: set per driver in excavation_config.hpp.
     constexpr Placement placement_of(EncoderId id)
     {
-        switch (id)
-        {
-        case LIFT::DRIVER_A::ENCODER_ID:
-            return {LIFT::DRIVER_A::ENCODER_BUS - 1, LIFT::DRIVER_A::ENCODER_SLAVE};
-        case LIFT::DRIVER_B::ENCODER_ID:
-            return {LIFT::DRIVER_B::ENCODER_BUS - 1, LIFT::DRIVER_B::ENCODER_SLAVE};
-        case TILT::DRIVER_A::ENCODER_ID:
-            return {TILT::DRIVER_A::ENCODER_BUS - 1, TILT::DRIVER_A::ENCODER_SLAVE};
-        case TILT::DRIVER_B::ENCODER_ID:
-            return {TILT::DRIVER_B::ENCODER_BUS - 1, TILT::DRIVER_B::ENCODER_SLAVE};
-        case JAWS::DRIVER_A::ENCODER_ID:
-            return {JAWS::DRIVER_A::ENCODER_BUS - 1, JAWS::DRIVER_A::ENCODER_SLAVE};
-        case JAWS::DRIVER_B::ENCODER_ID:
-            return {JAWS::DRIVER_B::ENCODER_BUS - 1, JAWS::DRIVER_B::ENCODER_SLAVE};
-        }
-        return {0xFF, 0};
+        for (const BankConfig* bank : kBanks)
+            for (const DriverConfig* driver : {&bank->a, &bank->b})
+                if (driver->encoder == id)
+                    return {static_cast<uint8_t>(driver->encoder_bus - 1), driver->encoder_slave};
+        return {0xFF, 0};  // no driver reads this encoder
     }
 
     // Indexed by EncoderId.
@@ -88,12 +77,40 @@ namespace
     constexpr UBaseType_t kBusTaskPriority = 5;  // above the Arduino loop task (1)
     constexpr BaseType_t kBusTaskCore = 0;       // loop() and the motor code run on core 1
     constexpr int kCommandRetries = 2;
+
+    // One read of the angle registers: the regular poll, and how discovery and
+    // re-probing ask an encoder whether it is there.
+    modbus::Request angle_poll(uint8_t slave)
+    {
+        modbus::Request poll;
+        poll.slave = slave;
+        poll.kind = modbus::Request::Kind::ReadRegs;
+        poll.reg = enc::kRegAngleRaw;
+        poll.value_or_count = 2;
+        return poll;
+    }
 }  // namespace
 
 const char* to_string(EncoderId id)
 {
     const size_t index = static_cast<size_t>(id);
     return index < kEncoderCount ? kNames[index] : "unknown";
+}
+
+const char* to_string(modbus::DeviceState state)
+{
+    switch (state)
+    {
+    case modbus::DeviceState::Unknown:
+        return "unknown";
+    case modbus::DeviceState::Ok:
+        return "ok";
+    case modbus::DeviceState::Degraded:
+        return "degraded";
+    case modbus::DeviceState::Lost:
+        return "lost";
+    }
+    return "?";
 }
 
 EncoderBus& encoder_bus()
@@ -108,7 +125,7 @@ EncoderBus::EncoderBus()
       buses_{&bus1_, &bus2_}
 {
     static_assert(placements_valid(kBusCount, kDevicesPerBus),
-                  "excavation_config.hpp: each ENCODER_BUS must be 1 or 2, each ENCODER_SLAVE 1-8, "
+                  "excavation_config.hpp: each encoder_bus must be 1 or 2, each encoder_slave 1-8, "
                   "with no two encoders at the same address on one bus and at most kDevicesPerBus per bus");
 }
 
@@ -176,15 +193,6 @@ bool EncoderBus::zero(EncoderId id)
     if (index >= kEncoderCount)
         return false;
     return submit(id, enc::zero_request(kPlacement[index].slave, &EncoderBus::on_command_done, &slots_[index]));
-}
-
-bool EncoderBus::identify(EncoderId id, bool on)
-{
-    const size_t index = static_cast<size_t>(id);
-    if (index >= kEncoderCount)
-        return false;
-    return submit(id, enc::discovery_request(kPlacement[index].slave, on, &EncoderBus::on_command_done,
-                                             &slots_[index]));
 }
 
 bool EncoderBus::submit(EncoderId id, const modbus::Request& request)
@@ -264,11 +272,7 @@ void EncoderBus::reprobe_next_missing(Bus& bus, size_t bus_index, size_t* cursor
                 continue;
         }
 
-        modbus::Request poll;
-        poll.slave = kPlacement[i].slave;
-        poll.kind = modbus::Request::Kind::ReadRegs;
-        poll.reg = enc::kRegAngleRaw;
-        poll.value_or_count = 2;
+        modbus::Request poll = angle_poll(kPlacement[i].slave);
         poll.on_done = &EncoderBus::on_reprobe_done;
         poll.ctx = &slots_[i];
         bus.mbus.submit(poll);
@@ -345,12 +349,7 @@ void EncoderBus::discover(Bus& bus, size_t bus_index)
             vTaskDelayUntil(&wake, pdMS_TO_TICKS(kDiscoveryBlipMs));
             transact(bus, enc::discovery_request(slave, false));
 
-            modbus::Request poll;
-            poll.slave = slave;
-            poll.kind = modbus::Request::Kind::ReadRegs;
-            poll.reg = enc::kRegAngleRaw;
-            poll.value_or_count = 2;
-            const modbus::Result result = transact(bus, poll);
+            const modbus::Result result = transact(bus, angle_poll(slave));
 
             if (result == modbus::Result::Ok)
                 ++good[i];
@@ -470,7 +469,7 @@ void EncoderBus::on_status(const modbus::Response& response, void* ctx)
 void EncoderBus::on_state_change(uint8_t, modbus::DeviceState from, modbus::DeviceState to, void* ctx)
 {
     auto* slot = static_cast<Slot*>(ctx);
-    ESP_LOGW(TAG, "%s link %d -> %d", kNames[slot->index], static_cast<int>(from), static_cast<int>(to));
+    ESP_LOGW(TAG, "%s link %s -> %s", kNames[slot->index], to_string(from), to_string(to));
 }
 
 void EncoderBus::on_command_done(const modbus::Response& response, void* ctx)

@@ -5,54 +5,58 @@
 #include <algorithm>
 #include <cmath>
 
-#include "bank_control_task.hpp"
-#include "encoder_bus.hpp"
 #include "esp_log.h"
-#include "hi_can_parameter.hpp"
+#include "freertos/task.h"
 #include "lock.hpp"
 
-static const char* const TAG = "motor_bank";
+namespace
+{
+    const char* const TAG = "motor_bank";
 
-MotorBank::MotorBank(const bsp::pin_pair_t& driver_A_pins,
-                     EncoderId driver_A_encoder_id,
-                     uint8_t driver_A_encoder_group_id,
-                     const bsp::pin_pair_t& driver_B_pins,
-                     EncoderId driver_B_encoder_id,
-                     uint8_t driver_B_encoder_group_id,
-                     const gpio_num_t& current_sense_pin,
-                     const gpio_num_t& fault_pin,
-                     int8_t speed_direction,
-                     int8_t position_direction,
-                     float min_angle,
-                     float max_angle, EncoderBus* encoder_bus)
-    : _driver_A(driver_A_pins, driver_A_encoder_id, driver_A_encoder_group_id, encoder_bus),
-      _driver_B(driver_B_pins, driver_B_encoder_id, driver_B_encoder_group_id, encoder_bus),
-      _current_sense_pin(current_sense_pin),
-      _fault_pin(fault_pin),
-      _speed_direction(speed_direction < 0 ? -1 : 1),
-      _position_direction(position_direction < 0 ? -1 : 1),
-      _min_angle(std::max(min_angle, -kMaxAngle)),
-      _max_angle(std::min(max_angle, kMaxAngle)),
+    // Below EncoderBus's RS485 tasks (priority 5, latency-sensitive UART I/O
+    // position control depends on), above the Arduino loop task (priority 1,
+    // CAN handling).
+    constexpr UBaseType_t kTaskPriority = 4;
+    constexpr BaseType_t kTaskCore = 0;  // same core as EncoderBus
+    constexpr uint32_t kTaskStackBytes = 4096;
+
+    std::array<MotorBank*, kBankCount> g_banks{};
+    TaskHandle_t g_task = nullptr;
+
+    // Runs the next control tick now, so a new command reaches the motors
+    // without waiting out the period. No-op before the task has started.
+    void wake_control_task()
+    {
+        if (g_task)
+            xTaskNotifyGive(g_task);
+    }
+
+    constexpr bool config_valid(const BankConfig& bank)
+    {
+        const auto is_direction = [](int8_t direction)
+        { return direction == 1 || direction == -1; };
+        return is_direction(bank.speed_direction) && is_direction(bank.position_direction) &&
+               bank.min_angle >= -MotorBank::kMaxAngle && bank.max_angle <= MotorBank::kMaxAngle &&
+               bank.min_angle < bank.max_angle &&
+               (bank.home_bite_current == 0.0f || bank.home_idle_current < bank.home_bite_current);
+    }
+    static_assert(std::ranges::all_of(kBanks, [](const BankConfig* bank)
+                                      { return config_valid(*bank); }),
+                  "excavation_config.hpp: each direction must be 1 or -1, min_angle < max_angle within -180..180, "
+                  "and home_idle_current below home_bite_current");
+}  // namespace
+
+MotorBank::MotorBank(const BankConfig& config)
+    : _config(config),
+      _driver_A(config.a.pins),
+      _driver_B(config.b.pins),
       _mutex(xSemaphoreCreateMutex())
 {
-    pinMode(_current_sense_pin, INPUT);
-    pinMode(_fault_pin, INPUT_PULLUP);
-
-    set_speed(0);
+    pinMode(_config.current_sense, INPUT);
+    pinMode(_config.fault, INPUT_PULLUP);
 }
 
-MotorBank::~MotorBank()
-{
-    pinMode(_current_sense_pin, INPUT);
-    pinMode(_fault_pin, INPUT_PULLUP);
-    vSemaphoreDelete(_mutex);
-}
-
-void MotorBank::monitor_and_move(void)
-{
-    _driver_A.monitor_and_move();
-    _driver_B.monitor_and_move();
-}
+MotorBank::~MotorBank() { vSemaphoreDelete(_mutex); }
 
 // Each command wakes the control task after releasing the lock, so the task
 // doesn't wake only to block on it.
@@ -64,7 +68,7 @@ void MotorBank::set_speed(const int16_t speed)
         if (speed > to_duty(kSpeedDeadband) || speed < -to_duty(kSpeedDeadband))
             _mode = ControlMode::Velocity;
     }
-    wake_bank_control_task();
+    wake_control_task();
 }
 
 void MotorBank::set_target_position(const int16_t position)
@@ -72,9 +76,10 @@ void MotorBank::set_target_position(const int16_t position)
     // Angles don't wrap and the bank won't drive past its limits, so a target
     // outside them could never be reached.
     const float degrees = position / kPositionUnitsPerDegree;
-    if (degrees < _min_angle || degrees > _max_angle)
+    if (degrees < _config.min_angle || degrees > _config.max_angle)
     {
-        ESP_LOGW(TAG, "SET_POSITION %.1f deg ignored: outside %.0f..%.0f", degrees, _min_angle, _max_angle);
+        ESP_LOGW(TAG, "%s: SET_POSITION %.1f deg ignored: outside %.0f..%.0f", _config.name, degrees, _config.min_angle,
+                 _config.max_angle);
         return;
     }
     {
@@ -82,7 +87,7 @@ void MotorBank::set_target_position(const int16_t position)
         _target_position = position;
         _mode = ControlMode::Position;
     }
-    wake_bank_control_task();
+    wake_control_task();
 }
 
 void MotorBank::stop()
@@ -92,42 +97,53 @@ void MotorBank::stop()
         _speed = 0;
         _mode = ControlMode::Velocity;
     }
-    wake_bank_control_task();
+    wake_control_task();
 }
 
-void MotorBank::enable_homing(float bite_current, float idle_current)
+void MotorBank::zero()
 {
-    _home_bite_current = bite_current;
-    _home_idle_current = idle_current;
-}
-
-void MotorBank::start_homing()
-{
-    if (!homing_enabled())
-        return;
+    if (_config.home_bite_current > 0.0f)
     {
-        Lock lock(_mutex);
-        if (_mode == ControlMode::Homing)
-            return;  // already running
-        _speed = 0;
-        _mode = ControlMode::Homing;
+        {
+            Lock lock(_mutex);
+            if (_mode == ControlMode::Homing)
+                return;  // already running
+            _speed = 0;
+            _mode = ControlMode::Homing;
+        }
+        wake_control_task();
+        return;
     }
-    wake_bank_control_task();
+
+    // A position target means something else once the angle is re-zeroed.
+    stop();
+    if (zero_encoders())
+        ESP_LOGI(TAG, "%s: zero queued for both encoders", _config.name);
 }
 
-// Falls back to the last cached angles if neither encoder is fresh.
+bool MotorBank::zero_encoders()
+{
+    const bool a = encoder_bus().zero(_config.a.encoder);
+    const bool b = encoder_bus().zero(_config.b.encoder);
+    if (!a || !b)
+        ESP_LOGW(TAG, "%s: zero not queued, encoder bus not running or busy (encoder A %s, B %s)", _config.name,
+                 a ? "ok" : "failed", b ? "ok" : "failed");
+    return a && b;
+}
+
+// Falls back to the last angles read if neither encoder is fresh.
 // TODO: that fallback hides a dead encoder from ROS; stop sending GET_POSITION instead.
 int16_t MotorBank::get_current_position() const
 {
     const uint32_t now = encoder_bus().now_ms();
-    const std::optional<float> a = encoder_degrees(_driver_A.encoder_id(), now);
-    const std::optional<float> b = encoder_degrees(_driver_B.encoder_id(), now);
+    const std::optional<float> a = encoder_degrees(_config.a.encoder, now);
+    const std::optional<float> b = encoder_degrees(_config.b.encoder, now);
     if (a || b)
     {
         const float degrees = (a && b) ? (*a + *b) / 2.0f : (a ? *a : *b);
         return static_cast<int16_t>(std::lround(degrees * kPositionUnitsPerDegree));
     }
-    return static_cast<int16_t>((_driver_A.get_current_position() + _driver_B.get_current_position()) / 2);
+    return static_cast<int16_t>((encoder_position(_config.a.encoder) + encoder_position(_config.b.encoder)) / 2);
 }
 
 MotorBank::Status MotorBank::get_status() const
@@ -136,38 +152,39 @@ MotorBank::Status MotorBank::get_status() const
     return {_mode, _speed, _target_position, _output_a, _output_b};
 }
 
-int16_t MotorBank::get_current_position_a() const { return _driver_A.get_current_position(); }
-int16_t MotorBank::get_current_position_b() const { return _driver_B.get_current_position(); }
-MotorDriver& MotorBank::get_driver_A() { return _driver_A; }
-MotorDriver& MotorBank::get_driver_B() { return _driver_B; }
-
-float MotorBank::get_average_current()
+float MotorBank::current_amps() const
 {
     Lock lock(_mutex);
     return _current_amps;
 }
 
-bool MotorBank::is_in_fault() { return digitalRead(_fault_pin) == LOW; }
+bool MotorBank::is_in_fault() const { return digitalRead(_config.fault) == LOW; }
 
-// GET_CURRENT is in mA, what ROS's bucket_hardware decodes.
-std::vector<uint8_t> MotorBank::get_current()
+bool MotorBank::start_control_task(const std::array<MotorBank*, kBankCount>& banks)
 {
-    const float milliamps = std::clamp(this->get_average_current() * 1000.0f, 0.0f,
-                                       static_cast<float>(std::numeric_limits<uint16_t>::max()));
-    hi_can::parameters::excavation::bucket::controller::current_t current{
-        static_cast<uint16_t>(std::lround(milliamps))};
-    return current.serialize_data();
-};
-
-std::vector<uint8_t> MotorBank::get_fault()
-{
-    hi_can::parameters::excavation::bucket::controller::status_t status{is_in_fault()};
-    return status.serialize_data();
+    g_banks = banks;
+    return xTaskCreatePinnedToCore(&MotorBank::control_task, "bank_control", kTaskStackBytes, nullptr, kTaskPriority,
+                                   &g_task, kTaskCore) == pdPASS;
 }
 
+void MotorBank::control_task(void*)
+{
+    for (;;)
+    {
+        const uint32_t now_ms = encoder_bus().now_ms();
+        for (MotorBank* bank : g_banks)
+            if (bank)
+                bank->control_tick(now_ms);
+        // Returns early when wake_control_task() is called.
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kControlPeriodMs));
+    }
+}
+
+// Velocity mode applies the commanded speed, Position mode the control output,
+// Homing mode the homing sequence.
 void MotorBank::control_tick(uint32_t now_ms)
 {
-    const float amps = voltage_to_current(analogReadMilliVolts(_current_sense_pin) / 1000.0f);
+    const float amps = voltage_to_current(analogReadMilliVolts(_config.current_sense) / 1000.0f);
 
     ControlMode mode;
     int16_t speed;
@@ -185,27 +202,27 @@ void MotorBank::control_tick(uint32_t now_ms)
 
     if (mode == ControlMode::Homing)
     {
-        if (!_home_active)
+        if (_home_step == HomeStep::Idle)
         {
-            _home_active = true;
             _home_bites = 0;
             set_home_step(HomeStep::Open, now_ms);
-            ESP_LOGI(TAG, "homing: opening until the current falls below %.2f A", _home_idle_current);
+            ESP_LOGI(TAG, "%s homing: opening until the current falls below %.2f A", _config.name,
+                     _config.home_idle_current);
         }
         output_a = output_b = homing_output(now_ms, amps);
     }
     else
     {
-        if (_home_active)
+        if (_home_step != HomeStep::Idle)
         {
-            _home_active = false;
-            ESP_LOGW(TAG, "homing: cancelled by a command");
+            _home_step = HomeStep::Idle;
+            ESP_LOGW(TAG, "%s homing: cancelled by a command", _config.name);
         }
 
         // Both actuators move the same joint, so a side with no reading
         // follows the other side's encoder.
-        const std::optional<float> own_a = encoder_degrees(_driver_A.encoder_id(), now_ms);
-        const std::optional<float> own_b = encoder_degrees(_driver_B.encoder_id(), now_ms);
+        const std::optional<float> own_a = encoder_degrees(_config.a.encoder, now_ms);
+        const std::optional<float> own_b = encoder_degrees(_config.b.encoder, now_ms);
         const std::optional<float> angle_a = own_a ? own_a : own_b;
         const std::optional<float> angle_b = own_b ? own_b : own_a;
 
@@ -226,7 +243,7 @@ void MotorBank::control_tick(uint32_t now_ms)
         {
             // -32768 has no positive int16 counterpart, so it flips to 32767.
             output_a = output_b =
-                _speed_direction < 0 ? static_cast<int16_t>(-std::max<int32_t>(speed, -INT16_MAX)) : speed;
+                _config.speed_direction < 0 ? static_cast<int16_t>(-std::max<int32_t>(speed, -INT16_MAX)) : speed;
         }
 
         output_a = limit_output(output_a, angle_a);
@@ -248,15 +265,15 @@ int16_t MotorBank::limit_output(int16_t output, std::optional<float> angle) cons
 {
     if (!angle || output == 0)
         return output;
-    const bool raising = (output > 0) == (_position_direction > 0);
-    const bool blocked = raising ? *angle >= _max_angle : *angle <= _min_angle;
+    const bool raising = (output > 0) == (_config.position_direction > 0);
+    const bool blocked = raising ? *angle >= _config.max_angle : *angle <= _config.min_angle;
     return blocked ? 0 : output;
 }
 
 // One step of the homing sequence; returns the duty for both motors.
 int16_t MotorBank::homing_output(uint32_t now_ms, float amps)
 {
-    const int16_t open = to_duty(kHomeSpeed) * _position_direction;  // opening raises the angle
+    const int16_t open = to_duty(kHomeSpeed) * _config.position_direction;  // opening raises the angle
     const int16_t close = -open;
     const uint32_t elapsed = now_ms - _home_step_start_ms;
 
@@ -265,13 +282,16 @@ int16_t MotorBank::homing_output(uint32_t now_ms, float amps)
 
     switch (_home_step)
     {
+    case HomeStep::Idle:
+        break;
+
     case HomeStep::Open:
-        if (home_detect(amps <= _home_idle_current || amps >= _home_bite_current, now_ms))
+        if (home_detect(amps <= _config.home_idle_current || amps >= _config.home_bite_current, now_ms))
         {
             // A stall here means the jaws ran into something, or are closing instead.
-            if (amps >= _home_bite_current)
+            if (amps >= _config.home_bite_current)
                 return end_homing("stalled while opening");
-            ESP_LOGI(TAG, "homing: open end reached (%.2f A)", amps);
+            ESP_LOGI(TAG, "%s homing: open end reached (%.2f A)", _config.name, amps);
             set_home_step(HomeStep::Bite, now_ms);
             return close;
         }
@@ -280,19 +300,17 @@ int16_t MotorBank::homing_output(uint32_t now_ms, float amps)
         return open;
 
     case HomeStep::Bite:
-        if (home_detect(amps >= _home_bite_current, now_ms))
+        if (home_detect(amps >= _config.home_bite_current, now_ms))
         {
             ++_home_bites;
-            ESP_LOGI(TAG, "homing: bite %u/%u at %.2f A", _home_bites, kHomeBites, amps);
+            ESP_LOGI(TAG, "%s homing: bite %u/%u at %.2f A", _config.name, _home_bites, kHomeBites, amps);
             if (_home_bites < kHomeBites)
             {
                 set_home_step(HomeStep::Backoff, now_ms);
                 return open;
             }
-            const bool a = encoder_bus().zero(_driver_A.encoder_id());
-            const bool b = encoder_bus().zero(_driver_B.encoder_id());
-            if (!a || !b)
-                ESP_LOGW(TAG, "homing: zero not queued (encoder A %s, B %s)", a ? "ok" : "failed", b ? "ok" : "failed");
+            if (zero_encoders())
+                ESP_LOGI(TAG, "%s homing: encoders zeroed at the clench", _config.name);
             set_home_step(HomeStep::Zero, now_ms);
             return close;
         }
@@ -323,7 +341,7 @@ void MotorBank::set_home_step(HomeStep step, uint32_t now_ms)
 {
     _home_step = step;
     _home_step_start_ms = now_ms;
-    _home_detecting = false;
+    _home_detect_since.reset();
 }
 
 // True once `condition` has held for kHomeDetectMs, not counting the inrush
@@ -331,23 +349,17 @@ void MotorBank::set_home_step(HomeStep step, uint32_t now_ms)
 bool MotorBank::home_detect(bool condition, uint32_t now_ms)
 {
     if (!condition || now_ms - _home_step_start_ms < kHomeInrushMs)
-    {
-        _home_detecting = false;
-        return false;
-    }
-    if (!_home_detecting)
-    {
-        _home_detecting = true;
-        _home_detect_start_ms = now_ms;
-    }
-    return now_ms - _home_detect_start_ms >= kHomeDetectMs;
+        _home_detect_since.reset();
+    else if (!_home_detect_since)
+        _home_detect_since = now_ms;
+    return _home_detect_since && now_ms - *_home_detect_since >= kHomeDetectMs;
 }
 
 // Stops the motors and hands back to Velocity mode, unless a command already
 // took over.
 int16_t MotorBank::end_homing(const char* abort_reason)
 {
-    _home_active = false;
+    _home_step = HomeStep::Idle;
     {
         Lock lock(_mutex);
         if (_mode == ControlMode::Homing)
@@ -357,9 +369,9 @@ int16_t MotorBank::end_homing(const char* abort_reason)
         }
     }
     if (abort_reason)
-        ESP_LOGW(TAG, "homing: aborted, %s", abort_reason);
+        ESP_LOGW(TAG, "%s homing: aborted, %s", _config.name, abort_reason);
     else
-        ESP_LOGI(TAG, "homing: done, encoders zeroed at the clench");
+        ESP_LOGI(TAG, "%s homing: done", _config.name);
     return 0;
 }
 
@@ -387,7 +399,7 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
     }
     *settled = false;
 
-    const int16_t duty = to_duty(kPositionSpeed) * _position_direction;
+    const int16_t duty = to_duty(kPositionSpeed) * _config.position_direction;
     return error > 0 ? duty : -duty;
 }
 
@@ -397,4 +409,11 @@ std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
     if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > kFeedbackStaleMs)
         return std::nullopt;
     return reading.degrees;
+}
+
+int16_t MotorBank::encoder_position(EncoderId id)
+{
+    EncoderReading reading;
+    encoder_bus().get(id, &reading);
+    return static_cast<int16_t>(std::lround(reading.degrees * kPositionUnitsPerDegree));
 }

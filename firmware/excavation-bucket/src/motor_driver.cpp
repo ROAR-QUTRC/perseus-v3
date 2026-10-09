@@ -2,9 +2,7 @@
 
 #include <Arduino.h>  // TODO: required to load before motor_driver.hpp due to IPADDR_NONE collision
 
-#include <stdexcept>
-
-#include "shared_memory.hpp"
+#include <limits>
 
 static constexpr uint8_t PWM_BITS = 12;
 static constexpr uint32_t PWM_FREQ = 1500;  // Hz
@@ -12,11 +10,10 @@ static constexpr uint32_t PWM_FREQ = 1500;  // Hz
 // 2 PWM steps of enforced deadband to reset cycle-by-cycle current chopping
 static constexpr uint32_t PWM_DEADBAND = 2;
 
-static constexpr uint32_t PWM_MAX = (1 << PWM_BITS) - 1 - PWM_DEADBAND;  // 4095
+static constexpr uint32_t PWM_MAX = (1 << PWM_BITS) - 1 - PWM_DEADBAND;  // 4093
 
-MotorDriver::MotorDriver(const bsp::pin_pair_t& pins, EncoderId encoder_id, uint8_t encoder_group_id, EncoderBus* encoder_bus)
-    : _pins(pins),
-      _motor_memory(encoder_id, encoder_group_id, encoder_bus)  // Replace 0, 0 with appropriate encoder_id and encoder_group_id if available
+MotorDriver::MotorDriver(const bsp::pin_pair_t& pins)
+    : _pins(pins)
 {
     pinMode(pins.first, OUTPUT);
     pinMode(pins.second, OUTPUT);
@@ -28,30 +25,6 @@ MotorDriver::~MotorDriver()
     digitalWrite(_pins.second, LOW);
     pinMode(_pins.first, INPUT);
     pinMode(_pins.second, INPUT);
-}
-
-void MotorDriver::set_speed(int16_t speed)
-{
-    _motor_memory.set_speed(speed);
-}
-
-void MotorDriver::set_target_position(int16_t position)
-{
-    _motor_memory.set_target_position(position);
-}
-
-int16_t MotorDriver::get_current_position() const
-{
-    return _motor_memory.get_current_position();
-}
-
-// a single pass of checking motor status and updating PWM value accordingly
-void MotorDriver::monitor_and_move(void)
-{
-    _motor_memory.monitor_and_move();  // updates the memory
-
-    // TODO: Implement movement logic here
-    // if (get_current_position() != _motor_memory.get_target_position())
 }
 
 void MotorDriver::drive(int16_t speed)
