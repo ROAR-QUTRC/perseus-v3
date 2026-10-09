@@ -81,7 +81,7 @@ public:
     static constexpr uint32_t kStatusPeriodMs = 200;
     // TODO: the encoder firmware still expects a 1 s heartbeat (kHeartbeatPeriodMs
     // 1000, 3 s timeout, encoder-board/encoder/rtos/shared_state.hpp); change it to match.
-    static constexpr uint32_t kHeartbeatPeriodMs = 200;  // broadcast, once per bus
+    static constexpr uint32_t kHeartbeatPeriodMs = 200;  // broadcast, once per bus; withheld in failsafe
 
     static constexpr uint8_t kDiscoveryRounds = 3;
     static constexpr uint32_t kDiscoveryProbeMs = 500;  // slot per encoder

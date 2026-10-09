@@ -145,6 +145,9 @@ namespace
     }
 }  // namespace
 
+// No CAN bus here, so no failsafe.
+bool bucket_may_run() { return true; }
+
 void setup()
 {
     pinMode(NSLEEP, OUTPUT);

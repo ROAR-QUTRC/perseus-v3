@@ -46,18 +46,6 @@ public:
     static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
     static constexpr float kMaxAngle = 180.0f;    // angles and targets are -180..180, no wrap-around
 
-    // Homing: open until the current falls to idle (actuators on their end
-    // switches), then bite and back off kHomeBites times. The encoders are
-    // zeroed during the last bite. Timed and current-based only; it never
-    // reads the encoder angle, and the angle limits don't apply to it.
-    static constexpr float kHomeSpeed = 100.0f;
-    static constexpr uint8_t kHomeBites = 3;
-    static constexpr uint32_t kHomeBackoffMs = 500;
-    static constexpr uint32_t kHomeInrushMs = 200;      // current ignored after each start or reversal
-    static constexpr uint32_t kHomeDetectMs = 100;      // current must stay past a threshold this long
-    static constexpr uint32_t kHomeZeroHoldMs = 300;    // clench held while the encoders take the zero
-    static constexpr uint32_t kHomeTimeoutMs = 30'000;  // per open or bite move
-
     // SET_SPEED and MotorDriver::drive() use int16 duty, +/-32767 = 100%.
     static constexpr int16_t to_duty(float percent) { return static_cast<int16_t>(percent * 32767.0f / 100.0f); }
     static constexpr float to_percent(int16_t duty) { return duty * 100.0f / 32767.0f; }
@@ -66,7 +54,7 @@ public:
     {
         Velocity,  // SET_SPEED: the commanded speed goes straight to the motors
         Position,  // SET_POSITION: the control task drives toward the target
-        Homing,    // SET_ZERO_POS on a bank with homing: the control task runs the sequence
+        Homing,    // SET_ZERO_POS on a bank with a homing routine: the control task runs it
     };
 
     struct Status
@@ -97,9 +85,9 @@ public:
     // next SET_POSITION re-arms position control.
     void stop();
     // SET_ZERO_POS: stops and zeroes both encoders where they are, each saving
-    // its new offset to flash. A bank with homing currents runs its homing
-    // sequence instead, which zeroes them at the clench; any SET_SPEED outside
-    // the deadband, SET_POSITION or stop() cancels that.
+    // its new offset to flash. A bank with a homing routine runs that instead,
+    // which picks the moment to zero; any SET_SPEED outside the deadband,
+    // SET_POSITION or stop() cancels it, and so does a driver fault or the failsafe.
     void zero();
 
     // GET_POSITION: average of the bank's encoders, in position_t units.
@@ -112,10 +100,14 @@ public:
     // Starts the FreeRTOS task that runs every bank's control tick each
     // kControlPeriodMs, or straight away after a command. It is the only place
     // the motors are driven, and the only place the current is sampled: the
-    // ADC read fails if two tasks overlap. Call once from setup(), after
+    // ADC read fails if two tasks overlap. Every tick it asks bucket_may_run()
+    // and holds the motors stopped while that is false. Call once from setup(), after
     // encoder_bus().begin(). Pinned to core 0 alongside EncoderBus's RS485
     // tasks; loop() (CAN handling) stays on core 1.
     static bool start_control_task(const std::array<MotorBank*, kBankCount>& banks);
+    // Runs the next control tick now instead of waiting out the period. No-op
+    // before the task has started.
+    static void wake_control_task();
 
     // Degrees (-180..180) of any encoder, or nullopt if it has no valid angle or
     // it is older than kFeedbackStaleMs.
@@ -125,23 +117,11 @@ public:
     static int16_t encoder_position(EncoderId id);
 
 private:
-    enum class HomeStep : uint8_t
-    {
-        Idle,     // not homing
-        Open,     // to the open end, until the current falls to idle
-        Bite,     // close until the current passes the bite threshold
-        Zero,     // last bite: hold the clench while the encoders zero
-        Backoff,  // open for kHomeBackoffMs
-    };
-
     static void control_task(void*);
-    void control_tick(uint32_t now_ms);
+    void control_tick(uint32_t now_ms, bool may_run);
     int16_t position_output(float target, std::optional<float> angle, bool* settled) const;
     int16_t limit_output(int16_t output, std::optional<float> angle) const;
-    int16_t homing_output(uint32_t now_ms, float amps);
-    void set_home_step(HomeStep step, uint32_t now_ms);
-    bool home_detect(bool condition, uint32_t now_ms);
-    int16_t end_homing(const char* abort_reason = nullptr);
+    int16_t homing_output(uint32_t now_ms, float amps, bool may_run);
     bool zero_encoders();
 
     const BankConfig& _config;
@@ -162,8 +142,5 @@ private:
     int16_t _last_target = 0;
     bool _settled_a = false;
     bool _settled_b = false;
-    HomeStep _home_step = HomeStep::Idle;
-    uint8_t _home_bites = 0;
-    uint32_t _home_step_start_ms = 0;
-    std::optional<uint32_t> _home_detect_since;  // when the current first passed the threshold, if it still is
+    std::optional<HomingState> _homing;  // set while the homing routine runs
 };

@@ -236,7 +236,9 @@ void EncoderBus::run(Bus& bus)
             bus.mbus.submit(request);
 
         const uint32_t now = clock_.now_ms();
-        if (now - last_heartbeat_ms >= kHeartbeatPeriodMs && bus.mbus.submit(enc::heartbeat_request()))
+        // Withheld in failsafe, so the encoders show that the bucket has stopped.
+        if (now - last_heartbeat_ms >= kHeartbeatPeriodMs && bucket_may_run() &&
+            bus.mbus.submit(enc::heartbeat_request()))
             last_heartbeat_ms = now;
 
         if (now - last_reprobe_ms >= kReprobePeriodMs)

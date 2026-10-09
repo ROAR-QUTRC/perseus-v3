@@ -9,6 +9,8 @@
 #include <stdexcept>
 
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "sdkconfig.h"
 
 static const char* const TAG = "hi_can_twai";
@@ -44,6 +46,7 @@ TwaiInterface::TwaiInterface(pin_pair_t pins, uint8_t controller_id,
 #endif
 
     general_config.tx_queue_len = TX_QUEUE_LEN;
+    general_config.rx_queue_len = RX_QUEUE_LEN;
 
 #if defined(CONFIG_HI_CAN_BAUD_1M)
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_1MBITS();
@@ -55,14 +58,19 @@ TwaiInterface::TwaiInterface(pin_pair_t pins, uint8_t controller_id,
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
 #endif
 
-    twai_filter_config_t filter_config = {
-        .acceptance_code = filter.address.address << 3,
-        // TWAI filter requires MSB to be rightmost, and RTR filtering is bit 3
-        // Additionally, the acceptance mask is "set bit to ignore" rather than
-        // "clear to ignore" like SocketCAN
-        .acceptance_mask = ((~filter.mask) << 3) | 0x00000004,
-        .single_filter = true,
-    };
+    // A zero mask cares about no address bits: every frame on the bus is accepted.
+    twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+    if (filter.mask != 0)
+    {
+        filter_config = {
+            .acceptance_code = filter.address.address << 3,
+            // TWAI filter requires MSB to be rightmost, and RTR filtering is bit 3
+            // Additionally, the acceptance mask is "set bit to ignore" rather than
+            // "clear to ignore" like SocketCAN
+            .acceptance_mask = ((~filter.mask) << 3) | 0x00000004,
+            .single_filter = true,
+        };
+    }
 
     if (twai_driver_install_v2(&general_config, &timing_config, &filter_config,
                                &_twai_bus) == ESP_OK)
@@ -147,6 +155,8 @@ std::optional<Packet> TwaiInterface::receive(bool blocking)
         if (err == ESP_ERR_INVALID_STATE)
             throw std::runtime_error("TWAI driver not installed");
     }
+    _last_receive_tick = xTaskGetTickCount();
+
     Packet packet{addressing::flagged_address_t(message.identifier, message.rtr,
                                                 false, message.extd),
                   message.data, message.data_length_code};
@@ -155,6 +165,14 @@ std::optional<Packet> TwaiInterface::receive(bool blocking)
         _receive_callback(packet);
 
     return packet;
+}
+
+bool TwaiInterface::heard_within(uint32_t window_ms) const
+{
+    // Read before the clock: the other way round, a frame arriving in between
+    // would make the difference wrap.
+    const TickType_t heard = _last_receive_tick;
+    return xTaskGetTickCount() - heard <= pdMS_TO_TICKS(window_ms);
 }
 
 // Works from the driver state rather than alerts, so a missed alert can't

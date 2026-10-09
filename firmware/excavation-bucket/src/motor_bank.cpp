@@ -23,27 +23,17 @@ namespace
     std::array<MotorBank*, kBankCount> g_banks{};
     TaskHandle_t g_task = nullptr;
 
-    // Runs the next control tick now, so a new command reaches the motors
-    // without waiting out the period. No-op before the task has started.
-    void wake_control_task()
-    {
-        if (g_task)
-            xTaskNotifyGive(g_task);
-    }
-
     constexpr bool config_valid(const BankConfig& bank)
     {
         const auto is_direction = [](int8_t direction)
         { return direction == 1 || direction == -1; };
         return is_direction(bank.speed_direction) && is_direction(bank.position_direction) &&
                bank.min_angle >= -MotorBank::kMaxAngle && bank.max_angle <= MotorBank::kMaxAngle &&
-               bank.min_angle < bank.max_angle &&
-               (bank.home_bite_current == 0.0f || bank.home_idle_current < bank.home_bite_current);
+               bank.min_angle < bank.max_angle;
     }
     static_assert(std::ranges::all_of(kBanks, [](const BankConfig* bank)
                                       { return config_valid(*bank); }),
-                  "excavation_config.hpp: each direction must be 1 or -1, min_angle < max_angle within -180..180, "
-                  "and home_idle_current below home_bite_current");
+                  "excavation_config.hpp: each direction must be 1 or -1, and min_angle < max_angle within -180..180");
 }  // namespace
 
 MotorBank::MotorBank(const BankConfig& config)
@@ -102,7 +92,7 @@ void MotorBank::stop()
 
 void MotorBank::zero()
 {
-    if (_config.home_bite_current > 0.0f)
+    if (_config.homing)
     {
         {
             Lock lock(_mutex);
@@ -167,22 +157,30 @@ bool MotorBank::start_control_task(const std::array<MotorBank*, kBankCount>& ban
                                    &g_task, kTaskCore) == pdPASS;
 }
 
+void MotorBank::wake_control_task()
+{
+    if (g_task)
+        xTaskNotifyGive(g_task);
+}
+
 void MotorBank::control_task(void*)
 {
     for (;;)
     {
         const uint32_t now_ms = encoder_bus().now_ms();
+        const bool may_run = bucket_may_run();
         for (MotorBank* bank : g_banks)
             if (bank)
-                bank->control_tick(now_ms);
+                bank->control_tick(now_ms, may_run);
         // Returns early when wake_control_task() is called.
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kControlPeriodMs));
     }
 }
 
 // Velocity mode applies the commanded speed, Position mode the control output,
-// Homing mode the homing sequence.
-void MotorBank::control_tick(uint32_t now_ms)
+// Homing mode the homing routine. In failsafe (!may_run) the motors get 0 but
+// the mode, speed and target stay, so the bank carries on when it clears.
+void MotorBank::control_tick(uint32_t now_ms, bool may_run)
 {
     const float amps = voltage_to_current(analogReadMilliVolts(_config.current_sense) / 1000.0f);
 
@@ -202,21 +200,14 @@ void MotorBank::control_tick(uint32_t now_ms)
 
     if (mode == ControlMode::Homing)
     {
-        if (_home_step == HomeStep::Idle)
-        {
-            _home_bites = 0;
-            set_home_step(HomeStep::Open, now_ms);
-            ESP_LOGI(TAG, "%s homing: opening until the current falls below %.2f A", _config.name,
-                     _config.home_idle_current);
-        }
-        output_a = output_b = homing_output(now_ms, amps);
+        output_a = output_b = homing_output(now_ms, amps, may_run);
     }
     else
     {
-        if (_home_step != HomeStep::Idle)
+        if (_homing)
         {
-            _home_step = HomeStep::Idle;
-            ESP_LOGW(TAG, "%s homing: cancelled by a command", _config.name);
+            _homing.reset();
+            ESP_LOGW(TAG, "%s: homing cancelled by a command", _config.name);
         }
 
         // Both actuators move the same joint, so a side with no reading
@@ -251,6 +242,9 @@ void MotorBank::control_tick(uint32_t now_ms)
     }
     _last_mode = mode;
 
+    if (!may_run)
+        output_a = output_b = 0;
+
     _driver_A.drive(output_a);
     _driver_B.drive(output_b);
 
@@ -270,97 +264,28 @@ int16_t MotorBank::limit_output(int16_t output, std::optional<float> angle) cons
     return blocked ? 0 : output;
 }
 
-// One step of the homing sequence; returns the duty for both motors.
-int16_t MotorBank::homing_output(uint32_t now_ms, float amps)
+// One tick of the bank's homing routine; returns the duty for both motors.
+int16_t MotorBank::homing_output(uint32_t now_ms, float amps, bool may_run)
 {
-    const int16_t open = to_duty(kHomeSpeed) * _config.position_direction;  // opening raises the angle
-    const int16_t close = -open;
-    const uint32_t elapsed = now_ms - _home_step_start_ms;
-
-    if (is_in_fault())
-        return end_homing("driver fault");
-
-    switch (_home_step)
+    if (!_homing)
     {
-    case HomeStep::Idle:
-        break;
-
-    case HomeStep::Open:
-        if (home_detect(amps <= _config.home_idle_current || amps >= _config.home_bite_current, now_ms))
-        {
-            // A stall here means the jaws ran into something, or are closing instead.
-            if (amps >= _config.home_bite_current)
-                return end_homing("stalled while opening");
-            ESP_LOGI(TAG, "%s homing: open end reached (%.2f A)", _config.name, amps);
-            set_home_step(HomeStep::Bite, now_ms);
-            return close;
-        }
-        if (elapsed >= kHomeTimeoutMs)
-            return end_homing("current never fell to idle while opening");
-        return open;
-
-    case HomeStep::Bite:
-        if (home_detect(amps >= _config.home_bite_current, now_ms))
-        {
-            ++_home_bites;
-            ESP_LOGI(TAG, "%s homing: bite %u/%u at %.2f A", _config.name, _home_bites, kHomeBites, amps);
-            if (_home_bites < kHomeBites)
-            {
-                set_home_step(HomeStep::Backoff, now_ms);
-                return open;
-            }
-            if (zero_encoders())
-                ESP_LOGI(TAG, "%s homing: encoders zeroed at the clench", _config.name);
-            set_home_step(HomeStep::Zero, now_ms);
-            return close;
-        }
-        if (elapsed >= kHomeTimeoutMs)
-            return end_homing("no current spike while closing");
-        return close;
-
-    case HomeStep::Zero:
-        if (elapsed >= kHomeZeroHoldMs)
-        {
-            set_home_step(HomeStep::Backoff, now_ms);
-            return open;
-        }
-        return close;
-
-    case HomeStep::Backoff:
-        if (elapsed < kHomeBackoffMs)
-            return open;
-        if (_home_bites >= kHomeBites)
-            return end_homing();
-        set_home_step(HomeStep::Bite, now_ms);
-        return close;
+        _homing = HomingState{.since = now_ms};
+        ESP_LOGI(TAG, "%s: homing", _config.name);
     }
-    return end_homing("bad state");
-}
 
-void MotorBank::set_home_step(HomeStep step, uint32_t now_ms)
-{
-    _home_step = step;
-    _home_step_start_ms = now_ms;
-    _home_detect_since.reset();
-}
+    // A routine can't sit out a stop: it reads the motors' current.
+    HomingStep step{.done = true};
+    if (!may_run || is_in_fault())
+        ESP_LOGW(TAG, "%s: homing aborted, %s", _config.name, may_run ? "driver fault" : "failsafe");
+    else
+        step = _config.homing(*_homing, now_ms, amps);
 
-// True once `condition` has held for kHomeDetectMs, not counting the inrush
-// at the start of the step.
-bool MotorBank::home_detect(bool condition, uint32_t now_ms)
-{
-    if (!condition || now_ms - _home_step_start_ms < kHomeInrushMs)
-        _home_detect_since.reset();
-    else if (!_home_detect_since)
-        _home_detect_since = now_ms;
-    return _home_detect_since && now_ms - *_home_detect_since >= kHomeDetectMs;
-}
-
-// Stops the motors and hands back to Velocity mode, unless a command already
-// took over.
-int16_t MotorBank::end_homing(const char* abort_reason)
-{
-    _home_step = HomeStep::Idle;
+    if (step.zero && zero_encoders())
+        ESP_LOGI(TAG, "%s: encoders zeroed by homing", _config.name);
+    if (step.done)
     {
+        // Back to Velocity mode at speed 0, unless a command already took over.
+        _homing.reset();
         Lock lock(_mutex);
         if (_mode == ControlMode::Homing)
         {
@@ -368,11 +293,7 @@ int16_t MotorBank::end_homing(const char* abort_reason)
             _mode = ControlMode::Velocity;
         }
     }
-    if (abort_reason)
-        ESP_LOGW(TAG, "%s homing: aborted, %s", _config.name, abort_reason);
-    else
-        ESP_LOGI(TAG, "%s homing: done", _config.name);
-    return 0;
+    return to_duty(step.duty) * _config.position_direction;
 }
 
 // kPositionSpeed straight toward the target until within kHoldWindow. No

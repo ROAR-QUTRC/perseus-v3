@@ -7,8 +7,16 @@
 #include "board_support.hpp"
 #include "encoder_bus.hpp"
 #include "hi_can_address.hpp"
+#include "jaw_homing.hpp"
 
 namespace bucket_can = hi_can::addressing::excavation::bucket::controller;
+
+// Failsafe: the bucket runs only while this is true. While it is false the
+// motors are held stopped, commands and targets kept, and the encoders get no
+// heartbeat, so they show it. Defined by the entry point: in main.cpp, any frame
+// at all heard on the CAN bus within kCanFailsafeMs.
+bool bucket_may_run();
+inline constexpr uint32_t kCanFailsafeMs = 50;
 
 // One actuator: its motor driver and the encoder board it reads.
 struct DriverConfig
@@ -33,8 +41,7 @@ struct BankConfig
     int8_t position_direction;
     float min_angle;
     float max_angle;
-    float home_bite_current = 0.0f;  // 0 = this bank doesn't home
-    float home_idle_current = 0.0f;
+    HomingRoutine* homing = nullptr;  // run by SET_ZERO_POS instead of zeroing where it stands
 };
 
 // Note:
@@ -55,11 +62,9 @@ struct BankConfig
 // Limits: a bank won't drive below min_angle or above max_angle (degrees). Lift
 // and tilt have none yet, so theirs are the full range.
 
-// Homing (jaws only, started by SET_ZERO_POS): opens until the current falls
-// below home_idle_current, then bites until it passes home_bite_current and
-// backs off, a few times. The encoders are zeroed during the last bite, so 0
-// degrees is the clenched frame. Amps, as GET_CURRENT reports them. Opening
-// must raise the angle. Timing is in motor_bank.hpp (kHome...).
+// Homing: a bank with a homing routine runs it on SET_ZERO_POS; the others
+// zero where they stand. Only the jaws have one: jaw_homing.hpp, which holds
+// its tuning too. Opening must raise the angle.
 
 // TODO update a and b to be left and right based (once pins are confirmed)
 inline constexpr BankConfig LIFT{
@@ -135,8 +140,7 @@ inline constexpr BankConfig JAWS{
     .position_direction = -1,
     .min_angle = 0.0f,   // clenched
     .max_angle = 36.0f,  // safe opening
-    .home_bite_current = 1.5f,
-    .home_idle_current = 0.2f,
+    .homing = jaw_homing,
 };
 
 inline constexpr const BankConfig* kBanks[] = {&LIFT, &TILT, &JAWS};

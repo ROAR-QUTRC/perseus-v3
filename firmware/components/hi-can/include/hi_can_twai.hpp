@@ -2,6 +2,7 @@
 
 #include <driver/twai.h>
 
+#include <atomic>
 #include <board_support.hpp>
 #include <chrono>
 #include <cstdint>
@@ -47,6 +48,15 @@ namespace hi_can
          */
         void handle();
 
+        /**
+         * @brief Whether any frame has been taken from the bus within the last window_ms
+         *
+         * Counts every frame receive() gets from the driver, before the software
+         * filters. Construct the interface with a zero filter mask to have that be
+         * every frame on the bus. Safe to call from any task.
+         */
+        bool heard_within(uint32_t window_ms) const;
+
         TwaiInterface& add_filter(const addressing::filter_t& address) override;
         TwaiInterface& remove_filter(const addressing::filter_t& address) override;
 
@@ -60,12 +70,15 @@ namespace hi_can
             swap(first._dropped_frames, second._dropped_frames);
             swap(first._last_recovery, second._last_recovery);
             swap(first._last_drop_log, second._last_drop_log);
+            first._last_receive_tick = second._last_receive_tick.exchange(first._last_receive_tick);
         }
 
     private:
         static constexpr uint8_t INVALID_INTERFACE_ID = 255;
         // Room for a whole burst of periodic transmissions, so a healthy bus never makes transmit() wait.
         static constexpr uint32_t TX_QUEUE_LEN = 16;
+        // With a zero filter mask every frame on the bus lands here until receive() takes it.
+        static constexpr uint32_t RX_QUEUE_LEN = 64;
         TwaiInterface() = default;  // FOR MOVE SEMANTICS ONLY
         TwaiInterface(bsp::pin_pair_t pins, uint8_t controller_id,
                       addressing::filter_t filter);
@@ -77,6 +90,7 @@ namespace hi_can
         uint32_t _dropped_frames = 0;
         std::optional<std::chrono::steady_clock::time_point> _last_recovery;
         std::chrono::steady_clock::time_point _last_drop_log{};
+        std::atomic<TickType_t> _last_receive_tick{0};
 
         std::vector<Packet> _received_packets;
     };

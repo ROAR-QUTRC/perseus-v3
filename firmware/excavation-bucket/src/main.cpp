@@ -20,6 +20,9 @@ static const char* const TAG = "main";  // For ESP_LOGing
 TwaiInterface* can_interface = nullptr;
 std::optional<PacketManager> packet_manager;
 
+// The failsafe (excavation_config.hpp): anything heard on the CAN bus, for this board or not, feeds it.
+bool bucket_may_run() { return can_interface && can_interface->heard_within(kCanFailsafeMs); }
+
 // Tells a crash (panic) apart from a watchdog reset, a brownout or a power cycle.
 static const char* reset_reason_name(esp_reset_reason_t reason)
 {
@@ -61,12 +64,10 @@ void setup()
     static MotorBank tilt(TILT);
     static MotorBank jaws(JAWS);
 
+    // No hardware filter, so the failsafe hears every frame on the bus. hi-can
+    // still only acts on the ones addressed to a bank.
     auto& interface = TwaiInterface::get_instance(
-        std::make_pair(bsp::CAN_TX_PIN, bsp::CAN_RX_PIN), 0,
-        filter_t{
-            .address = static_cast<flagged_address_t>(kBucketAddress),
-            .mask = DEVICE_MASK,
-        });
+        std::make_pair(bsp::CAN_TX_PIN, bsp::CAN_RX_PIN), 0, filter_t{.mask = 0});
     can_interface = &interface;
     packet_manager.emplace(interface);
 
@@ -101,6 +102,27 @@ void loop()  // Add timeout for receiving velocity
             last_log_ms = millis();
             ESP_LOGE(TAG, "CAN error #%lu: %s", static_cast<unsigned long>(errors), e.what());
         }
+    }
+
+    // The control and encoder tasks apply the failsafe themselves. Waking the
+    // control task on each change makes the stop and the resume immediate.
+    static bool running = false;
+    if (const bool may_run = bucket_may_run(); may_run != running)
+    {
+        running = may_run;
+        MotorBank::wake_control_task();
+    }
+    // Reported on the UART: a recovery at once, a failure at most once a second.
+    static bool reported = true;
+    static uint32_t last_report_ms = 0;
+    if (running != reported && (running || !last_report_ms || millis() - last_report_ms >= 1000))
+    {
+        reported = running;
+        last_report_ms = millis();
+        if (running)
+            ESP_LOGI(TAG, "CAN heard, running");
+        else
+            ESP_LOGE(TAG, "CAN FAILURE: nothing heard for %lu ms, motors stopped", static_cast<unsigned long>(kCanFailsafeMs));
     }
     vTaskDelay(pdMS_TO_TICKS(1));  // Techically delay(1) works since arduino core treats delay as the same thing, but semantics
 }
