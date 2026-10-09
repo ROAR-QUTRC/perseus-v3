@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
+#include "interfaces/msg/rcb_power_command.hpp"
+#include "interfaces/msg/rcb_power_status.hpp"
 RcbDriver::RcbDriver(const rclcpp::NodeOptions& options)
     : Node("rcb_driver", options)
 {
@@ -35,10 +37,10 @@ RcbDriver::RcbDriver(const rclcpp::NodeOptions& options)
     }
 
     _packet_publisher =
-        this->create_publisher<std_msgs::msg::String>("can_to_ros", 10);
+        this->create_publisher<interfaces::msg::RcbPowerStatus>("can_to_ros", 10);
     _packet_timeout_timer = this->create_wall_timer(
         PACKET_TIMEOUT, std::bind(&RcbDriver::_call_receive, this));
-    _packet_subscriber = this->create_subscription<std_msgs::msg::String>(
+    _packet_subscriber = this->create_subscription<interfaces::msg::RcbPowerCommand>(
         "ros_to_can", 10,
         std::bind(&RcbDriver::_ros_to_can, this, std::placeholders::_1));
 
@@ -80,21 +82,18 @@ void RcbDriver::_can_to_ros(const hi_can::Packet& packet)
             parameters::legacy::power::control::power_bus::status_t data;
             data.deserialize_data(raw_data);
 
-            auto message = std_msgs::msg::String();
-            nlohmann::json bus_data = {{"name", name},
-                                       {"current", data.current},
-                                       {"voltage", data.voltage},
-                                       {"status", static_cast<int>(data.status)}};
-
-            message.data = bus_data.dump();
-
-            this->_packet_publisher->publish(message);
+            auto msg = interfaces::msg::RcbPowerStatus();
+            msg.name = name;
+            msg.current = static_cast<float>(data.current);
+            msg.voltage = static_cast<float>(data.voltage);
+            msg.status = static_cast<uint8_t>(data.status);
+            this->_packet_publisher->publish(msg);
             return;
         }
     }
 }
 
-void RcbDriver::_ros_to_can(std_msgs::msg::String::UniquePtr msg)
+void RcbDriver::_ros_to_can(interfaces::msg::RcbPowerCommand::UniquePtr msg)
 {
     using namespace hi_can;
     using namespace addressing::legacy;
@@ -102,15 +101,13 @@ void RcbDriver::_ros_to_can(std_msgs::msg::String::UniquePtr msg)
 
     try
     {
-        // Parse the message
-        auto data = nlohmann::json::parse(msg->data);
         auto group = std::find_if(
-            BUS_GROUPS.begin(), BUS_GROUPS.end(), [&data](const auto& pair)
-            { return pair.first == data["bus"].get<std::string>(); });
+            BUS_GROUPS.begin(), BUS_GROUPS.end(),
+            [&n = msg->bus](const auto& pair)
+            { return pair.first == n; });
 
         RCLCPP_INFO(get_logger(), "Setting power state of bus: %s to %s",
-                    data["bus"].get<std::string>().c_str(),
-                    data["on"].get<std::string>().c_str());
+                    msg->bus.c_str(), msg->on ? "on" : "off");
 
         using namespace hi_can::addressing::legacy::power::control::rcb;
 
@@ -124,8 +121,7 @@ void RcbDriver::_ros_to_can(std_msgs::msg::String::UniquePtr msg)
         _can_interface->transmit(Packet(
             static_cast<addressing::flagged_address_t>(address),
             immediate_control_t(
-                _immediate_control_t{data["on"].get<std::string>()[0] == '1',
-                                     data["clear"].get<std::string>()[0] == '1', 0})
+                _immediate_control_t{msg->on, msg->clear, 0})
                 .serialize_data()));
     }
     catch (const std::exception& e)

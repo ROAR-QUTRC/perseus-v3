@@ -5,6 +5,7 @@
   ament-cmake,
   backward-ros,
   hi-can-raw,
+  interfaces,
   nlohmann_json,
   rclcpp,
   sensor-msgs,
@@ -20,6 +21,7 @@ buildRosPackage rec {
   propagatedBuildInputs = [
     backward-ros
     hi-can-raw
+    interfaces
     nlohmann_json
     rclcpp
     sensor-msgs
