@@ -42,7 +42,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # public dependencies (which should propagate)
 set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp rclcpp_components sensor_msgs
-                                 geometry_msgs nav_msgs)
+                                 geometry_msgs nav_msgs rcl_interfaces)
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
 
@@ -115,6 +115,10 @@ target_link_libraries(dust_filter dust_filter_component)
 ament_target_dependencies(dust_filter rclcpp)
 
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
+
+add_executable(filter_node src/dead_zone_filter/filter_node.cpp)
+ament_target_dependencies(filter_node rclcpp sensor_msgs rcl_interfaces)
+install(TARGETS filter_node DESTINATION lib/${PROJECT_NAME})
 
 # Install launch
 install(
