@@ -222,14 +222,14 @@
 		srvStatus = 'Sending run request...';
 
 		runSrv.callService(
-			new ROSLIB.ServiceRequest({ 
+			{
 				waypoints: waypoints.map((wp) => ({
 					name: wp.name,
 					x: wp.x,
 					y: wp.y,
 					yaw: wp.yaw ?? 0.0
 				}))
-			}),
+			},
 			(resp: any) => {
 				srvBusy = false;
 				srvStatus = resp?.message ?? 'Run response received';
@@ -261,7 +261,7 @@
 			srvStatus = 'Cancelling...';
 
 			cancelSrv.callService(
-				new ROSLIB.ServiceRequest({}),
+				{},
 				(resp: any) => {
 					srvBusy = false;
 					srvStatus = resp?.message ?? 'Cancel response received';
