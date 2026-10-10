@@ -42,6 +42,9 @@ Arguments:
     teleop        run the joystick override (joy_node and teleop's generic_controller)
     controller_type  controller config for the override, as teleop's controller.launch.py
                   type:= -- taranis, xbox, logitech or 8bitdo
+    link_monitor  run link_monitor, which publishes /link_health: throughput of the radio
+                  link and the ping to each rover brain. Independent of rviz_only, like
+                  the joystick, since it is a check on the link rather than a display
 """
 
 import shutil
@@ -68,6 +71,7 @@ def generate_launch_description():
     mesh = LaunchConfiguration("mesh")
     rviz_only = LaunchConfiguration("rviz_only")
     teleop = LaunchConfiguration("teleop")
+    link_monitor = LaunchConfiguration("link_monitor")
 
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -112,6 +116,33 @@ def generate_launch_description():
         # type it does not recognise, so a typo would map the wrong axes without an error.
         choices=["taranis", "xbox", "logitech", "8bitdo"],
         description="Controller config for the joystick override",
+    )
+
+    link_monitor_arg = DeclareLaunchArgument(
+        "link_monitor",
+        default_value="true",
+        description="Measure link throughput and ping to the rover, published on /link_health",
+    )
+
+    # Outside processing_nodes so rviz_only:=true cannot drop it: it watches the link, not
+    # the displays. The interface is detected from the route to the rover, so it follows
+    # a switch between wifi and ethernet without being told.
+    link_monitor_launch = GroupAction(
+        [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("link_monitor"),
+                            "launch",
+                            "link_monitor.launch.py",
+                        ]
+                    )
+                ),
+            )
+        ],
+        scoped=True,
+        condition=IfCondition(link_monitor),
     )
 
     # The manual override. Outside processing_nodes so rviz_only:=true cannot drop it, and
@@ -315,9 +346,11 @@ def generate_launch_description():
             rviz_only_arg,
             teleop_arg,
             controller_type_arg,
+            link_monitor_arg,
             rviz_nixgl,
             rviz_plain,
             processing_nodes,
             teleop_launch,
+            link_monitor_launch,
         ]
     )
