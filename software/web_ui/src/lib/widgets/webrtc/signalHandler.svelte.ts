@@ -6,6 +6,7 @@ export interface PeerType {
   track: MediaStream | null;
 }
 
+// map videoXX to PeerType
 export let peerConnections = $state<Record<string, PeerType>>({});
 let peerId = $state<string | undefined>(undefined);
 let producerDeviceMap = $state<Record<string, string>>({});
@@ -69,6 +70,7 @@ export const connectToSignallingServer = (ip: string) => {
         } else if (data.roles?.includes("producer")) {
           // If a camera produces comes online after start up, request its stream
           if (Object.keys(peerConnections).includes(data.meta?.device!)) {
+            console.warn("debug META", data.meta?.device);
             peerConnections[data.meta?.device!].online = true;
             producerDeviceMap[data.peerId!] = data.meta?.device!;
             wsSend({

@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Optional, cast
+from os import path
 
 import gi
 import threading
 
-from server.message_types import CameraEventType, VideoTransformType
+from message_types import CameraEventType, VideoTransformType
 from server.logger import log, log_level_type
-from server.v4l_monitor import BY_ID_DIR, DEV_DIR
+from v4l_monitor import DEV_DIR
 
 gi.require_version("GLib", "2.0")
 gi.require_version("GObject", "2.0")
@@ -182,7 +183,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         log("No device specified in event", "ERROR")
         return
     new_instance = GstInstance(
-        device=device,
+        device=device.device,
         width=event.data.resolution["width"]
         if event.data and event.data.resolution
         else 640,
@@ -201,7 +202,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     with gst_lock:
         # skip is stream is already running
-        old_instance = gst_instances.get(device, None)
+        old_instance = gst_instances.get(device.device, None)
         if (
             old_instance is not None
             and not force_restart
@@ -213,7 +214,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             )
             return
         log(
-            f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})"
+            f"Request stream for device: {device.name} -> {device.device} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})"
         )
 
         # Remove the old instance if it exists
@@ -221,7 +222,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             log(f"Stopping existing stream for device: {device}", "DEBUG")
             if old_instance.pipeline is not None:
                 old_instance.pipeline.set_state(Gst.State.NULL)
-            del gst_instances[device]
+            del gst_instances[device.device]
 
     # Create the elements
     source = _create_element("v4l2src", "source")
@@ -238,7 +239,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     webrtc_sink = _create_element("webrtcsink", "webrtc_sink")
 
     # Create the empty pipeline
-    new_instance.pipeline = Gst.Pipeline.new(device)
+    new_instance.pipeline = Gst.Pipeline.new(device.device)
 
     if (
         not new_instance.pipeline
@@ -267,11 +268,11 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         return
 
     # Configure plugins
-    source.set_property("device", f"{BY_ID_DIR}/{device}")
+    source.set_property("device", path.join(DEV_DIR, device.device))
     caps_filter.set_property("caps", caps)
     flip.set_property("method", new_instance.transform)
 
-    if new_instance.redirect != "none":
+    if new_instance.redirect is not None and new_instance.redirect != "none":
         new_instance.pipeline.add(tee, v4l2_queue, v4l2_sink, webrtc_queue)
         if (
             not flip.link(tee)
@@ -283,7 +284,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             log("Elements could not be linked.", "ERROR")
             return
 
-        v4l2_sink.set_property("device", f"{DEV_DIR}/{new_instance.redirect}")
+        v4l2_sink.set_property("device", path.join(DEV_DIR, new_instance.redirect))
 
     else:
         if not flip.link(webrtc_sink):
@@ -293,7 +294,8 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     webrtc_sink.set_property("stun-server", "NULL")
     # library typing is wrong we get a tuple here
     meta, _ = cast(
-        tuple[Gst.Structure, None], Gst.Structure.from_string(f"meta,device={device}")
+        tuple[Gst.Structure, None],
+        Gst.Structure.from_string(f"meta,device={device.device}"),
     )
     webrtc_sink.set_property("meta", meta)
     signaller = webrtc_sink.get_property("signaller")
@@ -301,6 +303,9 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         log("Failed to get signaller from webrtcsink", "ERROR")
         return
     signaller.set_property("uri", f"ws://{web_server_ip}:8443")
+
+    # print pipeline
+    print(f"meta,device={device.device}")
 
     # Start playing
     ret = new_instance.pipeline.set_state(Gst.State.PLAYING)
@@ -314,11 +319,11 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     bus.connect(
         "message",
         _on_gst_message,
-        device,
+        device.device,
     )
 
     with gst_lock:
-        gst_instances[device] = new_instance
+        gst_instances[device.device] = new_instance
 
 
 def stop_stream(event: CameraEventType):
@@ -328,14 +333,20 @@ def stop_stream(event: CameraEventType):
         return
 
     with gst_lock:
-        instance = gst_instances.get(device, None)
+        instance = gst_instances.get(device.device, None)
         if instance is None:
-            log(f"No stream running for device: {device}", "DEBUG")
+            log(
+                f"No stream running for device: {device.name} -> {device.device}",
+                "DEBUG",
+            )
             return
-        log(f"Stopping stream for device: {device}")
+        log(
+            f"Stopping stream for device: {device.name} -> {device.device}",
+            "DEBUG",
+        )
         if instance.pipeline is not None:
             instance.pipeline.set_state(Gst.State.NULL)
-        del gst_instances[device]
+        del gst_instances[device.device]
 
 
 def stop_all_streams():

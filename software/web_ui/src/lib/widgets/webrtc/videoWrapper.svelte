@@ -3,7 +3,7 @@
 	import { faEllipsis } from '@fortawesome/free-solid-svg-icons';
 	import Fa from 'svelte-fa';
 	import { peerConnections } from './signalHandler.svelte';
-	import type { ConfigType, videoTransformType } from '../rtcVideo.svelte';
+	import type { ConfigType, VideoTransformType } from '../rtcVideo.svelte';
 	import * as Select from '$lib/components/ui/select/index';
 	import Label from '$lib/components/ui/label/label.svelte';
 
@@ -48,7 +48,7 @@
 		const newConfig: ConfigType = {
 			name: config.name,
 			resolution: { width, height },
-			transform: transform as videoTransformType,
+			transform: transform as VideoTransformType,
 			redirect: redirectName
 		};
 		onVideoSettingsChange(device, newConfig);

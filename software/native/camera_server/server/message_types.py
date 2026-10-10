@@ -28,6 +28,11 @@ class Resolution(TypedDict):
     height: int
 
 
+class DeviceInfo(BaseModel):
+    device: str
+    name: Optional[str] = None
+
+
 class CameraEventData(BaseModel):
     resolution: Optional[Resolution] = None
     transform: Optional[VideoTransformType] = None
@@ -37,7 +42,8 @@ class CameraEventData(BaseModel):
 
 class CameraEventType(BaseModel):
     type: Literal["camera"]
+    group: Optional[str] = None
     action: CameraAction
-    target: Optional[str] = None
-    devices: Optional[list[str]] = None
+    target: Optional[DeviceInfo] = None
+    devices: Optional[list[DeviceInfo]] = None
     data: Optional[CameraEventData] = None

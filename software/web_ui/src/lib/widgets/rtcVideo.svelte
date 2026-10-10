@@ -32,7 +32,7 @@
 		}
 	});
 
-	export type videoTransformType =
+	export type VideoTransformType =
 		| 'none'
 		| 'clockwise'
 		| 'counterclockwise'
@@ -43,8 +43,15 @@
 		| 'upper-right-diagonal'
 		| 'automatic';
 
+	export interface DeviceType {
+		name?: string; // Human readable name of the device
+		device: string; // videoXX
+		group?: string; // group name
+	}
+
 	interface CameraEventType {
 		type: 'camera';
+		group: string;
 		action:
 			| 'group-description'
 			| 'kill-stream'
@@ -52,23 +59,23 @@
 			| 'request-stream'
 			| 'group-terminated'
 			| 'device-disconnect';
-		target?: string;
-		devices?: Array<string>;
+		target?: DeviceType;
+		devices?: Array<DeviceType>;
 		data?: {
 			resolution?: { width: number; height: number };
-			transform?: videoTransformType;
+			transform?: VideoTransformType;
 			forceRestart?: boolean;
-			redirect?: string;
+			redirect?: string; // videoXX
 		};
 	}
 
 	export interface ConfigType {
-		name: string;
+		device: DeviceType;
 		resolution: {
 			width: number;
 			height: number;
 		};
-		transform: videoTransformType;
+		transform: VideoTransformType;
 		redirect: string;
 	}
 </script>
@@ -88,30 +95,30 @@
 
 	let socket: Socket = io();
 
-	// The string id is from /dev/v4l/by-id
-	let devicesNames = $state<Array<string>>([]);
+	let devicesNames = $state<Array<DeviceType>>([]);
+	// Map the videoXX to config
 	let config = $derived<Record<string, ConfigType>>(
 		JSON.parse(settings.groups.setupCamera.config.value!) || {}
 	);
 
-	const updateAvailableDevices = (device: string, addingNewDevice: boolean) => {
-		if (addingNewDevice && !devicesNames.includes(device)) {
+	$inspect(config);
+
+	const updateAvailableDevices = (device: DeviceType, addingNewDevice: boolean) => {
+		if (addingNewDevice && !devicesNames.some((existing) => existing.device === device.device)) {
 			devicesNames.push(device);
 			if (!settings.groups.setupCamera.device.options)
 				settings.groups.setupCamera.device.options = [];
 			settings.groups.setupCamera.device.options.push({
-				value: device,
-				label: device
-					.replace('usb-', '')
-					.replace('-video-index0', '')
-					.replaceAll('-', ' ')
-					.replaceAll('_', ' ')
+				value: device.device, // index using videoXX
+				label: `${device.name} (${device.device})`
 			});
 		} else if (!addingNewDevice && devicesNames.includes(device)) {
 			devicesNames = devicesNames.filter((d) => d !== device);
 			if (settings.groups.setupCamera.device.options) {
 				settings.groups.setupCamera.device.options =
-					settings.groups.setupCamera.device.options.filter((option) => option.value !== device);
+					settings.groups.setupCamera.device.options.filter(
+						(option) => option.value !== device.device
+					);
 			}
 		}
 	};
@@ -125,7 +132,7 @@
 				if (!peerConnections[device]) {
 					peerConnections[device] = {
 						sessionId: '',
-						name: config[device].name,
+						name: config[device].device.name || config[device].device.device,
 						online: false,
 						connection: null,
 						track: null
@@ -148,18 +155,23 @@
 		switch (event.action) {
 			case 'group-description':
 				// update ui options
+				console.warn('Received group-description event:', event);
 				(event.devices ?? []).forEach((device) => {
+					device.group = event.group;
 					updateAvailableDevices(device, true);
 				});
 
 				// request streams for cameras in config
 				console.log('Requesting streams:', config, event);
 				Object.keys(config).forEach((device) => {
-					if (event.devices?.some((d) => device === d)) {
+					if (event.devices?.some((d) => device === d.device && event.group === d.group)) {
 						socket.send({
 							type: 'camera',
+							group: event.group,
 							action: 'request-stream',
-							target: device,
+							target: {
+								device: device
+							},
 							data: {
 								resolution: config[device].resolution,
 								transform: config[device].transform,
@@ -178,11 +190,11 @@
 			case 'group-terminated':
 				// remove all peer connections for this group
 				event.devices?.forEach((device) => {
-					if (peerConnections[device]) {
-						peerConnections[device].connection?.close();
-						peerConnections[device] = {
+					if (peerConnections[device.device]) {
+						peerConnections[device.device].connection?.close();
+						peerConnections[device.device] = {
 							sessionId: '',
-							name: peerConnections[device].name,
+							name: peerConnections[device.device].name,
 							online: false,
 							connection: null,
 							track: null
@@ -215,8 +227,13 @@
 				return 'Camera with this name already exists';
 			}
 
+			const group = devicesNames.find((d) => d.device === values.device.value)?.group;
+			if (!group) {
+				return 'Device group not found for the selected device';
+			}
+
 			config[values.device.value] = {
-				name: values.name.value,
+				device: { name: values.name.value, device: values.device.value, group },
 				resolution: { width: 320, height: 240 }, // Default resolution
 				transform: 'none', // Default transform
 				redirect: 'none' // Default redirect
@@ -228,8 +245,11 @@
 			// Send request to create camera
 			socket.send({
 				type: 'camera',
+				group,
 				action: 'request-stream',
-				target: values.device.value,
+				target: {
+					device: values.device.value
+				},
 				data: {
 					resolution: config[values.device.value].resolution,
 					transform: config[values.device.value].transform,
@@ -273,7 +293,9 @@
 		socket.send({
 			type: 'camera',
 			action: 'kill-stream',
-			target: device
+			target: {
+				device: device
+			}
 		} as CameraEventType);
 
 		// Close WebRTC connection and remove from peerConnections
@@ -300,7 +322,7 @@
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
-			target: device,
+			target: { device: device },
 			data: {
 				resolution: newConfig.resolution,
 				transform: newConfig.transform,
@@ -313,7 +335,7 @@
 		socket.send({
 			type: 'camera',
 			action: 'request-stream',
-			target: device,
+			target: { device: device },
 			data: {
 				resolution: config[device].resolution,
 				transform: config[device].transform,

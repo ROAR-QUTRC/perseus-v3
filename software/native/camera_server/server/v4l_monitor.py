@@ -2,12 +2,12 @@
 import os
 import threading
 import pyudev
-from pathlib import Path
 import subprocess
 
 from server.logger import log
+from message_types import DeviceInfo
 
-DEV_DIR = "/dev/"
+DEV_DIR = "/dev"
 BY_ID_DIR = "/dev/v4l/by-id"
 V4L_DIR = "/sys/class/video4linux"
 VIRTUAL_DEVICE_DIR = "/sys/devices/virtual/video4linux"
@@ -21,85 +21,9 @@ _context = None
 _observer = None
 
 
-def _fix_duplicate_device_names(server_name: str):
-
-    # Find all the real video capture devices
-    virtual_devices = list_virtual_devices()
-    real_devices = []
-    if os.path.isdir(V4L_DIR):
-        for entry in os.listdir(V4L_DIR):
-            if not entry.startswith("video"):
-                continue
-            if not _is_video_capture_device(entry, _context):
-                continue
-            if entry in virtual_devices:
-                continue  # skip virtual devices
-            real_devices.append(os.path.join(DEV_DIR, entry))
-
-    # remove bad links and record current symlinks to real devices in a map
-    symlinks_map = {}
-    if os.path.isdir(BY_ID_DIR):
-        for entry in os.listdir(BY_ID_DIR):
-            by_id = Path(os.path.join(BY_ID_DIR, entry))
-            by_id_str = str(by_id)
-            real_device_dir = by_id.resolve()
-            real_device_path = str(real_device_dir)
-            if _is_video_capture_device(
-                real_device_path.replace(DEV_DIR, ""), _context
-            ):
-                remove_symlink = False
-                if (
-                    not real_device_dir.exists()
-                    or real_device_path.replace(DEV_DIR, "") in virtual_devices
-                ):
-                    log(
-                        f"Bad symlink detected: {by_id} -> {real_device_dir}, removing...",
-                        "DEBUG",
-                    )
-                    remove_symlink = True
-                if real_device_path in symlinks_map.values():
-                    log(f"Dupe detected {by_id} -> {real_device_dir}", "ERROR")
-                    if by_id_str.replace(BY_ID_DIR + "/", "").startswith(
-                        f"{server_name}_cam_"
-                    ):
-                        remove_symlink = True
-                    # else:
-                    #      TODO: if the the good symlink is found last then it will not be removed
-                    #      otherwise find the bad one and remove it instead
-                    #      must find other device and remove it instead
-                if remove_symlink:
-                    try:
-                        subprocess.run(["sudo", "rm", by_id_str], check=True)
-                        log(f"Removed symlink {by_id}", "DEBUG")
-                    except Exception as e:
-                        log(f"Failed to remove symlink {by_id}: {e}", "ERROR")
-                    continue
-                # map human readable id to real device path
-                symlinks_map[entry] = real_device_path
-
-    # create a symlink for each real_device that isnt in the symlinks_map
-    index = 0
-    for real_device in real_devices:
-        if real_device not in symlinks_map.values():
-            symlink_name = f"{server_name}_cam_{index}"
-            symlink_path = os.path.join(BY_ID_DIR, symlink_name)
-            log(f"Creating symlink {symlink_path} -> {real_device}", "DEBUG")
-            try:
-                subprocess.run(
-                    ["sudo", "ln", "-s", real_device, symlink_path], check=True
-                )
-                log(f"Created symlink {symlink_path} -> {real_device}", "DEBUG")
-                index += 1
-            except subprocess.CalledProcessError as e:
-                log(
-                    f"Failed to create symlink {symlink_path} -> {real_device}: {e}",
-                    "ERROR",
-                )
-
-
 def _create_virtual_devices(device_count: int):
     log(f"Creating {device_count} virtual video devices...", "DEBUG")
-    existing_virtual_devices = list_virtual_devices()
+    existing_virtual_devices = _list_virtual_devices()
     device_numbers = []
     for i in range(device_count):
         video_id = i + VIRTUAL_DEVICE_OFFSET
@@ -110,16 +34,17 @@ def _create_virtual_devices(device_count: int):
     if len(device_numbers) == 0:
         return
 
-    command_base = [
+    command = [
         "sudo",
         "modprobe",
         "v4l2loopback",
         f"video_nr={','.join(device_numbers)}",
     ]
+
     try:
-        subprocess.run(command_base, check=True)
+        subprocess.run(command, check=True)
         # check video devices were created since we get no command output
-        existing_virtual_devices = list_virtual_devices()
+        existing_virtual_devices = _list_virtual_devices()
         missing_devices = [
             f"video{num}"
             for num in device_numbers
@@ -134,7 +59,7 @@ def _create_virtual_devices(device_count: int):
         log(f"Failed to create virtual video devices: {e}", "ERROR")
 
 
-def list_virtual_devices():
+def _list_virtual_devices():
     # Dont need to check if devices are video capture
     # since all virtual devices are video capture
     virtual_devices = []
@@ -155,28 +80,36 @@ def _is_video_capture_device(dev, context):
     return "capture" in caps
 
 
-# gets all the video capture devices in /dev/v4l/by-id
-def _scan_devices(context):
+# gets all the video capture devices in /sys/class/video4linux
+# returns a list of DeviceInfo
+def _list_devices(context) -> list[DeviceInfo]:
     devices = []
-    if os.path.isdir(BY_ID_DIR):
-        for entry in os.listdir(BY_ID_DIR):
-            symlink = str(Path(os.path.join(BY_ID_DIR, entry)).resolve()).replace(
-                DEV_DIR, ""
-            )
-            if not symlink.startswith("video"):
+    if os.path.isdir(V4L_DIR):
+        for entry in os.listdir(V4L_DIR):
+            if not entry.startswith("video"):
                 continue
-            if not _is_video_capture_device(symlink, context):
+            if not _is_video_capture_device(entry, context):
                 continue
-
-            devices.append(entry)
+            # device name is stored in V4L_DIR/videoXX/name
+            name_file = os.path.join(V4L_DIR, entry, "name")
+            if os.path.isfile(name_file):
+                with open(name_file, "r") as f:
+                    # only save devices with names (should be all of them)
+                    devices.append(DeviceInfo(name=f.read().strip(), device=entry))
     return devices
+
+
+def _list_physical_devices(context) -> list[DeviceInfo]:
+    devices = _list_devices(context)
+    virtual_devices = _list_virtual_devices()
+    return [dev for dev in devices if dev.device not in virtual_devices]
 
 
 # check for changes and call main callback
 def _handle_udev_event(on_change, _):
     with _lock:
         global _devices
-        new_devices = _scan_devices(_context)
+        new_devices = _list_physical_devices(_context)
         changed = new_devices != _devices
         _devices = new_devices
 
@@ -186,7 +119,7 @@ def _handle_udev_event(on_change, _):
 
 # start a udev observer which executes a callback on 'video4linux' device changes
 # returns the initial list of devices
-def start_v4l_monitor(server_name: str, on_change=None) -> list[str]:
+def start_v4l_monitor(server_name: str, on_change=None) -> list[DeviceInfo]:
     global _context, _observer
 
     if _observer is None:
@@ -195,7 +128,7 @@ def start_v4l_monitor(server_name: str, on_change=None) -> list[str]:
         monitor.filter_by(subsystem="video4linux")
 
         _create_virtual_devices(VIRTUAL_DEVICE_COUNT)
-        _fix_duplicate_device_names(server_name)
+        # _fix_duplicate_device_names(server_name)
 
         _observer = pyudev.MonitorObserver(
             monitor, callback=lambda device: _handle_udev_event(on_change, device)
@@ -203,7 +136,7 @@ def start_v4l_monitor(server_name: str, on_change=None) -> list[str]:
         _observer.start()
 
     with _lock:
-        _devices = list(_scan_devices(_context))
+        _devices = list(_list_physical_devices(_context))
 
     return list(_devices)
 

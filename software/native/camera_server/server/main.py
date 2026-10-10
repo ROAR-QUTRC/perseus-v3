@@ -7,16 +7,14 @@ from pydantic import ValidationError
 import os
 
 from server.logger import log, enable_debug
-from server.v4l_monitor import start_v4l_monitor, stop_v4l_monitor
-from server.message_types import CameraEventType
-from server.gstreamer import (
+from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
+from message_types import CameraEventType, DeviceInfo
+from gstreamer import (
     start_stream,
     start_gst_thread,
     stop_stream,
     stop_all_streams,
 )
-
-group_description = CameraEventType(type="camera", action="group-description")
 
 if os.getuid() == 0:
     log(
@@ -79,30 +77,35 @@ def main():
                 hostname = hostname_str
         elif len(args) == 1:
             hostname = args[0]
+
     log(f"{server_name} connecting to webserver at {hostname}:{port}")
+
+    group_description = CameraEventType(
+        type="camera", group=server_name, action="group-description"
+    )
     # endregion
 
     # region -----------< Get hardware information >-----------
 
-    devices: list[str] = []  # video devices from /dev/v4l/by-id
+    devices: list[DeviceInfo] = []  # video devices from /dev/v4l/by-id
 
-    def handle_device_change(new_devices: list[str]):
+    def handle_device_change(new_devices: list[DeviceInfo]):
         # Update the devices dictionary with the new devices and remove old ones
         for dev in devices:
             if dev not in new_devices:
-                log(f"Camera device removed: {dev}")
-                sio.send(
-                    {
-                        "type": "camera",
-                        "action": "device-disconnect",
-                        "target": dev,
-                    }
+                log(f"Camera device removed: {dev.name} -> {dev.device}")
+                message = CameraEventType(
+                    type="camera",
+                    group=server_name,
+                    action="device-disconnect",
+                    target=dev,
                 )
+                sio.send(message.model_dump(exclude_none=True))
                 devices.remove(dev)
-        additions: list[str] = []
+        additions: list[DeviceInfo] = []
         for dev in new_devices:
             if dev not in devices:
-                log(f"Camera device added: {dev}")
+                log(f"Camera device added: {dev.name} -> {dev.device}")
                 devices.append(dev)
                 additions.append(dev)
         if len(additions) > 0:
@@ -113,7 +116,7 @@ def main():
     initial_devices = start_v4l_monitor(server_name, handle_device_change)
     for dev in initial_devices:
         devices.append(dev)
-        log(f"Detected camera device: {dev}")
+        log(f"Detected camera device: {dev.name} -> {dev.device}")
     # endregion
 
     # region -----------< Start GStreamer >-----------
@@ -144,11 +147,18 @@ def main():
     group_description.devices = devices.copy()
     sio.send(group_description.model_dump(exclude_none=True))
 
-    def handle_camera_event(event_payload: CameraEventType):
+    def handle_camera_event(event_payload):
         try:
             event = CameraEventType.model_validate(event_payload)
         except ValidationError as e:
             log(f"Invalid camera event payload: {e}", "ERROR")
+            return
+
+        if event.group != server_name:
+            log(
+                f"Camera event group '{event.group}' does not match server name '{server_name}', ignoring.",
+                "DEBUG",
+            )
             return
 
         log(
