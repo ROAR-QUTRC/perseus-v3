@@ -28,6 +28,8 @@ Panels:
     Topic: /health_check/health
   - Class: rviz_plugins/MachineHealthPanel
     Name: Machine Health
+  - Class: rviz_plugins/LinkHealthPanel
+    Name: Link Health
   - Class: rviz_plugins/ArenaMinimapPanel
     LayoutPath: ""
     Name: Arena Minimap
@@ -983,6 +985,8 @@ Window Geometry:
   Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
+  Link Health:
+    collapsed: false
   Machine Health:
     collapsed: false
   Mission Control:

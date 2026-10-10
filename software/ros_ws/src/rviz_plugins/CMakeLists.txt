@@ -87,6 +87,8 @@ add_library(
   include/rviz_plugins/topic_health_panel.hpp
   src/machine_health_panel.cpp
   include/rviz_plugins/machine_health_panel.hpp
+  src/link_health_panel.cpp
+  include/rviz_plugins/link_health_panel.hpp
   src/arena_minimap_panel.cpp
   include/rviz_plugins/arena_minimap_panel.hpp
   src/mobility_efficiency_panel.cpp

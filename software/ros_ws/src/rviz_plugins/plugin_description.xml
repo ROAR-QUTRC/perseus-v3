@@ -74,4 +74,13 @@
       /&lt;device_name&gt;/system_health, found automatically.
     </description>
   </class>
+  <class
+    name="rviz_plugins/LinkHealthPanel"
+    type="rviz_plugins::LinkHealthPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Status dots for the radio link to the rover and for each rover device, with the
+      ping round trip and a throughput bar, from link_monitor's /link_health.
+    </description>
+  </class>
 </library>
