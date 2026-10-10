@@ -67,7 +67,6 @@
       - 200.0 # /livox/imu/corrected
       - 10.0 # /Odometry
       - 50.0 # /odom
-      - 15.0 # /vision/orb_slam_odometry/odometry
       - 30.0 # /odometry/filtered
       - 15.0 # /vision/orb_slam_odometry/odometry
       # rgb_camera.color_profile in sensors/config/realsense.yaml is 424,240,15
