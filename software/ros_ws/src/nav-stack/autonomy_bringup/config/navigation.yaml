@@ -129,7 +129,7 @@ global_traversability:
     # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
     robot_radius_m: 0.6
     inflation_radius_m: 0.75
-    cost_scaling_factor: 3.2
+    cost_scaling_factor: 20.0
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
 # ============================================================================
@@ -258,7 +258,7 @@ local_traversability:
     # change cost depending on which of the two saw it.
     robot_radius_m: 0.6
     inflation_radius_m: 0.8
-    cost_scaling_factor: 2.8
+    cost_scaling_factor: 20.0
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
@@ -268,7 +268,7 @@ planner_server:
     expected_planner_frequency: 0.75
     # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
     # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
-    # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
+    # Lattice (plans heading, so dig/dump goals arrive facing the right way) - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
     # switch back to GridBased, or override live by publishing the name to /planner_selector,
     # e.g. `ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"` before
     # sending the next goal.
@@ -472,7 +472,7 @@ controller_server:
       # goal. Yaw is generous because final heading rarely matters and tightening it means
       # a slow spin at exactly the rate the ESCs stall at.
       xy_goal_tolerance: 0.45
-      yaw_goal_tolerance: 0.35
+      yaw_goal_tolerance: 0.523 # 30 deg heading tolerance at goal
       stateful: true
     FollowPath:
       # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
@@ -511,7 +511,8 @@ controller_server:
       # raw path, more turns can be taken as a regulated arc instead of a full stop-and-pivot.
       # Re-tune down again if it starts cutting corners too wide for the arena's clearances.
       use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 0.5
+      # Raised from 0.5: only pivot when the path is nearly behind (sand: avoid pivoting).
+      rotate_to_heading_min_angle: 1.0
       # Rotate-to-heading is BANG-BANG: full rate until the error drops under the threshold,
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
@@ -545,7 +546,8 @@ controller_server:
       # parameters below are unchanged and /controller_selector still says "DWB".
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       primary_controller: "dwb_core::DWBLocalPlanner"
-      angular_dist_threshold: 0.785
+      # Raised from 0.785: pivot only if the path is ~140 deg off, otherwise DWB arcs.
+      angular_dist_threshold: 2.4
       forward_sampling_distance: 0.5
       # max_vel_theta, and the same rate RPP pivots at (see FollowPath).
       rotate_to_heading_angular_vel: 0.5
@@ -560,6 +562,7 @@ controller_server:
       # Negative: DWB may reverse to line up with the path or goal (e.g. backing out of a
       # zone instead of pivoting on the spot), at half cruise speed because there is less
       # sensing behind. PreferForward below keeps reversing the exception, not the habit.
+      allow_reverse: true
       min_vel_x: -0.15
       min_vel_y: 0.0
       # y is zero throughout: the rover cannot strafe. Theta stays under velocity_smoother's
@@ -617,11 +620,11 @@ controller_server:
       # stalled until the progress checker fired. (0.4 had been raised for boulder_3 grazes,
       # which were the rock being unmapped, not this weight.)
       ObstacleFootprint.scale: 0.1
-      PathAlign.scale: 32.0
+      PathAlign.scale: 40.0 # less aggressive in path alignment
       # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
       # tiny heading errors scored as nothing until the rover was already off-line.
       PathAlign.forward_point_distance: 0.325
-      GoalAlign.scale: 24.0
+      GoalAlign.scale: 4.0
       GoalAlign.forward_point_distance: 0.325
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
