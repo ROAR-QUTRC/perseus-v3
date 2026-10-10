@@ -20,7 +20,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_plugins/ViewLockPanel
-    Locked: true
+    Locked: false
     Name: View Lock
     View: Far
   - Class: rviz_plugins/TopicHealthPanel
@@ -193,10 +193,6 @@ Visualization Manager:
           Value: true
         livox_imu_frame:
           Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
         rear_left_motor:
           Value: true
         rear_left_wheel:
@@ -215,96 +211,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          odom:
-            base_footprint:
-              {}
-            base_link:
-              chassis:
-                bucket_mount:
-                  bucket_frame:
-                    bucket_lift_arm:
-                      bucket_body:
-                        bucket_jaw:
-                          {}
-                        bucket_jaw_encoder_left:
-                          {}
-                        bucket_jaw_encoder_right:
-                          {}
-                        bucket_ram_jaw_left_barrel:
-                          bucket_ram_jaw_left_shaft:
-                            {}
-                        bucket_ram_jaw_right_barrel:
-                          bucket_ram_jaw_right_shaft:
-                            {}
-                      bucket_ram_tilt_barrel:
-                        bucket_ram_tilt_shaft:
-                          {}
-                      bucket_tilt_encoder_left:
-                        {}
-                      bucket_tilt_encoder_right:
-                        {}
-                    bucket_lift_encoder_left:
-                      {}
-                    bucket_lift_encoder_right:
-                      {}
-                    bucket_ram_lift_left_barrel:
-                      bucket_ram_lift_left_shaft:
-                        {}
-                    bucket_ram_lift_right_barrel:
-                      bucket_ram_lift_right_shaft:
-                        {}
-                  bucket_lift_arm_pivot_left_lower:
-                    {}
-                  bucket_lift_arm_pivot_left_upper:
-                    {}
-                  bucket_lift_arm_pivot_right_lower:
-                    {}
-                  bucket_lift_arm_pivot_right_upper:
-                    {}
-                flange_bearing:
-                  differential_bar:
-                    {}
-                left_rocker:
-                  front_left_motor:
-                    front_left_wheel:
-                      {}
-                  rear_left_motor:
-                    rear_left_wheel:
-                      {}
-                right_rocker:
-                  front_right_motor:
-                    front_right_wheel:
-                      {}
-                  rear_right_motor:
-                    rear_right_wheel:
-                      {}
-                sensor_mount:
-                  camera_bottom_screw_frame:
-                    camera_link:
-                      camera_accel_frame:
-                        camera_accel_optical_frame:
-                          {}
-                      camera_color_frame:
-                        camera_color_optical_frame:
-                          {}
-                      camera_depth_frame:
-                        camera_depth_optical_frame:
-                          {}
-                      camera_gyro_frame:
-                        camera_gyro_optical_frame:
-                          camera_imu_optical_frame:
-                            {}
-                      camera_infra1_frame:
-                        camera_infra1_optical_frame:
-                          {}
-                      camera_infra2_frame:
-                        camera_infra2_optical_frame:
-                          {}
-                  livox_base:
-                    livox_frame:
-                      livox_imu_frame:
-                        {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -759,8 +666,7 @@ Visualization Manager:
       Enabled: true
       Name: Arena Zones
       Namespaces:
-        arena_zone_labels: true
-        arena_zones: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -914,25 +820,25 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 8.126937866210938
+      Class: rviz_default_plugins/Orbit
+      Distance: 8.409383773803711
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.16902589797973633
-        Y: -0.11852605640888214
-        Z: -4.76837158203125e-07
+        X: 0.9642329216003418
+        Y: -0.11897046118974686
+        Z: 1.1989116668701172
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5852010250091553
-      Target Frame: base_footprint
-      Value: ThirdPersonFollower (rviz_default_plugins)
+      Pitch: 0.5852009654045105
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz_default_plugins)
       Yaw: 3.141200065612793
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
@@ -993,7 +899,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001fd00000395fc0200000007fb000000100044006900730070006c006100790073010000003f000000cc000000cc00fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb000000180054006f0070006900630020004800650061006c007400680100000111000001780000008800fffffffb0000001c004d0061006300680069006e00650020004800650061006c00740068010000028f000000bc0000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fc0000035100000083000000830100001efa000000000100000002fb0000001200560069006500770020004c006f0063006b0100000000ffffffff000000db00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e00630079010000000000000156000000b000ffffff00000001000001c800000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000000ba0000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000000ff0000010a0000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c010000020f000001c5000001c500ffffff000003af0000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000002000000000000015600000395fc0200000008fb000000100044006900730070006c006100790073010000003f000000cc000000cc00fffffffb000000180054006f0070006900630020004800650061006c007400680100000111000000b70000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000001c004d0061006300680069006e00650020004800650061006c0074006801000001ce0000009e0000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000016004c0069006e006b0020004800650061006c007400680100000272000000cf000000c000fffffffc000003470000008d000000830100001efa000000000100000002fb0000001200560069006500770020004c006f0063006b010000000000000156000000db00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000ffffffff000000b000ffffff00000001000001c800000395fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000000ba0000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000000ff0000010a0000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c010000020f000001c5000001c500ffffff000004560000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
