@@ -58,6 +58,8 @@ pkgs.mkShell {
           joint-state-publisher-gui
           joint-trajectory-controller
           joy
+          launch
+          launch-ros
           mecanum-drive-controller
           message-filters
           nav-msgs

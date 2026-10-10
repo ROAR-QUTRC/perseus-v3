@@ -16,6 +16,7 @@ final: prev: {
   perseus = final.callPackage ./perseus.nix { };
   rviz-plugins = final.callPackage ./rviz-plugins.nix { };
   sensors = final.callPackage ./sensors.nix { };
+  system-monitor = final.callPackage ./system-monitor.nix { };
   teleop = final.callPackage ./teleop.nix { };
   vision = final.callPackage ./vision.nix { };
   watchdog = final.callPackage ./watchdog.nix { };

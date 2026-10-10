@@ -17,6 +17,7 @@
   rviz-plugins,
   sensors,
   slam-toolbox,
+  system-monitor,
   teleop,
   vision,
   watchdog,
@@ -47,6 +48,7 @@ buildRosPackage rec {
     rviz-plugins
     sensors
     slam-toolbox
+    system-monitor
     teleop
     vision
     watchdog
