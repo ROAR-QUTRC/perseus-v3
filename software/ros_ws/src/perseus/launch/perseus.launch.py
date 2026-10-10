@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    GroupAction,
     IncludeLaunchDescription,
     OpaqueFunction,
 )
@@ -131,6 +132,15 @@ def generate_launch_description():
                 "~/can_logs for offline analysis"
             ),
         ),
+        DeclareLaunchArgument(
+            "system_monitor",
+            default_value="true",
+            description=(
+                "Publish this machine's CPU, memory and temperature on "
+                "/<hostname>/system_health. Turn off if localisation.launch.py "
+                "already does so on the same machine"
+            ),
+        ),
     ]
 
     def bucket_hardware_plugin(context):
@@ -249,12 +259,35 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("can_logger")),
     )
 
+    # Scoped so the monitor's device_name / publish_rate_hz arguments do not leak into
+    # the includes around it.
+    system_monitor_launch = GroupAction(
+        [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    [
+                        PathJoinSubstitution(
+                            [
+                                FindPackageShare("system_monitor"),
+                                "launch",
+                                "system_monitor.launch.py",
+                            ]
+                        )
+                    ]
+                )
+            )
+        ],
+        scoped=True,
+        condition=IfCondition(LaunchConfiguration("system_monitor")),
+    )
+
     launch_files = [
         OpaqueFunction(function=robot_state_publisher),
         OpaqueFunction(function=controllers),
         twist_mux_launch,
         rosbridge_launch,
         can_logger,
+        system_monitor_launch,
     ]
 
     return LaunchDescription(arguments + launch_files)

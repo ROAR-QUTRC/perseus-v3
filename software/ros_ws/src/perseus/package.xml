@@ -27,6 +27,7 @@
   <!-- payload:=bucket: the bucket's hardware plugin, controllers and teleop -->
   <exec_depend>payloads</exec_depend>
   <exec_depend>can_logger</exec_depend>
+  <exec_depend>system_monitor</exec_depend>
 
   <!-- launching -->
   <exec_depend>ros2launch</exec_depend>

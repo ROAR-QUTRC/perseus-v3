@@ -65,4 +65,13 @@
       it moves freely.
     </description>
   </class>
+  <class
+    name="rviz_plugins/MachineHealthPanel"
+    type="rviz_plugins::MachineHealthPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Table of CPU, memory and temperature for every machine publishing
+      /&lt;device_name&gt;/system_health, found automatically.
+    </description>
+  </class>
 </library>

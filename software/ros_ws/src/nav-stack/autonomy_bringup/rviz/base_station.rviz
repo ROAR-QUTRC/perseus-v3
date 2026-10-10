@@ -26,6 +26,8 @@ Panels:
   - Class: rviz_plugins/TopicHealthPanel
     Name: Topic Health
     Topic: /health_check/health
+  - Class: rviz_plugins/MachineHealthPanel
+    Name: Machine Health
   - Class: rviz_plugins/ArenaMinimapPanel
     LayoutPath: ""
     Name: Arena Minimap
@@ -983,6 +985,8 @@ Visualization Manager:
         Value: ThirdPersonFollower (rviz_default_plugins)
         Yaw: 3.141200065612793
 Window Geometry:
+  Machine Health:
+    collapsed: false
   Arena Minimap:
     collapsed: false
   Detection Overlay:

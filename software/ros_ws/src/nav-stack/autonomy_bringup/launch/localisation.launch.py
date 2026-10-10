@@ -296,6 +296,18 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
+    # Publishes this machine's CPU, memory and temperature on /<device_name>/system_health
+    # for the base station's Machine Health panel. device_name defaults to the hostname.
+    # Gated by `system_monitor` so a machine running this and perseus.launch.py together
+    # can turn one of them off instead of publishing twice.
+    system_monitor_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("system_monitor"), "launch", "system_monitor.launch.py"]
+            )
+        )
+    )
+
     # Crops the ceiling (anything over 1.5 m above odom) out of the live Livox scan and
     # /Laser_map, onto /livox/lidar/cropped and /Laser_map/cropped. The traversability
     # nodes and the downlink below read those; BIEVR-LIO keeps the raw scan. It needs
@@ -351,6 +363,11 @@ def launch_setup(context, *args, **kwargs):
             GroupAction([arena_server_launch], scoped=True),
             GroupAction([watchdog_launch], scoped=True),
             GroupAction([health_check_launch], scoped=True),
+            GroupAction(
+                [system_monitor_launch],
+                scoped=True,
+                condition=IfCondition(LaunchConfiguration("system_monitor")),
+            ),
             GroupAction([height_crop_launch], scoped=True),
             GroupAction([point_cloud_compress_launch], scoped=True),
         ]
@@ -406,6 +423,14 @@ def generate_launch_description():
         "the infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
         "when the drivers are already running from sensors/sensors.launch.py, in which case "
         "the vision nodes run standalone instead. See the module docstring.",
+    )
+
+    declare_system_monitor = DeclareLaunchArgument(
+        "system_monitor",
+        default_value="true",
+        description="Publish this machine's CPU, memory and temperature on "
+        "/<hostname>/system_health. Turn off if perseus.launch.py already does so on the "
+        "same machine.",
     )
 
     declare_interface = DeclareLaunchArgument(
@@ -502,6 +527,7 @@ def generate_launch_description():
             declare_bievr_params_file,
             declare_enable_sensors,
             declare_interface,
+            declare_system_monitor,
             *declare_detectors,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),
