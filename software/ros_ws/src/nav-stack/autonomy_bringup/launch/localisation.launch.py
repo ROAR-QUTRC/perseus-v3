@@ -303,7 +303,11 @@ def launch_setup(context, *args, **kwargs):
     system_monitor_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("system_monitor"), "launch", "system_monitor.launch.py"]
+                [
+                    FindPackageShare("system_monitor"),
+                    "launch",
+                    "system_monitor.launch.py",
+                ]
             )
         )
     )

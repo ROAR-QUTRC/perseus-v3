@@ -115,7 +115,8 @@ namespace system_monitor
     class SystemMonitorNode : public rclcpp::Node
     {
     public:
-        SystemMonitorNode() : rclcpp::Node("system_monitor")
+        SystemMonitorNode()
+            : rclcpp::Node("system_monitor")
         {
             const double publish_rate_hz = declare_parameter("publish_rate_hz", 1.0);
             _device_name = declare_parameter("device_name", std::string{});
@@ -133,7 +134,8 @@ namespace system_monitor
 
             const auto period = std::chrono::duration<double>(
                 1.0 / std::max(publish_rate_hz, 0.01));
-            _timer = create_wall_timer(period, [this] { _publish(); });
+            _timer = create_wall_timer(period, [this]
+                                       { _publish(); });
         }
 
     private:
