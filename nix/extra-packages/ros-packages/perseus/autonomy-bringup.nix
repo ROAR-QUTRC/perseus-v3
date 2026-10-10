@@ -10,6 +10,7 @@
   footprint-broadcaster,
   global-traversability,
   health-check,
+  link-monitor,
   local-traversability,
   navigation2,
   rclcpp,
@@ -41,6 +42,7 @@ buildRosPackage rec {
     footprint-broadcaster
     global-traversability
     health-check
+    link-monitor
     local-traversability
     navigation2
     rclcpp
