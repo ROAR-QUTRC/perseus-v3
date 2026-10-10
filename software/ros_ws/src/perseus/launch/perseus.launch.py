@@ -101,7 +101,7 @@ def generate_launch_description():
             "safe_speed",
             default_value="true",
             description=(
-                "Reduced-speed mode: caps the rover at 0.8 m/s and 0.4 rad/s. "
+                "Reduced-speed mode: caps the rover at 0.8 m/s and 1.0 rad/s. "
                 "Enforced in the diff drive controller, so it binds the joystick, "
                 "the web UI and nav2 alike. See perseus/config/safe_speed.yaml"
             ),

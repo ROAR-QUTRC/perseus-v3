@@ -516,11 +516,11 @@ controller_server:
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
       # 0.61 rad/s at the wheel; below ~0.15 the wheels stop mid-rotation and it hunts.
-      # 0.175 = 0.25 * 0.7. NOTE THE MARGIN: the note above says do not go below about
-      # 0.15 rad/s of body yaw or the wheels stop turning mid-rotation. 0.175 is only
-      # 0.025 above that, so this is as slow as in-place turning can safely go. A
-      # further reduction must come from somewhere else, not from this value.
-      rotate_to_heading_angular_vel: 0.2
+      # 0.5: was 0.175 (0.25 * 0.7), which made a 90 deg pivot take ~9 s and sat only 0.025
+      # above the stall floor. 0.5 is ~3 s per 90 deg and well clear of stalling; overshoot
+      # grows with this, but stays inside yaw_goal_tolerance. Do not go below about 0.15
+      # rad/s of body yaw or the wheels stop turning mid-rotation.
+      rotate_to_heading_angular_vel: 0.5
       # Must be matched by velocity_smoother's max_accel below; the lower one binds.
       max_angular_accel: 3.2
       # Cannot be true alongside use_rotate_to_heading; the controller rejects it.
@@ -547,9 +547,8 @@ controller_server:
       primary_controller: "dwb_core::DWBLocalPlanner"
       angular_dist_threshold: 0.785
       forward_sampling_distance: 0.5
-      # max_vel_theta. RPP pivots at 0.175 (see FollowPath), which is most of its slow time;
-      # 0.28 is still well above the ~0.15 rad/s stall.
-      rotate_to_heading_angular_vel: 0.28
+      # max_vel_theta, and the same rate RPP pivots at (see FollowPath).
+      rotate_to_heading_angular_vel: 0.5
       # Matches acc_lim_theta below, so the pivot ramps as gently as DWB's own turns.
       max_angular_accel: 1.0
       simulate_ahead_time: 1.0
@@ -563,10 +562,11 @@ controller_server:
       # sensing behind. PreferForward below keeps reversing the exception, not the habit.
       min_vel_x: -0.15
       min_vel_y: 0.0
-      # y is zero throughout: the rover cannot strafe. Limits match safe_speed.yaml.
+      # y is zero throughout: the rover cannot strafe. Theta stays under velocity_smoother's
+      # 0.6 ceiling and safe_speed.yaml's 1.0.
       max_vel_x: 0.28
       max_vel_y: 0.0
-      max_vel_theta: 0.28
+      max_vel_theta: 0.5
       max_speed_xy: 0.28
       # STALL: both floors sit above the ESCs' 0.05 m/s and 0.14 rad/s.
       min_speed_xy: 0.06
@@ -811,10 +811,12 @@ velocity_smoother:
     # [x, y, theta]; y is zero because the rover cannot strafe. Theta must match
     # safe_speed.yaml or this becomes a second, hidden ceiling -- at 0.2 it silently fixed
     # the minimum turning radius at 0.4/0.2 = 2.0 m and no controller tuning could help.
-    # [0.28, 0.0, 0.28] = 30% off. This is the binding ceiling for BOTH controllers, so
-    # it is the one value to change if the reduction ever needs undoing in a hurry.
-    max_velocity: [0.28, 0.0, 0.28]
-    min_velocity: [-0.28, 0.0, -0.28]
+    # x 0.28 = 30% off cruise. This is the binding ceiling for BOTH controllers, so it is the
+    # one value to change if the reduction ever needs undoing in a hurry. Theta was 0.28,
+    # which held every pivot and arc to ~16 deg/s; 0.6 leaves headroom over the controllers'
+    # 0.5 so it does not clamp them, and is still under safe_speed.yaml's 1.0.
+    max_velocity: [0.28, 0.0, 0.6]
+    min_velocity: [-0.28, 0.0, -0.6]
     # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
     max_accel: [1.0, 0.0, 3.2]
     max_decel: [-1.0, 0.0, -3.2]

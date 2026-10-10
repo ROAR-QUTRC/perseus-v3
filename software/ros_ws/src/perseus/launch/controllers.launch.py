@@ -247,7 +247,7 @@ def generate_launch_description():
             "safe_speed",
             default_value="true",
             description=(
-                "Cap the rover at 0.8 m/s and 0.4 rad/s in the diff drive "
+                "Cap the rover at 0.8 m/s and 1.0 rad/s in the diff drive "
                 "controller's speed limiter, so every command source is limited "
                 "at once. See config/safe_speed.yaml"
             ),
