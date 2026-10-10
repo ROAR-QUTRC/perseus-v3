@@ -69,6 +69,8 @@ rosidl_generate_interfaces(
   "msg/TopicHealth.msg"
   "msg/SystemHealth.msg"
   "msg/MachineHealth.msg"
+  "msg/DeviceLink.msg"
+  "msg/LinkHealth.msg"
   "msg/OrbSlamOdometryInfo.msg"
   DEPENDENCIES
   geometry_msgs
