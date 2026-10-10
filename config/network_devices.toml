@@ -44,23 +44,12 @@ enabled = true
 
 # The hostnames below are placeholders; replace each with that machine's `hostname`.
 
-# Luca's machine
-[luca-laptop]
-interface = "eth0"
-ip = "192.168.2.14"
-enabled = false
-
 # Dan's machine
 [cookie]
 interface = "enp6s0f4u1"
 ip = "192.168.2.51"
 enabled = true
 
-# Shaan's machine
-[shaan-laptop]
-interface = "eth0"
-ip = "192.168.2.140"
-enabled = false
 
 # Mozz's machine
 [latitude]
