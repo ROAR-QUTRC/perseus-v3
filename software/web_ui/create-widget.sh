@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ "$EUID" -eq 0 ]; then
   echo "Error: Please run this script as a non-root user"
