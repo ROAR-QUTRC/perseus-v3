@@ -37,12 +37,23 @@ let
           </Interfaces>
         </General>
         <Discovery>
+          <!-- With multicast off, a machine that drops off and comes back is found again
+               only at the next announcement, 30 s by default. A second makes a radio
+               dropout recover almost at once, for a trickle of extra traffic. -->
+          <SPDPInterval>1s</SPDPInterval>
           <Peers>
     ${lib.concatMapStringsSep "\n" (
       name: "        <!-- ${name} -->\n        <Peer address=\"${peers.${name}.ip}\"/>"
     ) (lib.attrNames peers)}
           </Peers>
         </Discovery>
+        <Internal>
+          <!-- Big samples (clouds, images) arrive faster than a default-sized socket
+               buffer drains, and the overflow is dropped on this machine and looks like
+               network loss. Cyclone can only get this much if the kernel allows it:
+               net.core.rmem_max must be at least as large (the shell warns if not). -->
+          <SocketReceiveBufferSize min="10MB"/>
+        </Internal>
       </Domain>
     </CycloneDDS>
   '';
@@ -93,6 +104,14 @@ in
         echo    "           It holds:$dds_held"
         echo    "           Other machines will not discover this one until the two agree."
       fi
+    fi
+    # Cyclone asks for a 10 MB receive buffer (see ddsConfig). The kernel quietly caps the
+    # request at net.core.rmem_max, so a low limit costs throughput with no error.
+    dds_rmem=$(cat /proc/sys/net/core/rmem_max 2>/dev/null || echo 0)
+    if [ "$dds_rmem" -lt 10485760 ]; then
+      echo -e "\e[33m  WARNING: net.core.rmem_max is $dds_rmem, below the 10 MB Cyclone asks for.\e[0m"
+      echo    "           Large messages may be dropped locally. Raise it with:"
+      echo    "             sudo sysctl -w net.core.rmem_max=16777216"
     fi
     echo    "  peers:     ${lib.concatStringsSep " " peerAddresses}"
   '';
