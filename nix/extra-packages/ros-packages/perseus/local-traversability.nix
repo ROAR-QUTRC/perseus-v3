@@ -3,6 +3,7 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  ament-cmake-gtest,
   ament-lint-auto,
   ament-lint-common,
   geometry-msgs,
@@ -24,6 +25,7 @@ buildRosPackage rec {
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   checkInputs = [
+    ament-cmake-gtest
     ament-lint-auto
     ament-lint-common
   ];

@@ -29,6 +29,7 @@ pkgs.mkShell {
           # Dependencies from package.xml files
           actuator-msgs
           ament-cmake
+          ament-cmake-gtest
           ament-cmake-python
           ament-index-cpp
           ament-lint-auto
