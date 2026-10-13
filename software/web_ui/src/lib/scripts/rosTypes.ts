@@ -1,6 +1,28 @@
+export interface StampedHeaderType {
+  stamp?: object; // filled by rosbridge
+  frame_id?: string;
+}
+
 // std_msgs types
 export interface Float64MultiArrayType {
   data: Array<number>;
+}
+export interface TwistType {
+  linear: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  angular: {
+    x: number;
+    y: number;
+    z: number;
+  };
+}
+
+export interface TwistStampedType {
+  header: StampedHeaderType;
+  twist: TwistType;
 }
 
 // actuator_msgs types

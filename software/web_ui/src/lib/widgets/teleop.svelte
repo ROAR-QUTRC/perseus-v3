@@ -35,11 +35,12 @@
 	import * as ROSLIB from 'roslib';
 	import { onMount } from 'svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import type { TwistStampedType } from '$lib/scripts/rosTypes';
 
 	// wrapper for widget setting
 	let joystickRadius = $derived<number>(Number(settings.groups.General.joyStickRadius.value));
 
-	let topic: ROSLIB.Topic | null = null;
+	let topic: ROSLIB.Topic<TwistStampedType> | null = null;
 	let intervalHandle: NodeJS.Timeout | null = null;
 	let lockingTimeoutHandle: NodeJS.Timeout | null = null;
 	let joystickValue = { x: 0, y: 0 };

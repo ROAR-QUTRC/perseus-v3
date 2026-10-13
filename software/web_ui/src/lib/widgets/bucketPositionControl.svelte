@@ -18,23 +18,38 @@
 	import CanvasWrapper from './shared/canvasWrapper.svelte';
 	import { onMount } from 'svelte';
 
+	const WIDTH = 900;
+	const HEIGHT = 600;
+
+	const SCALE = 0.6;
+
+	const HALF_BASE_WIDTH = 120 * SCALE;
+	const ACTUATOR_SLEEVE_LENGTH = 350 * SCALE;
+	const ACTUATOR_ARM_LENGTH = 286 * SCALE;
+	const CENTRAL_MEMBER_LENGTH = 750 * SCALE;
+	const LIFT_ACTUATOR_OFFSET = 117 * SCALE;
+	const TILT_ACTUATOR_OFFSET = 250 * SCALE;
+	const BUCKET_BASE = 140 * SCALE;
+	const BUCKET_DEPTH = 100 * SCALE;
+	const X_OFFSET = 400 * SCALE;
+
 	let presets = $state<
 		Array<{
 			name: string;
-			canvas: CanvasApi | null;
 			jaw: number;
 			tilt: number;
 			lift: number;
 		}>
 	>([
-		{ name: 'Home', canvas: null, jaw: 0, tilt: 0, lift: 0 },
-		{ name: 'Preset 1', canvas: null, jaw: 10, tilt: 20, lift: 30 },
-		{ name: 'Preset 2', canvas: null, jaw: -10, tilt: -20, lift: -30 }
+		{ name: 'Home', jaw: 0, tilt: 0, lift: 0 },
+		{ name: 'Max', jaw: 45, tilt: 90, lift: -10 },
+		{ name: 'Min', jaw: 0, tilt: -50, lift: 40 },
+		{ name: 'Preset 3', jaw: 30, tilt: 15, lift: 15 },
+		{ name: 'Preset 4', jaw: 60, tilt: 20, lift: 30 }
 	]);
 
 	const angleOffset = { jaw: 180, tilt: 255, lift: 197 };
 
-	let canvas = $state<CanvasApi | null>(null);
 	let currentAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
 	let targetAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
 
@@ -57,26 +72,12 @@
 		return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 	};
 
-	const HALF_BASE_WIDTH = 120;
-	const ACTUATOR_SLEEVE_LENGTH = 350;
-	const ACTUATOR_ARM_LENGTH = 286;
-	const CENTRAL_MEMBER_LENGTH = 750;
-	const LIFT_ACTUATOR_OFFSET = 117;
-	const TILT_ACTUATOR_OFFSET = 250;
-	const BUCKET_BASE = 140;
-	const BUCKET_DEPTH = 100;
-	const X_OFFSET = 400;
-
-	let virtualAngles = $derived({
-		jaw: -(currentAngles.jaw + angleOffset.jaw),
-		tilt: currentAngles.tilt + angleOffset.tilt,
-		lift: currentAngles.lift + angleOffset.lift
-	});
-
-	let virtualTargets = $derived({
-		jaw: -(targetAngles.jaw + angleOffset.jaw),
-		tilt: targetAngles.tilt + angleOffset.tilt,
-		lift: targetAngles.lift + angleOffset.lift
+	// Real joint angles -> drawing angles. Presets need this too.
+	type Angles = { jaw: number; tilt: number; lift: number };
+	const toVirtual = (a: Angles): Angles => ({
+		jaw: -(a.jaw + angleOffset.jaw),
+		tilt: a.tilt + angleOffset.tilt,
+		lift: a.lift + angleOffset.lift
 	});
 
 	const drawBucket = (
@@ -84,7 +85,7 @@
 		angles: { jaw: number; tilt: number; lift: number },
 		opacity: number
 	) => {
-		console.log('drawBucket', angles, opacity);
+		console.log(canvas);
 		canvas.setOpacity(opacity);
 		// base plate center is reference point
 		const baseCenter = { x: X_OFFSET, y: 0 };
@@ -93,20 +94,13 @@
 		canvas.drawLine(baseCenter.x, baseCenter.y, baseTop.x, baseTop.y, 'grey', 4);
 		canvas.drawLine(baseCenter.x, baseCenter.y, baseBottom.x, baseBottom.y, 'grey', 4);
 		// center member
-		canvas.drawLineAngle(
-			X_OFFSET,
-			HALF_BASE_WIDTH,
-			angles.lift,
-			CENTRAL_MEMBER_LENGTH,
-			'lightgrey',
-			4
-		);
 		const memberEndPoint = polarToCartesian(
 			CENTRAL_MEMBER_LENGTH,
 			angles.lift,
 			baseTop.x,
 			baseTop.y
 		);
+		canvas.drawLine(baseTop.x, baseTop.y, memberEndPoint.x, memberEndPoint.y, 'lightgrey', 4);
 		// bucket
 		const bucketTop = polarToCartesian(
 			BUCKET_BASE,
@@ -127,9 +121,15 @@
 			jawRightBase.y
 		);
 		canvas.drawLine(memberEndPoint.x, memberEndPoint.y, bucketTop.x, bucketTop.y, 'dimgrey', 4);
-		canvas.drawLine(bucketTop.x, bucketTop.y, jawRightBase.x, jawRightBase.y, 'dimgrey', 4);
-		canvas.drawLine(jawRightBase.x, jawRightBase.y, jawLeftBase.x, jawLeftBase.y, 'dimgrey', 4);
-		canvas.drawLine(jawLeftBase.x, jawLeftBase.y, bucketTop.x, bucketTop.y, 'dimgrey', 4);
+		canvas.fillTriangle(
+			bucketTop.x,
+			bucketTop.y,
+			jawRightBase.x,
+			jawRightBase.y,
+			jawLeftBase.x,
+			jawLeftBase.y,
+			'dimgrey'
+		);
 
 		// lift actuator
 		const liftEndPoint = polarToCartesian(
@@ -184,11 +184,49 @@
 		);
 	};
 
+	const drawCentered = (c: CanvasApi, angles: Angles, opacity: number) => {
+		// Pass 1: record the min and max y of everything drawn
+		let min = Infinity;
+		let max = -Infinity;
+		const track = (...ys: number[]) => {
+			min = Math.min(min, ...ys);
+			max = Math.max(max, ...ys);
+		};
+		const probe = {
+			setOpacity() {},
+			drawLine: (_x1: number, y1: number, _x2: number, y2: number) => track(y1, y2),
+			fillTriangle: (_x1: number, y1: number, _x2: number, y2: number, _x3: number, y3: number) =>
+				track(y1, y2, y3),
+			fillRect: (_x1: number, y1: number, _x2: number, y2: number) => track(y1, y2)
+		} as unknown as CanvasApi;
+		drawBucket(probe, angles, opacity);
+
+		// Pass 2: draw for real, shifted so the drawing is centred on y = 0
+		const dy = -(min + max) / 2;
+		drawBucket(
+			{
+				...c,
+				drawLine: (x1, y1, x2, y2, col, w) => c.drawLine(x1, y1 + dy, x2, y2 + dy, col, w),
+				fillTriangle: (x1, y1, x2, y2, x3, y3, col) =>
+					c.fillTriangle(x1, y1 + dy, x2, y2 + dy, x3, y3 + dy, col),
+				fillRect: (x1, y1, x2, y2, col) => c.fillRect(x1, y1 + dy, x2, y2 + dy, col)
+			},
+			angles,
+			opacity
+		);
+	};
+
+	// ondraw runs on mount, on resize, and whenever the $state it reads changes.
+	const drawMain = (c: CanvasApi) => {
+		drawBucket(c, toVirtual(targetAngles), 0.5);
+		drawBucket(c, toVirtual(currentAngles), 1);
+	};
+
+	// handle ros2 connection
 	$effect(() => {
-		if (!canvas) return;
-		canvas.clear();
-		drawBucket(canvas, virtualTargets, 0.5);
-		drawBucket(canvas, virtualAngles, 1);
+		const ros = getRosConnection();
+		if (ros) {
+		}
 	});
 
 	onMount(() => {
@@ -203,21 +241,79 @@
 	});
 </script>
 
-<div class="flex flex-row items-center gap-2">
-	<div class="w-4/5 border">
-		<CanvasWrapper bind:api={canvas} worldWidth={600} worldHeight={600} />
-		<p>
-			Current Angles:<br />Jaw: {currentAngles.jaw}, Tilt: {currentAngles.tilt}, Lift: {currentAngles.lift}
-		</p>
-	</div>
-	<div class="flex h-full flex-col overflow-scroll border">
-		{#each presets as preset}
-			<CanvasWrapper
-				ondraw={(c) => drawBucket(c, { jaw: preset.jaw, tilt: preset.tilt, lift: preset.lift }, 1)}
-				worldWidth={200}
-				worldHeight={100}
-			/>
-			<p>{preset.name}</p>
-		{/each}
+<div class="flex h-full w-full flex-col">
+	<div class="h-100 flex w-full flex-1 gap-2 overflow-y-hidden">
+		<div class="relative min-w-0 flex-1">
+			<div class="absolute inset-0">
+				<CanvasWrapper ondraw={drawMain} worldWidth={WIDTH} worldHeight={HEIGHT} />
+			</div>
+			<p class="absolute bottom-1 left-2 text-sm">
+				Jaw: {currentAngles.jaw.toFixed(1)}, Tilt: {currentAngles.tilt.toFixed(1)}, Lift: {currentAngles.lift.toFixed(
+					1
+				)}
+			</p>
+		</div>
+
+		<div class="presets flex w-64 shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl border pb-2">
+			{#each presets as preset}
+				<button
+					class="preset block pt-2 text-left"
+					onclick={() => (targetAngles = { jaw: preset.jaw, tilt: preset.tilt, lift: preset.lift })}
+				>
+					<span class="relative flex aspect-[3/2] w-full flex-col">
+						<p class="text-center">{preset.name}</p>
+						<span class="absolute inset-0">
+							<CanvasWrapper
+								ondraw={(c) => drawCentered(c, toVirtual(preset), 1)}
+								worldWidth={WIDTH}
+								worldHeight={HEIGHT}
+							/>
+						</span>
+						<p class="mt-auto text-center text-sm opacity-65">
+							Jaw: {preset.jaw.toFixed(1)}, Tilt: {preset.tilt.toFixed(1)}, Lift: {preset.lift.toFixed(
+								1
+							)}
+						</p>
+					</span>
+				</button>
+			{/each}
+		</div>
 	</div>
 </div>
+
+<style>
+	.preset:not(:first-child) {
+		border-top: 1px solid;
+		border-top-color: inherit;
+	}
+
+	/* make scroll bar nice in presets */
+	.presets::-webkit-scrollbar {
+		width: 14px;
+	}
+	.presets::-webkit-scrollbar-button {
+		display: none; /* removes the up/down arrows */
+	}
+	.presets::-webkit-scrollbar-track {
+		background: transparent;
+		margin-block: 12px; /* keeps the ends clear of the rounded container corners */
+	}
+	.presets::-webkit-scrollbar-thumb {
+		background: #888;
+		border-radius: 9999px; /* fully circular ends */
+		border: 4px solid transparent; /* with background-clip, makes the pill 4px wide, inset from the edge */
+		background-clip: content-box;
+	}
+	.presets::-webkit-scrollbar-thumb:hover {
+		background: #bbb;
+		background-clip: content-box;
+	}
+
+	/* Firefox has no pseudo-elements: thin and coloured is the most it supports */
+	@supports not selector(::-webkit-scrollbar) {
+		.presets {
+			scrollbar-width: thin;
+			scrollbar-color: #888 transparent;
+		}
+	}
+</style>

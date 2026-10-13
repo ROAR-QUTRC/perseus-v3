@@ -12,6 +12,16 @@
 		drawPoint(x: number, y: number, radius?: number, color?: string): void;
 		setOpacity(opacity: number): void;
 		eventToWorld(e: MouseEvent): { x: number; y: number };
+		fillTriangle(
+			x1: number,
+			y1: number,
+			x2: number,
+			y2: number,
+			x3: number,
+			y3: number,
+			color?: string
+		): void;
+		fillRect(x1: number, y1: number, x2: number, y2: number, color?: string): void;
 		clear(): void;
 	}
 </script>
@@ -88,10 +98,42 @@
 	function setOpacity(opacity: number) {
 		ctx.globalAlpha = opacity;
 	}
+	function fillTriangle(
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		x3: number,
+		y3: number,
+		color = '#fff'
+	) {
+		ctx.beginPath();
+		ctx.moveTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.lineTo(x3, y3);
+		ctx.closePath();
+		ctx.fillStyle = color;
+		ctx.fill();
+	}
+
+	// Two opposite corners, e.g. bottom-left and top-right. Axis-aligned.
+	function fillRect(x1: number, y1: number, x2: number, y2: number, color = '#fff') {
+		ctx.fillStyle = color;
+		ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+	}
 
 	$effect(() => {
 		ctx = canvas.getContext('2d')!;
-		api = { drawLine, drawLineAngle, eventToWorld, clear, drawPoint, setOpacity };
+		api = {
+			drawLine,
+			drawLineAngle,
+			eventToWorld,
+			clear,
+			drawPoint,
+			setOpacity,
+			fillTriangle,
+			fillRect
+		};
 		return () => (api = null);
 	});
 
