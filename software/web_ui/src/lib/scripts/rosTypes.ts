@@ -27,13 +27,19 @@ export interface TwistStampedType {
 
 // actuator_msgs types
 export interface ActuatorsMessageType {
-  header: {
-    stamp?: object; // filled by rosbridge
-    frame_id?: string;
-  };
+  header: StampedHeaderType;
   position: Array<number>; // float64
   velocity: Array<number>; // float64
   normalized: Array<number>; // float64
+}
+
+// sensor_msgs types
+export interface JointStateType {
+  header: StampedHeaderType;
+  name: Array<string>;
+  position: Array<number>; // float64
+  velocity: Array<number>; // float64
+  effort: Array<number>; // float64
 }
 
 // Service types

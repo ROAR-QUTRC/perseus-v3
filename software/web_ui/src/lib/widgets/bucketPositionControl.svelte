@@ -17,6 +17,35 @@
 	import type { CanvasApi } from './shared/canvasWrapper.svelte';
 	import CanvasWrapper from './shared/canvasWrapper.svelte';
 	import { onMount } from 'svelte';
+	import type { JointStateType, StampedHeaderType } from '$lib/scripts/rosTypes';
+
+	interface ValuesType {
+		positions: Array<number>;
+		velocities: Array<number>;
+		accelerations: Array<number>;
+		effort: Array<number>;
+		time_from_start: { sec: number; nanosec: number };
+	}
+
+	interface ActionFeedbackType {
+		header: StampedHeaderType;
+		joint_names: Array<string>;
+		actual: ValuesType;
+		desired: ValuesType;
+		error: ValuesType;
+	}
+
+	interface ActionResultType {
+		error_code: number;
+		error_string: string;
+	}
+
+	interface ActionGoalType {
+		trajectory: {
+			joint_names: Array<string>;
+			points: Array<Partial<ValuesType>>;
+		};
+	}
 
 	const WIDTH = 900;
 	const HEIGHT = 600;
@@ -32,6 +61,7 @@
 	const BUCKET_BASE = 140 * SCALE;
 	const BUCKET_DEPTH = 100 * SCALE;
 	const X_OFFSET = 400 * SCALE;
+	const angleOffset = { jaw: 180, tilt: 255, lift: 197 };
 
 	let presets = $state<
 		Array<{
@@ -42,16 +72,16 @@
 		}>
 	>([
 		{ name: 'Home', jaw: 0, tilt: 0, lift: 0 },
-		{ name: 'Max', jaw: 45, tilt: 90, lift: -10 },
-		{ name: 'Min', jaw: 0, tilt: -50, lift: 40 },
-		{ name: 'Preset 3', jaw: 30, tilt: 15, lift: 15 },
-		{ name: 'Preset 4', jaw: 60, tilt: 20, lift: 30 }
+		{ name: 'Preset 1', jaw: 10, tilt: 0, lift: 0 },
+		{ name: 'Preset 2', jaw: 60, tilt: 20, lift: 30 },
+		{ name: 'Max', jaw: 45, tilt: 90, lift: 0 },
+		{ name: 'Min', jaw: 0, tilt: -50, lift: 40 }
 	]);
-
-	const angleOffset = { jaw: 180, tilt: 255, lift: 197 };
-
 	let currentAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
 	let targetAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
+
+	let jointState: ROSLIB.Topic<JointStateType> | null = null;
+	let action: ROSLIB.Action<ActionGoalType, ActionFeedbackType, ActionResultType> | null = null;
 
 	const polarToCartesian = (radius: number, degrees: number, xOffset: number, yOffset: number) => {
 		const radians = (degrees * Math.PI) / 180;
@@ -85,7 +115,6 @@
 		angles: { jaw: number; tilt: number; lift: number },
 		opacity: number
 	) => {
-		console.log(canvas);
 		canvas.setOpacity(opacity);
 		// base plate center is reference point
 		const baseCenter = { x: X_OFFSET, y: 0 };
@@ -218,7 +247,7 @@
 
 	// ondraw runs on mount, on resize, and whenever the $state it reads changes.
 	const drawMain = (c: CanvasApi) => {
-		drawBucket(c, toVirtual(targetAngles), 0.5);
+		drawBucket(c, toVirtual(targetAngles), 0.3);
 		drawBucket(c, toVirtual(currentAngles), 1);
 	};
 
@@ -226,18 +255,84 @@
 	$effect(() => {
 		const ros = getRosConnection();
 		if (ros) {
+			jointState = new ROSLIB.Topic({
+				ros: ros,
+				name: '/joint_states_deg',
+				messageType: 'sensor_msgs/JointState'
+			});
+			action = new ROSLIB.Action({
+				ros: ros,
+				name: '/bucket_trajectory_controller/follow_joint_trajectory',
+				actionType: 'control_msgs/action/FollowJointTrajectory'
+			});
+			jointState.subscribe((message: JointStateType) => {
+				const jawIndex = message.name.indexOf('bucket_jaw_joint');
+				const tiltIndex = message.name.indexOf('bucket_tilt_joint');
+				const liftIndex = message.name.indexOf('bucket_lift_joint');
+				if (jawIndex !== -1 && tiltIndex !== -1 && liftIndex !== -1) {
+					currentAngles.jaw = message.position[jawIndex];
+					currentAngles.tilt = message.position[tiltIndex];
+					currentAngles.lift = message.position[liftIndex];
+				}
+			});
+		} else {
+			jointState = null;
+			action = null;
 		}
 	});
 
+	const setTarget = async (angles: Angles) => {
+		targetAngles = angles;
+		if (action) {
+			const goal: ActionGoalType = {
+				trajectory: {
+					joint_names: ['bucket_jaw_joint', 'bucket_tilt_joint', 'bucket_lift_joint'],
+					points: [
+						{
+							positions: [angles.jaw, angles.tilt, angles.lift],
+							time_from_start: { sec: 3, nanosec: 0 }
+						}
+					]
+				}
+			};
+
+			let goalId: string | undefined;
+			const done = new Promise<void>((resolve, reject) => {
+				if (!action) {
+					reject(new Error('action is not available'));
+					return;
+				}
+				goalId = action.sendGoal(
+					goal,
+					(result) => {
+						console.log('Goal result:', result);
+						if (result.error_code === 0) {
+							resolve();
+						} else {
+							reject(new Error(`move failed (${result.error_code}): ${result.error_string}`));
+						}
+					},
+					console.log,
+					(error) => {
+						console.error('Goal error:', error);
+						reject(new Error(error));
+					} // goal rejected, aborted or cancelled
+				);
+				if (goalId === undefined) reject(new Error('goal was not sent'));
+			});
+			await done.catch((error) => console.error('Error sending goal:', error));
+		}
+	};
+
 	onMount(() => {
 		let counter = 0;
-		setInterval(() => {
-			// sine the angles
-			currentAngles.jaw = Math.sin(counter / 50) * 20;
-			currentAngles.tilt = Math.sin(counter / 50) * 20;
-			currentAngles.lift = Math.sin(counter / 50) * 20;
-			counter++;
-		}, 80);
+		// setInterval(() => {
+		// 	// sine the angles
+		// 	currentAngles.jaw = Math.sin(counter / 50) * 20;
+		// 	currentAngles.tilt = Math.sin(counter / 50) * 20;
+		// 	currentAngles.lift = Math.sin(counter / 50) * 20;
+		// 	counter++;
+		// }, 80);
 	});
 </script>
 
@@ -258,7 +353,7 @@
 			{#each presets as preset}
 				<button
 					class="preset block pt-2 text-left"
-					onclick={() => (targetAngles = { jaw: preset.jaw, tilt: preset.tilt, lift: preset.lift })}
+					onclick={() => setTarget({ jaw: preset.jaw, tilt: preset.tilt, lift: preset.lift })}
 				>
 					<span class="relative flex aspect-[3/2] w-full flex-col">
 						<p class="text-center">{preset.name}</p>
@@ -279,6 +374,7 @@
 			{/each}
 		</div>
 	</div>
+	<div class="h-[60px]"></div>
 </div>
 
 <style>
