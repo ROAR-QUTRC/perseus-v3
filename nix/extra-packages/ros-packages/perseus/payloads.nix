@@ -4,25 +4,61 @@
   buildRosPackage,
   actuator-msgs,
   ament-cmake,
-  backward-ros,
+  ament-cmake-gtest,
+  ament-lint-auto,
+  ament-lint-common,
+  controller-interface,
+  controller-manager,
+  controller-manager-msgs,
+  description,
+  hardware-interface,
   hi-can-raw,
+  joint-state-broadcaster,
+  joint-trajectory-controller,
+  pluginlib,
   rclcpp,
+  rclcpp-lifecycle,
+  rclpy,
+  realtime-tools,
+  robot-state-publisher,
   sensor-msgs,
+  std-msgs,
+  std-srvs,
+  xacro,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-payloads";
-  version = "0.0.1";
+  version = "0.2.1";
 
   src = ./../../../../software/ros_ws/src/payloads;
 
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
+  checkInputs = [
+    ament-cmake-gtest
+    ament-lint-auto
+    ament-lint-common
+  ];
   propagatedBuildInputs = [
     actuator-msgs
-    backward-ros
+    controller-interface
+    controller-manager
+    controller-manager-msgs
+    description
+    hardware-interface
     hi-can-raw
+    joint-state-broadcaster
+    joint-trajectory-controller
+    pluginlib
     rclcpp
+    rclcpp-lifecycle
+    rclpy
+    realtime-tools
+    robot-state-publisher
     sensor-msgs
+    std-msgs
+    std-srvs
+    xacro
   ];
   nativeBuildInputs = [ ament-cmake ];
 

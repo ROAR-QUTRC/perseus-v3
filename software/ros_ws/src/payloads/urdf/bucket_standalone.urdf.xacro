@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+  Robot description for the bucket's own controller_manager in the `payloads`
+  namespace. The payload is optional and hot-swappable, so it does not join the
+  drive base's controller_manager.
+
+  Jazzy's controller_manager reads robot_description from a topic published by
+  robot_state_publisher, which rejects a URDF with no links, so the real bucket
+  geometry is included here. The bucket macro parents bucket_mount to `chassis`,
+  so a bare `chassis` link is the root.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="bucket">
+  <xacro:arg name="can_interface" default="can0"/>
+  <xacro:arg name="hardware_plugin" default="payloads/BucketHardware"/>
+
+  <link name="chassis"/>
+
+  <xacro:include filename="$(find description)/urdf/inertia_macros.xacro"/>
+  <xacro:include filename="$(find description)/urdf/bucket.urdf.xacro"/>
+  <xacro:bucket prefix=""/>
+
+  <xacro:include filename="$(find description)/ros2_control/bucket.ros2_control.xacro"/>
+  <xacro:bucket_ros2_control can_interface="$(arg can_interface)" hardware_plugin="$(arg hardware_plugin)"/>
+</robot>

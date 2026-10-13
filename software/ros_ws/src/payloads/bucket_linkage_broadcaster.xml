@@ -1,0 +1,11 @@
+<library path="bucket_linkage_broadcaster">
+  <class
+    name="payloads/BucketLinkageBroadcaster"
+    type="payloads::BucketLinkageBroadcaster"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Publishes the excavation bucket's ram joints on /joint_states, solved from
+      the lift, tilt and jaw position state interfaces.
+    </description>
+  </class>
+</library>

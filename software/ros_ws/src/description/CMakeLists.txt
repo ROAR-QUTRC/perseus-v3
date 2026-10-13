@@ -5,4 +5,7 @@ find_package(ament_cmake REQUIRED)
 
 install(DIRECTORY urdf ros2_control rviz meshes launch
         DESTINATION share/${PROJECT_NAME})
+
+install(PROGRAMS scripts/bucket_ram_follower.py scripts/joint_states_deg.py
+        DESTINATION lib/${PROJECT_NAME})
 ament_package()

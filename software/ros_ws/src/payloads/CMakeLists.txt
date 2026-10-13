@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.23)
 
 project(
   payloads
-  VERSION 0.0.1
+  VERSION 0.2.0
   LANGUAGES CXX)
 
 # credit https://www.kitware.com/cmake-and-the-default-build-type/
@@ -41,10 +41,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs actuator_msgs)
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+    rclcpp
+    hardware_interface
+    pluginlib
+    rclcpp_lifecycle
+    sensor_msgs
+    actuator_msgs
+    std_msgs
+    std_srvs
+    controller_manager_msgs
+    controller_interface
+    realtime_tools)
 
 # packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
+set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
   find_package(${Dependency} REQUIRED)
@@ -66,42 +77,91 @@ endif()
 
 # Find all source files for the executables
 file(GLOB_RECURSE ARM_DRIVER_CODE_SOURCES src/arm_driver/*.cpp)
-file(GLOB_RECURSE BUCKET_CONTROLLER_CODE_SOURCES src/bucket_controller/*.cpp)
+# file(GLOB_RECURSE BUCKET_CONTROLLER_CODE_SOURCES src/bucket_controller/*.cpp)
 file(GLOB_RECURSE BUCKET_DRIVER_CODE_SOURCES src/bucket_driver/*.cpp)
+file(GLOB_RECURSE BUCKET_POSITION_CONTROL_CODE_SOURCES
+     src/bucket_position_control/*.cpp)
+file(GLOB_RECURSE BUCKET_HARDWARE_CODE_SOURCES src/bucket_hardware/*.cpp)
+file(GLOB_RECURSE BUCKET_LINKAGE_BROADCASTER_CODE_SOURCES
+     src/bucket_linkage_broadcaster/*.cpp)
 
 # Add exec targets
 add_executable(arm_driver ${ARM_DRIVER_CODE_SOURCES})
-add_executable(bucket_controller ${BUCKET_CONTROLLER_CODE_SOURCES})
 add_executable(bucket_driver ${BUCKET_DRIVER_CODE_SOURCES})
+add_executable(bucket_position_control ${BUCKET_POSITION_CONTROL_CODE_SOURCES})
+# add_executable(bucket_controller ${BUCKET_CONTROLLER_CODE_SOURCES})
+
+# ROS2_control hardware plugin
+add_library(bucket_hardware SHARED ${BUCKET_HARDWARE_CODE_SOURCES})
+# ROS2_control controller plugin: the ram joints, solved from lift/tilt/jaw
+add_library(bucket_linkage_broadcaster SHARED
+            ${BUCKET_LINKAGE_BROADCASTER_CODE_SOURCES})
 
 # Add include dirs
 target_include_directories(arm_driver
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(bucket_controller
-                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(bucket_driver
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(bucket_position_control
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# target_include_directories(bucket_controller
+#                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(bucket_hardware
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(bucket_linkage_broadcaster
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Add dependencies for the executables
-ament_target_dependencies(arm_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
-                          sensor_msgs)
-ament_target_dependencies(
-  bucket_controller PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS} actuator_msgs
-  sensor_msgs)
-ament_target_dependencies(bucket_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS}
-                          actuator_msgs)
+ament_target_dependencies(arm_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_target_dependencies(bucket_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_target_dependencies(bucket_position_control PUBLIC
+                          ${THIS_PACKAGE_INCLUDE_DEPENDS})
+# ament_target_dependencies(bucket_controller PUBLIC
+#                           ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_target_dependencies(bucket_hardware PUBLIC
+                          ${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_target_dependencies(bucket_linkage_broadcaster PUBLIC
+                          ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 # target_link_libraries(arm_driver PUBLIC st3215_lib)
 target_link_libraries(bucket_driver PUBLIC hi_can_raw)
+target_link_libraries(bucket_position_control PUBLIC hi_can_raw)
+target_link_libraries(bucket_hardware PUBLIC hi_can_raw)
 
 # Install ROS Executable
 install(TARGETS arm_driver DESTINATION lib/${PROJECT_NAME})
-install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
 install(TARGETS bucket_driver DESTINATION lib/${PROJECT_NAME})
+install(TARGETS bucket_position_control DESTINATION lib/${PROJECT_NAME}
+)# install(TARGETS bucket_controller DESTINATION lib/${PROJECT_NAME})
+
+# Install ROS2_control plugins
+install(
+  TARGETS bucket_hardware bucket_linkage_broadcaster
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+# Bench and recovery tools: the vcan rover simulator and the bucket supervisor
+install(PROGRAMS scripts/rover_can_sim.py scripts/bucket_supervisor.py
+        DESTINATION lib/${PROJECT_NAME})
+
+# Registers the plugin with pluginlib via the ament index AND installs the
+# file. A plain install() copies the xml but leaves pluginlib unable to find
+# the class, which fails only at runtime as "class ... does not exist".
+pluginlib_export_plugin_description_file(hardware_interface bucket_hardware.xml)
+pluginlib_export_plugin_description_file(controller_interface
+                                         bucket_linkage_broadcaster.xml)
 
 install(
-  DIRECTORY launch
+  DIRECTORY launch config urdf
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_bucket_linkage test/test_bucket_linkage.cpp)
+  target_include_directories(test_bucket_linkage
+                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endif()
 
 ament_package()

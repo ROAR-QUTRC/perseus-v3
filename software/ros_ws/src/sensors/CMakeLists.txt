@@ -115,6 +115,33 @@ ament_target_dependencies(dust_filter rclcpp)
 
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
 
+# Height Crop Drops points more than max_height_m above the reference frame
+# (odom), so the arena's ceiling or tent canopy reaches neither the terrain
+# costmaps nor the base-station downlink; BIEVR-LIO keeps the raw scan. A
+# component for the same reason as the dust filter, with a standalone wrapper.
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+add_library(height_crop_component SHARED src/height_crop/height_crop.cpp)
+
+target_include_directories(height_crop_component
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_target_dependencies(height_crop_component rclcpp rclcpp_components
+                          sensor_msgs tf2 tf2_ros)
+rclcpp_components_register_nodes(height_crop_component "sensors::HeightCrop")
+
+install(
+  TARGETS height_crop_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+add_executable(height_crop src/height_crop/height_crop_node.cpp)
+target_link_libraries(height_crop height_crop_component)
+ament_target_dependencies(height_crop rclcpp)
+
+install(TARGETS height_crop DESTINATION lib/${PROJECT_NAME})
+
 # Voxel Downsampler Reduces point cloud density by keeping at most one point per
 # voxel cell, thinning the Livox scan and the BIEVR-LIO map before
 # point_cloud_transport Draco-compresses them for the base station link.

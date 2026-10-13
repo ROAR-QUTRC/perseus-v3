@@ -15,6 +15,7 @@
   rclcpp,
   rviz-common,
   rviz-default-plugins,
+  std-msgs,
   std-srvs,
   tf2,
   tf2-geometry-msgs,
@@ -44,6 +45,7 @@ buildRosPackage rec {
     rclcpp
     rviz-common
     rviz-default-plugins
+    std-msgs
     std-srvs
     tf2
     tf2-geometry-msgs

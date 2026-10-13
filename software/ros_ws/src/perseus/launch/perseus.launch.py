@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    GroupAction,
     IncludeLaunchDescription,
     OpaqueFunction,
 )
@@ -14,6 +15,7 @@ from launch.launch_description_sources import (
     AnyLaunchDescriptionSource,
 )
 
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -58,6 +60,41 @@ def generate_launch_description():
             default_value="",
             description="Which payload to boot up with the rover",
         ),
+        DeclareLaunchArgument(
+            "bucket_controller",
+            default_value="bucket_trajectory_controller",
+            choices=[
+                "none",
+                "bucket_trajectory_controller",
+                "bucket_lift_controller",
+                "bucket_tilt_controller",
+                "bucket_jaw_controller",
+            ],
+            description=(
+                "payload:=bucket only. The controller that commands the bucket "
+                "over ros2_control. 'none' only reads the encoders for the model. "
+                "The gamepad teleop runs alongside either way (bucket_teleop) and "
+                "takes over from this controller when a stick moves"
+            ),
+        ),
+        DeclareLaunchArgument(
+            "bucket_hardware",
+            default_value="real",
+            choices=["real", "mock"],
+            description=(
+                "payload:=bucket only. 'mock' runs the bucket on "
+                "mock_components/GenericSystem with the real drive. The bucket is "
+                "mocked anyway whenever the drive is"
+            ),
+        ),
+        DeclareLaunchArgument(
+            "bucket_teleop",
+            default_value="true",
+            description=(
+                "payload:=bucket only. Run the gamepad bucket_driver as an operator "
+                "override over the bucket controller. Only with real bucket hardware"
+            ),
+        ),
         # The two low-speed stall mitigations, both off by default so the rover
         # behaves exactly as before unless one is asked for. They are
         # independent, so they can be enabled separately to tell them apart.
@@ -65,7 +102,7 @@ def generate_launch_description():
             "safe_speed",
             default_value="true",
             description=(
-                "Reduced-speed mode: caps the rover at 0.8 m/s and 0.4 rad/s. "
+                "Reduced-speed mode: caps the rover at 0.8 m/s and 1.0 rad/s. "
                 "Enforced in the diff drive controller, so it binds the joystick, "
                 "the web UI and nav2 alike. See perseus/config/safe_speed.yaml"
             ),
@@ -87,7 +124,39 @@ def generate_launch_description():
                 "wheel moving but the actual speed no longer matches the command"
             ),
         ),
+        DeclareLaunchArgument(
+            "can_logger",
+            default_value="true",
+            description=(
+                "Run can_logger, which dumps every frame on can_bus to a CSV in "
+                "~/can_logs for offline analysis"
+            ),
+        ),
+        DeclareLaunchArgument(
+            "system_monitor",
+            default_value="true",
+            description=(
+                "Publish this machine's CPU, memory and temperature on "
+                "/<hostname>/system_health. Turn off if localisation.launch.py "
+                "already does so on the same machine"
+            ),
+        ),
     ]
+
+    def bucket_hardware_plugin(context):
+        """The bucket's ros2_control plugin: real only alongside the real drive."""
+        drive_is_real = context.perform_substitution(
+            hardware_plugin
+        ) == "hardware/VescSystemHardware" and not IfCondition(
+            use_mock_hardware
+        ).evaluate(context)
+        bucket_is_real = (
+            context.perform_substitution(LaunchConfiguration("bucket_hardware"))
+            == "real"
+        )
+        if drive_is_real and bucket_is_real:
+            return "payloads/BucketHardware"
+        return "mock_components/GenericSystem"
 
     # IMPORTED LAUNCH FILES
     def robot_state_publisher(context):
@@ -115,28 +184,40 @@ def generate_launch_description():
                 "can_bus": can_bus,
                 "min_command_erpm": min_command_erpm,
                 "payload": LaunchConfiguration("payload"),
+                "bucket_hardware_plugin": bucket_hardware_plugin(context),
             }.items(),
         )
         return [rsp_launch]
 
-    controllers_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("perseus"),
-                        "launch",
-                        "controllers.launch.py",
-                    ]
-                )
-            ]
-        ),
-        launch_arguments={
-            "use_sim_time": use_sim_time,
-            "use_wheel_pid": use_wheel_pid,
-            "safe_speed": safe_speed,
-        }.items(),
-    )
+    # The bucket, when fitted, is a second hardware component under this same
+    # controller_manager (see perseus.urdf.xacro), so its controllers are spawned
+    # from here too.
+    def controllers(context):
+        controllers_launch = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("perseus"),
+                            "launch",
+                            "controllers.launch.py",
+                        ]
+                    )
+                ]
+            ),
+            launch_arguments={
+                "use_sim_time": use_sim_time,
+                "use_wheel_pid": use_wheel_pid,
+                "safe_speed": safe_speed,
+                "payload": LaunchConfiguration("payload"),
+                "bucket_controller": LaunchConfiguration("bucket_controller"),
+                "bucket_hardware_plugin": bucket_hardware_plugin(context),
+                "bucket_teleop": LaunchConfiguration("bucket_teleop"),
+                "can_bus": can_bus,
+            }.items(),
+        )
+        return [controllers_launch]
+
     twist_mux_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -170,31 +251,43 @@ def generate_launch_description():
         }.items(),
     )
 
-    def launch_payload(context):
-        payload = context.perform_substitution(LaunchConfiguration("payload"))
-        if payload == "bucket":
-            return [
-                IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(
-                        [
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("payloads"),
-                                    "launch",
-                                    "bucket.launch.py",
-                                ]
-                            )
-                        ]
-                    ),
+    can_logger = Node(
+        package="can_logger",
+        executable="can_logger",
+        arguments=["--iface", can_bus],
+        output="screen",
+        condition=IfCondition(LaunchConfiguration("can_logger")),
+    )
+
+    # Scoped so the monitor's device_name / publish_rate_hz arguments do not leak into
+    # the includes around it.
+    system_monitor_launch = GroupAction(
+        [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    [
+                        PathJoinSubstitution(
+                            [
+                                FindPackageShare("system_monitor"),
+                                "launch",
+                                "system_monitor.launch.py",
+                            ]
+                        )
+                    ]
                 )
-            ]
+            )
+        ],
+        scoped=True,
+        condition=IfCondition(LaunchConfiguration("system_monitor")),
+    )
 
     launch_files = [
         OpaqueFunction(function=robot_state_publisher),
-        controllers_launch,
+        OpaqueFunction(function=controllers),
         twist_mux_launch,
         rosbridge_launch,
-        OpaqueFunction(function=launch_payload),
+        can_logger,
+        system_monitor_launch,
     ]
 
     return LaunchDescription(arguments + launch_files)

@@ -3,16 +3,19 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  can-logger,
   controller-manager,
   diff-drive-controller,
   hardware,
   joint-state-broadcaster,
   mecanum-drive-controller,
+  payloads,
   pid-controller,
   robot-state-publisher,
   ros2controlcli,
   ros2launch,
   rviz2,
+  system-monitor,
   twist-mux,
   xacro,
 }:
@@ -25,16 +28,19 @@ buildRosPackage rec {
   buildType = "ament_cmake";
   buildInputs = [ ament-cmake ];
   propagatedBuildInputs = [
+    can-logger
     controller-manager
     diff-drive-controller
     hardware
     joint-state-broadcaster
     mecanum-drive-controller
+    payloads
     pid-controller
     robot-state-publisher
     ros2controlcli
     ros2launch
     rviz2
+    system-monitor
     twist-mux
     xacro
   ];

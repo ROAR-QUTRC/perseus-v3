@@ -2,6 +2,14 @@
 
 #include <netinet/in.h>
 
+// TODO: investigate why either add this or put Arduino.h before the other includes in motor_driver.cpp and motor_bank.cpp
+#ifdef INADDR_NONE
+#undef INADDR_NONE
+#endif
+#ifdef IPADDR_NONE
+#undef IPADDR_NONE
+#endif
+
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -329,9 +337,24 @@ namespace hi_can::parameters
         {
             namespace controller
             {
-                typedef SimpleSerializable<wrapped_value_t<int16_t>> speed_t;
+#pragma pack(push, 1)
+                struct _pid_params_t
+                {
+                    // Fixed-point gains scaled by PID_GAIN_SCALE so the struct
+                    // fits in one classic-CAN frame (MAX_PACKET_LEN=8); a
+                    // double-based version is 24 bytes. dt is never carried
+                    // here - it's implicit from the control task's fixed period.
+                    int16_t K_p = 0;
+                    int16_t K_i = 0;
+                    int16_t K_d = 0;
+                };
+#pragma pack(pop)
+                constexpr double PID_GAIN_SCALE = 1000.0;  // wire value = gain * PID_GAIN_SCALE
                 typedef SimpleSerializable<wrapped_value_t<uint16_t>> current_t;
-                typedef SimpleSerializable<wrapped_value_t<bool>> magnet_t;
+                typedef SimpleSerializable<wrapped_value_t<int16_t>> position_t;
+                typedef SimpleSerializable<_pid_params_t> pid_params_t;
+                typedef SimpleSerializable<wrapped_value_t<int16_t>> speed_t;
+                typedef SimpleSerializable<wrapped_value_t<bool>> status_t;
             }  // namespace controller
         }  // namespace bucket
     }  // namespace excavation

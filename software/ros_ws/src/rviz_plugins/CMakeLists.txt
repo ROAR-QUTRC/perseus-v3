@@ -49,6 +49,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     pluginlib
     geometry_msgs
     nav_msgs
+    std_msgs
     std_srvs
     tf2
     tf2_ros
@@ -84,6 +85,10 @@ add_library(
   rviz_plugins SHARED
   src/topic_health_panel.cpp
   include/rviz_plugins/topic_health_panel.hpp
+  src/machine_health_panel.cpp
+  include/rviz_plugins/machine_health_panel.hpp
+  src/link_health_panel.cpp
+  include/rviz_plugins/link_health_panel.hpp
   src/arena_minimap_panel.cpp
   include/rviz_plugins/arena_minimap_panel.hpp
   src/mobility_efficiency_panel.cpp

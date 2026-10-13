@@ -1,19 +1,23 @@
 final: prev: {
   arena-server = final.callPackage ./arena-server.nix { };
   autonomy-bringup = final.callPackage ./autonomy-bringup.nix { };
+  can-diag = final.callPackage ./can-diag.nix { };
   can-if = final.callPackage ./can-if.nix { };
+  can-logger = final.callPackage ./can-logger.nix { };
   description = final.callPackage ./description.nix { };
   footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
   global-traversability = final.callPackage ./global-traversability.nix { };
   hardware = final.callPackage ./hardware.nix { };
   health-check = final.callPackage ./health-check.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
+  link-monitor = final.callPackage ./link-monitor.nix { };
   local-traversability = final.callPackage ./local-traversability.nix { };
   mission-bt-server = final.callPackage ./mission-bt-server.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };
   rviz-plugins = final.callPackage ./rviz-plugins.nix { };
   sensors = final.callPackage ./sensors.nix { };
+  system-monitor = final.callPackage ./system-monitor.nix { };
   teleop = final.callPackage ./teleop.nix { };
   vision = final.callPackage ./vision.nix { };
   watchdog = final.callPackage ./watchdog.nix { };

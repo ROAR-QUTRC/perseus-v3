@@ -25,6 +25,9 @@
   <depend>std_srvs</depend>
   <depend>message_filters</depend>
   <depend>image_transport</depend>
+  <!-- Headless ORB-SLAM3 library for orb_slam_odometry; packaged in
+       nix/extra-packages/patches/orb-slam3 -->
+  <depend>orb_slam3</depend>
   <depend>onnxruntime</depend>
   <build_depend>opencv</build_depend>
   <exec_depend>opencv</exec_depend>

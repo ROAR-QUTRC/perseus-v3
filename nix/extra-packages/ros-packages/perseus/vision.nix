@@ -15,6 +15,7 @@
   nav-msgs,
   onnxruntime,
   opencv,
+  orb-slam3,
   rcl-interfaces,
   rclcpp,
   rclcpp-components,
@@ -51,6 +52,7 @@ buildRosPackage rec {
     nav-msgs
     onnxruntime
     opencv
+    orb-slam3
     rcl-interfaces
     rclcpp
     rclcpp-components

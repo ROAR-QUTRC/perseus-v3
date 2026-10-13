@@ -27,16 +27,17 @@ top for Gazebo, which publishes a differently shaped cloud: BIEVR-LIO merges its
 files per key, so the sim's differences are just the handful of keys that file sets.
 
 A second, independent pose source is fused alongside BIEVR-LIO: vision's
-stereo_odometry (libviso2 against the RealSense infra1/infra2 pair), which arrives as odom1
-in ekf_config.yaml. It is brought up by including vision/vision.launch.py, which is also
+orb_slam_odometry (ORB-SLAM3 stereo against the RealSense infra1/infra2 pair), which
+arrives as odom1 in ekf_config.yaml. It is brought up by including vision/vision.launch.py, which is also
 where `enable_sensors:=` is forwarded:
 
   enable_sensors:=false (default)  The sensor drivers are assumed to be running already,
                                    from sensors/sensors.launch.py in their own terminal.
-                                   vision.launch.py runs stereo_odometry as its own process.
+                                   vision.launch.py runs orb_slam_odometry as its own
+                                   process.
   enable_sensors:=true             This file brings up the Livox driver itself, and
                                    vision.launch.py brings up the RealSense and loads
-                                   stereo_odometry as a component into the camera's
+                                   orb_slam_odometry as a component into the camera's
                                    container -- 30 Hz on the infra pair against roughly
                                    4 Hz standalone. vision.launch.py's docstring has the
                                    measurements.
@@ -46,9 +47,9 @@ started by hand -- and defaulting to true would open the sensors a second time a
 existing ones and fail with "Device or resource busy".
 
 The ArUco, cube and overlay nodes are forwarded as aruco:=, cube:= and overlay:=. ArUco
-and overlay are on by default and cube is off, so a plain run is stereo odometry plus
+and overlay are on by default and cube is off, so a plain run is visual odometry plus
 marker detection; whichever are on follow the same enable_sensors placement as
-stereo_odometry. Either way the EKF only names the topic and
+orb_slam_odometry. Either way the EKF only names the topic and
 fuses whatever appears on it, so nothing downstream branches on this choice.
 """
 
@@ -206,12 +207,12 @@ def launch_setup(context, *args, **kwargs):
                             [FindPackageShare("vision"), "launch", "vision.launch.py"]
                         )
                     ),
-                    # stereo_odometry is pinned on because it is the reason this include
+                    # orb_slam_odometry is pinned on because it is the reason this include
                     # exists; the detectors are this file's own toggles, forwarded.
                     launch_arguments={
                         "enable_sensors": LaunchConfiguration("enable_sensors"),
                         "use_sim_time": use_sim_time,
-                        "stereo_odometry": "true",
+                        "orb_slam_odometry": "true",
                         "aruco": LaunchConfiguration("aruco"),
                         "cube": LaunchConfiguration("cube"),
                         "overlay": LaunchConfiguration("overlay"),
@@ -295,8 +296,39 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    # The rover half of the point cloud link: voxel downsamples the live Livox scan and
-    # /Laser_map (BIEVR-LIO's map, remapped above and published every
+    # Publishes this machine's CPU, memory and temperature on /<device_name>/system_health
+    # for the base station's Machine Health panel. device_name defaults to the hostname.
+    # Gated by `system_monitor` so a machine running this and perseus.launch.py together
+    # can turn one of them off instead of publishing twice.
+    system_monitor_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("system_monitor"),
+                    "launch",
+                    "system_monitor.launch.py",
+                ]
+            )
+        )
+    )
+
+    # Crops the ceiling (anything over 1.5 m above odom) out of the live Livox scan and
+    # /Laser_map, onto /livox/lidar/cropped and /Laser_map/cropped. The traversability
+    # nodes and the downlink below read those; BIEVR-LIO keeps the raw scan. It needs
+    # odom <- livox_frame, which this file's EKF provides. See sensors/config/height_crop.yaml.
+    height_crop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("sensors"), "launch", "height_crop.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
+    # The rover half of the point cloud link: voxel downsamples the cropped Livox scan
+    # and the cropped /Laser_map (BIEVR-LIO's map, remapped above and published every
     # publish.map_interval_s), then Draco encodes both for the base station. Its two inputs
     # are exactly what this stack consumes and produces, so it comes up with them; the
     # base station runs sensors/point_cloud_decompress.launch.py against the Draco topics.
@@ -335,6 +367,12 @@ def launch_setup(context, *args, **kwargs):
             GroupAction([arena_server_launch], scoped=True),
             GroupAction([watchdog_launch], scoped=True),
             GroupAction([health_check_launch], scoped=True),
+            GroupAction(
+                [system_monitor_launch],
+                scoped=True,
+                condition=IfCondition(LaunchConfiguration("system_monitor")),
+            ),
+            GroupAction([height_crop_launch], scoped=True),
             GroupAction([point_cloud_compress_launch], scoped=True),
         ]
     )
@@ -385,10 +423,18 @@ def generate_launch_description():
         # `enable_sensors:=1` would read as false and silently skip the sensors.
         choices=["true", "false"],
         description="Bring the Livox driver up from this file, and have vision.launch.py "
-        "bring up the RealSense with stereo_odometry composed into its container -- 30 Hz on "
+        "bring up the RealSense with orb_slam_odometry composed into its container -- 30 Hz on "
         "the infra pair, against roughly 4 Hz when it runs as its own process. Leave it false "
         "when the drivers are already running from sensors/sensors.launch.py, in which case "
         "the vision nodes run standalone instead. See the module docstring.",
+    )
+
+    declare_system_monitor = DeclareLaunchArgument(
+        "system_monitor",
+        default_value="true",
+        description="Publish this machine's CPU, memory and temperature on "
+        "/<hostname>/system_health. Turn off if perseus.launch.py already does so on the "
+        "same machine.",
     )
 
     declare_interface = DeclareLaunchArgument(
@@ -485,6 +531,7 @@ def generate_launch_description():
             declare_bievr_params_file,
             declare_enable_sensors,
             declare_interface,
+            declare_system_monitor,
             *declare_detectors,
             bias_remover_container,
             OpaqueFunction(function=launch_setup),

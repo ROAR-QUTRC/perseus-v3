@@ -36,7 +36,10 @@
 # stitched across minutes would read the drift between two visits as a step.
 global_traversability:
   ros__parameters:
-    pointcloud_topic: "/livox/lidar"
+    # Ceiling cropped (sensors/height_crop, run by localisation.launch.py: nothing over
+    # 1.5 m above odom). max_sensor_height_m below still applies on top, in the sensor
+    # frame. BIEVR-LIO alone reads the raw /livox/lidar.
+    pointcloud_topic: "/livox/lidar/cropped"
     # No map frame -- see the header of this file. Must match global_costmap's global_frame.
     global_frame: "odom"
     robot_frame: "base_footprint"
@@ -50,13 +53,13 @@ global_traversability:
     update_period_s: 0.5
     # Republish /costmap. Inflation and the OccupancyGrid conversion scale with the WHOLE
     # map, so this is the one to slow down once the map is arena-sized.
-    publish_period_s: 1.0
+    publish_period_s: 0.5
     # The drift-free window. Same 1 s as local. With update_period_s 0.5 every scan is
     # classified twice, which the log-odds values below are tuned for.
     point_buffer_s: 1.0
     # Sensor-frame range gate. Further than local's 6 m because the planner needs to see
     # further than the controller; much past 10 m a 0.1 m grid is too sparse to judge.
-    min_range_m: 1.0
+    min_range_m: 1.6
     max_range_m: 10.0
     max_sensor_height_m: 1.5
     # THE CLASSIFIER, same meaning as the matching local_traversability parameters below --
@@ -85,7 +88,7 @@ global_traversability:
     # 0.04 speckled the whole driven area. The additions at 0.05 sit on rock edges and walls.
     # 0.05 alone is not safe: sand noise and wheel ruts put 520 cells under the path. It only
     # works together with log_odds_hit below, which rejects that noise because it flickers.
-    max_height_above_ground_m: 0.05
+    max_height_above_ground_m: 0.065
     max_step_down_m: 0.15
     # THE HOLE (CRATER) TEST, same values as local's -- read the comments there.
     hole_depth_m: 0.08
@@ -133,9 +136,13 @@ global_traversability:
     treat_unknown_as_obstacle: false
     # Inflation, same semantics as nav2's InflationLayer. nav2 does NOT inflate on top of
     # this -- neither costmap loads an inflation layer.
-    robot_radius_m: 0.5
+    # 0.6, not 0.5: the rover is 0.87 m wide (wheel edges at +-0.435 m), so 0.5 left a
+    # planned path ~0.07 m from scraping a rock beside it, less one 0.1 m cell -- in sim it
+    # side-swiped and then reversed onto boulder_3. 0.6 is half-width plus ~0.17 m. Fore/aft
+    # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
+    robot_radius_m: 0.6
     inflation_radius_m: 0.8
-    cost_scaling_factor: 3.2
+    cost_scaling_factor: 20.0
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
 # ============================================================================
@@ -155,9 +162,13 @@ global_traversability:
 # deterministic.
 local_traversability:
   ros__parameters:
-    # Raw, not /Laser_map. Point this at /livox/lidar/filtered to run behind the dust
-    # filter (sensors/config/dust_filter.yaml) if dust starts producing false obstacles.
-    pointcloud_topic: "/livox/lidar"
+    # The live scan, not /Laser_map, with the ceiling cropped (sensors/height_crop, run
+    # by localisation.launch.py: nothing over 1.5 m above odom). max_sensor_height_m
+    # below still applies on top, in the sensor frame. BIEVR-LIO alone reads the raw
+    # /livox/lidar. If dust starts producing false obstacles, run the dust filter
+    # (sensors/config/dust_filter.yaml) on /livox/lidar and point the crop's
+    # input_topic at its /livox/lidar/filtered.
+    pointcloud_topic: "/livox/lidar/cropped"
     # Must match local_costmap's global_frame below, or its static layer silently drops
     # every grid this publishes. There is no map frame -- see the header of this file.
     global_frame: "odom"
@@ -178,7 +189,7 @@ local_traversability:
     # Range gate, applied in the SENSOR frame before anything else. Below min_range the scan
     # is hitting the rover itself; max_range is kept inside map_length_m / 2 plus a margin
     # because returns outside the window are binned into nothing anyway.
-    min_range_m: 1.0
+    min_range_m: 1.7
     max_range_m: 6.0
     # Also in the sensor frame, so it is immune to LIO z-drift: drop anything this far above
     # the lidar. Canopy/ceiling returns would otherwise become a cell's maximum height.
@@ -295,23 +306,23 @@ local_traversability:
     treat_unknown_as_obstacle: false
     # Same inflation semantics and the same values as the global node, so a cell does not
     # change cost depending on which of the two saw it.
-    robot_radius_m: 0.5
+    robot_radius_m: 0.6
     inflation_radius_m: 0.8
-    cost_scaling_factor: 3.2
+    cost_scaling_factor: 20.0
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
 planner_server:
   ros__parameters:
     # Only warns if planning is slower than this; nothing plans on a timer.
-    expected_planner_frequency: 1.0
+    expected_planner_frequency: 0.75
     # Both loaded; the active one is chosen per goal via PlannerSelector, same mechanism as
     # controller_plugins above for FollowPath/DWB. The behaviour tree currently defaults to
-    # ThetaStar - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
+    # Lattice (plans heading, so dig/dump goals arrive facing the right way) - flip default_planner in behavior_trees/navigate_to_pose_w_smoothing.xml to
     # switch back to GridBased, or override live by publishing the name to /planner_selector,
     # e.g. `ros2 topic pub -1 /planner_selector std_msgs/String "{data: GridBased}"` before
     # sending the next goal.
-    planner_plugins: ["GridBased", "ThetaStar"]
+    planner_plugins: ["GridBased", "ThetaStar", "Lattice"]
     GridBased:
       # NavFn ignores heading, which suits a skid-steer that can turn on the spot. It also
       # plans on the grid, so its paths turn in 45/90 deg steps -- see smoother_server.
@@ -338,11 +349,67 @@ planner_server:
       # let real cost still steer it around expensive terrain, same balance GridBased's
       # Dijkstra gets for free from the costmap values it searches over directly.
       w_euc_cost: 1.0
-      w_traversal_cost: 2.0
+      w_traversal_cost: 10.0
       # Same reasoning and same value as GridBased's allow_unknown above (UNMAPPED, 2 of 3):
       # this reads the same costmap under the same track_unknown_space: false regime, so it
       # needs the same policy on routing through ground the lidar has not seen yet.
       allow_unknown: true
+    Lattice:
+      # Plans in x, y AND heading, from the rover's actual yaw to the goal's, checking the
+      # real footprint polygon (global_costmap.footprint below) at every pose -- unlike
+      # GridBased/ThetaStar, which plan a point through an inflated circle and leave the
+      # controller to pivot onto the path at the start and onto the goal heading at the end.
+      # That matters here because pivoting a skid-steer in regolith is the costly manoeuvre
+      # (it digs in, slips, and sits near the ESC stall), and because the rover is 1.68 m
+      # long: a pivot sweeps a ~0.93 m radius that a circle-planned corner never checked.
+      #
+      # Motion primitives: config/lattice/diff_10cm_1m_radius.json, generated with nav2's
+      # lattice_primitives/generate_motion_primitives.py (jazzy) for motion_model "diff",
+      # grid_resolution 0.1 (must equal /costmap's resolution_m), turning_radius 1.0,
+      # num_of_headings 16, stopping_threshold 5: straight moves, 1 m arcs and
+      # turn-in-place, 112 primitives. navigation.launch.py passes the absolute path.
+      #
+      # 1.0 m, not 0.5 m: RPP pivots whenever the path 0.5 m ahead is more than its
+      # rotate_to_heading_min_angle (0.5 rad) off, which a 0.5 m arc always is, so tight
+      # arcs became stop-and-pivot anyway. Offline on a synthetic arena costmap, driving
+      # each plan with an RPP model, against ThetaStar:
+      #   start -> construction      4 deg pivoting, 0 pivots   (ThetaStar 117 deg, 2)
+      #   construction -> excavation 60 deg, 1                  (188 deg, 2), +0.95 m
+      #   excavation -> berm face    100 deg, 1                 (363 deg, 3), +0.36 m
+      #   turning round for a goal   526 deg, 9                 (321 deg, 2) -- its weak case
+      #   0.93 m gap by boulder_7    refuses it                 (ThetaStar plans a pivot
+      #                                                          that clips the boulder)
+      #
+      # Selected per goal like the others: `ros2 topic pub -1 /planner_selector
+      # std_msgs/String "{data: Lattice}"`. ThetaStar stays the default until Lattice has
+      # been compared against it on the zone cycle.
+      plugin: "nav2_smac_planner::SmacPlannerLattice"
+      # UNMAPPED, as for the other two.
+      allow_unknown: true
+      tolerance: 0.25
+      max_iterations: 1000000
+      max_on_approach_iterations: 1000
+      max_planning_time: 2.0
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
+      analytic_expansion_max_cost: 200.0
+      analytic_expansion_max_cost_override: false
+      # Forward only: both controllers are tuned to drive forward (RPP outright, DWB with
+      # PreferForward), so a path that reverses would be followed badly anyway.
+      allow_reverse_expansion: false
+      reverse_penalty: 2.0
+      change_penalty: 0.05
+      non_straight_penalty: 1.05
+      cost_penalty: 2.0
+      # Turn-in-place cost. Swept 5-50: above ~15 it stops pivoting to turn round and loops
+      # instead (a 2.6 m trip became 7.7 m); between 5 and 12 the zone trips barely change
+      # and turning round stays a run of small pivots. 5 keeps paths shortest.
+      rotation_penalty: 5.0
+      retrospective_penalty: 0.015
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: false
+      smooth_path: true
+      debug_visualizations: false
 # The planner's costmap. Doubled key because Costmap2DROS runs as its own node named
 # global_costmap inside planner_server. Required, not stylistic.
 global_costmap:
@@ -350,10 +417,16 @@ global_costmap:
     ros__parameters:
       global_frame: odom
       robot_base_frame: base_footprint
-      robot_radius: 0.3
+      # The rover's real outline, the same polygon as local_costmap's. Only the Lattice
+      # planner collision-checks a footprint; GridBased and ThetaStar plan a point through
+      # the traversability nodes' inflation, so this does not change them. The 0.6 m
+      # inflation ring around obstacles is cost 99 (not lethal), so the polygon only has
+      # to stay off the obstacle cells themselves while the ring pushes paths away.
+      footprint: "[[0.90, 0.25], [0.90, -0.25], [0.375, -0.435], [-0.775, -0.435], [-0.775, 0.435], [0.375, 0.435]]"
+      footprint_padding: 0.03
       # /costmap only republishes every publish_period_s (1 s); polling faster re-copies it.
-      update_frequency: 1.0
-      publish_frequency: 1.0
+      update_frequency: 2.5
+      publish_frequency: 1.8
       rolling_window: false
       # width/height/resolution omitted on purpose: the static layer resizes the master
       # costmap to whatever /costmap arrives with.
@@ -369,7 +442,7 @@ global_costmap:
       # highest input cost the returned path crossed: 99 (grazing a wall at 0.02 m) with it
       # nested and ignored, 42 with it set here.
       trinary_costmap: false
-      lethal_cost_threshold: 100
+      lethal_cost_threshold: 99
       # UNMAPPED (3 of 3). NO_INFORMATION is 255 and every collision check treats >= 253 as
       # a collision, so tracking unknown makes unmapped ground indistinguishable from a
       # wall -- RPP commands zero and the rover stalls silently until the progress checker
@@ -448,8 +521,8 @@ controller_server:
       # Loosened from 0.25: the rover is 0.6 m across on sand and hunts across a tighter
       # goal. Yaw is generous because final heading rarely matters and tightening it means
       # a slow spin at exactly the rate the ESCs stall at.
-      xy_goal_tolerance: 0.35
-      yaw_goal_tolerance: 0.3
+      xy_goal_tolerance: 0.45
+      yaw_goal_tolerance: 0.523 # 30 deg heading tolerance at goal
       stateful: true
     FollowPath:
       # ACTIVE (the BT's default_controller). Follows the global path and regulates speed on
@@ -488,16 +561,17 @@ controller_server:
       # raw path, more turns can be taken as a regulated arc instead of a full stop-and-pivot.
       # Re-tune down again if it starts cutting corners too wide for the arena's clearances.
       use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 1.2
+      # Raised from 0.5: only pivot when the path is nearly behind (sand: avoid pivoting).
+      rotate_to_heading_min_angle: 1.0
       # Rotate-to-heading is BANG-BANG: full rate until the error drops under the threshold,
       # no proportional slow-down. So this value alone sets the overshoot -- roughly 5 deg
       # at 0.4 rad/s, 2.5 deg at 0.25, before wheel scrub. STALL: 0.25 rad/s of body yaw is
       # 0.61 rad/s at the wheel; below ~0.15 the wheels stop mid-rotation and it hunts.
-      # 0.175 = 0.25 * 0.7. NOTE THE MARGIN: the note above says do not go below about
-      # 0.15 rad/s of body yaw or the wheels stop turning mid-rotation. 0.175 is only
-      # 0.025 above that, so this is as slow as in-place turning can safely go. A
-      # further reduction must come from somewhere else, not from this value.
-      rotate_to_heading_angular_vel: 0.175
+      # 0.5: was 0.175 (0.25 * 0.7), which made a 90 deg pivot take ~9 s and sat only 0.025
+      # above the stall floor. 0.5 is ~3 s per 90 deg and well clear of stalling; overshoot
+      # grows with this, but stays inside yaw_goal_tolerance. Do not go below about 0.15
+      # rad/s of body yaw or the wheels stop turning mid-rotation.
+      rotate_to_heading_angular_vel: 0.5
       # Must be matched by velocity_smoother's max_accel below; the lower one binds.
       max_angular_accel: 3.2
       # Cannot be true alongside use_rotate_to_heading; the controller rejects it.
@@ -512,29 +586,59 @@ controller_server:
       # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
       # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
-      plugin: "dwb_core::DWBLocalPlanner"
+      #
+      # Wrapped in RotationShimController. Every zone leg starts with the path behind the
+      # rover, and DWB alone dithered there: in sim the best left and right pivots scored
+      # 61.2 vs 63.3, swapping as the rover turned, so it flipped direction for 20 s until the
+      # progress checker gave up (Oscillation only forbids a flip within 0.2 rad). Above
+      # angular_dist_threshold the shim makes ONE committed, footprint-checked pivot toward
+      # the path, then hands over to DWB. The shim passes its own name to DWB, so the DWB.*
+      # parameters below are unchanged and /controller_selector still says "DWB".
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      # Raised from 0.785: pivot only if the path is ~140 deg off, otherwise DWB arcs.
+      angular_dist_threshold: 2.4
+      forward_sampling_distance: 0.5
+      # max_vel_theta, and the same rate RPP pivots at (see FollowPath).
+      rotate_to_heading_angular_vel: 0.5
+      # Matches acc_lim_theta below, so the pivot ramps as gently as DWB's own turns.
+      max_angular_accel: 1.0
+      simulate_ahead_time: 1.0
+      # The same dither happened at the goal: inside xy_goal_tolerance DWB's RotateToGoal
+      # left/right pivots scored 68.6 vs 66.4 and swapped as it turned. true hands the final
+      # turn to the shim too, one committed pivot to the goal's heading.
+      rotate_to_goal_heading: true
       debug_trajectory_details: true
-      min_vel_x: 0.0
+      # Negative: DWB may reverse to line up with the path or goal (e.g. backing out of a
+      # zone instead of pivoting on the spot), at half cruise speed because there is less
+      # sensing behind. PreferForward below keeps reversing the exception, not the habit.
+      allow_reverse: true
+      min_vel_x: -0.15
       min_vel_y: 0.0
-      # y is zero throughout: the rover cannot strafe. Limits match safe_speed.yaml.
+      # y is zero throughout: the rover cannot strafe. Theta stays under velocity_smoother's
+      # 0.6 ceiling and safe_speed.yaml's 1.0.
       max_vel_x: 0.28
       max_vel_y: 0.0
-      max_vel_theta: 0.28
+      max_vel_theta: 0.5
       max_speed_xy: 0.28
       # STALL: both floors sit above the ESCs' 0.05 m/s and 0.14 rad/s.
       min_speed_xy: 0.06
       min_speed_theta: 0.15
       acc_lim_x: 1.0
       acc_lim_y: 0.0
-      acc_lim_theta: 3.2
+      # Smoothness: 1.0 rad/s^2 caps the angular-velocity window DWB samples each 0.1 s cycle
+      # to +-0.1 rad/s around the current rate. At 3.2 it could jump full-left to full-right
+      # between cycles, which is what made it weave on straight legs.
+      acc_lim_theta: 1.0
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -3.2
+      decel_lim_theta: -1.0
       # vy_samples 1 because there is no lateral motion to sample.
       vx_samples: 10
       vy_samples: 1
       vtheta_samples: 20
-      sim_time: 1.5
+      # Longer rollouts score where the rover is heading, not just the next 0.4 m.
+      sim_time: 2.0
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
@@ -543,14 +647,35 @@ controller_server:
       trans_stopped_velocity: 0.07
       short_circuit_trajectory_evaluation: true
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      # BaseObstacle is deliberately near-zero: the costmap's own inflation already encodes
-      # obstacle cost, so scoring it again double-counts. The Path/Goal critics dominate.
-      BaseObstacle.scale: 0.02
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
+      critics: ["RotateToGoal", "Oscillation", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PreferForward"]
+      # Penalises negative vx (penalty) and creeping without turning (strafe_*); its
+      # theta_scale term is set to 0 so it does not also tax ordinary turning.
+      # 10: reversing is for backing out at zones, not cruising -- the live terrain grid
+      # has no coverage behind the rover.
+      PreferForward.scale: 10.0
+      PreferForward.penalty: 1.0
+      PreferForward.strafe_x: 0.05
+      PreferForward.strafe_theta: 0.15
+      PreferForward.theta_scale: 0.0
+      # ObstacleFootprint, not BaseObstacle: BaseObstacle only checks the cell under
+      # base_link, and this rover extends 0.78 m behind and 0.90 m ahead of it.
+      # Rejects any trajectory that puts the footprint on a lethal cell and otherwise scores the
+      # worst cell the footprint touches. Was 0.02 on the theory that the costmap's inflation
+      # already encodes obstacle cost -- but nothing else in DWB scores it, so at 0.02 a near-
+      # obstacle cell cost ~5 against the path critics' ~40 and DWB cut through margins.
+      # 0.1. Safety is the footprint REJECTING lethal cells (plus footprint_padding); this
+      # scale only sets how much DWB prefers clearance. At 0.4 a goal 1.4 m from the north wall
+      # was unreachable: with base_link 0.4 m short, the bucket (0.9 m ahead) was already in
+      # the wall's 90-99 inflation band, every forward step cost more than it gained, and it
+      # stalled until the progress checker fired. (0.4 had been raised for boulder_3 grazes,
+      # which were the rock being unmapped, not this weight.)
+      ObstacleFootprint.scale: 0.1
+      PathAlign.scale: 40.0 # less aggressive in path alignment
+      # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
+      # tiny heading errors scored as nothing until the rover was already off-line.
+      PathAlign.forward_point_distance: 0.325
+      GoalAlign.scale: 4.0
+      GoalAlign.forward_point_distance: 0.325
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0
@@ -570,7 +695,16 @@ local_costmap:
     ros__parameters:
       global_frame: odom
       robot_base_frame: base_footprint
-      robot_radius: 0.3
+      # The real outline, from TF (wheels at x +0.225 / -0.625, y +-0.365, r 0.15, 0.14 wide;
+      # travel-pose bucket to x ~+0.90, and at ~0.17 m clearance it can strike a 0.2 m
+      # boulder). base_link is NOT the middle of the rover: it reaches 0.78 m behind and 0.90 m
+      # ahead, and sweeps ~0.93 m when it pivots. The old robot_radius 0.3 circle missed the
+      # whole rear axle, so the controller backed and pivoted the rear wheels into boulders.
+      # Controller and behaviour_server (spin/backup) both collision-check this.
+      footprint: "[[0.90, 0.25], [0.90, -0.25], [0.375, -0.435], [-0.775, -0.435], [-0.775, 0.435], [0.375, 0.435]]"
+      # Covers the 0.1 m cell rounding: without it DWB would accept trajectories whose edge
+      # lands in the same cell as a rock's edge.
+      footprint_padding: 0.03
       update_frequency: 5.0
       publish_frequency: 2.0
       rolling_window: true
@@ -584,6 +718,10 @@ local_costmap:
       # what makes terrain_layer's -1 cells (most of a live local window at any instant)
       # read as free rather than as an obstacle, which is what lets use_maximum be safe.
       trinary_costmap: false
+      # 100: only cells the traversability grids call an obstacle are lethal. The footprint
+      # above is what keeps the body off them; the 90-99 inflation band in front of an
+      # obstacle stays a (high) cost rather than a wall, or a 1.7 m body could never get
+      # near the zones.
       lethal_cost_threshold: 100
       unknown_cost_value: 255
       track_unknown_space: false
@@ -663,13 +801,16 @@ behavior_server:
     local_footprint_topic: local_costmap/published_footprint
     global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
-    # The three the default tree calls. AssistedTeleop has no place on a rover whose teleop
-    # already outranks nav2 in twist_mux.
-    behavior_plugins: ["spin", "backup", "wait"]
+    # The three the default tree calls, plus drive_on_heading for the dig's creeps
+    # (mission.xml DigBucket). AssistedTeleop has no place on a rover whose teleop already
+    # outranks nav2 in twist_mux.
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
     spin:
       plugin: "nav2_behaviors::Spin"
     backup:
       plugin: "nav2_behaviors::BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors::DriveOnHeading"
     wait:
       plugin: "nav2_behaviors::Wait"
     local_frame: odom
@@ -723,10 +864,12 @@ velocity_smoother:
     # [x, y, theta]; y is zero because the rover cannot strafe. Theta must match
     # safe_speed.yaml or this becomes a second, hidden ceiling -- at 0.2 it silently fixed
     # the minimum turning radius at 0.4/0.2 = 2.0 m and no controller tuning could help.
-    # [0.28, 0.0, 0.28] = 30% off. This is the binding ceiling for BOTH controllers, so
-    # it is the one value to change if the reduction ever needs undoing in a hurry.
-    max_velocity: [0.28, 0.0, 0.28]
-    min_velocity: [-0.28, 0.0, -0.28]
+    # x 0.28 = 30% off cruise. This is the binding ceiling for BOTH controllers, so it is the
+    # one value to change if the reduction ever needs undoing in a hurry. Theta was 0.28,
+    # which held every pivot and arc to ~16 deg/s; 0.6 leaves headroom over the controllers'
+    # 0.5 so it does not clamp them, and is still under safe_speed.yaml's 1.0.
+    max_velocity: [0.28, 0.0, 0.6]
+    min_velocity: [-0.28, 0.0, -0.6]
     # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
     max_accel: [1.0, 0.0, 3.2]
     max_decel: [-1.0, 0.0, -3.2]

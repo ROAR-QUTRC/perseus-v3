@@ -17,23 +17,41 @@ namespace mission_bt_server
         using StartMission = interfaces::srv::StartMission;
         using MissionStatus = interfaces::msg::MissionStatus;
 
-        /// @brief True for the tasks that drive to both zones.
+        bool navigation_only(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_NAVIGATION_ONLY;
+        }
+
+        /// @brief Full autonomy's drive cycle with a timed stop at each zone in place
+        /// of the bucket, for a rover with no bucket feedback.
+        bool timed_autonomy(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_FULL_AUTONOMY_TIMED;
+        }
+
+        /// @brief True for the tasks that drive to both zones. task only means
+        /// something in NAVIGATION_ONLY, so it is checked only there -- a DUMP_ONLY
+        /// request's task is whatever the panel left in it.
         bool is_cycle(const StartMission::Request& request)
         {
             return request.mode == StartMission::Request::MODE_FULL_AUTONOMY ||
-                   request.task == StartMission::Request::TASK_CYCLE;
+                   timed_autonomy(request) ||
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_CYCLE);
         }
 
         bool needs_excavation(const StartMission::Request& request)
         {
             return is_cycle(request) ||
-                   request.task == StartMission::Request::TASK_GO_TO_EXCAVATION;
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_GO_TO_EXCAVATION);
         }
 
         bool needs_construction(const StartMission::Request& request)
         {
             return is_cycle(request) ||
-                   request.task == StartMission::Request::TASK_GO_TO_CONSTRUCTION;
+                   (navigation_only(request) &&
+                    request.task == StartMission::Request::TASK_GO_TO_CONSTRUCTION);
         }
 
         /// @brief A picked point with its stamp zeroed. NavigateToPose resolves the
@@ -101,28 +119,17 @@ namespace mission_bt_server
         _construction_service_name = declare_parameter<std::string>(
             "construction_service_name", "/arena/request_construction_waypoint");
 
-        // Placeholder bucket step: until the autonomous dig/dump actions exist, the
-        // full-autonomy cycle holds this long at each zone instead.
+        // PrepareBucket's travel pose, DigBucket's pose and creeps, and the nav2 BT
+        // timeouts: shared with bucket_cli, which runs the same subtrees.
+        _bucket = BucketMissionParams::declare(*this);
+        _timeouts = BtTimeouts::declare(*this);
         _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
-
-        // Matches nav2_behavior_tree::BtActionServer's own defaults (bt_loop_duration
-        // 10ms, default_server_timeout/default_cancel_timeout 20s,
-        // wait_for_service_timeout 1s) so this tree behaves the same as any other
-        // nav2 BT with respect to how fast it ticks and how long it tolerates a slow
-        // server ack - only the overall navigation itself is unbounded by these.
-        _bt_loop_duration = std::chrono::milliseconds(
-            declare_parameter<int>("bt_loop_duration_ms", 10));
-        _server_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("default_server_timeout_ms", 20000));
-        _cancel_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("default_cancel_timeout_ms", 20000));
-        _wait_for_service_timeout = std::chrono::milliseconds(
-            declare_parameter<int>("wait_for_service_timeout_ms", 1000));
 
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
-                                     "request_zone_waypoint_bt_node"});
+                                     "nav2_drive_on_heading_bt_node",
+                                     "request_zone_waypoint_bt_node", "move_bucket_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
         bt_node_options.arguments(
@@ -184,13 +191,7 @@ namespace mission_bt_server
     BT::Blackboard::Ptr MissionBtServer::_make_blackboard() const
     {
         auto blackboard = BT::Blackboard::create();
-        blackboard->set<rclcpp::Node::SharedPtr>("node", _bt_client_node);
-        blackboard->set<std::chrono::milliseconds>("server_timeout", _server_timeout);
-        blackboard->set<std::chrono::milliseconds>("cancel_timeout", _cancel_timeout);
-        blackboard->set<std::chrono::milliseconds>("bt_loop_duration",
-                                                   _bt_loop_duration);
-        blackboard->set<std::chrono::milliseconds>("wait_for_service_timeout",
-                                                   _wait_for_service_timeout);
+        _timeouts.apply(*blackboard, _bt_client_node);
         return blackboard;
     }
 
@@ -199,7 +200,7 @@ namespace mission_bt_server
     {
         auto is_canceling = [this]()
         { return _stop_requested.load() || !rclcpp::ok(); };
-        const auto status = _engine->run(&tree, on_loop, is_canceling, _bt_loop_duration);
+        const auto status = _engine->run(&tree, on_loop, is_canceling, _timeouts.bt_loop_duration);
         // Cancels whatever action is still in flight -- on a stop, the
         // NavigateToPose goal the rover is driving on.
         _engine->haltAllActions(tree);
@@ -283,7 +284,10 @@ namespace mission_bt_server
     std::string MissionBtServer::_validate(const StartMission::Request& request)
     {
         if (request.mode != StartMission::Request::MODE_FULL_AUTONOMY &&
-            request.mode != StartMission::Request::MODE_NAVIGATION_ONLY)
+            request.mode != StartMission::Request::MODE_NAVIGATION_ONLY &&
+            request.mode != StartMission::Request::MODE_DUMP_ONLY &&
+            request.mode != StartMission::Request::MODE_DIG_ONLY &&
+            !timed_autonomy(request))
         {
             return "unknown mode " + std::to_string(request.mode);
         }
@@ -316,6 +320,18 @@ namespace mission_bt_server
         if (request.mode == StartMission::Request::MODE_FULL_AUTONOMY)
         {
             return "full_cycle";
+        }
+        if (request.mode == StartMission::Request::MODE_DUMP_ONLY)
+        {
+            return "dump";
+        }
+        if (request.mode == StartMission::Request::MODE_DIG_ONLY)
+        {
+            return "dig";
+        }
+        if (timed_autonomy(request))
+        {
+            return "full_cycle_timed";
         }
         switch (request.task)
         {
@@ -386,16 +402,9 @@ namespace mission_bt_server
         status.phase = "starting";
         _publish_status(status, true);
 
-        const double pause_s =
-            request.zone_pause_s > 0.0 ? request.zone_pause_s : _default_zone_pause_s;
-
         auto blackboard = _make_blackboard();
         blackboard->set<std::string>("task", _task_name(request));
         blackboard->set<int>("cycles", static_cast<int>(std::max<uint32_t>(1, request.cycles)));
-        // unsigned, not int: BT.CPP's Sleep declares msec as unsigned and refuses to
-        // build the tree on a blackboard entry of any other type.
-        blackboard->set<unsigned>("pause_ms",
-                                  static_cast<unsigned>(std::lround(pause_s * 1000.0)));
         blackboard->set<bool>("use_arena_excavation", request.use_arena_excavation);
         blackboard->set<bool>("use_arena_construction", request.use_arena_construction);
         blackboard->set<geometry_msgs::msg::PoseStamped>("excavation_point",
@@ -408,13 +417,28 @@ namespace mission_bt_server
         blackboard->set<std::string>("construction_service", _construction_service_name);
         blackboard->set<int>("cycles_done", 0);
         blackboard->set<std::string>("phase", "starting");
+        // The timed mode exists for a rover with no bucket feedback, so it never
+        // moves the bucket - not even the travel pose a client may have left ticked.
+        const bool prepare_bucket = request.prepare_bucket && !timed_autonomy(request);
+        blackboard->set<bool>("prepare_bucket", prepare_bucket);
+        const double pause_s =
+            request.zone_pause_s > 0.0 ? request.zone_pause_s : _default_zone_pause_s;
+        blackboard->set<unsigned int>("pause_ms",
+                                      static_cast<unsigned int>(std::lround(pause_s * 1000.0)));
+        _bucket.apply(*blackboard);
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "
-                    "pause %.1f s",
+                    "bucket %s",
                     _task_name(request).c_str(), request.cycles,
                     request.use_arena_excavation ? "arena" : "picked",
-                    request.use_arena_construction ? "arena" : "picked", pause_s);
+                    request.use_arena_construction ? "arena" : "picked",
+                    prepare_bucket ? "to travel pose first" : "left as is");
+        if (timed_autonomy(request))
+        {
+            RCLCPP_INFO(get_logger(), "mission: no bucket moves, %.1f s stop at each zone",
+                        pause_s);
+        }
 
         BT::Tree tree;
         try

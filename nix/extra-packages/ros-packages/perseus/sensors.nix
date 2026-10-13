@@ -18,6 +18,8 @@
   realsense2-description,
   rplidar-ros,
   sensor-msgs,
+  tf2,
+  tf2-ros,
   visualization-msgs,
 }:
 buildRosPackage rec {
@@ -44,6 +46,8 @@ buildRosPackage rec {
     realsense2-description
     rplidar-ros
     sensor-msgs
+    tf2
+    tf2-ros
     visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];

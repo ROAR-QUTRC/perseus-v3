@@ -16,6 +16,10 @@
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>realsense2_description</exec_depend>
+  <!-- bucket_ram_follower.py, started by view_perseus.launch.py for payload:=bucket -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

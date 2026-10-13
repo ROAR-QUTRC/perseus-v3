@@ -5,6 +5,7 @@
   <xacro:arg name="hardware_plugin" default="hardware/VescSystemHardware" />
   <xacro:arg name="min_command_erpm" default="0" />
   <xacro:arg name="payload" default="none" />
+  <xacro:arg name="bucket_hardware_plugin" default="payloads/BucketHardware" />
 
   <!-- Import URDF description -->
   <xacro:include filename="$(find description)/urdf/perseus.urdf.xacro" />
@@ -16,4 +17,13 @@
   <!-- Instantiate the description and the ROS2 control information -->
   <xacro:perseus prefix="$(arg prefix)" payload="$(arg payload)" />
   <xacro:perseus_ros2_control name="Perseus" prefix="$(arg prefix)" can_bus="$(arg can_bus)" hardware_plugin="$(arg hardware_plugin)" min_command_erpm="$(arg min_command_erpm)"/>
+
+  <!-- The bucket is a second hardware component under the same controller_manager, so
+       its joints share /joint_states and the one robot_state_publisher with the drive.
+       A bucket fault deactivates only this component and the controllers that claim
+       its interfaces; see payloads/src/bucket_hardware/bucket_hardware.cpp. -->
+  <xacro:if value="${'$(arg payload)' == 'bucket'}">
+    <xacro:include filename="$(find description)/ros2_control/bucket.ros2_control.xacro" />
+    <xacro:bucket_ros2_control prefix="$(arg prefix)" can_interface="$(arg can_bus)" hardware_plugin="$(arg bucket_hardware_plugin)"/>
+  </xacro:if>
 </robot>

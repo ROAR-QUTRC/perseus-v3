@@ -10,6 +10,7 @@
   footprint-broadcaster,
   global-traversability,
   health-check,
+  link-monitor,
   local-traversability,
   navigation2,
   rclcpp,
@@ -17,6 +18,7 @@
   rviz-plugins,
   sensors,
   slam-toolbox,
+  system-monitor,
   teleop,
   vision,
   watchdog,
@@ -40,6 +42,7 @@ buildRosPackage rec {
     footprint-broadcaster
     global-traversability
     health-check
+    link-monitor
     local-traversability
     navigation2
     rclcpp
@@ -47,6 +50,7 @@ buildRosPackage rec {
     rviz-plugins
     sensors
     slam-toolbox
+    system-monitor
     teleop
     vision
     watchdog

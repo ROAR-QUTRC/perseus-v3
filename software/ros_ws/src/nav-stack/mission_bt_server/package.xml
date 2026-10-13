@@ -10,11 +10,18 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
   <depend>interfaces</depend>
   <depend>std_srvs</depend>
   <depend>geometry_msgs</depend>
+  <depend>control_msgs</depend>
   <depend>behaviortree_cpp</depend>
   <depend>nav2_behavior_tree</depend>
+  <depend>nav2_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>ament_index_cpp</depend>
+  <!-- bucket_cli loads mission.xml from its share -->
+  <exec_depend>autonomy_bringup</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

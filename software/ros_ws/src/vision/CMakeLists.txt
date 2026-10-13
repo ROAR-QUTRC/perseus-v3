@@ -75,58 +75,33 @@ rclcpp_components_register_nodes(
   vision_components "vision::ArucoDetector" "vision::CubeDetector"
   "vision::DetectionOverlay")
 
-# ── vendored libviso2 (third_party/libviso2/NOTICE.md — GPL-2.0-or-later plus a
-#    separately-licensed, non-commercial-use Triangle module) ──────────────────
-# Kept as its own static library, linked only into vision_stereo_odom below, so this
-# code never gets pulled into vision_components' shared library with the
-# MIT-licensed detector nodes.
-add_library(
-  vision_libviso2 STATIC
-  third_party/libviso2/src/filter.cpp third_party/libviso2/src/matcher.cpp
-  third_party/libviso2/src/matrix.cpp third_party/libviso2/src/triangle.cpp
-  third_party/libviso2/src/viso.cpp third_party/libviso2/src/viso_stereo.cpp)
-target_include_directories(
-  vision_libviso2
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/libviso2/include>
-  # The vendored sources include sibling headers unqualified (e.g. "matrix.h"), so the
-  # public include above (which requires the libviso2/ prefix) does not resolve them.
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/libviso2/include/libviso2)
-# Unmodified upstream code kept diffable against its source — not held to this
-# repo's warning policy.
-target_compile_options(vision_libviso2 PRIVATE -w)
-# PUBLIC, not PRIVATE: vision_stereo_odom's own sources (stereo_odometry.cpp) also
-# transitively include libviso2/matcher.h, which branches on __ARM_NEON__ to decide
-# whether to pull in the x86 emmintrin.h intrinsics header. A PRIVATE define here would
-# leave that translation unit un-defined on ARM and fail with "emmintrin.h: No such
-# file or directory".
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm.*)$")
-  target_compile_definitions(vision_libviso2 PUBLIC __ARM_NEON__)
-else()
-  target_compile_options(vision_libviso2 PUBLIC -msse3)
-endif()
+# ── orb_slam_odometry component library ──────────────────────────────────────
+# ORB-SLAM3 (GPL-3.0) is linked only into this library, kept apart from
+# vision_components' shared library with the MIT-licensed detector nodes. It comes from
+# the orb-slam3 Nix package (nix/extra-packages/patches/orb-slam3), which also installs
+# the ORB vocabulary that ORB_SLAM3_VOCABULARY points at.
+find_package(ORB_SLAM3 REQUIRED)
 
-# ── stereo_odometry component library ───────────────────────────────────────────
-# Built separately from vision_components (see the libviso2 note above).
 add_library(
-  vision_stereo_odom SHARED src/stereo_odometry/stereo_odometry.cpp
-                            src/stereo_odometry/odometry_publisher.cpp)
+  vision_orb_slam_odom SHARED src/orb_slam_odometry/orb_slam_odometry.cpp
+                              src/common/odometry_publisher.cpp)
 
 target_include_directories(
-  vision_stereo_odom
+  vision_orb_slam_odom
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
          $<INSTALL_INTERFACE:include>
   PRIVATE ${OpenCV_INCLUDE_DIRS})
 
-target_link_libraries(vision_stereo_odom ${OpenCV_LIBS} vision_libviso2)
+target_link_libraries(vision_orb_slam_odom ${OpenCV_LIBS} ORB_SLAM3::ORB_SLAM3)
+target_compile_definitions(
+  vision_orb_slam_odom
+  PRIVATE ORB_SLAM3_DEFAULT_VOCABULARY="${ORB_SLAM3_VOCABULARY}")
 
 ament_target_dependencies(
-  vision_stereo_odom
+  vision_orb_slam_odom
   rclcpp
   rclcpp_components
-  rcl_interfaces
   sensor_msgs
-  std_msgs
   std_srvs
   nav_msgs
   geometry_msgs
@@ -139,7 +114,7 @@ ament_target_dependencies(
   image_transport
   interfaces)
 
-rclcpp_components_register_nodes(vision_stereo_odom "vision::StereoOdometry")
+rclcpp_components_register_nodes(vision_orb_slam_odom "vision::OrbSlamOdometry")
 
 # ── standalone executables ────────────────────────────────────────────────────
 # Thin wrappers so each node can still be run on its own with `ros2 run`.
@@ -156,19 +131,20 @@ add_executable(detection_overlay_node
 target_link_libraries(detection_overlay_node vision_components)
 ament_target_dependencies(detection_overlay_node rclcpp)
 
-add_executable(stereo_odometry src/stereo_odometry/stereo_odometry_node.cpp)
-target_link_libraries(stereo_odometry vision_stereo_odom)
-ament_target_dependencies(stereo_odometry rclcpp)
+add_executable(orb_slam_odometry
+               src/orb_slam_odometry/orb_slam_odometry_node.cpp)
+target_link_libraries(orb_slam_odometry vision_orb_slam_odom)
+ament_target_dependencies(orb_slam_odometry rclcpp)
 
 # ── install ───────────────────────────────────────────────────────────────────
 install(
-  TARGETS vision_components vision_stereo_odom
+  TARGETS vision_components vision_orb_slam_odom
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
 install(TARGETS aruco_detector_node cube_detector detection_overlay_node
-                stereo_odometry DESTINATION lib/${PROJECT_NAME})
+                orb_slam_odometry DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)

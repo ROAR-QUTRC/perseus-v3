@@ -35,7 +35,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -53,6 +53,15 @@ def generate_launch_description():
     # The Mission Control panel's Start/Stop missions: full autonomy or navigation only,
     # cycling between the zones or a single trip. Built from the tree above.
     mission_cycle_bt_xml = os.path.join(share, "behavior_trees", "mission.xml")
+    # The same tree with every bucket move lift-only, for while the tilt and jaw encoders
+    # are not available. bucket_lift_only:=true picks it.
+    mission_lift_only_bt_xml = os.path.join(
+        share, "behavior_trees", "mission_lift_only.xml"
+    )
+    # The Lattice planner's motion primitives; an absolute path for the same reason.
+    lattice_primitives = os.path.join(
+        share, "config", "lattice", "diff_10cm_1m_radius.json"
+    )
 
     declare_use_sim_time = DeclareLaunchArgument(
         "use_sim_time",
@@ -61,6 +70,20 @@ def generate_launch_description():
         "/clock.",
     )
     use_sim_time = {"use_sim_time": LaunchConfiguration("use_sim_time")}
+
+    declare_bucket_lift_only = DeclareLaunchArgument(
+        "bucket_lift_only",
+        default_value="false",
+        description="Run mission_lift_only.xml instead of mission.xml: every bucket move "
+        "commands the lift alone. For while the tilt and jaw encoders are not available.",
+    )
+    mission_tree = PythonExpression(
+        [
+            f"'{mission_lift_only_bt_xml}' if '",
+            LaunchConfiguration("bucket_lift_only"),
+            f"'.lower() == 'true' else '{mission_cycle_bt_xml}'",
+        ]
+    )
 
     def nav2_node(package, executable, name, remappings=None, extra_params=None):
         return Node(
@@ -97,7 +120,12 @@ def generate_launch_description():
         ),
         nav2_node("nav2_controller", "controller_server", "controller_server"),
         nav2_node("nav2_smoother", "smoother_server", "smoother_server"),
-        nav2_node("nav2_planner", "planner_server", "planner_server"),
+        nav2_node(
+            "nav2_planner",
+            "planner_server",
+            "planner_server",
+            extra_params=[{"Lattice.lattice_filepath": lattice_primitives}],
+        ),
         nav2_node("nav2_behaviors", "behavior_server", "behavior_server"),
         nav2_node(
             "nav2_bt_navigator",
@@ -116,7 +144,7 @@ def generate_launch_description():
             parameters=[
                 {
                     "bt_xml_path": mission_bt_xml,
-                    "mission_bt_xml_path": mission_cycle_bt_xml,
+                    "mission_bt_xml_path": mission_tree,
                 },
                 use_sim_time,
             ],
@@ -145,4 +173,4 @@ def generate_launch_description():
         ),
     ]
 
-    return LaunchDescription([declare_use_sim_time] + nodes)
+    return LaunchDescription([declare_use_sim_time, declare_bucket_lift_only] + nodes)

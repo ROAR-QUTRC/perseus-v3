@@ -40,7 +40,10 @@ pkgs.mkShell {
           builtin-interfaces
           compressed-depth-image-transport
           compressed-image-transport
+          control-msgs
+          controller-interface
           controller-manager
+          controller-manager-msgs
           cv-bridge
           diff-drive-controller
           draco-point-cloud-transport
@@ -53,15 +56,20 @@ pkgs.mkShell {
           joint-state-broadcaster
           joint-state-publisher
           joint-state-publisher-gui
+          joint-trajectory-controller
           joy
+          launch
+          launch-ros
           mecanum-drive-controller
           message-filters
           nav-msgs
           nav2-behavior-tree
+          nav2-msgs
           navigation2
           nlohmann_json
           onnxruntime
           opencv
+          orb-slam3
           pcl
           pcl-conversions
           pid-controller
@@ -70,11 +78,13 @@ pkgs.mkShell {
           qt5.qtbase
           rcl-interfaces
           rclcpp
+          rclcpp-action
           rclcpp-components
           rclcpp-lifecycle
           rclpy
           realsense2-camera
           realsense2-description
+          realtime-tools
           robot-localization
           robot-state-publisher
           ros2controlcli

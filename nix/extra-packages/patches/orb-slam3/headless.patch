@@ -1,0 +1,64 @@
+diff --git a/include/Map.h b/include/Map.h
+index 0e0a49c..aa6aa40 100644
+--- a/include/Map.h
++++ b/include/Map.h
+@@ -24,7 +24,6 @@
+ #include "KeyFrame.h"
+ 
+ #include <set>
+-#include <pangolin/pangolin.h>
+ #include <mutex>
+ 
+ #include <boost/serialization/base_object.hpp>
+@@ -188,7 +187,7 @@ protected:
+ 
+ 
+     // View of the map in aerial sight (for the AtlasViewer)
+-    GLubyte* mThumbnail;
++    unsigned char* mThumbnail;
+ 
+     bool mIsInUse;
+     bool mHasTumbnail;
+diff --git a/src/Map.cc b/src/Map.cc
+index f1f8cd0..5eb0ec2 100644
+--- a/src/Map.cc
++++ b/src/Map.cc
+@@ -30,7 +30,7 @@ Map::Map():mnMaxKFid(0),mnBigChangeIdx(0), mbImuInitialized(false), mnMapChange(
+ mbFail(false), mIsInUse(false), mHasTumbnail(false), mbBad(false), mnMapChangeNotified(0), mbIsInertial(false), mbIMU_BA1(false), mbIMU_BA2(false)
+ {
+     mnId=nNextId++;
+-    mThumbnail = static_cast<GLubyte*>(NULL);
++    mThumbnail = static_cast<unsigned char*>(NULL);
+ }
+ 
+ Map::Map(int initKFid):mnInitKFid(initKFid), mnMaxKFid(initKFid),/*mnLastLoopKFid(initKFid),*/ mnBigChangeIdx(0), mIsInUse(false),
+@@ -38,7 +38,7 @@ Map::Map(int initKFid):mnInitKFid(initKFid), mnMaxKFid(initKFid),/*mnLastLoopKFi
+                        mnMapChange(0), mbFail(false), mnMapChangeNotified(0), mbIsInertial(false), mbIMU_BA1(false), mbIMU_BA2(false)
+ {
+     mnId=nNextId++;
+-    mThumbnail = static_cast<GLubyte*>(NULL);
++    mThumbnail = static_cast<unsigned char*>(NULL);
+ }
+ 
+ Map::~Map()
+@@ -51,7 +51,7 @@ Map::~Map()
+ 
+     if(mThumbnail)
+         delete mThumbnail;
+-    mThumbnail = static_cast<GLubyte*>(NULL);
++    mThumbnail = static_cast<unsigned char*>(NULL);
+ 
+     mvpReferenceMapPoints.clear();
+     mvpKeyFrameOrigins.clear();
+diff --git a/src/System.cc b/src/System.cc
+index 60d9c51..dda00be 100644
+--- a/src/System.cc
++++ b/src/System.cc
+@@ -21,7 +21,6 @@
+ #include "System.h"
+ #include "Converter.h"
+ #include <thread>
+-#include <pangolin/pangolin.h>
+ #include <iomanip>
+ #include <openssl/md5.h>
+ #include <boost/serialization/base_object.hpp>

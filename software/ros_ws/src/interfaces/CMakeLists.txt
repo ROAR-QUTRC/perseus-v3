@@ -68,7 +68,10 @@ rosidl_generate_interfaces(
   "msg/MobilityStatus.msg"
   "msg/TopicHealth.msg"
   "msg/SystemHealth.msg"
-  "msg/StereoOdometryInfo.msg"
+  "msg/MachineHealth.msg"
+  "msg/DeviceLink.msg"
+  "msg/LinkHealth.msg"
+  "msg/OrbSlamOdometryInfo.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs

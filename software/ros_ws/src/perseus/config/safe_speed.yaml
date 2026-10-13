@@ -28,13 +28,13 @@ diff_drive_base_controller:
     # 1.7 m/s in the base file. 0.8 is a brisk walk, so a person can stay
     # alongside the rover and reach the e-stop.
     linear.x.max_velocity: 0.8
-    # 5.0 rad/s in the base file, which is nearly 300 deg/s and far faster than
-    # anything the rover is driven at in practice. 0.4 rad/s is about 23 deg/s.
+    # 10.0 rad/s in the base file, which is nearly 600 deg/s and far faster than
+    # anything the rover is driven at in practice. 1.0 rad/s is about 57 deg/s.
     #
-    # Worth knowing given the low-speed stall work: 0.4 rad/s of yaw is
-    # 0.4 * (0.714/2) / 0.147 = 0.97 rad/s at the wheel, still comfortably above
+    # Worth knowing given the low-speed stall work: 1.0 rad/s of yaw is
+    # 1.0 * (0.714/2) / 0.147 = 2.43 rad/s at the wheel, comfortably above
     # the ~0.34 rad/s the ESCs stall below. But a lower ceiling also means full
     # joystick deflection now asks for less, so ordinary driving sits closer to
     # that floor -- if stalling gets worse in this mode, that is why, and
     # use_wheel_pid is the mitigation.
-    angular.z.max_velocity: 0.4
+    angular.z.max_velocity: 1.0

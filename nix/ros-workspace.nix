@@ -41,6 +41,9 @@ rec {
       teleop-twist-keyboard
       tf2-tools
       twist-stamper
+
+      # Control
+      joint-trajectory-controller
       ;
   };
   # Packages which should be available only in the dev shell

@@ -33,6 +33,23 @@ namespace bsp
     constexpr gpio_num_t A9 = GPIO_NUM_9;
     constexpr gpio_num_t A10 = GPIO_NUM_10;
 
+    /**
+     * @brief One RS485 bus: the UART's TX and RX pins plus the transceiver's
+     * direction pin.
+     */
+    struct rs485_pins_t
+    {
+        gpio_num_t tx;
+        gpio_num_t rx;
+        gpio_num_t dir;  // drives the SP3485's DE and ~RE tied together: high = transmit
+    };
+
+    // RS485 buses on the dc-motor-driver carrier (hardware/dc-motor-driver,
+    // sheets RS485_1 and RS485_2). Named after the schematic nets, whose SBB
+    // pins are A7/A8/A9 (bus 1) and A10/IO12/IO39 (bus 2).
+    constexpr rs485_pins_t RS485_1 = {A9, A8, A7};                     // MCU1_TX, MCU1_RX, MCU1_DIR
+    constexpr rs485_pins_t RS485_2 = {GPIO_NUM_12, A10, GPIO_NUM_39};  // MCU2_TX, MCU2_RX, MCU2_DIR
+
 #if __has_include(<Wire.h>)
     void initI2C();
 #endif

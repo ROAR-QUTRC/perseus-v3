@@ -16,6 +16,8 @@
 #include <thread>
 #include <vector>
 
+#include "mission_bt_server/mission_bt_server/bucket_mission_params.hpp"
+
 namespace mission_bt_server
 {
 
@@ -105,15 +107,15 @@ namespace mission_bt_server
         std::string _mission_bt_xml_path;
         std::string _excavation_service_name;
         std::string _construction_service_name;
-        double _default_zone_pause_s;
 
-        // Blackboard entries every nav2_behavior_tree BT node reads in its own
-        // constructor (BtServiceNode, BtActionNode) - see bt_action_server_impl.hpp,
-        // which this replicates without the LifecycleNode it comes attached to.
-        std::chrono::milliseconds _bt_loop_duration;
-        std::chrono::milliseconds _server_timeout;
-        std::chrono::milliseconds _cancel_timeout;
-        std::chrono::milliseconds _wait_for_service_timeout;
+        // PrepareBucket's travel pose, DigBucket's pose and creeps, and the nav2 BT
+        // timeouts; see bucket_mission_params.hpp.
+        BucketMissionParams _bucket;
+        BtTimeouts _timeouts;
+
+        // How long a FULL_AUTONOMY_TIMED mission stops at each zone when the request
+        // leaves zone_pause_s at 0.
+        double _default_zone_pause_s{2.0};
 
         // A plain node distinct from `this`, purely so the BT nodes have an
         // rclcpp::Node::SharedPtr to construct clients against before `this` could

@@ -15,7 +15,8 @@ The composed path exists because the infra pair is 848x480 Y8 at 30 fps -- 407 K
 24 MB/s for the two together. Run as a separate process every byte of that is serialised
 through the middleware, and measured on this rover 86% of frames never arrived: 29.8 fps at
 the camera's own frame counter against 4.2 Hz on the topic, with infra1 and infra2 drifting
-to different rates so libviso2 was matching frames that did not correspond to each other.
+to different rates so the stereo odometry (libviso2, at the time) was matching frames that
+did not correspond to each other.
 Loaded into the driver's container both streams measure a clean 30 Hz.
 
 The node-by-node path is the baseline to compare against, and the only one that works
@@ -51,10 +52,15 @@ DEFAULT_CONTAINER_NAME = "sensor_container"
 # (launch argument, node name, executable, component plugin). The names are not free
 # choices: vision.yaml keys each node's parameters under a top-level block of the same name
 # at the root namespace, so renaming one would silently drop every parameter and leave it on
-# its built-in defaults -- for stereo_odometry that includes publish_tf, which must stay
+# its built-in defaults -- for orb_slam_odometry that includes publish_tf, which must stay
 # false while the EKF owns odom -> base_link.
 NODES = [
-    ("stereo_odometry", "stereo_odometry", "stereo_odometry", "vision::StereoOdometry"),
+    (
+        "orb_slam_odometry",
+        "orb_slam_odometry",
+        "orb_slam_odometry",
+        "vision::OrbSlamOdometry",
+    ),
     ("aruco", "aruco_detector", "aruco_detector_node", "vision::ArucoDetector"),
     ("cube", "cube_detector", "cube_detector", "vision::CubeDetector"),
     (
@@ -177,9 +183,9 @@ def generate_launch_description():
                 "nodes load into. Used only when enable_sensors:=true.",
             ),
             DeclareLaunchArgument(
-                "stereo_odometry",
+                "orb_slam_odometry",
                 default_value="true",
-                description="Enable stereo visual odometry on the infra pair",
+                description="Enable ORB-SLAM3 stereo visual odometry on the infra pair",
             ),
             DeclareLaunchArgument(
                 "aruco", default_value="true", description="Enable the ArUco detector"

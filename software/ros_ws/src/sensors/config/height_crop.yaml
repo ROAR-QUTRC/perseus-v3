@@ -1,0 +1,34 @@
+# sensors/height_crop: drop everything more than max_height_m above odom's origin.
+#
+# odom's z = 0 is the ground the rover started on (BIEVR-LIO puts its origin at
+# base_link, which sits at ground level), and the arena bed varies by only ~0.3 m,
+# so a fixed height in odom separates the ceiling from everything the rover needs.
+# 1.5 m keeps the 0.85 m walls, 30-40 cm boulders and the traversability nodes'
+# obstacle_height_cap_m (1.0 m above local ground) with room to spare, and is well
+# under any tent canopy or ceiling. Lower it if the canopy still shows; raise it if
+# you want people's heads in the base-station view.
+#
+# The LIO keeps the raw /livox/lidar. These two streams are:
+#   livox      /livox/lidar -> /livox/lidar/cropped, which the global and local
+#              traversability nodes and the base-station downlink read
+#   laser_map  /Laser_map   -> /Laser_map/cropped, for the downlink only
+livox_height_crop:
+  ros__parameters:
+    input_topic: /livox/lidar
+    output_topic: /livox/lidar/cropped
+    reference_frame: odom
+    max_height_m: 1.5
+    # The scan is in livox_frame, so each one waits this long for odom <- livox_frame
+    # at its stamp. A scan whose transform does not arrive is dropped, not passed
+    # through uncropped.
+    tf_timeout_s: 0.05
+laser_map_height_crop:
+  ros__parameters:
+    input_topic: /Laser_map
+    output_topic: /Laser_map/cropped
+    # /Laser_map is already in odom, so no transform is needed.
+    reference_frame: odom
+    max_height_m: 1.5
+    # Latched like /Laser_map itself, so a base station that joins late gets the
+    # current map at once.
+    output_transient_local: true

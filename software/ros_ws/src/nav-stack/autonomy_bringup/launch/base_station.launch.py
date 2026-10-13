@@ -22,7 +22,15 @@ Arguments:
     rviz_config   path to an RViz config, to open a different view without editing this file
     use_sim_time  set true when following a simulated robot, so displays honour /clock
     use_nixgl     wrap RViz in nixGL for GPU access; true matches the other launch files
-                  in this repo, false runs rviz2 directly on a machine with working drivers
+                  in this repo, false runs rviz2 directly on a machine with working drivers.
+                  Uses an installed `nixGL` command if there is one, which needs no
+                  internet; otherwise `nix run github:nix-community/nixGL`, which does,
+                  every launch. Install it once, while online, with
+                      nix profile add --impure github:nix-community/nixGL
+                  and check it suits the GPU that drives the screen: on an NVIDIA
+                  open-kernel-module driver nixGL's detection fails and builds the Mesa
+                  wrapper. Reinstall after switching the screen to a different GPU or,
+                  for an NVIDIA wrapper, after a driver update
     decompress    run the Draco decoders; false when the rover is sending raw clouds, or
                   when another process on this machine already decodes them
     mesh          reconstruct a surface from the decoded map cloud, published as a marker
@@ -34,7 +42,12 @@ Arguments:
     teleop        run the joystick override (joy_node and teleop's generic_controller)
     controller_type  controller config for the override, as teleop's controller.launch.py
                   type:= -- taranis, xbox, logitech or 8bitdo
+    link_monitor  run link_monitor, which publishes /link_health: throughput of the radio
+                  link and the ping to each rover brain. Independent of rviz_only, like
+                  the joystick, since it is a check on the link rather than a display
 """
+
+import shutil
 
 from launch import LaunchDescription
 from launch.actions import (
@@ -58,6 +71,7 @@ def generate_launch_description():
     mesh = LaunchConfiguration("mesh")
     rviz_only = LaunchConfiguration("rviz_only")
     teleop = LaunchConfiguration("teleop")
+    link_monitor = LaunchConfiguration("link_monitor")
 
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -104,6 +118,33 @@ def generate_launch_description():
         description="Controller config for the joystick override",
     )
 
+    link_monitor_arg = DeclareLaunchArgument(
+        "link_monitor",
+        default_value="true",
+        description="Measure link throughput and ping to the rover, published on /link_health",
+    )
+
+    # Outside processing_nodes so rviz_only:=true cannot drop it: it watches the link, not
+    # the displays. The interface is detected from the route to the rover, so it follows
+    # a switch between wifi and ethernet without being told.
+    link_monitor_launch = GroupAction(
+        [
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("link_monitor"),
+                            "launch",
+                            "link_monitor.launch.py",
+                        ]
+                    )
+                ),
+            )
+        ],
+        scoped=True,
+        condition=IfCondition(link_monitor),
+    )
+
     # The manual override. Outside processing_nodes so rviz_only:=true cannot drop it, and
     # scoped so its `type`, `debug` etc. stay out of the rest of this file.
     teleop_launch = GroupAction(
@@ -135,18 +176,19 @@ def generate_launch_description():
         "RMW_QOS_POLICY_DEPTH": "100",
     }
 
+    # An installed nixGL (see the module docstring) runs offline. `nix run` on the flake
+    # resolves github:nix-community/nixGL every launch, so without internet RViz never
+    # starts. And plain rviz2 is no fallback: the Nix-built RViz cannot find the GL
+    # drivers on its own and fails to create its GLX window.
+    installed_nixgl = shutil.which("nixGL")
+    nixgl_cmd = (
+        [installed_nixgl]
+        if installed_nixgl
+        else ["nix", "run", "--impure", "github:nix-community/nixGL", "--"]
+    )
     rviz_nixgl = ExecuteProcess(
         condition=IfCondition(use_nixgl),
-        cmd=[
-            "nix",
-            "run",
-            "--impure",
-            "github:nix-community/nixGL",
-            "--",
-            "rviz2",
-            "-d",
-            rviz_config,
-        ],
+        cmd=[*nixgl_cmd, "rviz2", "-d", rviz_config],
         output="screen",
         additional_env=rviz_env,
     )
@@ -304,9 +346,11 @@ def generate_launch_description():
             rviz_only_arg,
             teleop_arg,
             controller_type_arg,
+            link_monitor_arg,
             rviz_nixgl,
             rviz_plain,
             processing_nodes,
             teleop_launch,
+            link_monitor_launch,
         ]
     )
