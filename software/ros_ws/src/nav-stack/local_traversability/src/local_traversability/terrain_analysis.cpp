@@ -17,8 +17,16 @@ namespace local_traversability
     {
         constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
-        /// @brief Fewest ground-like cells a block needs before its median is trusted.
-        constexpr std::size_t MIN_REFERENCE_CELLS = 3;
+        /// @brief Share of a block's cells that must be ground-like before the block
+        ///        gives a ground sample.
+        /// @details Half. A block that is mostly ground is ground. One with a few
+        /// ground-like cells in it is the top of a wall, the top of a boulder or the
+        /// part of a wall face that shows over whatever hides its foot: each is flat,
+        /// each is above the bed, and each passes for ground when the bed beside it is
+        /// out of sight. Taken as samples they lift the reference by up to the height
+        /// of the wall and the real bed next to them reads as a hole (Gazebo arena, at
+        /// 3 cells of 25: up to 164 false cells in a frame, all against the walls).
+        constexpr double REFERENCE_MIN_FILL = 0.5;
         /// @brief Fewest valid blocks, out of a block and its eight neighbours, needed
         ///        before the regional ground is defined there. A plane needs three.
         constexpr std::size_t MIN_REFERENCE_BLOCKS = 3;
@@ -388,7 +396,10 @@ namespace local_traversability
                             heights.push_back(floor);
                         }
                     }
-                    if (heights.size() < MIN_REFERENCE_CELLS)
+                    const int cells_in_block = (row_end - block_row * block_cells) *
+                                               (col_end - block_col * block_cells);
+                    if (static_cast<double>(heights.size()) <
+                        REFERENCE_MIN_FILL * static_cast<double>(cells_in_block))
                     {
                         continue;
                     }
