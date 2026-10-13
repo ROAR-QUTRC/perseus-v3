@@ -84,10 +84,10 @@
 	let action: ROSLIB.Action<ActionGoalType, ActionFeedbackType, ActionResultType> | null = null;
 
 	const polarToCartesian = (radius: number, degrees: number, xOffset: number, yOffset: number) => {
-		const radians = (degrees * Math.PI) / 180;
+		// const radians = (degrees * Math.PI) / 180;
 		return {
-			x: radius * Math.cos(radians) + xOffset,
-			y: radius * Math.sin(radians) + yOffset
+			x: radius * Math.cos(degrees) + xOffset,
+			y: radius * Math.sin(degrees) + yOffset
 		};
 	};
 
@@ -257,7 +257,7 @@
 		if (ros) {
 			jointState = new ROSLIB.Topic({
 				ros: ros,
-				name: '/joint_states_deg',
+				name: '/joint_states',
 				messageType: 'sensor_msgs/JointState'
 			});
 			action = new ROSLIB.Action({
