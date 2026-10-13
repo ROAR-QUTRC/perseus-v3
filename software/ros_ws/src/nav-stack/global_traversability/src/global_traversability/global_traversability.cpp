@@ -70,7 +70,8 @@ namespace global_traversability
     GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions& options)
         : rclcpp::Node("global_traversability", options),
           _window(local_traversability::TERRAIN_LAYERS),
-          _map({"log_odds", "elevation", "obstacle", "border", "inflation", "cost"})
+          _map({"log_odds", "hole_range", "elevation", "obstacle", "border", "inflation",
+                "cost"})
     {
         _load_parameters();
 
@@ -296,7 +297,8 @@ namespace global_traversability
         }
 
         local_traversability::classify_terrain(_window, _cloud_buffer, _terrain);
-        _fuse_window();
+        _fuse_window(grid_map::Position(robot_transform.transform.translation.x,
+                                        robot_transform.transform.translation.y));
     }
 
     bool GlobalTraversability::_place_window(const grid_map::Position& center)
@@ -387,13 +389,14 @@ namespace global_traversability
         return true;
     }
 
-    void GlobalTraversability::_fuse_window()
+    void GlobalTraversability::_fuse_window(const grid_map::Position& robot_position)
     {
         const Eigen::MatrixXf& window_border = _window["border"];
         const Eigen::MatrixXf& window_obstacle = _window["obstacle"];
         const Eigen::MatrixXf& window_hole = _window["hole"];
         const Eigen::MatrixXf& window_elevation = _window["elevation"];
         Eigen::MatrixXf& log_odds = _map["log_odds"];
+        Eigen::MatrixXf& hole_range = _map["hole_range"];
         Eigen::MatrixXf& elevation = _map["elevation"];
 
         const float hit = static_cast<float>(_log_odds_hit);
@@ -430,8 +433,35 @@ namespace global_traversability
             // obstacle in the window and is fused as free, like any other cell.
             const bool is_hole = is_obstacle &&
                                  window_hole(window_index(0), window_index(1)) > 0.5f;
+            const float range =
+                static_cast<float>((position - robot_position).norm());
+            float& seen_from = hole_range(index(0), index(1));
+            if (is_hole)
+            {
+                seen_from = std::isnan(seen_from) ? range : std::max(seen_from, range);
+            }
+            else if (!is_obstacle && range > seen_from)
+            {
+                // A hole only shows from close: further out its floor is hidden
+                // behind its own near rim and the cell reads as ground. So "free"
+                // is evidence against a remembered hole only from where the hole
+                // itself has been seen, and from further away it says nothing. The
+                // range is the cell's own, learned when it was marked, because a
+                // shallow crater shows from 2.5 m and a deep one from 3.5 m. Without
+                // this a crater fades from the map as the rover drives away from it
+                // (Gazebo: 30 cells to none by 5 m), which is when the planner
+                // needs it for the way back. NaN, a cell never seen as a hole,
+                // fails the comparison and is fused as before.
+                continue;
+            }
             const float step = is_hole ? hole_hit : (is_obstacle ? hit : -miss);
             cell = std::clamp(prior + step, lowest, highest);
+            if (cell <= 0.0f)
+            {
+                // Seen free from close enough, often enough: no longer a hole, so
+                // the next free verdict counts from any range again.
+                seen_from = std::numeric_limits<float>::quiet_NaN();
+            }
 
             // Latest floor, for the debug layer only. Nothing downstream compares it
             // against its neighbours -- see the class comment for why it must not.

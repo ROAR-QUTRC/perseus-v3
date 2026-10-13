@@ -190,7 +190,9 @@ namespace global_traversability
         bool _place_window(const grid_map::Position& center);
 
         /// @brief Adds each observed window cell's verdict to the persistent log-odds.
-        void _fuse_window();
+        /// @param robot_position Where the rover is, for how far away each cell is
+        ///        being judged from: see hole_range in the definition.
+        void _fuse_window(const grid_map::Position& robot_position);
 
         /// @brief Derives obstacle/border from the log-odds, inflates, and publishes
         ///        the costmap and any subscribed debug layers.
