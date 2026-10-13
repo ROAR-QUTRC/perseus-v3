@@ -2,10 +2,6 @@
 
 Branch `feat/detect-crater`. Written 2026-10-13 for teammates who will test it.
 
-This file is the summary. For how the code works line by line, read
-`crater_detection_walkthrough.md`. For the measurements and the reasoning behind each
-decision, read `crater_detection_notes.md` (section 11).
-
 ## What it does
 
 The rover now marks craters as lethal in both Nav2 costmaps, using the lidar it already

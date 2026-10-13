@@ -240,7 +240,7 @@ local_traversability:
     #     0.40 x 0.15 m, bowl        2.5 m
     #
     # with no false cells on slopes up to 20 deg. In Gazebo on the cratered arena bed
-    # (offline prototype of this test, vision/src/crater_detection_notes.md section 7.4)
+    # (offline prototype of this test on the Gazebo arena)
     # 0.07 and 0.08 gave no false cells and 0.06 flagged a broad natural dip. NOT yet
     # checked against a real scan: sim has no sensor noise worth the name.
     #
