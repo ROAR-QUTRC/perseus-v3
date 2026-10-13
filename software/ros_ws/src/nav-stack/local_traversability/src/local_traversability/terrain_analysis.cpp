@@ -17,6 +17,54 @@ namespace local_traversability
     {
         constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
+        /// @brief Fewest ground-like cells a block needs before its median is trusted.
+        constexpr std::size_t MIN_REFERENCE_CELLS = 3;
+        /// @brief Fewest valid blocks, out of a block and its eight neighbours, needed
+        ///        before the regional ground is defined there. A plane needs three.
+        constexpr std::size_t MIN_REFERENCE_BLOCKS = 3;
+        /// @brief Most blocks that may be dropped from one plane fit as outliers.
+        /// @details Two, because that is how many blocks a guidebook crater can drag
+        /// down: it fills one, or sits across the edge between two.
+        constexpr int REFERENCE_MAX_OUTLIERS = 2;
+        /// @brief How far a block may sit from the fitted plane, as a fraction of
+        ///        hole_depth_m, before it is dropped as an outlier.
+        constexpr double REFERENCE_OUTLIER_FRACTION = 0.5;
+        /// @brief Ridge penalty on the fitted slopes, in m^2. See fit_plane().
+        constexpr double REFERENCE_SLOPE_RIDGE = 0.05;
+        /// @brief Radius around the sensor, in m, whose block samples set the height the
+        ///        ground is grown outwards from. See compute_ground_reference() step 2.
+        constexpr double REFERENCE_SEED_RADIUS_M = 2.5;
+        /// @brief Steepest ground the reference will follow from one block to the next,
+        ///        as rise over run: tan(20 deg). Steeper than any bed the rover drives.
+        constexpr double REFERENCE_MAX_SLOPE = 0.36;
+        /// @brief Height two neighbouring block samples may differ by on level ground, m.
+        constexpr double REFERENCE_STEP_MARGIN_M = 0.05;
+        /// @brief How many blocks away a sample may be and still count as a neighbour
+        ///        when growing the ground. Two bridges the one-block shadow of a rock.
+        constexpr int REFERENCE_REACH_BLOCKS = 2;
+        /// @brief Distance between samples when walking back along a ray, as a fraction
+        ///        of a cell. Half a cell cannot step over one.
+        constexpr float RAY_STEP_CELLS = 0.5f;
+        /// @brief Fraction of hole_depth_m a ray must stay below the regional ground to
+        ///        keep marking cells on its way back to the sensor.
+        /// @details Lower than the 1.0 that starts a walk, on purpose. The return that
+        /// starts it is the deepest point of the ray; every cell nearer the sensor sees
+        /// the same ray higher up, so holding them to the full depth would mark only
+        /// the far wall and leave the shadowed middle of the crater, where the rover
+        /// would actually fall in, unmarked. Not zero either: the regional ground is
+        /// only good to a few centimetres, and at zero that noise decides how far past
+        /// the near rim the mark runs.
+        constexpr float RAY_WALK_DEPTH_FRACTION = 0.5f;
+
+        /// @brief Middle value of @p values, which it reorders. Must not be empty.
+        float median(std::vector<float>& values)
+        {
+            const auto middle =
+                values.begin() + static_cast<std::ptrdiff_t>(values.size() / 2);
+            std::nth_element(values.begin(), middle, values.end());
+            return *middle;
+        }
+
         void accumulate_elevation(grid_map::GridMap& map,
                                   const std::deque<BufferedCloud>& clouds)
         {
@@ -199,11 +247,487 @@ namespace local_traversability
             }
         }
 
+        /// @brief One block's ground sample: where its ground-like cells are, on
+        ///        average, and their median height.
+        struct BlockSample
+        {
+            Eigen::Vector3d position{Eigen::Vector3d::Zero()};
+            bool valid{false};
+        };
+
+        /// @brief The regional ground around one block, as a plane
+        ///        z = height + slope . (xy - anchor).
+        struct BlockPlane
+        {
+            Eigen::Vector2d anchor{Eigen::Vector2d::Zero()};
+            double height{0.0};
+            Eigen::Vector2d slope{Eigen::Vector2d::Zero()};
+            bool valid{false};
+
+            double at(const grid_map::Position& position) const
+            {
+                return height + slope.dot(position - anchor);
+            }
+        };
+
+        /// @brief Least-squares plane through @p samples, about @p anchor.
+        /// @details The two slope terms carry a ridge penalty. Nine samples spread over
+        /// 1.5 m put 1.5 m^2 against its 0.05, so it costs a full fit 3 % of the slope;
+        /// samples that lie along one line, or nearly, put a few cm^2 against it, and
+        /// there it picks the plane that does not tilt across the line. Plain least
+        /// squares has no answer on a line and a wild one near it: at the edge of the
+        /// lidar's view three part-filled blocks a few cm out of line gave a slope
+        /// that put the reference 0.3 m up half a metre away (Gazebo, beside the
+        /// wall).
+        BlockPlane fit_plane(const std::vector<Eigen::Vector3d>& samples,
+                             const Eigen::Vector2d& anchor)
+        {
+            Eigen::Matrix3d normal = Eigen::Matrix3d::Zero();
+            Eigen::Vector3d moment = Eigen::Vector3d::Zero();
+            for (const auto& sample : samples)
+            {
+                const Eigen::Vector3d row(1.0, sample.x() - anchor.x(),
+                                          sample.y() - anchor.y());
+                normal += row * row.transpose();
+                moment += row * sample.z();
+            }
+            normal(1, 1) += REFERENCE_SLOPE_RIDGE;
+            normal(2, 2) += REFERENCE_SLOPE_RIDGE;
+
+            const Eigen::Vector3d solution = normal.ldlt().solve(moment);
+            BlockPlane plane;
+            plane.anchor = anchor;
+            plane.height = solution(0);
+            plane.slope = solution.tail<2>();
+            plane.valid = true;
+            return plane;
+        }
+
+        void compute_ground_reference(grid_map::GridMap& map,
+                                      const std::deque<BufferedCloud>& clouds,
+                                      const TerrainParameters& params)
+        {
+            const Eigen::MatrixXf& elevation = map["elevation"];
+            const Eigen::MatrixXf& step_up = map["step_up"];
+            const Eigen::MatrixXf& height_above_ground = map["height_above_ground"];
+            Eigen::MatrixXf& ground_ref = map["ground_ref"];
+
+            const int rows = map.getSize()(0);
+            const int cols = map.getSize()(1);
+            const int block_cells = std::max(
+                1, static_cast<int>(std::round(params.hole_reference_block_m /
+                                               map.getResolution())));
+            const int block_rows = (rows + block_cells - 1) / block_cells;
+            const int block_cols = (cols + block_cells - 1) / block_cells;
+            const auto block_index = [block_cols](int block_row, int block_col)
+            {
+                return static_cast<std::size_t>(block_row) *
+                           static_cast<std::size_t>(block_cols) +
+                       static_cast<std::size_t>(block_col);
+            };
+            const std::size_t block_count = static_cast<std::size_t>(block_rows) *
+                                            static_cast<std::size_t>(block_cols);
+
+            const float max_step_up = static_cast<float>(params.max_step_up_m);
+            const float max_height = static_cast<float>(params.max_height_above_ground_m);
+            const double outlier_m = params.hole_depth_m * REFERENCE_OUTLIER_FRACTION;
+
+            // Ground is something the lidar looks down on. A ceiling, a tent roof or
+            // the top of a bench is as flat as the bed and passes every test below,
+            // and one of them taken as ground puts the reference metres up and turns
+            // every ray under it into a hole (Gazebo arena: 600 cells under the
+            // building's roof, seen behind the rover at 4-5 m up). So a cell at or
+            // above the lowest sensor position in the buffer cannot be a sample. The
+            // cost is on a steep climb, where the bed ahead rises above the lidar
+            // within range: there is no reference there, and so no hole test.
+            float lowest_sensor_z = std::numeric_limits<float>::infinity();
+            for (const BufferedCloud& buffered : clouds)
+            {
+                lowest_sensor_z = std::min(lowest_sensor_z, buffered.sensor_origin.z());
+            }
+
+            // WHY NOT THE "ground" LAYER. That one is the tightest bound the cells within
+            // ground_window_m allow, so it follows the floor down into anything wider
+            // than the window's slope allowance can bridge -- which is the point of it
+            // for rocks, and exactly wrong here: a reference that dips into the crater
+            // reports the crater as flat. This one answers a different question, "where
+            // would the ground be if nothing were dug out of it", so it has to be taken
+            // over an area a crater cannot dominate, by statistics a crater cannot drag.
+            //
+            // Step 1. One sample per block: the median height of its ground-like cells,
+            // placed at the average position of those cells. A cell the step-up or
+            // height test would flag is a rock or a wall, and a wall face inside a
+            // block otherwise lifts its median by the height of the wall. The position
+            // matters as much as the height: a block at the edge of what the lidar
+            // sees is only part filled, so its median belongs to the part that was
+            // seen, not to the block's center.
+            std::vector<BlockSample> samples(block_count);
+            std::vector<float> heights;
+            for (int block_row = 0; block_row < block_rows; ++block_row)
+            {
+                for (int block_col = 0; block_col < block_cols; ++block_col)
+                {
+                    heights.clear();
+                    grid_map::Position position_sum = grid_map::Position::Zero();
+                    const int row_end = std::min(rows, (block_row + 1) * block_cells);
+                    const int col_end = std::min(cols, (block_col + 1) * block_cells);
+                    for (int row = block_row * block_cells; row < row_end; ++row)
+                    {
+                        for (int col = block_col * block_cells; col < col_end; ++col)
+                        {
+                            const float floor = elevation(row, col);
+                            if (std::isnan(floor) || floor >= lowest_sensor_z ||
+                                step_up(row, col) > max_step_up ||
+                                height_above_ground(row, col) > max_height)
+                            {
+                                continue;
+                            }
+                            grid_map::Position position;
+                            map.getPosition(grid_map::Index(row, col), position);
+                            position_sum += position;
+                            heights.push_back(floor);
+                        }
+                    }
+                    if (heights.size() < MIN_REFERENCE_CELLS)
+                    {
+                        continue;
+                    }
+                    BlockSample& sample = samples[block_index(block_row, block_col)];
+                    const grid_map::Position mean =
+                        position_sum / static_cast<double>(heights.size());
+                    sample.position =
+                        Eigen::Vector3d(mean.x(), mean.y(), median(heights));
+                    sample.valid = true;
+                }
+            }
+
+            // Step 2. Keep only the samples that are the ground the rover stands on.
+            // Flat is not enough to be ground: the top of the arena wall is flat, 0.7 m
+            // up and just under the lidar, and so is a bench or a crate. In Gazebo the
+            // wall top alone raised the reference beside the wall by 0.3 m and put 100
+            // hole cells on good ground. What tells them apart is that ground is
+            // joined to the ground under the rover without a jump. So: take the median
+            // of the samples near the sensor as the height to start from, then grow
+            // outwards, accepting a sample only if an already accepted one within
+            // REFERENCE_REACH_BLOCKS is at nearly its height. "Nearly" is one block of
+            // the steepest slope plus a margin, whatever the gap between the two, so a
+            // gap in the samples cannot be used to climb onto a wall. The floor of a
+            // deep crater is left out by the same rule, which is what step 3 wants.
+            if (!clouds.empty())
+            {
+                const Eigen::Vector2d sensor_xy =
+                    clouds.back().sensor_origin.head<2>().cast<double>();
+                const double max_jump =
+                    REFERENCE_MAX_SLOPE * params.hole_reference_block_m +
+                    REFERENCE_STEP_MARGIN_M;
+
+                heights.clear();
+                for (const BlockSample& sample : samples)
+                {
+                    if (sample.valid && (sample.position.head<2>() - sensor_xy).norm() <=
+                                            REFERENCE_SEED_RADIUS_M)
+                    {
+                        heights.push_back(static_cast<float>(sample.position.z()));
+                    }
+                }
+                std::vector<bool> accepted(block_count, false);
+                std::vector<std::size_t> frontier;
+                if (!heights.empty())
+                {
+                    const double seed_height = static_cast<double>(median(heights));
+                    for (std::size_t i = 0; i < block_count; ++i)
+                    {
+                        const BlockSample& sample = samples[i];
+                        if (sample.valid &&
+                            (sample.position.head<2>() - sensor_xy).norm() <=
+                                REFERENCE_SEED_RADIUS_M &&
+                            std::abs(sample.position.z() - seed_height) <= max_jump)
+                        {
+                            accepted[i] = true;
+                            frontier.push_back(i);
+                        }
+                    }
+                }
+                while (!frontier.empty())
+                {
+                    const std::size_t from = frontier.back();
+                    frontier.pop_back();
+                    const int from_row = static_cast<int>(from) / block_cols;
+                    const int from_col = static_cast<int>(from) % block_cols;
+                    for (int d_row = -REFERENCE_REACH_BLOCKS;
+                         d_row <= REFERENCE_REACH_BLOCKS; ++d_row)
+                    {
+                        for (int d_col = -REFERENCE_REACH_BLOCKS;
+                             d_col <= REFERENCE_REACH_BLOCKS; ++d_col)
+                        {
+                            const int to_row = from_row + d_row;
+                            const int to_col = from_col + d_col;
+                            if (to_row < 0 || to_row >= block_rows || to_col < 0 ||
+                                to_col >= block_cols)
+                            {
+                                continue;
+                            }
+                            const std::size_t to = block_index(to_row, to_col);
+                            if (accepted[to] || !samples[to].valid ||
+                                std::abs(samples[to].position.z() -
+                                         samples[from].position.z()) > max_jump)
+                            {
+                                continue;
+                            }
+                            accepted[to] = true;
+                            frontier.push_back(to);
+                        }
+                    }
+                }
+                for (std::size_t i = 0; i < block_count; ++i)
+                {
+                    samples[i].valid = accepted[i];
+                }
+            }
+
+            // Step 3. One plane per block, fitted to its own sample and its eight
+            // neighbours'. A plane and not an average because the bed slopes, and an
+            // average is only right in the middle of the samples it was taken over:
+            // at the edge of the lidar's view, and at the edge of every shadow a rock
+            // or a crater casts, the samples are all on one side, and an average there
+            // is out by the slope times the distance to them.
+            //
+            // The fit is then made robust by hand. A 0.5 m crater can fill one block,
+            // or straddle two, and drag their medians down to its far wall; so the
+            // sample furthest from the plane is dropped and the plane refitted, at
+            // most REFERENCE_MAX_OUTLIERS times and only while one is further out than
+            // outlier_m. Deterministic, unlike RANSAC, and nine points at most.
+            std::vector<BlockPlane> planes(block_count);
+            std::vector<Eigen::Vector3d> neighbourhood;
+            for (int block_row = 0; block_row < block_rows; ++block_row)
+            {
+                for (int block_col = 0; block_col < block_cols; ++block_col)
+                {
+                    neighbourhood.clear();
+                    for (int d_row = -1; d_row <= 1; ++d_row)
+                    {
+                        for (int d_col = -1; d_col <= 1; ++d_col)
+                        {
+                            const int neighbour_row = block_row + d_row;
+                            const int neighbour_col = block_col + d_col;
+                            if (neighbour_row < 0 || neighbour_row >= block_rows ||
+                                neighbour_col < 0 || neighbour_col >= block_cols)
+                            {
+                                continue;
+                            }
+                            const BlockSample& sample =
+                                samples[block_index(neighbour_row, neighbour_col)];
+                            if (sample.valid)
+                            {
+                                neighbourhood.push_back(sample.position);
+                            }
+                        }
+                    }
+                    if (neighbourhood.size() < MIN_REFERENCE_BLOCKS)
+                    {
+                        continue;
+                    }
+
+                    Eigen::Vector2d anchor = Eigen::Vector2d::Zero();
+                    for (const auto& sample : neighbourhood)
+                    {
+                        anchor += sample.head<2>();
+                    }
+                    anchor /= static_cast<double>(neighbourhood.size());
+
+                    BlockPlane plane = fit_plane(neighbourhood, anchor);
+                    for (int dropped = 0; dropped < REFERENCE_MAX_OUTLIERS &&
+                                          neighbourhood.size() > MIN_REFERENCE_BLOCKS;
+                         ++dropped)
+                    {
+                        std::size_t worst = 0;
+                        double worst_error = 0.0;
+                        for (std::size_t i = 0; i < neighbourhood.size(); ++i)
+                        {
+                            const double error = std::abs(
+                                neighbourhood[i].z() -
+                                plane.at(neighbourhood[i].head<2>()));
+                            if (error > worst_error)
+                            {
+                                worst_error = error;
+                                worst = i;
+                            }
+                        }
+                        if (worst_error <= outlier_m)
+                        {
+                            break;
+                        }
+                        neighbourhood.erase(neighbourhood.begin() +
+                                            static_cast<std::ptrdiff_t>(worst));
+                        plane = fit_plane(neighbourhood, anchor);
+                    }
+                    planes[block_index(block_row, block_col)] = plane;
+                }
+            }
+
+            // Step 4. Back to cells. Each cell reads the planes of the four blocks
+            // around it at its own position and blends them by how close each block
+            // is, so the reference has no seams where blocks meet. A block with no
+            // plane is left out and the others reweighted.
+            for (int row = 0; row < rows; ++row)
+            {
+                const float block_row_position =
+                    (static_cast<float>(row) + 0.5f) / static_cast<float>(block_cells) -
+                    0.5f;
+                const int block_row_low = static_cast<int>(std::floor(block_row_position));
+                const float row_weight_high =
+                    block_row_position - static_cast<float>(block_row_low);
+                for (int col = 0; col < cols; ++col)
+                {
+                    const float block_col_position =
+                        (static_cast<float>(col) + 0.5f) /
+                            static_cast<float>(block_cells) -
+                        0.5f;
+                    const int block_col_low =
+                        static_cast<int>(std::floor(block_col_position));
+                    const float col_weight_high =
+                        block_col_position - static_cast<float>(block_col_low);
+
+                    grid_map::Position position;
+                    map.getPosition(grid_map::Index(row, col), position);
+
+                    double weighted_sum = 0.0;
+                    double weight_total = 0.0;
+                    for (int corner_row = 0; corner_row <= 1; ++corner_row)
+                    {
+                        for (int corner_col = 0; corner_col <= 1; ++corner_col)
+                        {
+                            const BlockPlane& plane = planes[block_index(
+                                std::clamp(block_row_low + corner_row, 0, block_rows - 1),
+                                std::clamp(block_col_low + corner_col, 0,
+                                           block_cols - 1))];
+                            if (!plane.valid)
+                            {
+                                continue;
+                            }
+                            const double weight = static_cast<double>(
+                                (corner_row == 1 ? row_weight_high
+                                                 : 1.0f - row_weight_high) *
+                                (corner_col == 1 ? col_weight_high
+                                                 : 1.0f - col_weight_high));
+                            weighted_sum += weight * plane.at(position);
+                            weight_total += weight;
+                        }
+                    }
+                    if (weight_total > 0.0)
+                    {
+                        ground_ref(row, col) =
+                            static_cast<float>(weighted_sum / weight_total);
+                    }
+                }
+            }
+        }
+
+        void compute_holes(grid_map::GridMap& map, const std::deque<BufferedCloud>& clouds,
+                           const TerrainParameters& params)
+        {
+            const Eigen::MatrixXf& ground_ref = map["ground_ref"];
+            Eigen::MatrixXf& hole_depth = map["hole_depth"];
+            Eigen::MatrixXf& hole_rays = map["hole_rays"];
+            Eigen::MatrixXf& hole = map["hole"];
+
+            const float start_depth = static_cast<float>(params.hole_depth_m);
+            const float walk_depth = start_depth * RAY_WALK_DEPTH_FRACTION;
+            const float max_range_squared =
+                static_cast<float>(params.hole_max_range_m * params.hole_max_range_m);
+            const float step = static_cast<float>(map.getResolution()) * RAY_STEP_CELLS;
+
+            for (const auto& buffered : clouds)
+            {
+                const Eigen::Vector3f& origin = buffered.sensor_origin;
+                for (const auto& point : buffered.points)
+                {
+                    grid_map::Index index;
+                    if (!map.getIndex(grid_map::Position(point.x(), point.y()), index))
+                    {
+                        continue;
+                    }
+                    // The cheap test, and the one almost every point fails: did this
+                    // return land on the ground, or under where the ground should be?
+                    const float reference = ground_ref(index(0), index(1));
+                    if (std::isnan(reference) || reference - point.z() <= start_depth)
+                    {
+                        continue;
+                    }
+
+                    const Eigen::Vector3f to_sensor = origin - point;
+                    // Beyond this the far-wall return of a real crater is no deeper than
+                    // the regional ground is wrong by, so nothing out there is evidence.
+                    if (to_sensor.head<2>().squaredNorm() > max_range_squared)
+                    {
+                        continue;
+                    }
+                    const float length = to_sensor.norm();
+                    if (!(length > 0.0f))
+                    {
+                        continue;
+                    }
+                    const Eigen::Vector3f direction = to_sensor / length;
+
+                    // THE RAY WALK. The beam travelled in a straight line from the
+                    // sensor to this return and hit nothing on the way, so every point
+                    // along it is known to be empty. Walk it backwards from the return:
+                    // while the beam is still under the regional ground, the cell it is
+                    // over has empty space where ground should be. It stops at the near
+                    // rim, where the beam climbs back through ground level.
+                    int last_row = -1;
+                    int last_col = -1;
+                    for (float travelled = 0.0f; travelled < length; travelled += step)
+                    {
+                        const Eigen::Vector3f sample = point + direction * travelled;
+                        grid_map::Index cell;
+                        if (!map.getIndex(grid_map::Position(sample.x(), sample.y()),
+                                          cell))
+                        {
+                            break;
+                        }
+                        const float cell_reference = ground_ref(cell(0), cell(1));
+                        if (std::isnan(cell_reference))
+                        {
+                            break;
+                        }
+                        const float below = cell_reference - sample.z();
+                        if (below <= walk_depth)
+                        {
+                            break;
+                        }
+
+                        float& cell_depth = hole_depth(cell(0), cell(1));
+                        cell_depth =
+                            std::isnan(cell_depth) ? below : std::max(cell_depth, below);
+                        // Once per ray per cell, however many samples fall in it:
+                        // hole_min_rays counts independent beams, not step length.
+                        if (cell(0) != last_row || cell(1) != last_col)
+                        {
+                            hole_rays(cell(0), cell(1)) += 1.0f;
+                            last_row = cell(0);
+                            last_col = cell(1);
+                        }
+                    }
+                }
+            }
+
+            hole = (hole_rays.array() >= static_cast<float>(params.hole_min_rays))
+                       .cast<float>()
+                       .matrix();
+        }
+
         void compute_border(grid_map::GridMap& map, const TerrainParameters& params)
         {
             const Eigen::MatrixXf& point_count = map["point_count"];
+            const Eigen::MatrixXf& hole = map["hole"];
             Eigen::MatrixXf& border = map["border"];
-            border = (point_count.array() < static_cast<float>(params.min_points_per_cell))
+            // A hole cell is observed, even with no return in it. The floor of a crater
+            // is in the near rim's shadow, so by point count alone it is border --
+            // "unknown", which this stack publishes as free and global_traversability
+            // skips as no evidence. The rays that crossed it are the evidence.
+            border = (point_count.array() < static_cast<float>(params.min_points_per_cell) &&
+                      hole.array() < 0.5f)
                          .cast<float>()
                          .matrix();
         }
@@ -285,6 +809,7 @@ namespace local_traversability
             const Eigen::MatrixXf& height_above_ground = map["height_above_ground"];
             const Eigen::MatrixXf& clearance = map["clearance"];
             const Eigen::MatrixXf& border = map["border"];
+            const Eigen::MatrixXf& hole = map["hole"];
             Eigen::MatrixXf& obstacle = map["obstacle"];
 
             const float max_step_up = static_cast<float>(params.max_step_up_m);
@@ -319,7 +844,8 @@ namespace local_traversability
                          step_down_value > max_step_down) ||
                         (!std::isnan(height_value) && height_value > max_height) ||
                         (min_clearance > 0.0f && !std::isnan(clearance_value) &&
-                         clearance_value < min_clearance);
+                         clearance_value < min_clearance) ||
+                        hole(row, col) > 0.5f;
 
                     obstacle(row, col) = is_obstacle ? 1.0f : 0.0f;
                 }
@@ -374,10 +900,22 @@ namespace local_traversability
         map["step_down"].setConstant(NaN);
         map["height_above_ground"].setConstant(NaN);
         map["clearance"].setConstant(NaN);
+        map["ground_ref"].setConstant(NaN);
+        map["hole_depth"].setConstant(NaN);
+        map["hole_rays"].setConstant(0.0f);
+        map["hole"].setConstant(0.0f);
 
         accumulate_elevation(map, clouds);
         compute_height_difference(map, params);
         compute_structure(map, clouds, params);
+        // The hole test comes after the two it borrows from (step_up and
+        // height_above_ground say which cells are ground) and before the two it feeds:
+        // a hole cell is not border, and it is an obstacle.
+        if (params.hole_depth_m > 0.0)
+        {
+            compute_ground_reference(map, clouds, params);
+            compute_holes(map, clouds, params);
+        }
         compute_border(map, params);
         compute_obstacle(map, params);
     }

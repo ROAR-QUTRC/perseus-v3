@@ -119,6 +119,10 @@ namespace global_traversability
         ///        that local would forget in a second would stay here until rescanned.
         static constexpr int DEFAULT_MIN_POINTS_PER_CELL = 2;
         static constexpr int DEFAULT_MIN_OBSTACLE_CELLS = 2;
+        static constexpr double DEFAULT_HOLE_DEPTH_M = 0.08;
+        static constexpr int DEFAULT_HOLE_MIN_RAYS = 3;
+        static constexpr double DEFAULT_HOLE_MAX_RANGE_M = 4.0;
+        static constexpr double DEFAULT_HOLE_REFERENCE_BLOCK_M = 0.5;
         /// @}
 
         /// @brief Log-odds added to a cell each update the window calls it an
@@ -127,6 +131,15 @@ namespace global_traversability
         /// mark a cell: missing a rock is worse than a spurious one that clears on the
         /// next look.
         static constexpr double DEFAULT_LOG_ODDS_HIT = 0.7;
+        /// @brief Log-odds added to a cell each update the window calls it a hole.
+        /// @details Its own value, and above log_odds_occupied whatever log_odds_hit
+        /// is tuned to, so that one sighting marks a hole. A crater is in view for
+        /// far less time than a rock: it only shows once the rover is within 2-3 m,
+        /// and it is gone again inside min_range_m, after which this grid's memory is
+        /// the only thing keeping the rover out of it. A hole verdict has also already
+        /// been through hole_min_rays, so the flicker a low log_odds_hit is there to
+        /// reject is not what it is made of.
+        static constexpr double DEFAULT_HOLE_LOG_ODDS_HIT = 0.7;
         /// @brief Log-odds subtracted from a cell each update the window calls it
         ///        free.
         static constexpr double DEFAULT_LOG_ODDS_MISS = 0.4;
@@ -218,12 +231,17 @@ namespace global_traversability
             // Always false for the window: an unobserved window cell is "no
             // evidence", and must not be fused as a hit. treat_unknown_as_obstacle
             // applies to the persistent grid instead, see _treat_unknown_as_obstacle.
-            false};
+            false,
+            DEFAULT_HOLE_DEPTH_M,
+            DEFAULT_HOLE_MIN_RAYS,
+            DEFAULT_HOLE_MAX_RANGE_M,
+            DEFAULT_HOLE_REFERENCE_BLOCK_M};
         local_traversability::InflationParameters _inflation{
             DEFAULT_ROBOT_RADIUS_M, DEFAULT_INFLATION_RADIUS_M,
             DEFAULT_COST_SCALING_FACTOR};
 
         double _log_odds_hit{DEFAULT_LOG_ODDS_HIT};
+        double _hole_log_odds_hit{DEFAULT_HOLE_LOG_ODDS_HIT};
         double _log_odds_miss{DEFAULT_LOG_ODDS_MISS};
         double _log_odds_min{DEFAULT_LOG_ODDS_MIN};
         double _log_odds_max{DEFAULT_LOG_ODDS_MAX};

@@ -22,6 +22,12 @@ namespace local_traversability
     {
         rclcpp::Time stamp;
         std::vector<Eigen::Vector3f> points;
+        /// @brief Where the sensor was in the global frame when this scan was taken.
+        /// @details The hole test needs the whole ray, not just where it ended, and a
+        /// ray is only known once both of its ends are. Kept per scan rather than read
+        /// off the robot pose at classify time because the rover moves during the
+        /// buffer: the oldest scan in a 1 s window was taken 0.28 m back at full speed.
+        Eigen::Vector3f sensor_origin{Eigen::Vector3f::Zero()};
     };
 
     /// @brief Sensor-frame gates applied to a raw scan before it is transformed.
@@ -50,6 +56,16 @@ namespace local_traversability
         int min_points_per_cell;
         int min_obstacle_cells;
         bool treat_unknown_as_obstacle;
+        /// @brief How far below the regional ground a return must land before its ray
+        ///        counts as evidence of a hole, in metres. Zero disables the test.
+        double hole_depth_m;
+        /// @brief Rays that must pass under the ground in a cell before it is a hole.
+        int hole_min_rays;
+        /// @brief Furthest return, in metres along the ground from the sensor, that
+        ///        may count as hole evidence.
+        double hole_max_range_m;
+        /// @brief Side of the blocks the regional ground is taken over, in metres.
+        double hole_reference_block_m;
     };
 
     /// @brief Inflation shape, same semantics as nav2's InflationLayer.
@@ -65,6 +81,7 @@ namespace local_traversability
     inline const std::vector<std::string> TERRAIN_LAYERS = {
         "elevation", "height_max", "point_count", "ground",
         "step_up", "step_down", "height_above_ground", "clearance",
+        "ground_ref", "hole_depth", "hole_rays", "hole",
         "border", "obstacle"};
 
     /// @brief Applies the sensor-frame gates to a raw scan and transforms the
@@ -86,6 +103,18 @@ namespace local_traversability
     /// on points that were measured close together in time -- the lowest return near
     /// a cell is only "the ground" if every return near it saw the same floor. Feed it
     /// a short scan buffer, never an accumulated map.
+    ///
+    /// HOLES ARE THE EXCEPTION, AND NEED THE RAYS. A crater seen from a mast shows the
+    /// lidar almost none of its floor: the near rim hides it, so its cells hold no
+    /// returns at all and the height difference above has nothing to compare. What a
+    /// crater does produce is a few returns on its FAR wall, well below the ground
+    /// around it, each at the end of a ray that had to pass under ground level to get
+    /// there. So the hole test works on rays instead of cells: any ray that ends more
+    /// than hole_depth_m below the regional ground ("ground_ref") marks every cell it
+    /// crossed while it was down there, and hole_min_rays of those make the cell a
+    /// "hole". Hole cells are obstacles, and they count as observed even with no
+    /// return in them -- a ray that went through a cell below its ground has looked at
+    /// that cell.
     /// @param map Grid to fill; its geometry is left untouched.
     /// @param clouds Points to classify, in @p map's frame.
     /// @param params Classifier thresholds.
