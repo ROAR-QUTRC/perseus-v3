@@ -36,6 +36,11 @@ gst_instances: dict[str, GstInstance] = {}  # {human readable id: GstInstance}
 glib_loop: GLib.MainLoop | None = None
 glib_thread: threading.Thread | None = None
 
+# How long we're willing to block waiting for a pipeline to actually
+# finish tearing down before giving up and logging it instead of hanging
+# forever. This blocks the GLib dispatch thread, so keep it short.
+_TEARDOWN_TIMEOUT_NS = 2 * Gst.SECOND
+
 
 def start_gst_thread():
     global glib_loop, glib_thread
@@ -70,9 +75,44 @@ def _instance_changed(old: GstInstance, new: GstInstance) -> bool:
     )
 
 
-def _on_gst_message(_, message: Gst.Message, device: str):
+def _stop_pipeline(instance: GstInstance):
+    """Actually tears a pipeline down: stop watching its bus, request NULL,
+    and block (briefly) until that transition is confirmed, so we never
+    discard a pipeline that's still mid-teardown. Must be called WITHOUT
+    gst_lock held, since it can block for up to _TEARDOWN_TIMEOUT_NS."""
+    pipeline = instance.pipeline
+    if pipeline is None:
+        return
+
+    bus = pipeline.get_bus()
+    bus.remove_signal_watch()  # stop dispatching messages for this pipeline
+
+    pipeline.set_state(Gst.State.NULL)
+    ret, state, _pending = pipeline.get_state(_TEARDOWN_TIMEOUT_NS)
+    if ret != Gst.StateChangeReturn.SUCCESS or state != Gst.State.NULL:
+        log(
+            f"Pipeline for {instance.device} did not reach NULL cleanly "
+            f"(ret={ret}, state={Gst.Element.state_get_name(state)})",
+            "ERROR",
+        )
+    instance.pipeline = None
+
+
+def _remove_and_stop(instance: GstInstance):
+    """Removes `instance` from gst_instances (only if it's still the
+    current entry for its device — guards against a stale/already-replaced
+    instance's bus firing late) and tears its pipeline down."""
+    with gst_lock:
+        if gst_instances.get(instance.device) is not instance:
+            return
+        del gst_instances[instance.device]
+    _stop_pipeline(instance)
+
+
+def _on_gst_message(_, message: Gst.Message, instance: GstInstance):
     t = message.type
     type_name = Gst.MessageType.get_name(t)
+    device = instance.device
 
     src = message.src
     src_name = src.get_name() if hasattr(src, "get_name") else None
@@ -147,16 +187,14 @@ def _on_gst_message(_, message: Gst.Message, device: str):
             gerror, debug = parse_fn()
             detail = f"{gerror.message}" + (f" | {debug}" if debug else "")
 
+            if t == Gst.MessageType.ERROR:
+                detail += " | tearing down pipeline"
+                _remove_and_stop(instance)
+
         elif t == Gst.MessageType.EOS:
             log_level = "WARN"
             detail = "Freeing pipeline resources"
-            # kill gstreamer instance for this device
-            with gst_lock:
-                instance = gst_instances.get(device, None)
-                if instance is not None:
-                    if instance.pipeline is not None:
-                        instance.pipeline.set_state(Gst.State.NULL)
-                    del gst_instances[device]
+            _remove_and_stop(instance)
 
         else:
             structure = message.get_structure()
@@ -176,7 +214,6 @@ def _on_gst_message(_, message: Gst.Message, device: str):
 
 
 def start_stream(event: CameraEventType, web_server_ip: str):
-    # validate event
     device = event.target if event.target else None
     if device is None:
         log("No device specified in event", "ERROR")
@@ -199,13 +236,13 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         event.data.forceRestart if event.data and event.data.forceRestart else False
     )
 
+    old_instance: Optional[GstInstance] = None
     with gst_lock:
-        # skip is stream is already running
-        old_instance = gst_instances.get(device, None)
+        existing = gst_instances.get(device, None)
         if (
-            old_instance is not None
+            existing is not None
             and not force_restart
-            and not _instance_changed(old_instance, new_instance)
+            and not _instance_changed(existing, new_instance)
         ):
             log(
                 f"Stream is already running for device: {device} with correct settings, ignoring request",
@@ -215,13 +252,13 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         log(
             f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})"
         )
-
-        # Remove the old instance if it exists
-        if old_instance is not None:
-            log(f"Stopping existing stream for device: {device}", "DEBUG")
-            if old_instance.pipeline is not None:
-                old_instance.pipeline.set_state(Gst.State.NULL)
+        if existing is not None:
             del gst_instances[device]
+            old_instance = existing
+
+    if old_instance is not None:
+        log(f"Stopping existing stream for device: {device}", "DEBUG")
+        _stop_pipeline(old_instance)
 
     # Create the elements
     source = _create_element("v4l2src", "source")
@@ -237,7 +274,6 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     v4l2_sink = _create_element("v4l2sink", "v4l2_sink")
     webrtc_sink = _create_element("webrtcsink", "webrtc_sink")
 
-    # Create the empty pipeline
     new_instance.pipeline = Gst.Pipeline.new(device)
 
     if (
@@ -266,7 +302,6 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         log("Elements could not be linked.", "ERROR")
         return
 
-    # Configure plugins
     source.set_property("device", f"{BY_ID_DIR}/{device}")
     caps_filter.set_property("caps", caps)
     flip.set_property("method", new_instance.transform)
@@ -302,20 +337,17 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         return
     signaller.set_property("uri", f"ws://{web_server_ip}:8443")
 
-    # Start playing
     ret = new_instance.pipeline.set_state(Gst.State.PLAYING)
     if ret == Gst.StateChangeReturn.FAILURE:
         log("Unable to set the pipeline to the playing state.", "ERROR")
+        _stop_pipeline(new_instance)  # clean up what we just built
         return
 
-    # Listen to the bus
     bus = new_instance.pipeline.get_bus()
     bus.add_signal_watch()
     bus.connect(
-        "message",
-        _on_gst_message,
-        device,
-    )
+        "message", _on_gst_message, new_instance
+    )  # pass the instance, not a string
 
     with gst_lock:
         gst_instances[device] = new_instance
@@ -332,15 +364,16 @@ def stop_stream(event: CameraEventType):
         if instance is None:
             log(f"No stream running for device: {device}", "DEBUG")
             return
-        log(f"Stopping stream for device: {device}")
-        if instance.pipeline is not None:
-            instance.pipeline.set_state(Gst.State.NULL)
         del gst_instances[device]
+
+    log(f"Stopping stream for device: {device}")
+    _stop_pipeline(instance)
 
 
 def stop_all_streams():
     with gst_lock:
-        for device, instance in list(gst_instances.items()):
-            if instance.pipeline is not None:
-                instance.pipeline.set_state(Gst.State.NULL)
-            del gst_instances[device]
+        instances = list(gst_instances.values())
+        gst_instances.clear()
+
+    for instance in instances:
+        _stop_pipeline(instance)
