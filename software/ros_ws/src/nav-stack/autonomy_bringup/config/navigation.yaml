@@ -90,6 +90,11 @@ global_traversability:
     # works together with log_odds_hit below, which rejects that noise because it flickers.
     max_height_above_ground_m: 0.065
     max_step_down_m: 0.15
+    # THE HOLE (CRATER) TEST, same values as local's -- read the comments there.
+    hole_depth_m: 0.08
+    hole_min_rays: 3
+    hole_max_range_m: 4.0
+    hole_reference_block_m: 0.5
     obstacle_height_cap_m: 1.0
     ground_margin_m: 0.10
     # Disabled, for the same arithmetic reason as local's -- see there.
@@ -113,6 +118,14 @@ global_traversability:
     #                    (was ~2 s). A brick dropped onto ground already mapped free takes
     #                    that long in view to appear; one there from the start takes ~1.5 s.
     log_odds_hit: 0.25
+    # A hole verdict's own hit, and above log_odds_occupied on purpose: ONE sighting marks
+    # a crater, where log_odds_hit above makes a rock wait for three. A crater is in view
+    # for much less time than a rock -- it only shows inside 2-3 m, and inside min_range_m
+    # it is not classified at all, so from there until the rover has passed it this map's
+    # memory is the only thing holding it in the costmap. The flicker log_odds_hit 0.25 is
+    # there to reject is single stray returns; a hole verdict has already needed
+    # hole_min_rays separate beams and min_obstacle_cells connected cells.
+    hole_log_odds_hit: 0.7
     log_odds_miss: 0.4
     log_odds_min: -2.0
     log_odds_max: 3.5
@@ -217,6 +230,43 @@ local_traversability:
     # global_traversability confirms one (~1.5 s in view) the controller avoids it too.
     max_height_above_ground_m: 0.2
     max_step_down_m: 0.15
+    # THE HOLE (CRATER) TEST. Not a fourth height difference: max_step_down_m above compares
+    # a cell's floor with its neighbours', which needs returns from inside the hole, and a
+    # 40-50 cm crater seen from the mast gives almost none -- its floor is in the shadow of
+    # its own near rim. What it does give is a few returns on the FAR wall, below ground
+    # level, at the end of beams that had to pass under the ground to get there. So this
+    # test works on beams: one that ends more than hole_depth_m below the regional ground
+    # marks every cell it crossed while it was under it, and hole_min_rays beams make the
+    # cell a hole. A hole cell is lethal and counts as observed, returns or not.
+    #
+    # hole_depth_m is the dial. The far-wall return sits about width * 0.73 / distance below
+    # the rim (0.73 m is the lidar's height), so a 0.4 m crater shows 0.15 m at 2 m and
+    # 0.10 m at 3 m: lower this and craters are seen from further away, until natural dips
+    # in the bed start to qualify. Synthetic lidar over flat ground, 2 cm range noise, range
+    # at which each crater is still marked (test/test_hole_detection.cpp has the method):
+    #
+    #     crater (width x depth)     0.08 (this config)
+    #     0.50 x 0.45 m, steep       3.5 m
+    #     0.45 x 0.30 m, bowl        3.0 m
+    #     0.40 x 0.15 m, bowl        2.5 m
+    #
+    # with no false cells on slopes up to 20 deg. In Gazebo on the cratered arena bed
+    # (offline prototype of this test on the Gazebo arena)
+    # 0.07 and 0.08 gave no false cells and 0.06 flagged a broad natural dip. NOT yet
+    # checked against a real scan: sim has no sensor noise worth the name.
+    #
+    # Set 0.0 to disable the whole test.
+    hole_depth_m: 0.08
+    # Beams that must pass under the ground in one cell. One stray low return cannot make
+    # a hole; a crater at 2.5 m puts 10-25 through each of its cells.
+    hole_min_rays: 3
+    # Returns further than this along the ground are not evidence. Beyond ~4 m the far-wall
+    # drop of a 0.5 m crater (0.09 m) is no bigger than the ground reference is uncertain.
+    hole_max_range_m: 4.0
+    # The regional ground is a plane fitted to the median heights of 3 x 3 blocks this size,
+    # so it spans 1.5 m. About one crater wide: smaller and a crater becomes its own
+    # ground and vanishes; larger and it stops following the bed's real relief.
+    hole_reference_block_m: 0.5
     # Above this height a return is overhead structure and is left out of the height test
     # entirely, so the rover can drive under it. Whether it actually fits is min_clearance_m
     # below, which is a separate question and a separate test.

@@ -38,8 +38,9 @@ namespace local_traversability
     LocalTraversability::LocalTraversability(const rclcpp::NodeOptions& options)
         : rclcpp::Node("local_traversability", options),
           _map({"elevation", "height_max", "point_count", "ground", "step_up",
-                "step_down", "height_above_ground", "clearance", "border", "obstacle",
-                "inflation", "cost"})
+                "step_down", "height_above_ground", "clearance", "ground_ref",
+                "hole_depth", "hole_rays", "hole", "border", "obstacle", "inflation",
+                "cost"})
     {
         _load_parameters();
 
@@ -79,6 +80,12 @@ namespace local_traversability
             {"step_down", 0.0, 0.5, nullptr},
             {"height_above_ground", 0.0, 1.0, nullptr},
             {"clearance", 0.0, 2.0, nullptr},
+            // The hole test, in the order it runs: where the ground should be, how far
+            // under it rays were seen, and the verdict. Look at these three before
+            // touching hole_depth_m.
+            {"ground_ref", -1.0, 1.0, nullptr},
+            {"hole_depth", 0.0, 0.5, nullptr},
+            {"hole", 0.0, 1.0, nullptr},
             {"border", 0.0, 1.0, nullptr},
             {"obstacle", 0.0, 1.0, nullptr},
             {"inflation", 0.0, 99.0, nullptr},
@@ -155,6 +162,15 @@ namespace local_traversability
         _terrain.treat_unknown_as_obstacle = this->declare_parameter(
             "treat_unknown_as_obstacle", DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE);
 
+        _terrain.hole_depth_m =
+            this->declare_parameter("hole_depth_m", DEFAULT_HOLE_DEPTH_M);
+        _terrain.hole_min_rays =
+            this->declare_parameter("hole_min_rays", DEFAULT_HOLE_MIN_RAYS);
+        _terrain.hole_max_range_m =
+            this->declare_parameter("hole_max_range_m", DEFAULT_HOLE_MAX_RANGE_M);
+        _terrain.hole_reference_block_m = this->declare_parameter(
+            "hole_reference_block_m", DEFAULT_HOLE_REFERENCE_BLOCK_M);
+
         _inflation.robot_radius_m =
             this->declare_parameter("robot_radius_m", DEFAULT_ROBOT_RADIUS_M);
         _inflation.inflation_radius_m =
@@ -193,10 +209,14 @@ namespace local_traversability
             return;
         }
 
+        const Eigen::Isometry3f sensor_to_global =
+            tf2::transformToEigen(transform).cast<float>();
+
         BufferedCloud buffered;
         buffered.stamp = rclcpp::Time(msg->header.stamp);
+        buffered.sensor_origin = sensor_to_global.translation();
         buffered.points = filter_scan(
-            cloud, tf2::transformToEigen(transform).cast<float>(),
+            cloud, sensor_to_global,
             {_min_range_m, _max_range_m, _max_sensor_height_m});
         if (buffered.points.empty())
         {

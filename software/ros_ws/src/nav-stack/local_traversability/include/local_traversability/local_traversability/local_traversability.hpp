@@ -181,6 +181,25 @@ namespace local_traversability
         /// rover), and publishing that as lethal would box the rover in every cycle.
         static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = false;
 
+        /// @brief Default depth below the regional ground at which a return makes its
+        ///        ray evidence of a hole, in metres. Zero disables the test.
+        /// @details The crater test, and a different one from max_step_down_m: that
+        /// compares a cell's floor with its neighbours' and needs returns from inside
+        /// the hole, which a crater seen from the mast mostly does not give. This one
+        /// needs a single return on the far wall. See classify_terrain().
+        static constexpr double DEFAULT_HOLE_DEPTH_M = 0.08;
+        /// @brief Default number of rays that must pass under the ground in a cell
+        ///        before it is a hole.
+        static constexpr int DEFAULT_HOLE_MIN_RAYS = 3;
+        /// @brief Default furthest return that may count as hole evidence, in metres
+        ///        along the ground from the sensor.
+        static constexpr double DEFAULT_HOLE_MAX_RANGE_M = 4.0;
+        /// @brief Default side of the blocks the regional ground is taken over, in
+        ///        metres.
+        /// @details About one crater wide. The reference is a median over a block and
+        /// its eight neighbours, so it spans three of these.
+        static constexpr double DEFAULT_HOLE_REFERENCE_BLOCK_M = 0.5;
+
         /// @brief Default robot radius used as the inscribed (always-lethal)
         ///        inflation distance, in metres.
         static constexpr double DEFAULT_ROBOT_RADIUS_M = 0.5;
@@ -250,7 +269,11 @@ namespace local_traversability
                                    DEFAULT_MIN_CLEARANCE_M,
                                    DEFAULT_MIN_POINTS_PER_CELL,
                                    DEFAULT_MIN_OBSTACLE_CELLS,
-                                   DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
+                                   DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE,
+                                   DEFAULT_HOLE_DEPTH_M,
+                                   DEFAULT_HOLE_MIN_RAYS,
+                                   DEFAULT_HOLE_MAX_RANGE_M,
+                                   DEFAULT_HOLE_REFERENCE_BLOCK_M};
         InflationParameters _inflation{DEFAULT_ROBOT_RADIUS_M,
                                        DEFAULT_INFLATION_RADIUS_M,
                                        DEFAULT_COST_SCALING_FACTOR};

@@ -134,6 +134,17 @@ ament_export_dependencies(rclcpp nav_msgs grid_map_core)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  # The hole (crater) test, against a synthetic lidar over terrain given as a height
+  # function -- see test/synthetic_scan.hpp. No rover, simulator or bag needed.
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_hole_detection test/test_hole_detection.cpp)
+  target_link_libraries(test_hole_detection terrain_analysis)
+
+  # Prints what the hole test sees for one crater. Not installed: run it from the
+  # build directory, e.g. build/local_traversability/hole_demo 0.5 0.45 2.5
+  add_executable(hole_demo test/hole_demo.cpp)
+  target_link_libraries(hole_demo PRIVATE terrain_analysis)
 endif()
 
 # ROS FINALISATION
