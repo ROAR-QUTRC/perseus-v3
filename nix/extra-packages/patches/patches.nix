@@ -15,6 +15,19 @@ let
         ];
       }
     );
+    # the device list lives at the repo root, outside the package source Nix builds from
+    link-monitor = rosPrev.link-monitor.overrideAttrs (
+      {
+        postUnpack ? "",
+        ...
+      }:
+      {
+        postUnpack = postUnpack + ''
+          mkdir -p $sourceRoot/config
+          cp ${../../../config/network_devices.toml} $sourceRoot/config/network_devices.toml
+        '';
+      }
+    );
     perseus-input = rosPrev.perseus-input.overrideAttrs (
       {
         propagatedBuildInputs ? [ ],
