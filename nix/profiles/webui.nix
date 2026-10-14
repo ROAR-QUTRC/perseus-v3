@@ -37,18 +37,25 @@
     };
   };
 
-  tasks = {
-    "web-ui:init" = {
+  processes = {
+    webui-build = {
       exec = ''
         cd ${config.env.DEVENV_ROOT}/software/web_ui
-        # pipe yes to automatically install yarn if prompted
-        yes | yarn
+        vite build
       '';
-      after = [
-        "devenv:enterShell"
-        "devenv:enterTest"
-      ];
+      watch = {
+        paths = [ "${config.env.DEVENV_ROOT}/software/web_ui/src" ];
+      };
     };
+    webui-run = {
+      exec = ''
+        node ${config.env.DEVENV_ROOT}/software/web_ui/src/server/server.js
+      '';
+    };
+    # cannot be used for now since camera_server needs sudo password
+    # camera-server = {
+    #   exec = "camera_server localhost:3000";
+    # };
   };
 
   scripts = {

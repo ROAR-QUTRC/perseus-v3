@@ -30,7 +30,7 @@ def _fix_duplicate_device_names(server_name: str):
         for entry in os.listdir(V4L_DIR):
             if not entry.startswith("video"):
                 continue
-            if not _is_video_capture_device(entry, _context):
+            if not _is_usb_video_capture_device(entry, _context):
                 continue
             if entry in virtual_devices:
                 continue  # skip virtual devices
@@ -44,7 +44,7 @@ def _fix_duplicate_device_names(server_name: str):
             by_id_str = str(by_id)
             real_device_dir = by_id.resolve()
             real_device_path = str(real_device_dir)
-            if _is_video_capture_device(
+            if _is_usb_video_capture_device(
                 real_device_path.replace(DEV_DIR, ""), _context
             ):
                 remove_symlink = False
@@ -146,13 +146,14 @@ def list_virtual_devices():
 
 
 # check if a videoXX string points to a video capture device
-def _is_video_capture_device(dev, context):
-    # check if file exists in /dev/videoXX
+def _is_usb_video_capture_device(dev, context):
     if not os.path.exists(os.path.join(DEV_DIR, dev)):
         return False
     device = pyudev.Devices.from_name(context, "video4linux", dev)
     caps = device.properties.get("ID_V4L_CAPABILITIES", "")
-    return "capture" in caps
+    if "capture" not in caps:
+        return False
+    return device.find_parent("usb") is not None
 
 
 # gets all the video capture devices in /dev/v4l/by-id
@@ -165,7 +166,7 @@ def _scan_devices(context):
             )
             if not symlink.startswith("video"):
                 continue
-            if not _is_video_capture_device(symlink, context):
+            if not _is_usb_video_capture_device(symlink, context):
                 continue
 
             devices.append(entry)

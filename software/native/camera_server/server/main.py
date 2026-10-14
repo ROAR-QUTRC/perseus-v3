@@ -14,6 +14,7 @@ from server.gstreamer import (
     start_gst_thread,
     stop_stream,
     stop_all_streams,
+    stop_gst_main_loop,
 )
 
 group_description = CameraEventType(type="camera", action="group-description")
@@ -37,6 +38,7 @@ def main():
         # cleanup here
         stop_v4l_monitor()
         stop_all_streams()
+        stop_gst_main_loop()
 
         log("Bye!")
         sys.exit(0)
