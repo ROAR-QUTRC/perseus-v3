@@ -7,6 +7,11 @@ export interface StampedHeaderType {
 export interface Float64MultiArrayType {
   data: Array<number>;
 }
+
+export interface BoolType {
+  data: boolean;
+}
+
 export interface TwistType {
   linear: {
     x: number;
@@ -46,6 +51,14 @@ export interface JointStateType {
 export interface EmptyRequestType {}
 
 export interface EmptyResponseType {}
+
+export interface TriggerType {
+  request: EmptyRequestType;
+  response: {
+    success: boolean;
+    message: string;
+  };
+}
 
 export interface SetBoolRequestType {
   data: boolean;

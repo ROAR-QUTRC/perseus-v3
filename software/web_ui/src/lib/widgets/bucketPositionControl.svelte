@@ -16,8 +16,14 @@
 	import * as ROSLIB from 'roslib';
 	import type { CanvasApi } from './shared/canvasWrapper.svelte';
 	import CanvasWrapper from './shared/canvasWrapper.svelte';
-	import { onMount } from 'svelte';
-	import type { JointStateType, StampedHeaderType } from '$lib/scripts/rosTypes';
+	import type {
+		BoolType,
+		JointStateType,
+		StampedHeaderType,
+		TriggerType
+	} from '$lib/scripts/rosTypes';
+	import Button from '$lib/components/ui/button/button.svelte';
+	import * as ButtonGroup from '$lib/components/ui/button-group/button-group.svelte';
 
 	interface ValuesType {
 		positions: Array<number>;
@@ -79,15 +85,22 @@
 	]);
 	let currentAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
 	let targetAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
+	let isOperatorControl = $state(false);
 
+	// topic which publishes the current joint angles
 	let jointState: ROSLIB.Topic<JointStateType> | null = null;
+	// Action client for sending a new trajectory
 	let action: ROSLIB.Action<ActionGoalType, ActionFeedbackType, ActionResultType> | null = null;
+	// service to give control of the bucket back to the mission planner
+	let rearm: ROSLIB.Service<TriggerType['request'], TriggerType['response']> | null = null;
+	// topic which publishes true when the bucket is under manul control
+	let operatorControl: ROSLIB.Topic<BoolType> | null = null;
 
 	const polarToCartesian = (radius: number, degrees: number, xOffset: number, yOffset: number) => {
-		// const radians = (degrees * Math.PI) / 180;
+		const radians = (degrees * Math.PI) / 180;
 		return {
-			x: radius * Math.cos(degrees) + xOffset,
-			y: radius * Math.sin(degrees) + yOffset
+			x: radius * Math.cos(radians) + xOffset,
+			y: radius * Math.sin(radians) + yOffset
 		};
 	};
 
@@ -265,19 +278,35 @@
 				name: '/bucket_trajectory_controller/follow_joint_trajectory',
 				actionType: 'control_msgs/action/FollowJointTrajectory'
 			});
+			rearm = new ROSLIB.Service({
+				ros: ros,
+				name: '/bucket/rearm',
+				serviceType: 'std_srvs/srv/Trigger'
+			});
+			operatorControl = new ROSLIB.Topic({
+				ros: ros,
+				name: '/bucket/operator_override',
+				messageType: 'std_msgs/Bool'
+			});
+
 			jointState.subscribe((message: JointStateType) => {
 				const jawIndex = message.name.indexOf('bucket_jaw_joint');
 				const tiltIndex = message.name.indexOf('bucket_tilt_joint');
 				const liftIndex = message.name.indexOf('bucket_lift_joint');
 				if (jawIndex !== -1 && tiltIndex !== -1 && liftIndex !== -1) {
-					currentAngles.jaw = message.position[jawIndex];
-					currentAngles.tilt = message.position[tiltIndex];
-					currentAngles.lift = message.position[liftIndex];
+					currentAngles.jaw = message.position[jawIndex] * (180 / Math.PI);
+					currentAngles.tilt = message.position[tiltIndex] * (180 / Math.PI);
+					currentAngles.lift = message.position[liftIndex] * (180 / Math.PI);
 				}
+			});
+			operatorControl.subscribe((message: BoolType) => {
+				isOperatorControl = message.data;
 			});
 		} else {
 			jointState = null;
 			action = null;
+			rearm = null;
+			operatorControl = null;
 		}
 	});
 
@@ -323,17 +352,6 @@
 			await done.catch((error) => console.error('Error sending goal:', error));
 		}
 	};
-
-	onMount(() => {
-		let counter = 0;
-		// setInterval(() => {
-		// 	// sine the angles
-		// 	currentAngles.jaw = Math.sin(counter / 50) * 20;
-		// 	currentAngles.tilt = Math.sin(counter / 50) * 20;
-		// 	currentAngles.lift = Math.sin(counter / 50) * 20;
-		// 	counter++;
-		// }, 80);
-	});
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -374,7 +392,21 @@
 			{/each}
 		</div>
 	</div>
-	<div class="h-[60px]"></div>
+	<div class="h-[60px]">
+		{#if isOperatorControl}
+			<div class="flex h-full w-full items-center justify-center gap-2">
+				<p class="text-red-600">Operator Control Active</p>
+				<Button variant="destructive">Rearm</Button>
+			</div>
+		{:else}
+			<div>
+				<ButtonGroup.Root>
+					<Button>a</Button>
+					<Button>b</Button>
+				</ButtonGroup.Root>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>
