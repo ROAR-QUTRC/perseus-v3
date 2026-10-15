@@ -92,6 +92,9 @@ public:
 
     // GET_POSITION: average of the bank's encoders, in position_t units.
     int16_t get_current_position() const;
+    // GET_ANGLE: one of the bank's encoders in position_t units, however old;
+    // 0 before the first read. The held angle while the angle correction holds it.
+    int16_t encoder_position(EncoderId id) const;
     // GET_CURRENT: amps, as sampled by the last control tick.
     float current_amps() const;
     bool is_in_fault() const;
@@ -112,9 +115,6 @@ public:
     // Degrees (-180..180) of any encoder, or nullopt if it has no valid angle or
     // it is older than kFeedbackStaleMs.
     static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms);
-    // GET_ANGLE: the last angle read from an encoder in position_t units,
-    // however old; 0 before the first read.
-    static int16_t encoder_position(EncoderId id);
 
 private:
     static void control_task(void*);
@@ -123,6 +123,8 @@ private:
     int16_t limit_output(int16_t output, std::optional<float> angle) const;
     int16_t homing_output(uint32_t now_ms, float amps, bool may_run);
     bool zero_encoders();
+    std::optional<float> held_angle(EncoderId id) const;
+    std::optional<float> side_degrees(EncoderId id, uint32_t now_ms) const;
 
     const BankConfig& _config;
     MotorDriver _driver_A;
@@ -136,6 +138,10 @@ private:
     int16_t _output_a = 0;
     int16_t _output_b = 0;
     float _current_amps = 0.0f;
+    // The angle correction's held angles: written by the control task, read by the reports.
+    std::optional<float> _held_a;
+    std::optional<float> _held_b;
+    bool _zeroed = false;  // the encoders were sent a zero, so the angle correction starts over
 
     // Owned by the control task.
     ControlMode _last_mode = ControlMode::Velocity;
@@ -143,4 +149,8 @@ private:
     bool _settled_a = false;
     bool _settled_b = false;
     std::optional<HomingState> _homing;  // set while the homing routine runs
+    AngleCorrectionState _correction_a;
+    AngleCorrectionState _correction_b;
+    bool _rezeroing_a = false;  // until the encoder reads near its new zero, the correction is off
+    bool _rezeroing_b = false;
 };

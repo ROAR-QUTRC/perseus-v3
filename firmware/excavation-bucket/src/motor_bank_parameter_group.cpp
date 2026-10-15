@@ -68,9 +68,9 @@ MotorBankParameterGroup::MotorBankParameterGroup(const BankConfig& config, Motor
     // answering, so ROS never sees it go stale. Only send while the reading is fresh.
     for (const DriverConfig& driver : {config.a, config.b})
     {
-        const auto angle = [encoder = driver.encoder]
+        const auto angle = [&bank, encoder = driver.encoder]
         {
-            return position_data(MotorBank::encoder_position(encoder));
+            return position_data(bank.encoder_position(encoder));
         };
         report(address_of(driver.can_group, encoder_parameter::GET_ANGLE), angle);
     }

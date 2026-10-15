@@ -8,6 +8,7 @@
 #include "encoder_bus.hpp"
 #include "hi_can_address.hpp"
 #include "jaw_homing.hpp"
+#include "jaw_twist.hpp"
 
 namespace bucket_can = hi_can::addressing::excavation::bucket::controller;
 
@@ -41,7 +42,8 @@ struct BankConfig
     int8_t position_direction;
     float min_angle;
     float max_angle;
-    HomingRoutine* homing = nullptr;  // run by SET_ZERO_POS instead of zeroing where it stands
+    HomingRoutine* homing = nullptr;              // run by SET_ZERO_POS instead of zeroing where it stands
+    AngleCorrection* angle_correction = nullptr;  // what each encoder reading is taken to mean; nullptr trusts it
 };
 
 // Note:
@@ -146,6 +148,7 @@ inline constexpr BankConfig JAWS{
     .min_angle = JAW_HOMING ? 0.0f : -180.0f,  // clenched
     .max_angle = JAW_HOMING ? 36.0f : 180.0f,  // safe opening
     .homing = JAW_HOMING ? jaw_homing : nullptr,
+    .angle_correction = jaw_twist,
 };
 
 inline constexpr const BankConfig* kBanks[] = {&LIFT, &TILT, &JAWS};
