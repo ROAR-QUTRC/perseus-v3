@@ -16,7 +16,7 @@ namespace bucket_can = hi_can::addressing::excavation::bucket::controller;
 // heartbeat, so they show it. Defined by the entry point: in main.cpp, any frame
 // at all heard on the CAN bus within kCanFailsafeMs.
 bool bucket_may_run();
-inline constexpr uint32_t kCanFailsafeMs = 50;
+inline constexpr uint32_t kCanFailsafeMs = 500;
 
 // One actuator: its motor driver and the encoder board it reads.
 struct DriverConfig
@@ -87,7 +87,7 @@ inline constexpr BankConfig LIFT{
     .current_sense = bsp::A1,
     .fault = GPIO_NUM_2,
     .speed_direction = 1,
-    .position_direction = -1,
+    .position_direction = 1,
     .min_angle = -180.0f,
     .max_angle = 180.0f,
 };
@@ -117,6 +117,11 @@ inline constexpr BankConfig TILT{
     .max_angle = 180.0f,
 };
 
+// Jaw homing is off until it's tested on the bucket. Its limits go with it:
+// 0 deg only means "clenched" once homing has put the zero there. Off, the
+// jaws run the full range and SET_ZERO_POS zeroes them where they stand.
+inline constexpr bool JAW_HOMING = false;
+
 inline constexpr BankConfig JAWS{
     .name = "jaws",
     .can_group = bucket_can::bank_group::JAWS,
@@ -136,11 +141,11 @@ inline constexpr BankConfig JAWS{
     },
     .current_sense = bsp::A5,
     .fault = GPIO_NUM_6,
-    .speed_direction = 1,
+    .speed_direction = -1,
     .position_direction = -1,
-    .min_angle = 0.0f,   // clenched
-    .max_angle = 36.0f,  // safe opening
-    .homing = jaw_homing,
+    .min_angle = JAW_HOMING ? 0.0f : -180.0f,  // clenched
+    .max_angle = JAW_HOMING ? 36.0f : 180.0f,  // safe opening
+    .homing = JAW_HOMING ? jaw_homing : nullptr,
 };
 
 inline constexpr const BankConfig* kBanks[] = {&LIFT, &TILT, &JAWS};
