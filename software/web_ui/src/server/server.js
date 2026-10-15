@@ -34,7 +34,6 @@ resourceMonitor(io);
 app.use(handler);
 
 server.listen(port, () => {
-
   const nets = networkInterfaces();
   let results = "";
 
@@ -43,7 +42,7 @@ server.listen(port, () => {
     for (const n of net) {
       // Skip over non-IPv4 and internal addresses
       // 'IPv4' is in Node <= 17, from 18 it's a number 4 or 6
-      const familyV4Value = typeof n.family === 'string' ? 'IPv4' : 4
+      const familyV4Value = typeof n.family === "string" ? "IPv4" : 4;
       if (n.family === familyV4Value && !n.internal) {
         results += `http://${n.address}:${port}\n`;
       }
