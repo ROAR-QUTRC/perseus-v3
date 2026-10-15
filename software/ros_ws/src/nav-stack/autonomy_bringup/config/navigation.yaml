@@ -588,7 +588,9 @@ controller_server:
       vy_samples: 1
       vtheta_samples: 20
       # Longer rollouts score where the rover is heading, not just the next 0.4 m.
-      sim_time: 2.0
+      # 3.0 (was 2.0): sand slip means the rover needs to see an obstacle sooner to start
+      # turning in time. Costs more CPU per rollout (200 per cycle on the Orange Pi).
+      sim_time: 3.0
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
@@ -619,7 +621,11 @@ controller_server:
       # the wall's 90-99 inflation band, every forward step cost more than it gained, and it
       # stalled until the progress checker fired. (0.4 had been raised for boulder_3 grazes,
       # which were the rock being unmapped, not this weight.)
-      ObstacleFootprint.scale: 0.1
+      # Raised to 0.3 (was 0.1) so that near an obstacle forward arcs score worse than
+      # pivoting in place (vx 0), which is what we want on sand where it slips and cannot
+      # turn in time. 0.4 once stalled a goal 1.4 m from the north wall (see above); if that
+      # recurs, drop back toward 0.2.
+      ObstacleFootprint.scale: 0.3
       PathAlign.scale: 40.0 # less aggressive in path alignment
       # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
       # tiny heading errors scored as nothing until the rover was already off-line.
