@@ -128,8 +128,8 @@ global_traversability:
     # side-swiped and then reversed onto boulder_3. 0.6 is half-width plus ~0.17 m. Fore/aft
     # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
     robot_radius_m: 0.6
-    inflation_radius_m: 0.8
-    cost_scaling_factor: 20.0
+    inflation_radius_m: 1.2
+    cost_scaling_factor: 60.0
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
 # ============================================================================
@@ -257,8 +257,8 @@ local_traversability:
     # Same inflation semantics and the same values as the global node, so a cell does not
     # change cost depending on which of the two saw it.
     robot_radius_m: 0.6
-    inflation_radius_m: 0.8
-    cost_scaling_factor: 20.0
+    inflation_radius_m: 1.0
+    cost_scaling_factor: 70.0
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
