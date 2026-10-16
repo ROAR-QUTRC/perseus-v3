@@ -127,9 +127,9 @@ global_traversability:
     # planned path ~0.07 m from scraping a rock beside it, less one 0.1 m cell -- in sim it
     # side-swiped and then reversed onto boulder_3. 0.6 is half-width plus ~0.17 m. Fore/aft
     # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
-    robot_radius_m: 0.6
-    inflation_radius_m: 2.0
-    cost_scaling_factor: 60.0
+    robot_radius_m: 0.4
+    inflation_radius_m: 1.0 #
+    cost_scaling_factor: 0.5
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
 # ============================================================================
@@ -535,7 +535,7 @@ controller_server:
       # comparison via `ros2 topic pub -1 /controller_selector std_msgs/String "{data: DWB}"`
       # before a goal. Samples trajectories and scores them, so unlike RPP it avoids obstacles
       # locally rather than trusting the global path. Costs much more CPU: vx_samples *
-      # vtheta_samples = 200 rollouts per cycle at 10 Hz on the Orange Pi.
+      # vtheta_samples = 200 #rollouts per cycle at 10 Hz on the Orange Pi.
       #
       # Wrapped in RotationShimController. Every zone leg starts with the path behind the
       # rover, and DWB alone dithered there: in sim the best left and right pivots scored
@@ -547,7 +547,7 @@ controller_server:
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       primary_controller: "dwb_core::DWBLocalPlanner"
       # Raised from 0.785: pivot only if the path is ~140 deg off, otherwise DWB arcs.
-      angular_dist_threshold: 2.4
+      angular_dist_threshold: 1.0
       forward_sampling_distance: 0.5
       # max_vel_theta, and the same rate RPP pivots at (see FollowPath).
       rotate_to_heading_angular_vel: 0.5
@@ -567,9 +567,9 @@ controller_server:
       min_vel_y: 0.0
       # y is zero throughout: the rover cannot strafe. Theta stays under velocity_smoother's
       # 0.6 ceiling and safe_speed.yaml's 1.0.
-      max_vel_x: 0.28
+      max_vel_x: 0.2
       max_vel_y: 0.0
-      max_vel_theta: 0.5
+      max_vel_theta: 0.25
       max_speed_xy: 0.28
       # STALL: both floors sit above the ESCs' 0.05 m/s and 0.14 rad/s.
       min_speed_xy: 0.06
@@ -579,18 +579,18 @@ controller_server:
       # Smoothness: 1.0 rad/s^2 caps the angular-velocity window DWB samples each 0.1 s cycle
       # to +-0.1 rad/s around the current rate. At 3.2 it could jump full-left to full-right
       # between cycles, which is what made it weave on straight legs.
-      acc_lim_theta: 1.0
+      acc_lim_theta: 0.5
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -1.0
+      decel_lim_theta: -0.5
       # vy_samples 1 because there is no lateral motion to sample.
       vx_samples: 10
       vy_samples: 1
-      vtheta_samples: 20
+      vtheta_samples: 30
       # Longer rollouts score where the rover is heading, not just the next 0.4 m.
       # 3.0 (was 2.0): sand slip means the rover needs to see an obstacle sooner to start
       # turning in time. Costs more CPU per rollout (200 per cycle on the Orange Pi).
-      sim_time: 3.0
+      sim_time: 4.0
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
@@ -625,14 +625,14 @@ controller_server:
       # pivoting in place (vx 0), which is what we want on sand where it slips and cannot
       # turn in time. 0.4 once stalled a goal 1.4 m from the north wall (see above); if that
       # recurs, drop back toward 0.2.
-      ObstacleFootprint.scale: 0.3
-      PathAlign.scale: 40.0 # less aggressive in path alignment
+      ObstacleFootprint.scale: 0.15
+      PathAlign.scale: 60.0 # less aggressive in path alignment
       # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
       # tiny heading errors scored as nothing until the rover was already off-line.
       PathAlign.forward_point_distance: 0.325
       GoalAlign.scale: 4.0
       GoalAlign.forward_point_distance: 0.325
-      PathDist.scale: 32.0
+      PathDist.scale: 48.0
       GoalDist.scale: 24.0
       RotateToGoal.scale: 32.0
       RotateToGoal.slowing_factor: 5.0
