@@ -5,16 +5,17 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Description Topic1
-        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
+        - /Rover Bound1/Status1
         - /Rover Bound1/Topic1
+        - /TwistStamped1/Status1
         - /TwistStamped1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 439
+    Tree Height: 313
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -45,25 +46,23 @@ Panels:
     ConstructionFrame: odom
     ConstructionSet: true
     ConstructionSource: map
-    ConstructionX: 5.179413318634033
-    ConstructionY: -3.896010398864746
-    ConstructionYaw: -1.5494819718947463
+    ConstructionX: 5.453035831451416
+    ConstructionY: -3.891118288040161
+    ConstructionYaw: -1.6385613679885864
     Controller: DWB
     Cycles: 50
     ExcavationFrame: odom
     ExcavationSet: true
     ExcavationSource: map
-    ExcavationX: 0.11609363555908203
-    ExcavationY: -0.09529638290405273
-    ExcavationYaw: 0.02713453486172739
-    Mode: full
+    ExcavationX: 0.2045884132385254
+    ExcavationY: -1.2511775493621826
+    ExcavationYaw: -1.5583575963974
+    Mode: timed
     Name: Mission Control
     Planner: ThetaStar
-    PrepareBucket: true
+    PrepareBucket: false
     Task: cycle
     ZonePauseS: 5
-  - Class: rviz_plugins/RoverViewPanel
-    Name: Rover View
 Visualization Manager:
   Class: ""
   Displays:
@@ -92,6 +91,12 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        aruco_marker_67:
+          Value: true
+        aruco_marker_68:
+          Value: true
+        aruco_marker_69:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -292,7 +297,12 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          {}
+                          aruco_marker_67:
+                            {}
+                          aruco_marker_68:
+                            {}
+                          aruco_marker_69:
+                            {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -747,7 +757,7 @@ Visualization Manager:
       Use Timestamp: false
       Value: false
     - Class: rviz_default_plugins/Image
-      Enabled: true
+      Enabled: false
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -759,7 +769,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /vision/overlay/image/compressed
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Arena Zones
@@ -819,7 +829,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Local 2D Projection
       Topic:
         Depth: 5
@@ -835,14 +845,14 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /local_costmap/costmap_updates
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Binary representation: false
       Binary threshold: 100
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: true
-      Enabled: true
+      Enabled: false
       Name: Global Inflation
       Topic:
         Depth: 5
@@ -858,7 +868,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /layers/inflation_updates
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 10
       Class: rviz_default_plugins/CameraInfo
       Color: 85; 255; 255
@@ -1006,7 +1016,7 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1531
+  Height: 1131
   Hide Left Dock: false
   Hide Right Dock: false
   Link Health:
@@ -1017,9 +1027,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000030000000000000156000004d7fc0200000008fb000000100044006900730070006c006100790073000000003f000000d4000000cc00fffffffb000000180054006f0070006900630020004800650061006c00740068010000003f000001c30000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000000a005600690065007700730100000257000001040000000000000000fb0000001c004d0061006300680069006e00650020004800650061006c007400680100000208000001070000008800fffffffb000000140052006f007600650072002000560069006500770100000315000001a40000001700fffffffb0000001200560069006500770020004c006f0063006b01000004bf000000570000005700ffffff00000001000001c8000004d7fc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001300000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d006100700100000175000001d60000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000351000001c5000001c500ffffff0000000300000a00000000c0fc0100000002fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e0063007901000000000000015c000000b200fffffffb00000016004c0069006e006b0020004800650061006c0074006801000001620000089e000000c700ffffff000006d6000004d700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
-  Rover View:
-    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000200000000000001560000040dfc0200000008fb000000100044006900730070006c006100790073010000003f00000179000000cc00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001be000000aa0000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000001c004d0061006300680069006e00650020004800650061006c00740068010000026e0000008f0000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000016004c0069006e006b0020004800650061006c007400680100000303000000c0000000c000fffffffc000003c900000083000000830100001efa000000000100000002fb0000001200560069006500770020004c006f0063006b010000000000000156000000db00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000ffffffff000000b000ffffff00000001000001c80000040dfc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079000000003f000000d30000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d00610070010000003f000002060000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c010000024b00000201000001c800ffffff000004560000040d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -1028,6 +1036,6 @@ Window Geometry:
     collapsed: false
   View Lock:
     collapsed: false
-  Width: 2560
+  Width: 1920
   X: 0
   Y: 32
