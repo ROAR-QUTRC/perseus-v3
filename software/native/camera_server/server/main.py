@@ -167,7 +167,8 @@ def main():
                 if event.target is None:
                     log("No target device specified for request-stream action", "ERROR")
                     return
-                start_stream(event, hostname)
+                if event.target in devices:
+                    start_stream(event, hostname)
             case "kill-stream":
                 stop_stream(event)
                 pass
