@@ -8,6 +8,7 @@ in
 {
   packages = [
     prod_ws
+    pkgs.local-date
   ];
 
   enterShell = ''

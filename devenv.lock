@@ -49,6 +49,26 @@
         "type": "github"
       }
     },
+    "local-date": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792209523,
+        "narHash": "sha256-9UZpEywLwENwrfmdHY1xGfuQh8LLDj1SOwnoc6CR80g=",
+        "owner": "dbreth",
+        "repo": "rs-local-time-server",
+        "rev": "d94a8ef356d8831029e8720f7eeb376772f8c20a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dbreth",
+        "repo": "rs-local-time-server",
+        "type": "github"
+      }
+    },
     "mk-shell-bin": {
       "locked": {
         "lastModified": 1677004959,
@@ -188,6 +208,7 @@
     "root": {
       "inputs": {
         "devenv": "devenv",
+        "local-date": "local-date",
         "mk-shell-bin": "mk-shell-bin",
         "nix-ros-overlay": "nix-ros-overlay",
         "nix-ros-workspace": "nix-ros-workspace",
