@@ -24,6 +24,20 @@ let
         propagatedBuildInputs = final.lib.remove rosFinal.perseus-input-config propagatedBuildInputs;
       }
     );
+    # The package installs the repo-level config/network_devices.toml, which is outside
+    # the directory a Nix build is given, so copy it in next to the sources.
+    link-monitor = rosPrev.link-monitor.overrideAttrs (
+      {
+        postUnpack ? "",
+        ...
+      }:
+      {
+        postUnpack = postUnpack + ''
+          mkdir -p $sourceRoot/config
+          cp ${../../../config/network_devices.toml} $sourceRoot/config/network_devices.toml
+        '';
+      }
+    );
     vision =
       let
         cubeDetectorModel = prev.fetchurl {
