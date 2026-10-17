@@ -98,7 +98,9 @@ add_library(
   src/mission_point_tool.cpp
   include/rviz_plugins/mission_point_tool.hpp
   src/view_lock_panel.cpp
-  include/rviz_plugins/view_lock_panel.hpp)
+  include/rviz_plugins/view_lock_panel.hpp
+  src/rover_view_panel.cpp
+  include/rviz_plugins/rover_view_panel.hpp)
 
 target_include_directories(rviz_plugins
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
