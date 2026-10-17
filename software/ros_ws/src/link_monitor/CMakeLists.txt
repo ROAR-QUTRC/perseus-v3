@@ -65,9 +65,15 @@ install(TARGETS link_monitor DESTINATION lib/${PROJECT_NAME})
 
 # The device list lives in the repo-level config so the Nix profiles and this package read
 # the same file. Installing a copy lets the launch file find it from an installed workspace.
-install(
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../../../config/network_devices.toml
-  DESTINATION share/${PROJECT_NAME}/config)
+# A Nix build only has this package's directory, so there the file is copied in as
+# config/ first (nix/extra-packages/patches/patches.nix) and is preferred when present.
+set(NETWORK_DEVICES_TOML
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/network_devices.toml)
+if(NOT EXISTS ${NETWORK_DEVICES_TOML})
+  set(NETWORK_DEVICES_TOML
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../../../config/network_devices.toml)
+endif()
+install(FILES ${NETWORK_DEVICES_TOML} DESTINATION share/${PROJECT_NAME}/config)
 
 install(
   DIRECTORY launch
