@@ -42,8 +42,8 @@ public:
 
     // Position control: constant speed toward the target, stop within kHoldWindow.
     static constexpr float kPositionSpeed = 100.0f;  // the actuators stall at ~10%
-    static constexpr float kHoldWindow = 2.0f;
-    static constexpr float kResumeWindow = 3.0f;  // once stopped, restart only past this, so noise can't chatter
+    static constexpr float kHoldWindow = 1.0f;
+    static constexpr float kResumeWindow = 2.0f;  // once stopped, restart only past this, so noise can't chatter
     static constexpr float kMaxAngle = 180.0f;    // angles and targets are -180..180, no wrap-around
 
     // SET_SPEED and MotorDriver::drive() use int16 duty, +/-32767 = 100%.
@@ -93,7 +93,7 @@ public:
     // GET_POSITION: average of the bank's encoders, in position_t units.
     int16_t get_current_position() const;
     // GET_ANGLE: one of the bank's encoders in position_t units, however old;
-    // 0 before the first read. The held angle while the angle correction holds it.
+    // 0 before the first read. With an angle correction, what it made of it.
     int16_t encoder_position(EncoderId id) const;
     // GET_CURRENT: amps, as sampled by the last control tick.
     float current_amps() const;
@@ -123,7 +123,6 @@ private:
     int16_t limit_output(int16_t output, std::optional<float> angle) const;
     int16_t homing_output(uint32_t now_ms, float amps, bool may_run);
     bool zero_encoders();
-    std::optional<float> held_angle(EncoderId id) const;
     std::optional<float> side_degrees(EncoderId id, uint32_t now_ms) const;
 
     const BankConfig& _config;
@@ -138,9 +137,12 @@ private:
     int16_t _output_a = 0;
     int16_t _output_b = 0;
     float _current_amps = 0.0f;
-    // The angle correction's held angles: written by the control task, read by the reports.
-    std::optional<float> _held_a;
-    std::optional<float> _held_b;
+    // With an angle correction, the reports use what the control tick made of
+    // each side: fresh (nullopt while the encoder is stale), and however old.
+    std::optional<float> _angle_a;
+    std::optional<float> _angle_b;
+    float _last_angle_a = 0.0f;
+    float _last_angle_b = 0.0f;
     bool _zeroed = false;  // the encoders were sent a zero, so the angle correction starts over
 
     // Owned by the control task.

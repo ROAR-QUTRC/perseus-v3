@@ -124,5 +124,5 @@ void loop()  // Add timeout for receiving velocity
         else
             ESP_LOGE(TAG, "CAN FAILURE: nothing heard for %lu ms, motors stopped", static_cast<unsigned long>(kCanFailsafeMs));
     }
-    vTaskDelay(pdMS_TO_TICKS(1));  // Techically delay(1) works since arduino core treats delay as the same thing, but semantics
+    vTaskDelay(pdMS_TO_TICKS(1));  // Technically delay(1) works since arduino core treats delay as the same thing, but semantics
 }

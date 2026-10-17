@@ -144,22 +144,24 @@ int16_t MotorBank::get_current_position() const
 int16_t MotorBank::encoder_position(EncoderId id) const
 {
     EncoderReading reading;
-    encoder_bus().get(id, &reading);
-    return static_cast<int16_t>(std::lround(held_angle(id).value_or(reading.degrees) * kPositionUnitsPerDegree));
+    if (_config.angle_correction)
+    {
+        Lock lock(_mutex);
+        reading.degrees = id == _config.b.encoder ? _last_angle_b : _last_angle_a;
+    }
+    else
+        encoder_bus().get(id, &reading);
+    return static_cast<int16_t>(std::lround(reading.degrees * kPositionUnitsPerDegree));
 }
 
-std::optional<float> MotorBank::held_angle(EncoderId id) const
-{
-    Lock lock(_mutex);
-    return id == _config.b.encoder ? _held_b : _held_a;
-}
-
-// An encoder's fresh reading, unless the angle correction holds it elsewhere.
+// One side's fresh angle: its reading, or with an angle correction, what the
+// last control tick made of it.
 std::optional<float> MotorBank::side_degrees(EncoderId id, uint32_t now_ms) const
 {
-    const std::optional<float> reading = encoder_degrees(id, now_ms);
-    const std::optional<float> held = held_angle(id);
-    return reading && held ? held : reading;
+    if (!_config.angle_correction)
+        return encoder_degrees(id, now_ms);
+    Lock lock(_mutex);
+    return id == _config.b.encoder ? _angle_b : _angle_a;
 }
 
 MotorBank::Status MotorBank::get_status() const
@@ -225,25 +227,31 @@ void MotorBank::control_tick(uint32_t now_ms, bool may_run)
 
     // Each side's angle: its fresh reading, unless the angle correction holds it
     // elsewhere. The correction learns from how that side was driven since the
-    // last tick. A zero changes what the readings mean, so it starts over once
-    // the encoder reads near its new zero, i.e. once the zero has taken effect.
-    std::optional<float> held_a = _held_a;
-    std::optional<float> held_b = _held_b;
+    // last tick. A zero changes what the readings mean, so the correction starts
+    // afresh every tick until the encoder reads near its new zero, i.e. until
+    // the zero has taken effect.
+    float last_a = _last_angle_a;
+    float last_b = _last_angle_b;
     if (zeroed)
         _rezeroing_a = _rezeroing_b = true;
-    const auto side_angle = [&](EncoderId id, AngleCorrectionState& state, bool& rezeroing, int16_t last_output, std::optional<float>& held)
+    const auto side_angle = [&](EncoderId id, AngleCorrectionState& state, bool& rezeroing, int16_t last_output, float& last) -> std::optional<float>
     {
         const std::optional<float> reading = encoder_degrees(id, now_ms);
+        if (!_config.angle_correction)
+            return reading;
         if (rezeroing && !(reading && std::fabs(*reading) <= 1.0f))
-            state = {}, held.reset();
-        else if (rezeroing = false; _config.angle_correction)
-            held = _config.angle_correction(state, reading, ((last_output > 0) - (last_output < 0)) * _config.position_direction);
+            state = {};  // learns nothing across the zero, but still applies
+        else
+            rezeroing = false;
+        const std::optional<float> held = _config.angle_correction(state, reading, ((last_output > 0) - (last_output < 0)) * _config.position_direction);
+        if (held || reading)
+            last = held ? *held : *reading;
         return reading && held ? held : reading;
     };
     // Both actuators move the same joint, so a side with no reading
     // follows the other side's encoder.
-    const std::optional<float> own_a = side_angle(_config.a.encoder, _correction_a, _rezeroing_a, _output_a, held_a);
-    const std::optional<float> own_b = side_angle(_config.b.encoder, _correction_b, _rezeroing_b, _output_b, held_b);
+    const std::optional<float> own_a = side_angle(_config.a.encoder, _correction_a, _rezeroing_a, _output_a, last_a);
+    const std::optional<float> own_b = side_angle(_config.b.encoder, _correction_b, _rezeroing_b, _output_b, last_b);
     const std::optional<float> angle_a = own_a ? own_a : own_b;
     const std::optional<float> angle_b = own_b ? own_b : own_a;
 
@@ -296,8 +304,10 @@ void MotorBank::control_tick(uint32_t now_ms, bool may_run)
     Lock lock(_mutex);
     _output_a = output_a;
     _output_b = output_b;
-    _held_a = held_a;
-    _held_b = held_b;
+    _angle_a = own_a;
+    _angle_b = own_b;
+    _last_angle_a = last_a;
+    _last_angle_b = last_b;
 }
 
 // Zero if `output` would drive the joint past a limit. Driving back into range

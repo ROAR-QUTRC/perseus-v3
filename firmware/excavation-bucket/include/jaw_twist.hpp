@@ -19,6 +19,7 @@ struct AngleCorrectionState
 {
     int8_t move = 0;            // the way the jaws are being moved: -1 lowering the angle, +1 raising it
     float low = 0.0f;           // the lowest reading since they started moving that way
+    float last = 0.0f;          // the last reading, for while the encoder is stale
     std::optional<float> held;  // the angle used and reported instead of the reading
 };
 
@@ -31,6 +32,7 @@ using AngleCorrection = std::optional<float>(AngleCorrectionState& state, std::o
 inline std::optional<float> jaw_twist(AngleCorrectionState& s, std::optional<float> reading, int8_t drive)
 {
     constexpr float kRiseDegrees = 2.0f;  // rise above the low point: twist while closing, real motion while opening
+    constexpr float kShutDegrees = 0.0f;  // the jaws can't close past this, so nothing below it is reported
 
     // A move lasts until the drive reverses, through pauses, but not through
     // being driven blind. An opening that couldn't be seen lets go, since
@@ -41,23 +43,27 @@ inline std::optional<float> jaw_twist(AngleCorrectionState& s, std::optional<flo
             s.move = 0;
         if (drive > 0)
             s.held.reset();
-        return s.held;
     }
-    if (!drive)
-        return s.held;  // standing still says nothing either way
-    if (drive != s.move)
-        s.move = drive, s.low = *reading;  // each move starts from where the reading is
-    s.low = std::min(s.low, *reading);
-    // The twist only adds to the reading, so the jaws are never above it.
-    if (s.held)
-        s.held = std::min(*s.held, *reading);
+    // Standing still says nothing either way about the twist.
+    else if (s.last = *reading; drive)
+    {
+        if (drive != s.move)
+            s.move = drive, s.low = *reading;  // each move starts from where the reading is
+        s.low = std::min(s.low, *reading);
+        // The twist only adds to the reading, so the jaws are never above it.
+        if (s.held)
+            s.held = std::min(*s.held, *reading);
 
-    // Closing lowers the angle, so a rise while closing is the twist, and a
-    // rise while opening is the jaws moving again.
-    const bool risen = *reading > s.low + kRiseDegrees;
-    if (risen && drive < 0 && !s.held)
-        s.held = s.low;
-    else if (risen && drive > 0)
-        s.held.reset();
-    return s.held;
+        // Closing lowers the angle, so a rise while closing is the twist, and a
+        // rise while opening is the jaws moving again.
+        const bool risen = *reading > s.low + kRiseDegrees;
+        if (risen && drive < 0 && !s.held)
+            s.held = s.low;
+        else if (risen && drive > 0)
+            s.held.reset();
+    }
+    // Shut is as far as the jaws go: nothing below it, held or read, is passed on.
+    if (s.held || s.last < kShutDegrees)
+        return std::max(s.held.value_or(s.last), kShutDegrees);
+    return std::nullopt;
 }
