@@ -3,6 +3,8 @@
 
 #include "rviz_plugins/rover_view_panel.hpp"
 
+#include <OgreColourValue.h>
+#include <OgreLight.h>
 #include <OgreMovableObject.h>
 #include <OgreQuaternion.h>
 #include <OgreSceneManager.h>
@@ -31,19 +33,22 @@ namespace rviz_plugins
     namespace
     {
         // The frame the camera follows, and takes the heading from.
+        // The flat frame the camera orbits and takes its heading from, and the rover's
+        // own frame, which carries its roll and pitch.
         const std::string ROVER_FRAME = "base_footprint";
+        const std::string BODY_FRAME = "base_link";
         // Rover-forward is +x, so front-left is 45 deg round from it.
         constexpr double FRONT_LEFT_YAW = M_PI / 4.0;
         // Almost level and close in, so the perspective is strong and each near wheel
         // hides the far-side wheel on its axle; the bucket arms still read as angles.
-        constexpr double PITCH_RAD = 0.1;
-        constexpr double DISTANCE_M = 1.8;
+        constexpr double PITCH_RAD = 0.15;
+        constexpr double DISTANCE_M = 3.5;
         constexpr int REFRESH_PERIOD_MS = 33;
-        // The camera's heading follows the rover's with this time constant. The pose
-        // from odometry jitters a little even at rest, and the camera turns on the
-        // heading, so unsmoothed that shows as the whole view shaking.
-        constexpr double HEADING_SMOOTHING_S = 0.25;
         const QString ROBOT_MODEL_CLASS = "rviz_default_plugins/RobotModel";
+        // Direction the panel's own light shines, in the camera's frame (+x right, +y up,
+        // looking down -z): from above-left of the camera, forward and down. Fixed to the
+        // camera, so the rover is lit the same from wherever the camera is orbited to.
+        const Ogre::Vector3 LIGHT_DIRECTION_IN_CAMERA(0.3, -0.6, -1.0);
     }  // namespace
 
     RoverViewPanel::RoverViewPanel(QWidget* parent)
@@ -59,6 +64,15 @@ namespace rviz_plugins
         // The window holds the controller's camera, so it goes first.
         delete _render_panel;
         delete _view;
+        if (_light != nullptr && getDisplayContext() != nullptr)
+        {
+            getDisplayContext()->getSceneManager()->destroyLight(_light);
+            _light = nullptr;
+        }
+        if (_main_viewport != nullptr && _bit != 0)
+        {
+            _main_viewport->setVisibilityMask(_main_viewport->getVisibilityMask() | _bit);
+        }
         if (_bit != 0 && getDisplayContext() != nullptr)
         {
             Ogre::MovableObject::setDefaultVisibilityFlags(
@@ -84,6 +98,19 @@ namespace rviz_plugins
         Ogre::MovableObject::setDefaultVisibilityFlags(
             Ogre::MovableObject::getDefaultVisibilityFlags() & ~_bit);
         _apply_visibility();
+
+        // The panel's own light. RViz gives each render window a headlight, all in the one
+        // scene, so the main view's light shines on this view too and turns with the main
+        // camera: the rover's brightness followed whatever the main view was doing. So
+        // this view ignores every other light (_apply_lights) and uses this one, which is
+        // on for this view's bit only and moves with this camera.
+        auto* scene = context->getSceneManager();
+        _light = scene->createLight();
+        _light->setType(Ogre::Light::LT_DIRECTIONAL);
+        _light->setDiffuseColour(Ogre::ColourValue(1.0F, 1.0F, 1.0F));
+        _light->setSpecularColour(Ogre::ColourValue(0.4F, 0.4F, 0.4F));
+        _light->setVisibilityFlags(_bit);
+        scene->getRootSceneNode()->attachObject(_light);
 
         _view = context->getViewManager()->create("rviz_default_plugins/Orbit");
         _view->subProp("Target Frame")->setValue(QString::fromStdString(ROVER_FRAME));
@@ -150,6 +177,19 @@ namespace rviz_plugins
             set_bit(node, _bit, true, none);
     }
 
+    void RoverViewPanel::_apply_lights()
+    {
+        auto lights = getDisplayContext()->getSceneManager()->getMovableObjectIterator("Light");
+        while (lights.hasMoreElements())
+        {
+            auto* light = static_cast<Ogre::Light*>(lights.getNext());
+            // Every light but this panel's own is hidden from this view: the lights of
+            // the other render windows, which turn with those windows' cameras.
+            const uint32_t flags = light->getVisibilityFlags();
+            light->setVisibilityFlags(light == _light ? _bit : (flags & ~_bit));
+        }
+    }
+
     void RoverViewPanel::_tick()
     {
         if (_view == nullptr)
@@ -163,24 +203,38 @@ namespace rviz_plugins
             {
                 viewport->setVisibilityMask(_bit);
                 _mask_set = true;
+
+                // The panel's light carries only this view's bit, so the main view must
+                // not take it: its own mask drops the bit, which leaves everything else,
+                // the rover included (it has every bit), drawn there as before.
+                if (auto* main_panel = getDisplayContext()->getViewManager()->getRenderPanel())
+                {
+                    _main_viewport = rviz_rendering::RenderWindowOgreAdapter::getOgreViewport(
+                        main_panel->getRenderWindow());
+                    if (_main_viewport != nullptr)
+                        _main_viewport->setVisibilityMask(_main_viewport->getVisibilityMask() &
+                                                          ~_bit);
+                }
             }
         }
 
         // Every tick: a display makes new objects as its data arrives, and a cloud is a
         // new object per message.
         _apply_visibility();
+        _apply_lights();
 
         // The rover's heading in the fixed frame; with no transform yet the camera
         // keeps its last yaw.
         Ogre::Vector3 position;
         Ogre::Quaternion orientation;
+        Ogre::Quaternion flat_orientation;
+        bool have_flat = false;
         if (getDisplayContext()->getFrameManager()->getTransform(ROVER_FRAME, position,
                                                                  orientation))
         {
             const double heading = std::atan2(
                 2.0 * (orientation.w * orientation.z + orientation.x * orientation.y),
                 1.0 - 2.0 * (orientation.y * orientation.y + orientation.z * orientation.z));
-            const double dt_s = REFRESH_PERIOD_MS / 1000.0;
             auto* yaw = _view->subProp("Yaw");
             if (!_heading_known)
             {
@@ -191,17 +245,45 @@ namespace rviz_plugins
             else
             {
                 // Through the short way round, so a turn across +-pi does not spin it.
-                const double error = std::remainder(heading - _heading, 2.0 * M_PI);
-                const double step = error * (1.0 - std::exp(-dt_s / HEADING_SMOOTHING_S));
+                // Not smoothed: the camera is attached to the rover below, and that
+                // only holds if the yaw added here is exactly the heading it removes.
+                const double step = std::remainder(heading - _heading, 2.0 * M_PI);
                 _heading += step;
                 // Add the rover's turn to the camera's yaw rather than setting it, so
                 // wherever the user has orbited to stays the same relative to the rover.
                 yaw->setValue(yaw->getValue().toDouble() + step);
             }
+            flat_orientation = orientation;
+            have_flat = true;
         }
 
         const float dt = REFRESH_PERIOD_MS / 1000.0f;
         _view->update(dt, dt);
+
+        // Fixed relative to the camera, so the brightness cannot depend on the angle.
+        _light->setDirection(_view->getCamera()->getDerivedOrientation() *
+                             LIGHT_DIRECTION_IN_CAMERA.normalisedCopy());
+
+        // Attach the camera to the rover. The orbit above is about the flat frame, so
+        // on its own the rover would roll and pitch in the view with the terrain. The
+        // camera's own scene node (which holds the orbit offset) hangs off a target node
+        // that the controller places at the flat frame; moving that target node to the
+        // rover's own frame, turned by the rover's roll and pitch (its orientation with
+        // the flat frame's taken out), carries the camera along rigidly. Nothing of the
+        // rover's own pose is then left in the picture: only its joints move.
+        Ogre::Vector3 body_position;
+        Ogre::Quaternion body_orientation;
+        auto* camera = _view->getCamera();
+        auto* camera_node = camera != nullptr ? camera->getParentSceneNode() : nullptr;
+        auto* target_node = camera_node != nullptr ? camera_node->getParent() : nullptr;
+        if (have_flat && target_node != nullptr &&
+            getDisplayContext()->getFrameManager()->getTransform(BODY_FRAME, body_position,
+                                                                 body_orientation))
+        {
+            target_node->setPosition(body_position);
+            target_node->setOrientation(body_orientation * flat_orientation.Inverse());
+        }
+
         _render_panel->getRenderWindow()->renderLater();
     }
 
