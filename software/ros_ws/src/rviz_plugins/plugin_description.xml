@@ -83,4 +83,14 @@
       ping round trip and a throughput bar, from link_monitor's /link_health.
     </description>
   </class>
+  <class
+    name="rviz_plugins/RoverViewPanel"
+    type="rviz_plugins::RoverViewPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      A second 3D view of the rover from its front left, following it as it drives
+      and turns. Shows the RobotModel display, so the wheels and the bucket's lift,
+      tilt and jaw move as the joint states say.
+    </description>
+  </class>
 </library>
