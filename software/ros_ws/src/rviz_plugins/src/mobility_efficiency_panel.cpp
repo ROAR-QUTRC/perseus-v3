@@ -3,6 +3,7 @@
 
 #include "rviz_plugins/mobility_efficiency_panel.hpp"
 
+#include <QFrame>
 #include <QPainter>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -65,7 +66,110 @@ namespace rviz_plugins
                           static_cast<int>(lerp(from.blue(), to.blue(), fraction)));
         }
 
+        /// @brief Accent of the velocity bars. Mid-tone blue, legible on a light and a
+        /// dark theme, and nowhere on the red-amber-green ramp above, so the two
+        /// readings are never mistaken for each other.
+        const QColor COMMAND_COLOR(66, 133, 224);
+        /// @brief A command at the end of its bar: the cap, not a fault.
+        const QColor SATURATED_COLOR(239, 160, 40);
+
     }  // namespace
+
+    SignedBar::SignedBar(QString caption, QString unit, double limit, QWidget* parent)
+        : QWidget(parent),
+          _caption(std::move(caption)),
+          _unit(std::move(unit)),
+          _limit(limit > 0.0 ? limit : 1.0)
+    {
+        setMinimumHeight(22);
+    }
+
+    void SignedBar::set_value(double value)
+    {
+        _value = value;
+        update();
+    }
+
+    void SignedBar::set_stale(bool stale)
+    {
+        if (stale == _stale)
+        {
+            return;
+        }
+        _stale = stale;
+        update();
+    }
+
+    void SignedBar::set_limit(double limit)
+    {
+        _limit = limit > 0.0 ? limit : _limit;
+        update();
+    }
+
+    void SignedBar::paintEvent(QPaintEvent* /*event*/)
+    {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing, true);
+
+        const QPalette pal = palette();
+        const QColor text_color = pal.color(QPalette::WindowText);
+        const QColor muted_text = blend(text_color, pal.color(QPalette::Window), 0.5);
+
+        const QRectF track(
+            CAPTION_WIDTH_PX, 4.0,
+            std::max(0.0, width() - CAPTION_WIDTH_PX - VALUE_WIDTH_PX - 4.0),
+            height() - 8.0);
+        const double center_x = track.center().x();
+        const double half_width = track.width() / 2.0;
+
+        p.setPen(_stale ? muted_text : text_color);
+        p.drawText(QRectF(0.0, 0.0, CAPTION_WIDTH_PX, height()),
+                   Qt::AlignLeft | Qt::AlignVCenter, _caption);
+
+        p.setPen(Qt::NoPen);
+        p.setBrush(pal.color(QPalette::Mid));
+        p.drawRoundedRect(track, CORNER_RADIUS_PX, CORNER_RADIUS_PX);
+
+        // A stale command is shown as zero: silence from the mux means nothing is
+        // commanding the rover, and an old value would say it still is.
+        const double value = _stale ? 0.0 : _value;
+        const double fraction = std::clamp(value / _limit, -1.0, 1.0);
+        if (std::abs(fraction) > ZERO_FRACTION)
+        {
+            QRectF fill(fraction >= 0.0 ? center_x : center_x + fraction * half_width,
+                        track.top(), std::abs(fraction) * half_width, track.height());
+            const bool saturated = std::abs(value) >= _limit;
+            p.setBrush(_stale ? blend(COMMAND_COLOR, pal.color(QPalette::Window), 0.6)
+                              : (saturated ? SATURATED_COLOR : COMMAND_COLOR));
+            // Square where it meets the center line, rounded at the free end, so the
+            // fill reads as growing out of zero rather than as a floating pill.
+            p.drawRoundedRect(fill, CORNER_RADIUS_PX, CORNER_RADIUS_PX);
+            QRectF root = fill;
+            root.setWidth(std::min(fill.width(), CORNER_RADIUS_PX * 2.0));
+            if (fraction >= 0.0)
+            {
+                p.drawRect(root);
+            }
+            else
+            {
+                root.moveRight(center_x);
+                p.drawRect(root);
+            }
+        }
+
+        // The zero line, drawn over the fill so the sign is readable at a glance.
+        p.setPen(QPen(muted_text, 1.0));
+        p.drawLine(QPointF(center_x, track.top() - 2.0),
+                   QPointF(center_x, track.bottom() + 2.0));
+
+        p.setPen(_stale ? muted_text : text_color);
+        p.drawText(QRectF(width() - VALUE_WIDTH_PX, 0.0, VALUE_WIDTH_PX, height()),
+                   Qt::AlignRight | Qt::AlignVCenter,
+                   QString("%1 %2")
+                       .arg(value, 0, 'f', 2)
+                       .arg(_unit)
+                       .replace("-", QString::fromUtf8("\u2212")));
+    }
 
     EfficiencyBar::EfficiencyBar(QString caption, QWidget* parent)
         : QWidget(parent),
@@ -180,6 +284,7 @@ namespace rviz_plugins
 
     MobilityEfficiencyPanel::MobilityEfficiencyPanel(QWidget* parent)
         : rviz_common::Panel(parent),
+          _latest_command_time(0, 0, RCL_ROS_TIME),
           _latest_message_time(0, 0, RCL_ROS_TIME)
     {
         _summary_label = new QLabel("waiting for mobility status...", this);
@@ -190,11 +295,29 @@ namespace rviz_plugins
         _linear_bar = new EfficiencyBar("Linear", this);
         _angular_bar = new EfficiencyBar("Angular", this);
 
+        auto* divider = new QFrame(this);
+        divider->setFrameShape(QFrame::HLine);
+        divider->setFrameShadow(QFrame::Plain);
+        // Faint: a separation, not a border, so it follows the theme's own line colour.
+        divider->setStyleSheet("color: palette(mid);");
+
+        _command_label = new QLabel("commanded velocity - waiting for /cmd_vel_out", this);
+        _command_label->setStyleSheet("font-size: 10px;");
+        _linear_command_bar =
+            new SignedBar("Linear x", "m/s", DEFAULT_MAX_LINEAR_MPS, this);
+        _angular_command_bar =
+            new SignedBar("Yaw rate", "rad/s", DEFAULT_MAX_ANGULAR_RPS, this);
+
         auto* layout = new QVBoxLayout;
         layout->setContentsMargins(4, 4, 4, 4);
         layout->addWidget(_summary_label);
         layout->addWidget(_linear_bar);
         layout->addWidget(_angular_bar);
+        layout->addSpacing(4);
+        layout->addWidget(divider);
+        layout->addWidget(_command_label);
+        layout->addWidget(_linear_command_bar);
+        layout->addWidget(_angular_command_bar);
         layout->addStretch(1);
         setLayout(layout);
 
@@ -219,7 +342,23 @@ namespace rviz_plugins
                 _on_status(message);
             });
 
+        _linear_command_bar->set_limit(_max_linear);
+        _angular_command_bar->set_limit(_max_angular);
+        _command_subscription = _node->create_subscription<geometry_msgs::msg::TwistStamped>(
+            COMMAND_TOPIC, rclcpp::QoS(SUBSCRIPTION_QUEUE_DEPTH),
+            [this](geometry_msgs::msg::TwistStamped::ConstSharedPtr message)
+            { _on_command(message); });
+
         _refresh_timer->start(REFRESH_PERIOD_MS);
+    }
+
+    void MobilityEfficiencyPanel::_on_command(
+        geometry_msgs::msg::TwistStamped::ConstSharedPtr message)
+    {
+        // Executor thread: store only, as with the status.
+        const std::lock_guard<std::mutex> lock(_command_mutex);
+        _latest_command = std::move(message);
+        _latest_command_time = _node->now();
     }
 
     void MobilityEfficiencyPanel::_on_status(
@@ -237,6 +376,32 @@ namespace rviz_plugins
 
     void MobilityEfficiencyPanel::_refresh()
     {
+        // The command section first: it must keep updating, and greying, when the
+        // watchdog is silent and the status below returns early.
+        {
+            geometry_msgs::msg::TwistStamped::ConstSharedPtr command;
+            rclcpp::Time command_stamp(0, 0, RCL_ROS_TIME);
+            {
+                const std::lock_guard<std::mutex> lock(_command_mutex);
+                command = _latest_command;
+                command_stamp = _latest_command_time;
+            }
+            const bool command_stale =
+                !command || (_node->now() - command_stamp).seconds() > COMMAND_TIMEOUT_S;
+            _linear_command_bar->set_stale(command_stale);
+            _angular_command_bar->set_stale(command_stale);
+            if (command)
+            {
+                _linear_command_bar->set_value(command->twist.linear.x);
+                _angular_command_bar->set_value(command->twist.angular.z);
+            }
+            _command_label->setText(
+                !command ? QString("commanded velocity - waiting for %1")
+                               .arg(QString::fromStdString(COMMAND_TOPIC))
+                : command_stale ? "commanded velocity - nothing commanding"
+                                : "commanded velocity");
+        }
+
         interfaces::msg::MobilityStatus::ConstSharedPtr message;
         rclcpp::Time stamp(0, 0, RCL_ROS_TIME);
         {
@@ -294,6 +459,8 @@ namespace rviz_plugins
         rviz_common::Panel::save(config);
         config.mapSetValue("Topic", _topic);
         config.mapSetValue("WarnPercent", _warn_percent);
+        config.mapSetValue("MaxLinear", _max_linear);
+        config.mapSetValue("MaxAngular", _max_angular);
     }
 
     void MobilityEfficiencyPanel::load(const rviz_common::Config& config)
@@ -301,6 +468,12 @@ namespace rviz_plugins
         rviz_common::Panel::load(config);
         config.mapGetString("Topic", &_topic);
         config.mapGetFloat("WarnPercent", &_warn_percent);
+        float max_linear = 0.0F;
+        float max_angular = 0.0F;
+        if (config.mapGetFloat("MaxLinear", &max_linear) && max_linear > 0.0F)
+            _max_linear = max_linear;
+        if (config.mapGetFloat("MaxAngular", &max_angular) && max_angular > 0.0F)
+            _max_angular = max_angular;
     }
 
 }  // namespace rviz_plugins
