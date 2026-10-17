@@ -90,6 +90,7 @@
 	let inputAngles = $state({ jaw: 0, tilt: 0, lift: 0 });
 	let isOperatorControl = $state(false);
 	let lastGoalId = $state<string | null>(null);
+	let errorMessage = $state<string | null>(null);
 
 	// topic which publishes the current joint angles
 	let jointState: ROSLIB.Topic<JointStateType> | null = null;
@@ -264,7 +265,9 @@
 
 	// ondraw runs on mount, on resize, and whenever the $state it reads changes.
 	const drawMain = (c: CanvasApi) => {
-		drawBucket(c, toVirtual(targetAngles), 0.3);
+		if (!isOperatorControl) {
+			drawBucket(c, toVirtual(targetAngles), 0.3);
+		}
 		drawBucket(c, toVirtual(currentAngles), 1);
 	};
 
@@ -315,6 +318,7 @@
 	});
 
 	const setTarget = async (angles: Angles) => {
+		if (isOperatorControl) return;
 		targetAngles = angles;
 		if (action) {
 			const goal: ActionGoalType = {
@@ -322,42 +326,39 @@
 					joint_names: ['bucket_jaw_joint', 'bucket_tilt_joint', 'bucket_lift_joint'],
 					points: [
 						{
-							positions: [angles.jaw, angles.tilt, angles.lift],
-							time_from_start: { sec: 3, nanosec: 0 }
+							positions: [
+								angles.jaw * (Math.PI / 180),
+								angles.tilt * (Math.PI / 180),
+								angles.lift * (Math.PI / 180)
+							],
+							time_from_start: { sec: 10, nanosec: 0 }
 						}
 					]
 				}
 			};
 
-			const done = new Promise<void>((resolve, reject) => {
-				if (!action) {
-					reject(new Error('action is not available'));
-					return;
-				}
-				lastGoalId =
-					action.sendGoal(
-						goal,
-						(result) => {
-							console.log('Goal result:', result);
-							if (result.error_code === 0) {
-								resolve();
-							} else {
-								reject(new Error(`move failed (${result.error_code}): ${result.error_string}`));
-							}
-							lastGoalId = null;
-						},
-						() => {
-							// ignore feedback for now
-						},
-						(error) => {
-							console.error('Goal error:', error);
-							reject(new Error(error));
-							lastGoalId = null;
-						} // goal rejected, aborted or cancelled
-					) ?? null;
-				if (lastGoalId === null) reject(new Error('goal was not sent'));
-			});
-			await done.catch((error) => console.error('Error sending goal:', error));
+			if (!action) {
+				return;
+			}
+			errorMessage = null;
+			lastGoalId =
+				action.sendGoal(
+					goal,
+					(result) => {
+						if (result.error_code !== 0) {
+							errorMessage = `Goal failed (${result.error_code}): ${result.error_string}`;
+						}
+						lastGoalId = null;
+					},
+					() => {
+						// ignore feedback for now
+					},
+					(error) => {
+						errorMessage = `Goal failed: ${error}`;
+						lastGoalId = null;
+					} // goal rejected, aborted or cancelled
+				) ?? null;
+			if (lastGoalId === null) errorMessage = 'Failed to send goal';
 		}
 	};
 
@@ -380,6 +381,11 @@
 <div class="flex h-full w-full flex-col">
 	<div class="h-100 flex w-full flex-1 gap-2 overflow-y-hidden">
 		<div class="relative min-w-0 flex-1">
+			{#if errorMessage}
+				<kbd class="absolute left-2 top-1 text-sm text-red-600">
+					{errorMessage}
+				</kbd>
+			{/if}
 			<div class="absolute inset-0">
 				<CanvasWrapper ondraw={drawMain} worldWidth={WIDTH} worldHeight={HEIGHT} />
 			</div>
@@ -390,7 +396,9 @@
 			</kbd>
 		</div>
 
-		<div class="presets flex w-64 shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl border pb-2">
+		<div
+			class={`presets flex w-64 shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl border pb-2 ${isOperatorControl ? 'opacity-50' : ''}`}
+		>
 			{#each presets as preset}
 				<button
 					class="preset block pt-2 text-left"
@@ -426,7 +434,7 @@
 				<Label><kbd>Jaw:</kbd></Label>
 				<Input type="number" bind:value={inputAngles.jaw} max={30} min={0} />
 				<Label><kbd>Tilt:</kbd></Label>
-				<Input type="number" bind:value={inputAngles.tilt} max={45} min={-45} />
+				<Input type="number" bind:value={inputAngles.tilt} max={30} min={-45} />
 				<Label><kbd>Lift:</kbd></Label>
 				<Input type="number" bind:value={inputAngles.lift} max={45} min={0} />
 				<Button onclick={() => setTarget(inputAngles)}>Send Target</Button>
