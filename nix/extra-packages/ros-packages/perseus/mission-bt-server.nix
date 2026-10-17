@@ -2,6 +2,7 @@
 {
   lib,
   buildRosPackage,
+  actuator-msgs,
   ament-cmake,
   ament-index-cpp,
   ament-lint-auto,
@@ -31,6 +32,7 @@ buildRosPackage rec {
     ament-lint-common
   ];
   propagatedBuildInputs = [
+    actuator-msgs
     ament-index-cpp
     autonomy-bringup
     behaviortree-cpp
