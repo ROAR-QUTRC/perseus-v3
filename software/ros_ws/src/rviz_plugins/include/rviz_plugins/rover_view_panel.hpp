@@ -7,6 +7,12 @@
 #include <cstdint>
 #include <rviz_common/panel.hpp>
 
+namespace Ogre
+{
+    class Light;
+    class Viewport;
+}  // namespace Ogre
+
 namespace rviz_common
 {
     class DisplayGroup;
@@ -28,7 +34,9 @@ namespace rviz_plugins
     /// (clouds, maps, TF, grid).
     /// The main view is unaffected.
     ///
-    /// The camera is an Orbit view on the rover's frame, starting from the front left.
+    /// The camera is an Orbit view on the rover's frame, starting from the front left,
+    /// and is attached to the rover rigidly, roll and pitch included, so the model
+    /// itself never moves in the view; only its joints do.
     /// It can be moved with the mouse like the main view (orbit, pan, zoom, with the
     /// Move Camera or Interact tool active), and it keeps that angle relative to the
     /// rover: Orbit's yaw is about the fixed frame, so each tick the rover's turn is
@@ -52,6 +60,12 @@ namespace rviz_plugins
         /// every tick, since a display makes new objects as data arrives.
         void _apply_visibility();
 
+        /// @brief Sets each light's visibility for this view: this panel's own light on,
+        /// every other off. Run every tick, since a window may add a light at any time.
+        void _apply_lights();
+
+        Ogre::Light* _light{nullptr};
+        Ogre::Viewport* _main_viewport{nullptr};
         uint32_t _bit{0};
         bool _mask_set{false};
         double _heading{0.0};
