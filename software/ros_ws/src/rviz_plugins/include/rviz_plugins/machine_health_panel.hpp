@@ -1,13 +1,15 @@
 #pragma once
 
 /// @file machine_health_panel.hpp
-/// @brief RViz panel showing CPU, memory and temperature of every machine as a table.
+/// @brief RViz panel showing CPU, memory and temperature of every machine as a table,
+/// and the rover control board's power buses as a second one.
 
 #include <QLabel>
 #include <QTableWidget>
 #include <QTimer>
 #include <chrono>
 #include <interfaces/msg/machine_health.hpp>
+#include <interfaces/msg/rcb_power_status.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -28,6 +30,11 @@ namespace rviz_plugins
     ///
     /// As in TopicHealthPanel, subscription callbacks run on an executor thread and only
     /// store the latest message per machine; a GUI-thread timer repaints from that.
+    ///
+    /// The second table, beside the first, is the rover control board's power buses (compute, drive, aux,
+    /// spare), from RcbPowerStatus on /can_to_ros, which rcb_driver publishes once per
+    /// bus. Unlike the machines it is one known topic, so it is subscribed to straight
+    /// away, and a bus is shown stale like a machine when its messages stop.
     class MachineHealthPanel : public rviz_common::Panel
     {
         Q_OBJECT
@@ -62,6 +69,10 @@ namespace rviz_plugins
         ///
         /// Three missed publishes at the monitor's default 1 Hz.
         static constexpr double STALE_AFTER_SEC = 3.0;
+        /// @brief Topic rcb_driver publishes each bus's status on.
+        static inline const std::string RCB_TOPIC = "/can_to_ros";
+        /// @brief Seconds without a status from a bus before it is shown as stale.
+        static constexpr double RCB_STALE_AFTER_SEC = 5.0;
 
         /// @brief Last message received from one machine, and when it arrived.
         struct MachineState
@@ -69,6 +80,19 @@ namespace rviz_plugins
             interfaces::msg::MachineHealth::ConstSharedPtr message;
             std::chrono::steady_clock::time_point received_at;
         };
+
+        /// @brief Last status received for one power bus, and when it arrived.
+        struct BusState
+        {
+            interfaces::msg::RcbPowerStatus::ConstSharedPtr message;
+            std::chrono::steady_clock::time_point received_at;
+        };
+
+        /// @brief Repaints the power bus table from the latest status of each bus.
+        void _refresh_buses();
+
+        /// @brief Stores the incoming bus status under its bus name for the next refresh.
+        void _on_bus_status(interfaces::msg::RcbPowerStatus::ConstSharedPtr message);
 
         /// @brief Stores the incoming message under its topic for the next refresh.
         void _on_health(const std::string& topic,
@@ -79,6 +103,8 @@ namespace rviz_plugins
 
         QLabel* _summary_label{nullptr};
         QTableWidget* _table{nullptr};
+        QLabel* _bus_label{nullptr};
+        QTableWidget* _bus_table{nullptr};
         QTimer* _refresh_timer{nullptr};
         QTimer* _discovery_timer{nullptr};
 
@@ -87,6 +113,11 @@ namespace rviz_plugins
         std::map<std::string,
                  rclcpp::Subscription<interfaces::msg::MachineHealth>::SharedPtr>
             _subscriptions;
+
+        rclcpp::Subscription<interfaces::msg::RcbPowerStatus>::SharedPtr _bus_subscription;
+        /// @brief Latest status per bus name, shared with the executor thread.
+        std::mutex _bus_mutex;
+        std::map<std::string, BusState> _buses;
 
         /// @brief Latest state per topic, shared with the executor thread.
         std::mutex _state_mutex;

@@ -3,11 +3,13 @@
 
 #include "rviz_plugins/machine_health_panel.hpp"
 
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <pluginlib/class_list_macros.hpp>
 #include <rviz_common/display_context.hpp>
+#include <vector>
 
 namespace rviz_plugins
 {
@@ -35,6 +37,32 @@ namespace rviz_plugins
 
         constexpr double BYTES_PER_GIB = 1024.0 * 1024.0 * 1024.0;
 
+        /// @brief Columns of the power bus table.
+        enum bus_columns
+        {
+            BUS_COLUMN_NAME = 0,
+            BUS_COLUMN_STATE,
+            BUS_COLUMN_VOLTAGE,
+            BUS_COLUMN_CURRENT,
+            BUS_COLUMN_AGE,
+            BUS_COLUMN_COUNT,
+        };
+
+        /// @brief The buses, in the order the rover control board has them, so they
+        /// are listed even before the first status arrives.
+        const std::vector<std::string> BUS_NAMES = {"compute", "drive", "aux", "spare"};
+
+        /// @brief A bus's state, by the value in RcbPowerStatus.status; this is the
+        /// board's power_status enum in hi_can_parameter.hpp, in the same order.
+        const QStringList BUS_STATES = {"OFF", "ON", "PRECHARGING", "SHORT CIRCUIT",
+                                        "SWITCH FAILED", "OVERLOAD", "FAULT"};
+        constexpr int BUS_STATE_OFF = 0;
+        constexpr int BUS_STATE_ON = 1;
+        constexpr int BUS_STATE_PRECHARGING = 2;
+
+        /// @brief The message carries millivolts and milliamps, as the board sends them.
+        constexpr double MILLI_PER_UNIT = 1000.0;
+
     }  // namespace
 
     MachineHealthPanel::MachineHealthPanel(QWidget* parent)
@@ -53,9 +81,31 @@ namespace rviz_plugins
         _table->setEditTriggers(QAbstractItemView::NoEditTriggers);
         _table->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-        auto* layout = new QVBoxLayout;
-        layout->addWidget(_summary_label);
-        layout->addWidget(_table);
+        _bus_label = new QLabel("Rover control board power: waiting for /can_to_ros...");
+
+        _bus_table = new QTableWidget(static_cast<int>(BUS_NAMES.size()), BUS_COLUMN_COUNT);
+        _bus_table->setHorizontalHeaderLabels(
+            {"Bus", "State", "Voltage (V)", "Current (A)", "Age (s)"});
+        _bus_table->horizontalHeader()->setSectionResizeMode(BUS_COLUMN_NAME,
+                                                             QHeaderView::Stretch);
+        _bus_table->horizontalHeader()->setStyleSheet(
+            "QHeaderView::section { font-weight: normal; }");
+        _bus_table->verticalHeader()->setVisible(false);
+        _bus_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        _bus_table->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+        // The two tables sit side by side, each under its own summary line.
+        auto* machines_column = new QVBoxLayout;
+        machines_column->addWidget(_summary_label);
+        machines_column->addWidget(_table, 1);
+
+        auto* buses_column = new QVBoxLayout;
+        buses_column->addWidget(_bus_label);
+        buses_column->addWidget(_bus_table, 1);
+
+        auto* layout = new QHBoxLayout;
+        layout->addLayout(machines_column, 3);
+        layout->addLayout(buses_column, 2);
         setLayout(layout);
 
         _refresh_timer = new QTimer(this);
@@ -68,6 +118,11 @@ namespace rviz_plugins
     void MachineHealthPanel::onInitialize()
     {
         _node = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
+
+        _bus_subscription = _node->create_subscription<interfaces::msg::RcbPowerStatus>(
+            RCB_TOPIC, rclcpp::QoS(SUBSCRIPTION_QUEUE_DEPTH),
+            [this](interfaces::msg::RcbPowerStatus::ConstSharedPtr message)
+            { _on_bus_status(std::move(message)); });
 
         _discover();
         _discovery_timer->start(DISCOVERY_PERIOD_MS);
@@ -105,6 +160,14 @@ namespace rviz_plugins
         _machines[topic] = {std::move(message), std::chrono::steady_clock::now()};
     }
 
+    void MachineHealthPanel::_on_bus_status(
+        interfaces::msg::RcbPowerStatus::ConstSharedPtr message)
+    {
+        const std::lock_guard<std::mutex> lock(_bus_mutex);
+        const std::string name = message->name;
+        _buses[name] = {std::move(message), std::chrono::steady_clock::now()};
+    }
+
     QColor MachineHealthPanel::_level_color(double value, double warn, double critical)
     {
         // Same palette as TopicHealthPanel, so the two panels read alike.
@@ -119,8 +182,97 @@ namespace rviz_plugins
         return QColor(200, 240, 200);
     }
 
+    void MachineHealthPanel::_refresh_buses()
+    {
+        std::map<std::string, BusState> buses;
+        {
+            const std::lock_guard<std::mutex> lock(_bus_mutex);
+            buses = _buses;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        const QColor no_data_color(230, 230, 230);
+        const QColor stale_color(245, 150, 150);
+        const QColor ok_color(200, 240, 200);
+        const QColor busy_color(255, 200, 120);
+        const QColor fault_color(245, 150, 150);
+
+        int fault_count = 0;
+        int stale_count = 0;
+        for (int row = 0; row < static_cast<int>(BUS_NAMES.size()); ++row)
+        {
+            const auto found = buses.find(BUS_NAMES[row]);
+
+            QString values[BUS_COLUMN_COUNT] = {QString::fromStdString(BUS_NAMES[row]),
+                                                "N/A", "N/A", "N/A", "N/A"};
+            QColor colors[BUS_COLUMN_COUNT] = {no_data_color, no_data_color, no_data_color,
+                                               no_data_color, no_data_color};
+            if (found != buses.end())
+            {
+                const auto& message = *found->second.message;
+                const double age_sec =
+                    std::chrono::duration<double>(now - found->second.received_at).count();
+                const bool stale = age_sec > RCB_STALE_AFTER_SEC;
+                stale_count += stale ? 1 : 0;
+
+                const int state = message.status;
+                const bool known_state = state >= 0 && state < BUS_STATES.size();
+                const bool faulted = known_state && state > BUS_STATE_PRECHARGING;
+                fault_count += (faulted && !stale) ? 1 : 0;
+
+                values[BUS_COLUMN_STATE] =
+                    known_state ? BUS_STATES[state] : QString("UNKNOWN (%1)").arg(state);
+                values[BUS_COLUMN_VOLTAGE] =
+                    QString::number(message.voltage / MILLI_PER_UNIT, 'f', 2);
+                values[BUS_COLUMN_CURRENT] =
+                    QString::number(message.current / MILLI_PER_UNIT, 'f', 2);
+                values[BUS_COLUMN_AGE] = QString::number(age_sec, 'f', 1);
+
+                // A bus that has gone quiet shows its last reading in red, like a machine:
+                // an old "ON" in green would say the bus is fine when nothing says so.
+                QColor state_color = fault_color;
+                if (known_state && state == BUS_STATE_ON)
+                    state_color = ok_color;
+                else if (known_state && state == BUS_STATE_OFF)
+                    state_color = no_data_color;
+                else if (known_state && state == BUS_STATE_PRECHARGING)
+                    state_color = busy_color;
+                colors[BUS_COLUMN_STATE] = state_color;
+                colors[BUS_COLUMN_VOLTAGE] = ok_color;
+                colors[BUS_COLUMN_CURRENT] = ok_color;
+                colors[BUS_COLUMN_AGE] = ok_color;
+                if (stale)
+                    for (auto& color : colors)
+                        color = stale_color;
+            }
+
+            for (int column = 0; column < BUS_COLUMN_COUNT; ++column)
+            {
+                auto* item = _bus_table->item(row, column);
+                if (item == nullptr)
+                {
+                    item = new QTableWidgetItem;
+                    _bus_table->setItem(row, column, item);
+                }
+                item->setText(values[column]);
+                item->setBackground(colors[column]);
+                item->setForeground(QColor(20, 20, 20));
+            }
+        }
+
+        _bus_label->setText(
+            buses.empty()
+                ? QString("Rover control board power: waiting for %1...")
+                      .arg(QString::fromStdString(RCB_TOPIC))
+                : QString("Rover control board power    %1 fault(s)    %2 stale")
+                      .arg(fault_count)
+                      .arg(stale_count));
+    }
+
     void MachineHealthPanel::_refresh()
     {
+        _refresh_buses();
+
         std::map<std::string, MachineState> machines;
         {
             const std::lock_guard<std::mutex> lock(_state_mutex);
