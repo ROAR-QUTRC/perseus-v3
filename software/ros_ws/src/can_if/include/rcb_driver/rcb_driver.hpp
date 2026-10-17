@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <hi_can_raw.hpp>
+#include <interfaces/msg/rcb_power_command.hpp>
+#include <interfaces/msg/rcb_power_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
@@ -17,7 +19,7 @@ public:
 
 private:
     void _can_to_ros(const hi_can::Packet& packet);
-    void _ros_to_can(std_msgs::msg::String::UniquePtr msg);
+    void _ros_to_can(interfaces::msg::RcbPowerCommand::UniquePtr msg);
     void _call_receive();
 
     constexpr static auto PACKET_TIMEOUT = std::chrono::milliseconds(100);
@@ -42,6 +44,6 @@ private:
         _parameter_groups;
 
     rclcpp::TimerBase::SharedPtr _packet_timeout_timer;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _packet_publisher;
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _packet_subscriber;
+    rclcpp::Publisher<interfaces::msg::RcbPowerStatus>::SharedPtr _packet_publisher;
+    rclcpp::Subscription<interfaces::msg::RcbPowerCommand>::SharedPtr _packet_subscriber;
 };
