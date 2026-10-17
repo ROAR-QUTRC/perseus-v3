@@ -290,15 +290,17 @@ def generate_launch_description():
         can_logger,
         system_monitor_launch,
     ]
-    
+
     # NODES
     rcb_driver = Node(
         package="can_if",
         executable="rcb_driver",
         output="screen",
-        parameters=[{
-            "can_bus": can_bus,
-        }],
+        parameters=[
+            {
+                "can_bus": can_bus,
+            }
+        ],
     )
 
     nodes = [rcb_driver]
