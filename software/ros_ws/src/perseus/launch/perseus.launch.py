@@ -16,7 +16,6 @@ from launch.launch_description_sources import (
     AnyLaunchDescriptionSource,
 )
 
-from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
