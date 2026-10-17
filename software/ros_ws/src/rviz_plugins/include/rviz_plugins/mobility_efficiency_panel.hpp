@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file mobility_efficiency_panel.hpp
-/// @brief RViz panel showing mobility efficiency as two colour-coded bars.
+/// @brief RViz panel showing mobility efficiency as two colour-coded bars, and the
+/// commanded velocity as two centre-zero bars below them.
 
 #include <QColor>
 #include <QLabel>
@@ -9,6 +10,7 @@
 #include <QString>
 #include <QTimer>
 #include <QWidget>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <interfaces/msg/mobility_status.hpp>
 #include <mutex>
 #include <rclcpp/rclcpp.hpp>
@@ -79,6 +81,52 @@ namespace rviz_plugins
         double _warn_percent{60.0};
     };
 
+    /// @brief One labelled horizontal bar for a signed value, growing from a centre
+    /// zero: right for positive, left for negative.
+    ///
+    /// For a command rather than a margin, so the question it answers is "which way and
+    /// how hard", which a one-sided bar cannot show. The full width of each half is the
+    /// value's limit, so a bar reaching an end means the command is saturated; it turns
+    /// amber there, and is otherwise one calm accent colour, because a velocity being
+    /// large is not a fault.
+    class SignedBar : public QWidget
+    {
+        Q_OBJECT
+
+    public:
+        /// @brief Builds a bar at zero, in its idle state.
+        /// @param caption Channel name drawn at the left.
+        /// @param unit Unit shown after the readout, e.g. "m/s".
+        /// @param limit Value at which a half-bar is full; must be positive.
+        /// @param parent Parent widget.
+        SignedBar(QString caption, QString unit, double limit, QWidget* parent = nullptr);
+
+        /// @brief Sets the value to draw and repaints.
+        void set_value(double value);
+
+        /// @brief Greys the bar when the command topic has gone quiet.
+        void set_stale(bool stale);
+
+        /// @brief Changes the value at which a half-bar is full.
+        void set_limit(double limit);
+
+    private:
+        static constexpr int CAPTION_WIDTH_PX = 62;
+        static constexpr int VALUE_WIDTH_PX = 84;
+        static constexpr double CORNER_RADIUS_PX = 3.0;
+        /// @brief Below this fraction of the limit the bar is drawn as a bare centre
+        /// tick, so a command of exactly zero does not look like a small forward one.
+        static constexpr double ZERO_FRACTION = 0.004;
+
+        void paintEvent(QPaintEvent* event) override;
+
+        QString _caption;
+        QString _unit;
+        double _limit;
+        double _value{0.0};
+        bool _stale{true};
+    };
+
     /// @brief Dockable RViz panel drawing the watchdog's two efficiency channels.
     ///
     /// The subscription callback arrives on an executor thread while Qt widgets may
@@ -133,6 +181,23 @@ namespace rviz_plugins
         /// two in step if either is retuned.
         static constexpr double DEFAULT_WARN_PERCENT = 60.0;
 
+        /// @brief Topic the commanded velocity is read from.
+        static inline const std::string COMMAND_TOPIC = "/cmd_vel_out";
+        /// @brief Age at which the last command is treated as no longer current.
+        ///
+        /// twist_mux stops publishing once every input has timed out, so silence means
+        /// nothing is commanding the rover; the bars grey and read as zero rather than
+        /// holding the last command, which would look like the rover still being driven.
+        static constexpr double COMMAND_TIMEOUT_S = 1.0;
+        /// @brief Full-scale values of the two velocity bars. The rover's
+        /// safe_speed limits (perseus/config/safe_speed.yaml), so a bar at its end is a
+        /// command at the cap the rover is held to.
+        static constexpr double DEFAULT_MAX_LINEAR_MPS = 0.8;
+        static constexpr double DEFAULT_MAX_ANGULAR_RPS = 1.0;
+
+        /// @brief Stores the incoming command for the next refresh.
+        void _on_command(geometry_msgs::msg::TwistStamped::ConstSharedPtr message);
+
         /// @brief Stores the incoming status for the next refresh.
         void _on_status(interfaces::msg::MobilityStatus::ConstSharedPtr message);
 
@@ -145,11 +210,21 @@ namespace rviz_plugins
         QLabel* _summary_label{nullptr};
         EfficiencyBar* _linear_bar{nullptr};
         EfficiencyBar* _angular_bar{nullptr};
+        QLabel* _command_label{nullptr};
+        SignedBar* _linear_command_bar{nullptr};
+        SignedBar* _angular_command_bar{nullptr};
         QTimer* _refresh_timer{nullptr};
 
         rclcpp::Node::SharedPtr _node;
         rclcpp::Subscription<interfaces::msg::MobilityStatus>::SharedPtr
             _subscription;
+
+        rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr _command_subscription;
+        std::mutex _command_mutex;
+        geometry_msgs::msg::TwistStamped::ConstSharedPtr _latest_command;
+        rclcpp::Time _latest_command_time;
+        double _max_linear{DEFAULT_MAX_LINEAR_MPS};
+        double _max_angular{DEFAULT_MAX_ANGULAR_RPS};
 
         std::mutex _message_mutex;
         interfaces::msg::MobilityStatus::ConstSharedPtr _latest_message;
