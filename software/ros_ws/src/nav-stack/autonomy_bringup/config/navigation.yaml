@@ -256,7 +256,13 @@ local_traversability:
     treat_unknown_as_obstacle: false
     # Same inflation semantics and the same values as the global node, so a cell does not
     # change cost depending on which of the two saw it.
-    robot_radius_m: 0.6
+    # Matches global_traversability's robot_radius_m (0.4 as of this edit). It was 0.6 here
+    # against 0.5 there, so the controller saw lethal ground the planner had routed through,
+    # and DWB rejected every trajectory ("No valid trajectories ... ObstacleFootprint hits
+    # obstacle"). Change both together. NOTE 0.4 is under the rover's half-width (0.435 m):
+    # a cell 0.41-0.43 m from an obstacle is not lethal, so the planner can pass a wheel's
+    # width from one. Fore/aft is the footprint's job, not this circle.
+    robot_radius_m: 0.4
     inflation_radius_m: 1.0
     cost_scaling_factor: 70.0
 # ============================================================================

@@ -129,7 +129,8 @@ namespace mission_bt_server
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
                                      "nav2_drive_on_heading_bt_node",
-                                     "request_zone_waypoint_bt_node", "move_bucket_bt_node"});
+                                     "request_zone_waypoint_bt_node", "move_bucket_bt_node",
+                                     "blind_jaw_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
         bt_node_options.arguments(

@@ -61,6 +61,10 @@ namespace mission_bt_server
                                   "time_from_start of the goal: how long the move takes"),
             BT::InputPort<std::string>("server_name", DEFAULT_ACTION,
                                        "the bucket controller's FollowJointTrajectory action"),
+            BT::OutputPort<std::string>(
+                "failure",
+                "why the move failed, empty on success: invalid, operator_override, no_server, "
+                "rejected, not_reached (the controller ran but the pose was missed) or timeout"),
         };
     }
 
@@ -84,6 +88,7 @@ namespace mission_bt_server
     {
         // Only the joints given a port are commanded; the controller holds the rest
         // where they are (allow_partial_joints_goal in bucket_controller.yaml).
+        setOutput("failure", std::string{});
         std::vector<std::string> joints;
         std::vector<double> positions;
         std::string described;
@@ -107,6 +112,7 @@ namespace mission_bt_server
         {
             RCLCPP_ERROR(_node->get_logger(),
                          "MoveBucket: give at least one of lift_deg, tilt_deg, jaw_deg");
+            setOutput("failure", std::string("invalid"));
             return BT::NodeStatus::FAILURE;
         }
         double duration_s = 10.0;
@@ -121,6 +127,7 @@ namespace mission_bt_server
             RCLCPP_ERROR(_node->get_logger(),
                          "MoveBucket: the operator has the bucket - hand it back with "
                          "`ros2 run payloads bucket_supervisor.py --rearm` first");
+            setOutput("failure", std::string("operator_override"));
             return BT::NodeStatus::FAILURE;
         }
 
@@ -132,6 +139,7 @@ namespace mission_bt_server
                          "running (perseus.launch.py payload:=bucket, bucket_controller "
                          "not none)?",
                          action_name.c_str());
+            setOutput("failure", std::string("no_server"));
             return BT::NodeStatus::FAILURE;
         }
 
@@ -175,12 +183,14 @@ namespace mission_bt_server
             // say why here rather than waiting for that.
             RCLCPP_ERROR(_node->get_logger(), "MoveBucket: operator override - stopping");
             _cancel();
+            setOutput("failure", std::string("operator_override"));
             return BT::NodeStatus::FAILURE;
         }
         if (_goal_responded && !_goal_handle)
         {
             RCLCPP_ERROR(_node->get_logger(), "MoveBucket: %s rejected the goal",
                          _action_name.c_str());
+            setOutput("failure", std::string("rejected"));
             return BT::NodeStatus::FAILURE;
         }
         if (_result)
@@ -196,6 +206,7 @@ namespace mission_bt_server
             }
             RCLCPP_ERROR(_node->get_logger(), "MoveBucket: the bucket did not reach the pose: %s",
                          result.result ? result.result->error_string.c_str() : "no result");
+            setOutput("failure", std::string("not_reached"));
             return BT::NodeStatus::FAILURE;
         }
         if (std::chrono::steady_clock::now() > _deadline)
@@ -203,6 +214,7 @@ namespace mission_bt_server
             RCLCPP_ERROR(_node->get_logger(), "MoveBucket: no result from %s in time",
                          _action_name.c_str());
             _cancel();
+            setOutput("failure", std::string("timeout"));
             return BT::NodeStatus::FAILURE;
         }
         return BT::NodeStatus::RUNNING;

@@ -47,6 +47,16 @@ namespace mission_bt_server
         double travel_jaw_deg;
         double move_s;
 
+        /// The jaw's recovery (BlindJawMove): the Actuators jaw speed, signed, and how
+        /// long, for opening and for closing. 0 means "not measured yet": the blind
+        /// move then refuses to run and the jaw failure stays a failure.
+        double jaw_blind_open_speed;
+        double jaw_blind_open_s;
+        double jaw_blind_close_speed;
+        double jaw_blind_close_s;
+        /// The longest a blind move may last, whatever the two durations above say.
+        double jaw_blind_max_s;
+
         double dig_tilt_deg;
         double dig_lift_deg;
         double dig_push_m;

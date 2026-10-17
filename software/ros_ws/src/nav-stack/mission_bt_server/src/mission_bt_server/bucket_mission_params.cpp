@@ -54,6 +54,20 @@ namespace mission_bt_server
         // 3 s goal_time tolerance, from wherever the bucket was left.
         p.move_s = node.declare_parameter<double>("bucket_move_s", 10.0);
 
+        // The jaw's recovery when its position move fails (the encoder misreads while
+        // it moves): drive it by time instead, see BlindJawMove in mission.xml's JawMove.
+        // These are bucket_actuators values, signed: the sign is the direction and the
+        // size is the duty, where bucket_driver's max_actuator_speed is full. They are
+        // 0 on purpose - which way is open, and how long it takes, is a bench
+        // measurement, and 0 makes BlindJawMove refuse rather than guess.
+        p.jaw_blind_open_speed = node.declare_parameter<double>("jaw_blind_open_speed", 0.0);
+        p.jaw_blind_open_s = node.declare_parameter<double>("jaw_blind_open_s", 0.0);
+        p.jaw_blind_close_speed = node.declare_parameter<double>("jaw_blind_close_speed", 0.0);
+        p.jaw_blind_close_s = node.declare_parameter<double>("jaw_blind_close_s", 0.0);
+        // A cap on those durations: a jaw driven into its end stop stalls the motor, so a
+        // typo in a duration must not hold it there.
+        p.jaw_blind_max_s = node.declare_parameter<double>("jaw_blind_max_s", 8.0);
+
         // DigBucket (StartMission MODE_DIG_ONLY); the sequence is in mission.xml. Joint
         // angles in degrees as for the travel pose: tilt positive tips the bucket down,
         // lift positive lowers the arms.
@@ -89,6 +103,11 @@ namespace mission_bt_server
         blackboard.set<double>("bucket_travel_tilt_deg", travel_tilt_deg);
         blackboard.set<double>("bucket_travel_jaw_deg", travel_jaw_deg);
         blackboard.set<double>("bucket_move_s", move_s);
+        blackboard.set<double>("jaw_blind_open_speed", jaw_blind_open_speed);
+        blackboard.set<double>("jaw_blind_open_s", jaw_blind_open_s);
+        blackboard.set<double>("jaw_blind_close_speed", jaw_blind_close_speed);
+        blackboard.set<double>("jaw_blind_close_s", jaw_blind_close_s);
+        blackboard.set<double>("jaw_blind_max_s", jaw_blind_max_s);
         blackboard.set<double>("dig_tilt_deg", dig_tilt_deg);
         blackboard.set<double>("dig_lift_deg", dig_lift_deg);
         blackboard.set<double>("dig_push_m", dig_push_m);

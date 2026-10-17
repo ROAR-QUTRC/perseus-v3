@@ -83,13 +83,45 @@
   <BehaviorTree ID="PrepareBucket">
     <Sequence>
       <Script code="phase:='bucket_to_zero'"/>
-      <MoveBucket lift_deg="0" tilt_deg="0" jaw_deg="0"
+      <MoveBucket lift_deg="0" tilt_deg="0"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <SubTree ID="JawMove" jaw_deg="0.0"
+               blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
+               move_s="{bucket_move_s}" action="{bucket_action}"
+               _autoremap="true"/>
       <Script code="phase:='bucket_to_travel'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  jaw_deg="{bucket_travel_jaw_deg}"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
+                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
+                move_s="{bucket_move_s}" action="{bucket_action}"
+               _autoremap="true"/>
     </Sequence>
+  </BehaviorTree>
+
+  <!--
+    One jaw move, with a recovery. The jaw's encoder misreads while it moves, so the
+    position move can fail on the controller's tolerance even though the jaw is moving.
+    Only that failure (MoveBucket's "not_reached") is recovered: BlindJawMove then drives
+    the jaw by time, at the speed and for the seconds given for this direction
+    (jaw_blind_open_* / jaw_blind_close_* on mission_bt_server), and re-arms the
+    bucket's trajectory controller. Every other failure - the operator has the bucket,
+    the controller rejected the goal or is not there, no result - still fails the
+    mission, because moving the jaw blind would not be the right answer to them.
+    The jaw is its own step everywhere, so this can only be the jaw. With the speed or
+    seconds left at 0 the recovery refuses and the failure stands. The jaw's position is
+    not verified afterwards.
+  -->
+  <BehaviorTree ID="JawMove">
+    <Fallback>
+      <MoveBucket jaw_deg="{jaw_deg}" duration_s="{move_s}" server_name="{action}"
+                  failure="{jaw_failure}"/>
+      <Sequence>
+        <ScriptCondition code="jaw_failure == 'not_reached'"/>
+        <BlindJawMove speed="{blind_speed}" duration_s="{blind_s}"
+                       max_s="{jaw_blind_max_s}"/>
+      </Sequence>
+    </Fallback>
   </BehaviorTree>
 
   <BehaviorTree ID="FullAutonomyCycle">
@@ -117,7 +149,7 @@
       1. lift 20, tilt 20 together   lower the arms and tip the bucket over the pile
       2. jaw 36                      open the clamshell and let the load out
       3. tilt -20                    curl back, emptying what is left
-      4. the travel pose, jaw closed lift/tilt/jaw all at once, as PrepareBucket ends
+      4. the travel pose, jaw closed lift and tilt together, then the jaw, as PrepareBucket ends
 
     A step that fails fails the mission there, with the rover still at construction.
   -->
@@ -127,15 +159,20 @@
       <MoveBucket lift_deg="20" tilt_deg="20"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
       <Script code="phase:='dump_open_jaw'"/>
-      <MoveBucket jaw_deg="36"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <SubTree ID="JawMove" jaw_deg="36.0"
+               blind_speed="{jaw_blind_open_speed}" blind_s="{jaw_blind_open_s}"
+               move_s="{bucket_move_s}" action="{bucket_action}"
+               _autoremap="true"/>
       <Script code="phase:='dump_curl'"/>
       <MoveBucket tilt_deg="-20"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
       <Script code="phase:='dump_stow'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  jaw_deg="{bucket_travel_jaw_deg}"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
+                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
+                move_s="{bucket_move_s}" action="{bucket_action}"
+               _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 
@@ -199,8 +236,12 @@
   <BehaviorTree ID="DigBucket">
     <Sequence>
       <Script code="phase:='dig_tilt'"/>
-      <MoveBucket tilt_deg="{dig_tilt_deg}" jaw_deg="0"
+      <MoveBucket tilt_deg="{dig_tilt_deg}"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+      <SubTree ID="JawMove" jaw_deg="0.0"
+               blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
+               move_s="{bucket_move_s}" action="{bucket_action}"
+               _autoremap="true"/>
       <Script code="phase:='dig_lower'"/>
       <MoveBucket lift_deg="{dig_lift_deg}"
                   duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
