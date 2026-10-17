@@ -1,6 +1,6 @@
-import sys
 import json
 import re
+import sys
 
 
 def parse_enum_class(enum_class, key):

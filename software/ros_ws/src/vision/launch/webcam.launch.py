@@ -7,7 +7,6 @@ camera's native encoding.
 """
 
 import os
-from typing import List
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -97,7 +96,7 @@ def generate_launch_description():
                         LaunchConfiguration("image_height"),
                         "]",
                     ],
-                    value_type=List[int],
+                    value_type=list[int],
                 ),
                 "camera_frame_id": LaunchConfiguration("camera_frame"),
                 "output_encoding": LaunchConfiguration("output_encoding"),

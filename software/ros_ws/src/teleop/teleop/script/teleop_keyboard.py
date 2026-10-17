@@ -28,9 +28,8 @@ import os
 import select
 import sys
 
-from geometry_msgs.msg import Twist
-from geometry_msgs.msg import TwistStamped
 import rclpy
+from geometry_msgs.msg import Twist, TwistStamped
 from rclpy.clock import Clock
 from rclpy.qos import QoSProfile
 
@@ -85,9 +84,7 @@ def get_key(settings):
 
 def print_vels(target_linear_velocity, target_angular_velocity):
     print(
-        "currently:\tlinear velocity {0}\t angular velocity {1} ".format(
-            target_linear_velocity, target_angular_velocity
-        )
+        f"currently:\tlinear velocity {target_linear_velocity}\t angular velocity {target_angular_velocity} "
     )
 
 

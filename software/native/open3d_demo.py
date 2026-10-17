@@ -2,6 +2,7 @@
 """Open3D demo — visual proof that the Nix-managed Open3D install works."""
 
 import sys
+
 import numpy as np
 import open3d as o3d
 import plotly.graph_objects as go
