@@ -161,15 +161,17 @@ def generate_launch_description():
         rosbridge_launch,
         OpaqueFunction(function=launch_payload),
     ]
-    
+
     # NODES
     rcb_driver = Node(
         package="can_if",
         executable="rcb_driver",
         output="screen",
-        parameters=[{
-            "can_bus": can_bus,
-        }],
+        parameters=[
+            {
+                "can_bus": can_bus,
+            }
+        ],
     )
 
     nodes = [rcb_driver]
