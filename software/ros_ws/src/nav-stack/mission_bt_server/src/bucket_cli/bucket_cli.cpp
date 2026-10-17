@@ -257,7 +257,8 @@ int main(int argc, char** argv)
     {
         // Everything mission.xml names must be registered for it to load at all,
         // even the nodes the bucket subtrees never build.
-        for (const char* plugin : {"move_bucket_bt_node", "request_zone_waypoint_bt_node",
+        for (const char* plugin : {"move_bucket_bt_node", "blind_jaw_bt_node",
+                                   "request_zone_waypoint_bt_node",
                                    "nav2_navigate_to_pose_action_bt_node"})
             factory.registerFromPlugin(BT::SharedLibrary::getOSName(plugin));
 

@@ -5,17 +5,16 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Description Topic1
+        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
         - /Global Mesh Map1/Topic1
         - /Arena Zones1/Topic1
-        - /Rover Bound1/Status1
         - /Rover Bound1/Topic1
-        - /TwistStamped1/Status1
         - /TwistStamped1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 313
+    Tree Height: 289
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -24,7 +23,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_plugins/ViewLockPanel
-    Locked: true
+    Locked: false
     Name: View Lock
     View: Far
   - Class: rviz_plugins/TopicHealthPanel
@@ -46,9 +45,9 @@ Panels:
     ConstructionFrame: odom
     ConstructionSet: true
     ConstructionSource: map
-    ConstructionX: 5.453035831451416
-    ConstructionY: -3.891118288040161
-    ConstructionYaw: -1.6385613679885864
+    ConstructionX: 3.9871115684509277
+    ConstructionY: -4.75627326965332
+    ConstructionYaw: 0.029366759583353996
     Controller: DWB
     Cycles: 50
     ExcavationFrame: odom
@@ -57,10 +56,10 @@ Panels:
     ExcavationX: 0.2045884132385254
     ExcavationY: -1.2511775493621826
     ExcavationYaw: -1.5583575963974
-    Mode: timed
+    Mode: full
     Name: Mission Control
     Planner: ThetaStar
-    PrepareBucket: false
+    PrepareBucket: true
     Task: cycle
     ZonePauseS: 5
 Visualization Manager:
@@ -91,12 +90,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        aruco_marker_67:
-          Value: true
-        aruco_marker_68:
-          Value: true
-        aruco_marker_69:
-          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -297,12 +290,7 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          aruco_marker_67:
-                            {}
-                          aruco_marker_68:
-                            {}
-                          aruco_marker_69:
-                            {}
+                          {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -757,7 +745,7 @@ Visualization Manager:
       Use Timestamp: false
       Value: false
     - Class: rviz_default_plugins/Image
-      Enabled: false
+      Enabled: true
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -769,7 +757,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /vision/overlay/image/compressed
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Arena Zones
@@ -829,7 +817,7 @@ Visualization Manager:
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Local 2D Projection
       Topic:
         Depth: 5
@@ -845,14 +833,14 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /local_costmap/costmap_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 0.699999988079071
       Binary representation: false
       Binary threshold: 100
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
       Draw Behind: true
-      Enabled: false
+      Enabled: true
       Name: Global Inflation
       Topic:
         Depth: 5
@@ -868,7 +856,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /layers/inflation_updates
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 10
       Class: rviz_default_plugins/CameraInfo
       Color: 85; 255; 255
@@ -948,25 +936,25 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 8.126937866210938
+      Class: rviz_default_plugins/Orbit
+      Distance: 8.409383773803711
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.16902589797973633
-        Y: -0.11852605640888214
-        Z: -4.76837158203125e-07
+        X: 0.9721770882606506
+        Y: -0.11722185462713242
+        Z: 1.198911190032959
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
       Pitch: 0.5852010250091553
-      Target Frame: base_footprint
-      Value: ThirdPersonFollower (rviz_default_plugins)
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz_default_plugins)
       Yaw: 3.141200065612793
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
@@ -1027,7 +1015,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001560000040dfc0200000008fb000000100044006900730070006c006100790073010000003f00000179000000cc00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001be000000aa0000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000001c004d0061006300680069006e00650020004800650061006c00740068010000026e0000008f0000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000016004c0069006e006b0020004800650061006c007400680100000303000000c0000000c000fffffffc000003c900000083000000830100001efa000000000100000002fb0000001200560069006500770020004c006f0063006b010000000000000156000000db00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000ffffffff000000b000ffffff00000001000001c80000040dfc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079000000003f000000d30000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d00610070010000003f000002060000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c010000024b00000201000001c800ffffff000004560000040d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001560000040dfc0200000008fb000000100044006900730070006c006100790073010000003f00000161000000cc00fffffffb000000180054006f0070006900630020004800650061006c0074006801000001a60000009d0000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000001c004d0061006300680069006e00650020004800650061006c007400680100000249000000950000008800fffffffb0000000a005600690065007700730100000257000001040000000000000000fb00000016004c0069006e006b0020004800650061006c0074006801000002e4000000d3000000c000fffffffc000003bd0000008f000000830100001efa000000000100000002fb0000001200560069006500770020004c006f0063006b010000000000000156000000db00fffffffb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000ffffffff000000b200ffffff00000001000001c80000040dfc0200000004fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001240000001700fffffffb0000001a004100720065006e00610020004d0069006e0069006d006100700100000169000001180000010a00fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000287000001c5000001c500ffffff000004560000040d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -1037,5 +1025,5 @@ Window Geometry:
   View Lock:
     collapsed: false
   Width: 1920
-  X: 0
+  X: 1920
   Y: 32

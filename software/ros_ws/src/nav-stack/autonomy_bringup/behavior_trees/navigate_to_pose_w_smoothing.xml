@@ -55,14 +55,25 @@
         </Fallback>
         <ReactiveFallback name="RecoveryFallback">
           <GoalUpdated/>
+          <!-- BackUp first, and twice per cycle of six retries. When every DWB trajectory
+               hits an obstacle the rover is already against one: clearing the costmaps
+               only rebuilds it (the terrain nodes re-derive the same cells), and Spin
+               sweeps the 1.7 m footprint into it and is refused. Backing out is what
+               opens room. BackUp is collision-checked against the local costmap, so a
+               blocked rear still refuses and the next recovery runs instead. -->
           <RoundRobin name="RecoveryActions">
+            <BackUp backup_dist="0.5" backup_speed="0.15" error_code_id="{backup_code_id}"/>
             <Sequence name="ClearingActions">
               <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
             </Sequence>
             <Spin spin_dist="1.57" error_code_id="{spin_error_code}"/>
-            <Wait wait_duration="5.0"/>
             <BackUp backup_dist="0.5" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+            <Wait wait_duration="5.0"/>
+            <Sequence name="ClearingActions2">
+              <ClearEntireCostmap name="ClearLocalCostmap-Subtree2" service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Subtree2" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
           </RoundRobin>
         </ReactiveFallback>
       </Sequence>
