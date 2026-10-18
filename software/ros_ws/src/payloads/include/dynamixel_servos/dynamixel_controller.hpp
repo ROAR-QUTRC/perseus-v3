@@ -12,7 +12,8 @@
 namespace payloads
 {
     /// Thread-safe wrapper over the Dynamixel easy-SDK. Owns the bus and one Motor
-    /// per servo found by scan(); one sync read and one sync write serve every servo.
+    /// per servo found by scan(); one sync read per servo model family and one
+    /// sync write serve every servo.
     class DynamixelController
     {
     public:
@@ -50,7 +51,18 @@ namespace payloads
         std::mutex bus_mutex_;
         dynamixel::Connector connector_;
         std::unordered_map<uint8_t, std::unique_ptr<dynamixel::Motor>> servos_;
-        std::unique_ptr<dynamixel::GroupSyncRead> reader_;
+        /// Sync Read status packets are returned in ID order but chain only
+        /// within one servo firmware family; across families (e.g. MX-106 and
+        /// XH430 sharing a bus) every device after the first family boundary
+        /// stays silent. Reads are therefore grouped by model number, while the
+        /// single sync write stays valid because broadcast writes return no
+        /// status packets at all.
+        struct ReadGroup
+        {
+            std::unique_ptr<dynamixel::GroupSyncRead> reader;
+            std::vector<uint8_t> ids;
+        };
+        std::vector<ReadGroup> read_groups_;
         std::unique_ptr<dynamixel::GroupSyncWrite> writer_;
         std::string low_latency_error_;
     };
