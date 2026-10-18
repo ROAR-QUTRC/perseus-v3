@@ -4,6 +4,7 @@ import { defineConfig, type ViteDevServer } from "vite";
 import { Server } from "socket.io";
 import { resourceMonitor } from "./src/server/scripts/resourceMonitorSocket";
 import { cameraSocket } from "./src/server/scripts/camerasSocket";
+import tailwindcss from "@tailwindcss/vite";
 
 let clientCount: number = 0;
 
@@ -33,5 +34,5 @@ export const webSocketServer = {
 };
 
 export default defineConfig({
-  plugins: [sveltekit(), webSocketServer],
+  plugins: [tailwindcss(), sveltekit(), webSocketServer],
 });
