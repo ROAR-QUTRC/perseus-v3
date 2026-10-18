@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /RobotModel1/Description Topic1
         - /Livox Cloud1
+        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
@@ -13,7 +14,10 @@ Panels:
         - /Arena Zones1/Topic1
         - /Rover Bound1/Topic1
         - /TwistStamped1/Topic1
+        - /Rover Bound1/Topic1
+        - /TwistStamped1/Topic1
       Splitter Ratio: 0.5529412031173706
+    Tree Height: 439
     Tree Height: 439
   - Class: rviz_common/Selection
     Name: Selection
@@ -23,6 +27,7 @@ Panels:
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
   - Class: rviz_plugins/ViewLockPanel
+    Locked: true
     Locked: true
     Name: View Lock
     View: Far
@@ -50,11 +55,17 @@ Panels:
     ConstructionX: 5.179413318634033
     ConstructionY: -3.896010398864746
     ConstructionYaw: -1.549481987953186
+    ConstructionX: 5.179413318634033
+    ConstructionY: -3.896010398864746
+    ConstructionYaw: -1.549481987953186
     Controller: DWB
     Cycles: 50
     ExcavationFrame: odom
     ExcavationSet: true
     ExcavationSource: map
+    ExcavationX: 0.11609363555908203
+    ExcavationY: -0.09529638290405273
+    ExcavationYaw: 0.02713453397154808
     ExcavationX: 0.11609363555908203
     ExcavationY: -0.09529638290405273
     ExcavationYaw: 0.02713453397154808
@@ -64,6 +75,8 @@ Panels:
     PrepareBucket: true
     Task: cycle
     ZonePauseS: 5
+  - Class: rviz_plugins/RoverViewPanel
+    Name: Rover View
   - Class: rviz_plugins/RoverViewPanel
     Name: Rover View
 Visualization Manager:
@@ -332,273 +345,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_footprint:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_jaw:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_jaw_encoder_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_jaw_encoder_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_arm:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_lift_arm_pivot_left_lower:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_arm_pivot_left_upper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_arm_pivot_right_lower:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_arm_pivot_right_upper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_encoder_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_lift_encoder_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_jaw_left_barrel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_jaw_left_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_jaw_right_barrel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_jaw_right_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_lift_left_barrel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_lift_left_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_lift_right_barrel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_lift_right_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_tilt_barrel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_ram_tilt_shaft:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bucket_tilt_encoder_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        bucket_tilt_encoder_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_accel_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_bottom_screw_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_color_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_depth_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_gyro_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_imu_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra1_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_infra2_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        chassis:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        differential_bar:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flange_bearing:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        livox_imu_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        rear_left_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_left_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_motor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rear_right_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_rocker:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        sensor_mount:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -691,6 +437,7 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: false
+      Enabled: false
       Keep: 1000
       Name: Footprint
       Position Tolerance: 0.10000000149011612
@@ -711,6 +458,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /odometry/filtered
+      Value: false
       Value: false
     - Class: rviz_default_plugins/Marker
       Enabled: false
@@ -890,7 +638,7 @@ Visualization Manager:
         Filter size: 100
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /global_costmap/published_footprint
+        Value: /cmd_vel_out
       Value: true
     - Alpha: 1
       Angular Arrow Scale: 10
@@ -942,6 +690,8 @@ Visualization Manager:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
       Distance: 8.126937866210938
+      Class: rviz_default_plugins/ThirdPersonFollower
+      Distance: 8.126937866210938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -951,11 +701,17 @@ Visualization Manager:
         X: -0.16902589797973633
         Y: -0.11852605640888214
         Z: -4.76837158203125e-07
+        X: -0.16902589797973633
+        Y: -0.11852605640888214
+        Z: -4.76837158203125e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
+      Pitch: 0.5852010250091553
+      Target Frame: base_footprint
+      Value: ThirdPersonFollower (rviz_default_plugins)
       Pitch: 0.5852010250091553
       Target Frame: base_footprint
       Value: ThirdPersonFollower (rviz_default_plugins)
@@ -1032,4 +788,4 @@ Window Geometry:
     collapsed: false
   Width: 1920
   X: 0
-  Y: 32
+  Y: 0

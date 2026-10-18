@@ -66,6 +66,8 @@ rosidl_generate_interfaces(
   "srv/RunWaypoints.srv"
   "msg/Waypoint.msg"
   "msg/MobilityStatus.msg"
+  "msg/RcbPowerStatus.msg"
+  "msg/RcbPowerCommand.msg"
   "msg/TopicHealth.msg"
   "msg/SystemHealth.msg"
   "msg/MachineHealth.msg"
