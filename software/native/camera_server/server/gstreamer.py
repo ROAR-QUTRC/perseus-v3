@@ -263,11 +263,12 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     # Create the elements
     source = _create_element("v4l2src", "source")
+    convert = _create_element("videoconvert", "convert")
+    scale = _create_element("videoscale", "scale")
     caps = Gst.Caps.from_string(
         f"video/x-raw,width={new_instance.width},height={new_instance.height}"
     )
     caps_filter = _create_element("capsfilter", "caps")
-    convert = _create_element("videoconvert", "convert")
     flip = _create_element("videoflip", "flip")
     tee = _create_element("tee", "tee")
     v4l2_queue = _create_element("queue", "v4l2_queue")
@@ -280,8 +281,9 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     if (
         not new_instance.pipeline
         or not source
-        or not caps_filter
         or not convert
+        or not scale
+        or not caps_filter
         or not flip
         or not tee
         or not v4l2_queue
@@ -294,11 +296,13 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     # Build the pipeline. Note that we are NOT linking the source at this
     # point. We will do it later.
-    new_instance.pipeline.add(source, caps_filter, convert, flip, webrtc_sink)
+    new_instance.pipeline.add(source, convert, caps_filter, scale, flip, webrtc_sink)
+    # pipeline: source -> convert -> scale -> caps_filter -> flip -> ...
     if (
-        not source.link(caps_filter)
-        or not caps_filter.link(convert)
-        or not convert.link(flip)
+        not source.link(convert)
+        or not convert.link(scale)
+        or not scale.link(caps_filter)
+        or not caps_filter.link(flip)
     ):
         log("Elements could not be linked.", "ERROR")
         return
