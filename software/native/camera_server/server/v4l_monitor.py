@@ -3,7 +3,7 @@ import os
 import threading
 import pyudev
 
-from message_types import Device
+from server.message_types import Device
 
 DEV_DIR = "/dev"
 V4L_DIR = "/sys/class/video4linux"

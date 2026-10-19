@@ -5,9 +5,9 @@ import os
 import gi
 import threading
 
-from message_types import CameraEventType, VideoTransformType, Device
-from logger import log, log_level_type
-from v4l_monitor import DEV_DIR
+from server.message_types import CameraEventType, VideoTransformType, Device
+from server.logger import log, log_level_type
+from server.v4l_monitor import DEV_DIR
 
 gi.require_version("GLib", "2.0")
 gi.require_version("GObject", "2.0")
