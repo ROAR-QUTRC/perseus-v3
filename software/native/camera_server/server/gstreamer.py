@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Optional, cast
+import os
 
 import gi
 import threading
 
-from server.message_types import CameraEventType, VideoTransformType
-from server.logger import log, log_level_type
-from server.v4l_monitor import BY_ID_DIR, DEV_DIR
+from message_types import CameraEventType, VideoTransformType, Device
+from logger import log, log_level_type
+from v4l_monitor import DEV_DIR
 
 gi.require_version("GLib", "2.0")
 gi.require_version("GObject", "2.0")
@@ -20,18 +21,18 @@ from gi.repository import Gst, GLib  # noqa: E402 # type: ignore[reportMissingIm
 
 @dataclass
 class GstInstance:
-    device: str
+    device: Device
     width: int
     height: int
     transform: VideoTransformType
     pipeline: Optional[Gst.Pipeline] = field(repr=False)
-    redirect: Optional[str] = None
+    redirect: Optional[Device] = None
 
 
 Gst.init()
 
 gst_lock = threading.Lock()
-gst_instances: dict[str, GstInstance] = {}  # {human readable id: GstInstance}
+gst_instances: dict[str, GstInstance] = {}  # {videoXX: GstInstance}
 
 glib_loop: GLib.MainLoop | None = None
 glib_thread: threading.Thread | None = None
@@ -103,9 +104,9 @@ def _remove_and_stop(instance: GstInstance):
     current entry for its device — guards against a stale/already-replaced
     instance's bus firing late) and tears its pipeline down."""
     with gst_lock:
-        if gst_instances.get(instance.device) is not instance:
+        if gst_instances.get(instance.device.dev) is not instance:
             return
-        del gst_instances[instance.device]
+        del gst_instances[instance.device.dev]
     _stop_pipeline(instance)
 
 
@@ -229,7 +230,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         transform=event.data.transform
         if event.data and event.data.transform
         else "none",
-        redirect=event.data.redirect if event.data and event.data.redirect else "none",
+        redirect=event.data.redirect if event.data else None,
         pipeline=None,
     )
     force_restart = (
@@ -238,7 +239,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
 
     old_instance: Optional[GstInstance] = None
     with gst_lock:
-        existing = gst_instances.get(device, None)
+        existing = gst_instances.get(device.dev, None)
         if (
             existing is not None
             and not force_restart
@@ -253,7 +254,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             f"Request stream for device: {event.target} ({new_instance.width}x{new_instance.height}, transform={new_instance.transform}, force_restart={force_restart})"
         )
         if existing is not None:
-            del gst_instances[device]
+            del gst_instances[device.dev]
             old_instance = existing
 
     if old_instance is not None:
@@ -274,7 +275,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     v4l2_sink = _create_element("v4l2sink", "v4l2_sink")
     webrtc_sink = _create_element("webrtcsink", "webrtc_sink")
 
-    new_instance.pipeline = Gst.Pipeline.new(device)
+    new_instance.pipeline = Gst.Pipeline.new(device.dev)
 
     if (
         not new_instance.pipeline
@@ -302,11 +303,11 @@ def start_stream(event: CameraEventType, web_server_ip: str):
         log("Elements could not be linked.", "ERROR")
         return
 
-    source.set_property("device", f"{BY_ID_DIR}/{device}")
+    source.set_property("device", os.path.join(DEV_DIR, device.dev))
     caps_filter.set_property("caps", caps)
     flip.set_property("method", new_instance.transform)
 
-    if new_instance.redirect != "none":
+    if new_instance.redirect is not None:
         new_instance.pipeline.add(tee, v4l2_queue, v4l2_sink, webrtc_queue)
         if (
             not flip.link(tee)
@@ -318,7 +319,9 @@ def start_stream(event: CameraEventType, web_server_ip: str):
             log("Elements could not be linked.", "ERROR")
             return
 
-        v4l2_sink.set_property("device", f"{DEV_DIR}/{new_instance.redirect}")
+        v4l2_sink.set_property(
+            "device", os.path.join(DEV_DIR, new_instance.redirect.dev)
+        )
 
     else:
         if not flip.link(webrtc_sink):
@@ -328,8 +331,10 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     webrtc_sink.set_property("stun-server", "NULL")
     # library typing is wrong we get a tuple here
     meta, _ = cast(
-        tuple[Gst.Structure, None], Gst.Structure.from_string(f"meta,device={device}")
+        tuple[Gst.Structure, None],
+        Gst.Structure.from_string(f"meta,device={device.hostname}:{device.dev}"),
     )
+    log(f"meta,device={device.hostname}_{device.dev}")
     webrtc_sink.set_property("meta", meta)
     signaller = webrtc_sink.get_property("signaller")
     if signaller is None:
@@ -350,7 +355,7 @@ def start_stream(event: CameraEventType, web_server_ip: str):
     )  # pass the instance, not a string
 
     with gst_lock:
-        gst_instances[device] = new_instance
+        gst_instances[device.dev] = new_instance
 
 
 def stop_stream(event: CameraEventType):
@@ -360,11 +365,11 @@ def stop_stream(event: CameraEventType):
         return
 
     with gst_lock:
-        instance = gst_instances.get(device, None)
+        instance = gst_instances.get(device.dev, None)
         if instance is None:
             log(f"No stream running for device: {device}", "DEBUG")
             return
-        del gst_instances[device]
+        del gst_instances[device.dev]
 
     log(f"Stopping stream for device: {device}")
     _stop_pipeline(instance)

@@ -6,18 +6,16 @@ from time import sleep
 from pydantic import ValidationError
 import os
 
-from server.logger import log, enable_debug
-from server.v4l_monitor import start_v4l_monitor, stop_v4l_monitor
-from server.message_types import CameraEventType
-from server.gstreamer import (
+from logger import log, enable_debug
+from v4l_monitor import start_v4l_monitor, stop_v4l_monitor
+from message_types import CameraEventType, Device
+from gstreamer import (
     start_stream,
     start_gst_thread,
     stop_stream,
     stop_all_streams,
     stop_gst_main_loop,
 )
-
-group_description = CameraEventType(type="camera", action="group-description")
 
 if os.getuid() == 0:
     log(
@@ -82,43 +80,43 @@ def main():
         elif len(args) == 1:
             hostname = args[0]
     log(f"{server_name} connecting to webserver at {hostname}:{port}")
+
+    group_description = CameraEventType(type="camera", action="group-description")
     # endregion
 
     # region -----------< Get hardware information >-----------
 
-    devices: list[str] = []  # video devices from /dev/v4l/by-id
+    devices: list[Device] = []  # video devices from /dev/v4l/by-id
 
-    def handle_device_change(new_devices: list[str]):
-        # Update the devices dictionary with the new devices and remove old ones
-        for dev in devices:
-            if dev not in new_devices:
-                log(f"Camera device removed: {dev}")
-                sio.send(
-                    {
-                        "type": "camera",
-                        "action": "device-disconnect",
-                        "target": dev,
-                    }
-                )
-                devices.remove(dev)
-        additions: list[str] = []
-        for dev in new_devices:
-            if dev not in devices:
-                log(f"Camera device added: {dev}")
-                devices.append(dev)
-                additions.append(dev)
-        if len(additions) > 0:
-            group_description.devices = additions.copy()
-            sio.send(group_description.model_dump(exclude_none=True))
+    def handle_device_change(new_devices: list[Device]):
+        # find differences between new_devices and devices
+        additions = [dev for dev in new_devices if dev not in devices]
+        removals = [dev for dev in devices if dev not in new_devices]
+
+        # inform the web server of the changes
+        for dev in removals:
+            log(f"Camera device removed: {dev.name} -> {dev.dev}")
+            sio.send(
+                CameraEventType(
+                    type="camera", action="device-disconnect", target=dev
+                ).model_dump(exclude_none=True)
+            )
+            devices.remove(dev)
+        for dev in additions:
+            log(f"Camera device added: {dev.name} -> {dev.dev}")
+            devices.append(dev)
+            sio.send(
+                CameraEventType(
+                    type="camera", action="device-connect", target=dev
+                ).model_dump(exclude_none=True)
+            )
 
     # start monitor and get initial device list
     initial_devices = start_v4l_monitor(server_name, handle_device_change)
     for dev in initial_devices:
         devices.append(dev)
-        log(f"Detected camera device: {dev}")
-    # endregion
+        log(f"Detected camera device: {dev.name} -> {dev.dev}")
 
-    # region -----------< Start GStreamer >-----------
     start_gst_thread()
     # endregion
 
@@ -153,11 +151,6 @@ def main():
             log(f"Invalid camera event payload: {e}", "ERROR")
             return
 
-        log(
-            f"Handling camera event: \n{json.dumps(event.model_dump(), indent=4)}",
-            "DEBUG",
-        )
-
         match event.action:
             case "request-groups":
                 # Broadcast handled by all camera servers
@@ -167,14 +160,17 @@ def main():
                 if event.target is None:
                     log("No target device specified for request-stream action", "ERROR")
                     return
-                if event.target in devices:
+                if event.target.hostname != server_name:
+                    # ignore message for another server
+                    return
+                if event.target.dev in [dev.dev for dev in devices]:
                     start_stream(event, hostname)
             case "kill-stream":
                 stop_stream(event)
                 pass
 
+            # ignore self sent messages
             case "group-description":
-                # ignore self sent messages
                 pass
             case _:
                 log(
