@@ -215,7 +215,7 @@
 							<CardStackPlus />
 						</Button>
 					</Popover.Trigger>
-					<Popover.Content class="mx-2 max-h-[600px] w-[200px] p-0">
+					<Popover.Content class="mx-2 max-h-150 w-50 p-0">
 						<Command.Root>
 							<Command.Input placeholder="Search widgets..." />
 							<Command.List>
@@ -263,7 +263,7 @@
 	<div class="flex-1 overflow-hidden">
 		<WidgetCanvas {gridXSize} {gridYSize} />
 	</div>
-	<div class="logo-box h-10">
+	<div class="logo-box">
 		<div class="logo-scroller">
 			{#each [false, true] as hidden}
 				{#each Object.values(logos) as logo}
@@ -300,7 +300,7 @@
 	}
 
 	.logo-box {
-		height: 2.5rem;
+		height: 2.6rem;
 		overflow-x: hidden;
 		min-width: 100%;
 		/* Modern Edge Fade Gradient (Optional) */
@@ -308,11 +308,8 @@
 		-webkit-mask-image: linear-gradient(to right, transparent, #fff 15%, #fff 85%, transparent);
 	}
 
-	.logo-scroller:hover {
-		animation-play-state: paused;
-	}
-
 	.logo-scroller {
+		padding-top: 0.2rem;
 		display: flex;
 		align-items: center;
 		width: max-content;

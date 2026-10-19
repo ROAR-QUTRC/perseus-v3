@@ -106,7 +106,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: "Geist Variable", sans-serif;
 
   --color-sidebar-ring: var(--sidebar-ring);
 
@@ -149,7 +149,7 @@
     @apply bg-background text-foreground;
     height: 100vh;
   }
-	html {
-		@apply font-sans;
+  html {
+    @apply font-sans;
   }
 }
