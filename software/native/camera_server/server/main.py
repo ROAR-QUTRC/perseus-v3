@@ -151,20 +151,27 @@ def main():
             log(f"Invalid camera event payload: {e}", "ERROR")
             return
 
+        if event.action == "request-stream" or event.action == "kill-stream":
+            if event.target is None:
+                log(f"No target device specified for {event.action} action", "ERROR")
+                return
+            if event.target.hostname != server_name:
+                # ignore message for another server
+                return
+            if event.target.dev not in [dev.dev for dev in devices]:
+                log(
+                    f"Target device {event.target.dev} not found in connected devices for {event.action} action",
+                    "ERROR",
+                )
+                return
+
         match event.action:
             case "request-groups":
                 # Broadcast handled by all camera servers
                 group_description.devices = devices.copy()
                 sio.send(group_description.model_dump(exclude_none=True))
             case "request-stream":
-                if event.target is None:
-                    log("No target device specified for request-stream action", "ERROR")
-                    return
-                if event.target.hostname != server_name:
-                    # ignore message for another server
-                    return
-                if event.target.dev in [dev.dev for dev in devices]:
-                    start_stream(event, hostname)
+                start_stream(event, hostname)
             case "kill-stream":
                 stop_stream(event)
                 pass

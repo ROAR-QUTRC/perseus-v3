@@ -54,7 +54,9 @@ export const initPeerConnection = (device: DeviceType) => {
       connection: null,
       track: null,
     };
-    newPeerConfigured();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      newPeerConfigured();
+    }
   }
 };
 
@@ -236,7 +238,6 @@ export const newPeerConfigured = () => {
 
 const wsSend = (data: SignalMessageType) => {
   if (!ws) return;
-  // console.log('Sending:', data);
   ws.send(JSON.stringify(data));
 };
 

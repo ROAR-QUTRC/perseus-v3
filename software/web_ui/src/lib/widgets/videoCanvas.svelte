@@ -249,7 +249,6 @@
 	);
 
 	const requestStream = (config: StreamConfigType, forceRestart: boolean = false) => {
-		console.log('Requesting stream for', config.device, 'with config', config);
 		if (config.device) {
 			socket.send({
 				type: 'camera',
@@ -262,17 +261,6 @@
 					forceRestart
 				}
 			} as CameraEventType);
-			console.log('sending', {
-				type: 'camera',
-				action: 'request-stream',
-				target: { dev: config.device.dev, hostname: config.device.hostname },
-				data: {
-					resolution: resolutions[config.resolution],
-					transform: config.transform,
-					redirect: config.redirect,
-					forceRestart
-				}
-			});
 
 			// ensure peer connection exists
 			initPeerConnection(config.device);
@@ -506,7 +494,6 @@
 						<Select.Trigger>
 							<p>
 								{usbDevices.find((d) => devicesEqual(d, streamSettings[id].device))?.name ||
-									streamSettings[id].device ||
 									'Select device'}
 							</p>
 						</Select.Trigger>
