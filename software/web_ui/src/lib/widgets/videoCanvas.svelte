@@ -291,7 +291,12 @@
 		switch (event.action) {
 			case 'group-description': {
 				if (event.devices) {
-					devices = event.devices;
+					// add missing devices to devices list
+					event.devices.forEach((device) => {
+						if (!devices.some((d) => devicesEqual(d, device))) {
+							devices.push(device);
+						}
+					});
 					startConfiguredStreams();
 				}
 				break;
