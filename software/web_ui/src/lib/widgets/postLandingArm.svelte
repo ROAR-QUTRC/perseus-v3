@@ -76,9 +76,6 @@
 	let switchSrv: ROSLIB.Service | null = null;
 	let homeSrv: ROSLIB.Service | null = null;
 
-	// Wrist position target, seeded from /joint_states then integrated locally
-	let wristTarget: Record<string, number> | null = null;
-
 	const anyHeld = () => Object.values(held).some(Boolean);
 
 	const publishZeroTwist = () => {
@@ -111,31 +108,30 @@
 	});
 
 	// ---------------- Command helpers ----------------
+	// Wrist jog is closed-loop on the latest /joint_states: every goal carries
+	// the current measured positions (plus one increment on the jogged joint),
+	// so homing or any other motion between jogs can never leave a stale
+	// absolute target for the next jog to snap back to.
 	const publishWrist = (joint: string, velocity: number) => {
 		if (!wristPub) return;
-
-		// Seed the target from the latest joint states on first use
-		if (wristTarget === null) {
-			if (WRIST_JOINTS.every((j) => jointPositions[j] !== undefined)) {
-				wristTarget = Object.fromEntries(WRIST_JOINTS.map((j) => [j, jointPositions[j]]));
-			} else {
-				srvStatus = 'Waiting for /joint_states...';
-				return;
-			}
+		if (!WRIST_JOINTS.every((j) => jointPositions[j] !== undefined)) {
+			srvStatus = 'Waiting for /joint_states...';
+			return;
 		}
 
 		const [lo, hi] = WRIST_LIMITS[joint];
 		const dt = PUBLISH_PERIOD / 1000;
-		wristTarget = {
-			...wristTarget,
-			[joint]: Math.max(lo, Math.min(hi, wristTarget[joint] + velocity * dt))
+		const target = {
+			wrist_pitch: jointPositions.wrist_pitch,
+			wrist_roll: jointPositions.wrist_roll,
+			[joint]: Math.max(lo, Math.min(hi, jointPositions[joint] + velocity * dt))
 		};
 
 		wristPub.publish({
 			joint_names: [...WRIST_JOINTS],
 			points: [
 				{
-					positions: [wristTarget.wrist_pitch, wristTarget.wrist_roll],
+					positions: [target.wrist_pitch, target.wrist_roll],
 					velocities: [0, 0],
 					time_from_start: WRIST_DURATION
 				}

@@ -344,8 +344,11 @@ namespace payloads
             {
                 restored.insert(id);
                 out.push_back(raw + *saved.value() * tau);
-                return out;
             }
+            // The saved turn leads but does not decide: a stale index (e.g.
+            // saved under a different transmission model) can decode to an
+            // out-of-limit joint, and the scored window below must be able to
+            // out-vote it.
             for (int k = -turn_window; k <= turn_window; ++k)
             {
                 out.push_back(raw + k * tau);
