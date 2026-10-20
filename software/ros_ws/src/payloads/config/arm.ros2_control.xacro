@@ -43,7 +43,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="wrist_pitch">
-                <param name="servo_id">4</param>
+                <param name="servo_id">5</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_pitch']}</param>
@@ -51,7 +51,7 @@
                 <state_interface name="velocity"/>
             </joint>
             <joint name="wrist_roll">
-                <param name="servo_id">5</param>
+                <param name="servo_id">4</param>
                 <command_interface name="position"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_roll']}</param>
@@ -117,14 +117,16 @@
                 </actuator>
             </transmission>
 
-            <!-- Servos 4 and 5 jointly drive pitch and roll. -->
+            <!-- Servos 4 and 5 jointly drive pitch and roll: co-rotation of the
+                 servos rolls the wrist, counter-rotation pitches it, so roll
+                 rides the sum channel and pitch the difference channel. -->
             <transmission name="wrist_differential">
                 <plugin>transmission_interface/DifferentialTransmission</plugin>
-                <joint name="wrist_pitch" role="joint1">
+                <joint name="wrist_roll" role="joint1">
                     <mechanical_reduction>1.0</mechanical_reduction>
                     <offset>0.0</offset>
                 </joint>
-                <joint name="wrist_roll" role="joint2">
+                <joint name="wrist_pitch" role="joint2">
                     <mechanical_reduction>1.0</mechanical_reduction>
                     <offset>0.0</offset>
                 </joint>
