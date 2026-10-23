@@ -121,85 +121,84 @@ def _on_gst_message(_, message: Gst.Message, instance: GstInstance):
     detail = ""
     log_level = "OK"
     try:
-        if t == Gst.MessageType.STATE_CHANGED:
-            if src_name != device:
-                log_level = "DEBUG"
-            old, new, pending = message.parse_state_changed()
-            old_s = Gst.Element.state_get_name(old)
-            new_s = Gst.Element.state_get_name(new)
-            detail = f"{old_s} -> {new_s}"
-            if pending != Gst.State.VOID_PENDING:
-                detail += f" (pending {Gst.Element.state_get_name(pending)})"
+        match t:
+            case Gst.MessageType.STATE_CHANGED:
+                if src_name != device:
+                    log_level = "DEBUG"
+                old, new, pending = message.parse_state_changed()
+                old_s = Gst.Element.state_get_name(old)
+                new_s = Gst.Element.state_get_name(new)
+                detail = f"{old_s} -> {new_s}"
+                if pending != Gst.State.VOID_PENDING:
+                    detail += f" (pending {Gst.Element.state_get_name(pending)})"
 
-        elif t == Gst.MessageType.STREAM_STATUS:
-            status_type, owner = message.parse_stream_status()
-            owner_name = owner.get_name() if hasattr(owner, "get_name") else str(owner)
-            detail = f"{status_type.value_nick} owner={owner_name}"
+            case Gst.MessageType.STREAM_STATUS:
+                status_type, owner = message.parse_stream_status()
+                owner_name = (
+                    owner.get_name() if hasattr(owner, "get_name") else str(owner)
+                )
+                detail = f"{status_type.value_nick} owner={owner_name}"
 
-        elif t == Gst.MessageType.NEW_CLOCK:
-            clock = message.parse_new_clock()
-            detail = f"clock={clock.get_name() if clock else 'None'}"
+            case Gst.MessageType.NEW_CLOCK:
+                clock = message.parse_new_clock()
+                detail = f"clock={clock.get_name() if clock else 'None'}"
 
-        elif t == Gst.MessageType.STREAM_START:
-            ok, group_id = message.parse_group_id()
-            detail = f"group-id={group_id}" if ok else ""
+            case Gst.MessageType.STREAM_START:
+                ok, group_id = message.parse_group_id()
+                detail = f"group-id={group_id}" if ok else ""
 
-        elif t == Gst.MessageType.ASYNC_DONE:
-            running_time = message.parse_async_done()
-            detail = (
-                "running-time=none"
-                if running_time == Gst.CLOCK_TIME_NONE
-                else f"running-time={running_time}"
-            )
+            case Gst.MessageType.ASYNC_DONE:
+                running_time = message.parse_async_done()
+                detail = (
+                    "running-time=none"
+                    if running_time == Gst.CLOCK_TIME_NONE
+                    else f"running-time={running_time}"
+                )
 
-        elif t == Gst.MessageType.LATENCY:
-            detail = "recalculate latency"
+            case Gst.MessageType.LATENCY:
+                detail = "recalculate latency"
 
-        elif t == Gst.MessageType.NEED_CONTEXT:
-            _, context_type = message.parse_context_type()
-            detail = f"context-type={context_type}"
+            case Gst.MessageType.NEED_CONTEXT:
+                _, context_type = message.parse_context_type()
+                detail = f"context-type={context_type}"
 
-        elif t == Gst.MessageType.HAVE_CONTEXT:
-            context = message.parse_have_context()
-            detail = f"context-type={context.get_context_type()}"
+            case Gst.MessageType.HAVE_CONTEXT:
+                context = message.parse_have_context()
+                detail = f"context-type={context.get_context_type()}"
 
-        elif t == Gst.MessageType.TAG:
-            taglist = message.parse_tag()
-            detail = taglist.to_string()
+            case Gst.MessageType.TAG:
+                taglist = message.parse_tag()
+                detail = taglist.to_string()
 
-        elif t in (
-            Gst.MessageType.ERROR,
-            Gst.MessageType.WARNING,
-            Gst.MessageType.INFO,
-        ):
-            parse_fn = {
-                Gst.MessageType.ERROR: message.parse_error,
-                Gst.MessageType.WARNING: message.parse_warning,
-                Gst.MessageType.INFO: message.parse_info,
-            }[t]
-            log_level = cast(
-                log_level_type,
-                {
-                    Gst.MessageType.ERROR: "ERROR",
-                    Gst.MessageType.WARNING: "WARN",
-                    Gst.MessageType.INFO: "OK",
-                }[t],
-            )
-            gerror, debug = parse_fn()
-            detail = f"{gerror.message}" + (f" | {debug}" if debug else "")
+            case Gst.MessageType.ERROR | Gst.MessageType.WARNING | Gst.MessageType.INFO:
+                parse_fn = {
+                    Gst.MessageType.ERROR: message.parse_error,
+                    Gst.MessageType.WARNING: message.parse_warning,
+                    Gst.MessageType.INFO: message.parse_info,
+                }[t]
+                log_level = cast(
+                    log_level_type,
+                    {
+                        Gst.MessageType.ERROR: "ERROR",
+                        Gst.MessageType.WARNING: "WARN",
+                        Gst.MessageType.INFO: "OK",
+                    }[t],
+                )
+                gerror, debug = parse_fn()
+                detail = f"{gerror.message}" + (f" | {debug}" if debug else "")
 
-            if t == Gst.MessageType.ERROR:
-                detail += " | tearing down pipeline"
+                if t == Gst.MessageType.ERROR:
+                    detail += " | tearing down pipeline"
+                    _remove_and_stop(instance)
+
+            case Gst.MessageType.EOS:
+                log_level = "WARN"
+                detail = "Freeing pipeline resources"
                 _remove_and_stop(instance)
 
-        elif t == Gst.MessageType.EOS:
-            log_level = "WARN"
-            detail = "Freeing pipeline resources"
-            _remove_and_stop(instance)
-
-        else:
-            structure = message.get_structure()
-            detail = structure.to_string() if structure is not None else ""
+            case _:
+                structure = message.get_structure()
+                detail = structure.to_string() if structure is not None else ""
 
     except Exception:
         # fall back to a raw structure dump if parsing failed for any reason
