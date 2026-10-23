@@ -59,7 +59,7 @@
 	let halfWidth = $derived(width / 2);
 	let halfHeight = $derived(height / 2);
 
-	let pixelPerDegVerticle = $derived<number>(width / 360);
+	let pixelPerDegVertical = $derived<number>(width / 360);
 	let pixelPerDegHorizontal = $derived<number>(height / 180);
 	let yawRange = $derived.by(() => {
 		const yawDeg = yaw * RAD_TO_DEG;
@@ -142,22 +142,22 @@
 			transform="translate(0, {-YAW_SIZE})"
 			points="0,{YAW_SIZE / 2} {YAW_SIZE / 2},{-YAW_SIZE / 2} {-YAW_SIZE / 2},{-YAW_SIZE / 2}"
 		/>
-		<g transform="translate({-yaw * RAD_TO_DEG * pixelPerDegVerticle}, {YAW_SIZE})">
+		<g transform="translate({-yaw * RAD_TO_DEG * pixelPerDegVertical}, {YAW_SIZE})">
 			{#each yawRange as point, i}
 				<line
 					style:transition="transform 0.1s linear"
-					x1={point * pixelPerDegVerticle}
-					x2={point * pixelPerDegVerticle}
+					x1={point * pixelPerDegVertical}
+					x2={point * pixelPerDegVertical}
 					y1={0}
 					y2={point % 90 === 0 ? YAW_SIZE : YAW_SIZE / 2}
 					stroke-width={LINE_THICKNESS}
 				/>
 				<text
-					x={point * pixelPerDegVerticle}
+					x={point * pixelPerDegVertical}
 					y={-YAW_SIZE / 2 + (i % 2 === 0 ? 6 : -6)}
 					font-family="monospace"
 					text-anchor="middle"
-					font-size="{pixelPerDegVerticle * 6}px"
+					font-size="{pixelPerDegVertical * 6}px"
 				>
 					{point}
 				</text>
