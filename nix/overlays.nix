@@ -12,6 +12,8 @@
   (import ./extra-packages/colcon/overlay.nix)
   # base station time server (pkgs.local-date)
   (import ./extra-packages/local-date/overlay.nix local-date)
+  # behavior tree viewer (pkgs.groot2)
+  (import ./extra-packages/groot2/overlay.nix)
   # add ros workspace functionality
   nix-ros-workspace.overlays.default
   # import ros workspace packages + fixes
