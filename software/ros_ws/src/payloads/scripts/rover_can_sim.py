@@ -22,6 +22,11 @@ quirks, so what works here should work on the bucket:
     past 3 deg, and is never timed out - a bank keeps going to its last target;
   * the actuators don't move below ~10 % duty.
 
+Ahead of the firmware, it also zeros encoders: a bank's SET_ZERO_POS, with no
+payload, makes both of its encoders read 0 where they stand - what payloads'
+bucket_driver /bucket/zero_encoder sends.
+Position control follows the left encoder.
+
 Modes:
   follow (default)   the bucket moves only as commanded
   sweep <axis>       that axis's encoders sweep between --sweep-min and --sweep-max
@@ -102,7 +107,8 @@ GET_FAULT, GET_CURRENT, SET_SPEED, GET_POSITION, SET_POSITION = (
     0x03,
     0x04,
 )
-GET_ANGLE = 0x00
+SET_ZERO_POS = 0x06
+GET_ANGLE = 0x00  # encoder_parameter
 
 FULL_DUTY = 32767
 DEADBAND_DUTY = int(1.0 * FULL_DUTY / 100)  # firmware kSpeedDeadband, 1 %
@@ -142,9 +148,20 @@ class Bank:
     fault_reported: bool = False
     dropped: set = field(default_factory=set)
     moving: float = 0.0  # last duty actually applied, for status and current
+    zeros: list = field(default_factory=lambda: [0.0, 0.0])  # per side, set by SET_ZERO_POS
+
+    def raw_deg(self) -> float:
+        return (self.offset + self.direction * self.q) % 360.0
+
+    def side_deg(self, side: int) -> float:
+        """What one encoder reports: the raw angle less where it was zeroed."""
+        return (self.raw_deg() - self.zeros[side]) % 360.0
 
     def firmware_deg(self) -> float:
-        return (self.offset + self.direction * self.q) % 360.0
+        return self.side_deg(0)
+
+    def zero(self, side: int):
+        self.zeros[side] = self.raw_deg()
 
     def set_speed(self, duty: int, now: float):
         self.speed = duty
@@ -223,6 +240,11 @@ class BucketBoard:
             return
         group, parameter = (address >> 8) & 0xFF, address & 0xFF
         bank = next((b for b in self.banks.values() if b.group == group), None)
+        if bank is not None and parameter == SET_ZERO_POS:
+            bank.zero(0)
+            bank.zero(1)
+            print(f"zeroed both {bank.name} encoders", flush=True)
+            return
         if bank is None or len(data) != 2:
             return
         value = struct.unpack("<h", data)[0]
@@ -249,7 +271,8 @@ class BucketBoard:
                 for side, group in enumerate(bank.encoder_groups):
                     if side not in bank.dropped:
                         bus.send(
-                            hican_address(*BUCKET, group, GET_ANGLE), le_int16(degrees)
+                            hican_address(*BUCKET, group, GET_ANGLE),
+                            le_int16(bank.side_deg(side) * 10.0),
                         )
                 bus.send(
                     hican_address(*BUCKET, bank.group, GET_POSITION), le_int16(degrees)
@@ -475,7 +498,11 @@ def main():
     parser.add_argument(
         "--status-period", type=float, default=1.0, help="seconds; 0 for none"
     )
-    args = parser.parse_args()
+    # Launched as a ROS node (bucket.launch.py sim:=true), it is handed --ros-args.
+    argv = sys.argv[1:]
+    if "--ros-args" in argv:
+        argv = argv[: argv.index("--ros-args")]
+    args = parser.parse_args(argv)
 
     try:
         bus = CanBus(args.iface)

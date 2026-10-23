@@ -50,9 +50,13 @@ namespace mission_bt_server
         p.travel_lift_deg = node.declare_parameter<double>("bucket_travel_lift_deg", 25.0);
         p.travel_tilt_deg = node.declare_parameter<double>("bucket_travel_tilt_deg", -20.0);
         p.travel_jaw_deg = node.declare_parameter<double>("bucket_travel_jaw_deg", 0.0);
-        // Per move. Generous: the controller has to get there within this plus its
-        // 3 s goal_time tolerance, from wherever the bucket was left.
+        // Per move: how long the bucket may take to arrive (MoveBucket's timeout_s),
+        // from wherever it was left. Moves are direct - the board drives flat out to
+        // the pose - so this is an allowance, not the speed. A move that runs out is
+        // sent again, up to bucket_move_attempts times in all.
         p.move_s = node.declare_parameter<double>("bucket_move_s", 10.0);
+        p.move_attempts =
+            static_cast<int>(node.declare_parameter<int>("bucket_move_attempts", 2));
 
         // The jaw's recovery when its position move fails (the encoder misreads while
         // it moves): drive it by time instead, see BlindJawMove in mission.xml's JawMove.
@@ -103,6 +107,7 @@ namespace mission_bt_server
         blackboard.set<double>("bucket_travel_tilt_deg", travel_tilt_deg);
         blackboard.set<double>("bucket_travel_jaw_deg", travel_jaw_deg);
         blackboard.set<double>("bucket_move_s", move_s);
+        blackboard.set<int>("bucket_move_attempts", move_attempts);
         blackboard.set<double>("jaw_blind_open_speed", jaw_blind_open_speed);
         blackboard.set<double>("jaw_blind_open_s", jaw_blind_open_s);
         blackboard.set<double>("jaw_blind_close_speed", jaw_blind_close_speed);
@@ -115,8 +120,9 @@ namespace mission_bt_server
         blackboard.set<double>("dig_carry_m", dig_carry_m);
         blackboard.set<double>("dig_carry_lift_deg", dig_carry_lift_deg);
         blackboard.set<double>("dig_speed", dig_speed);
-        // The carry's drive and lift start together; the lift gets at least
-        // bucket_move_s, since 32 -> 0 deg in a 5 s creep would outrun the rams.
+        // The carry's drive and lift start together, and the carry is the one timed
+        // move (MoveBucket duration_s), so the lift keeps pace with the drive; it gets
+        // at least bucket_move_s, since 32 -> 0 deg in a 5 s creep would outrun the rams.
         const double carry_s = dig_carry_m / std::max(dig_speed, 0.01);
         blackboard.set<double>("dig_carry_s", std::max(carry_s, move_s));
         // DriveOnHeading gives up after time_allowance; leave room for the ramp-up.

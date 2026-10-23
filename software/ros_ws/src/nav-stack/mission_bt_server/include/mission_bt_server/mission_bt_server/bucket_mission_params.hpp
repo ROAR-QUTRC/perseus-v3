@@ -45,7 +45,9 @@ namespace mission_bt_server
         double travel_lift_deg;
         double travel_tilt_deg;
         double travel_jaw_deg;
+        /// How long one move may take to arrive, and how many times it is sent.
         double move_s;
+        int move_attempts;
 
         /// The jaw's recovery (BlindJawMove): the Actuators jaw speed, signed, and how
         /// long, for opening and for closing. 0 means "not measured yet": the blind

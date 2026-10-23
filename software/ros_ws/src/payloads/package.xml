@@ -20,6 +20,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>interfaces</depend>
   <depend>controller_interface</depend>
   <depend>controller_manager_msgs</depend>
   <depend>realtime_tools</depend>
@@ -31,6 +32,8 @@
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>rclpy</exec_depend>
+  <!-- bucket_teach.py runs its poses and trees through bucket_cli -->
+  <exec_depend>mission_bt_server</exec_depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>

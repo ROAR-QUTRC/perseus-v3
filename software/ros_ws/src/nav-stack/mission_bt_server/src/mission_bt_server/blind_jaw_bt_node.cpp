@@ -29,7 +29,9 @@ namespace mission_bt_server
     BlindJawBtNode::BlindJawBtNode(const std::string& name, const BT::NodeConfiguration& conf)
         : BT::StatefulActionNode(name, conf)
     {
-        _node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+        // From the root blackboard, so this works inside a subtree that was not
+        // remapped - a saved pose dropped into a tree in Groot2, say.
+        _node = config().blackboard->get<rclcpp::Node::SharedPtr>("@node");
         _callback_group =
             _node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
         _executor.add_callback_group(_callback_group, _node->get_node_base_interface());

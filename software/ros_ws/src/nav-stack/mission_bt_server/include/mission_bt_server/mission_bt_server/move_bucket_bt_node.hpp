@@ -25,9 +25,24 @@ namespace mission_bt_server
     /// level and positive lowering, tilt 0 level and positive dumping, jaw 0 closed
     /// and positive opening. Each of lift_deg, tilt_deg and jaw_deg is optional: only
     /// the joints given are commanded, and the controller holds the others where they
-    /// are, so <MoveBucket jaw_deg="36"/> opens the jaw and nothing else. The goal is one point reached duration_s after it is
-    /// sent; the controller's own goal tolerances (bucket_controller.yaml) decide
-    /// whether it arrived.
+    /// are, so <MoveBucket jaw_deg="36"/> opens the jaw and nothing else.
+    ///
+    /// Two ways to move, picked by whether duration_s is given:
+    ///
+    ///   direct (no duration_s, the usual one): the setpoint jumps to the pose at
+    ///   once and the board drives there at its own speed. The board's position mode
+    ///   is full duty until it is within 2 deg, so this is one continuous motion. The
+    ///   goal carries timeout_s as its goal_time tolerance: the controller succeeds as
+    ///   soon as the bucket is within tolerance and gives up once timeout_s is out.
+    ///
+    ///   timed (duration_s): one point reached duration_s after it is sent, which the
+    ///   controller interpolates toward. The board chases a creeping setpoint in
+    ///   full-duty bursts, so a long one judders; kept for moves that must keep pace
+    ///   with something else, like DigBucket's carry alongside its drive.
+    ///
+    /// A pose that is not reached (not_reached, or no result in time) is sent again,
+    /// up to attempts in all. Nothing else is retried: an operator override, a missing
+    /// or refusing controller fail at once.
     ///
     /// Deliberately a plain StatefulActionNode rather than nav2's BtActionNode:
     /// BtActionNode waits for its action server when the tree is built and throws if
@@ -69,6 +84,13 @@ namespace mission_bt_server
         /// @brief Cancels the goal in flight, if any, and forgets it.
         void _cancel();
 
+        /// @brief Sends _goal and starts this attempt's clock.
+        void _send_goal();
+
+        /// @brief After a missed pose: sends it again and returns RUNNING if attempts
+        /// are left, else records @p failure and returns FAILURE.
+        BT::NodeStatus _retry_or_fail(const char* failure);
+
         rclcpp::Node::SharedPtr _node;
         rclcpp::CallbackGroup::SharedPtr _callback_group;
         rclcpp::executors::SingleThreadedExecutor _executor;
@@ -76,6 +98,13 @@ namespace mission_bt_server
         std::string _action_name;
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _override_subscription;
         bool _operator_override{false};
+
+        // Per tick of onStart: the goal, resent as is on each attempt.
+        FollowJointTrajectory::Goal _goal;
+        std::string _described;
+        std::chrono::steady_clock::duration _allowance{};
+        int _attempt{0};
+        int _attempts{1};
 
         // Per goal. The callbacks that write these run inside _spin(), on the tree's
         // own thread, so they need no locking.

@@ -6,6 +6,7 @@
 #include <controller_manager_msgs/srv/list_controllers.hpp>
 #include <controller_manager_msgs/srv/switch_controller.hpp>
 #include <hi_can_raw.hpp>
+#include <interfaces/srv/zero_bucket_encoder.hpp>
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -27,6 +28,10 @@
 /// deactivates whichever of override_controllers are active, and only once that is
 /// confirmed (or OVERRIDE_SWITCH_TIMEOUT passes - the operator always wins) do real
 /// speeds go out. Autonomy gets the bucket back only through /bucket/rearm.
+///
+/// /bucket/zero_encoder zeros a bank's two encoders where they stand, for
+/// calibration. It takes the bucket the same way first, so no controller is holding
+/// a setpoint while the reference moves.
 class BucketDriver : public rclcpp::Node
 {
 public:
@@ -63,6 +68,7 @@ private:
     using ListControllers = controller_manager_msgs::srv::ListControllers;
     using SwitchController = controller_manager_msgs::srv::SwitchController;
     using Trigger = std_srvs::srv::Trigger;
+    using ZeroBucketEncoder = interfaces::srv::ZeroBucketEncoder;
 
     void _actuator_callback(const actuator_msgs::msg::Actuators::SharedPtr msg);
     void _transmit_callback();
@@ -79,6 +85,13 @@ private:
     void _rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
                          std::shared_ptr<rmw_request_id_t> header,
                          std::shared_ptr<Trigger::Request> request);
+
+    /// @brief /bucket/zero_encoder: take the bucket, then send the zero frame.
+    void _zero_callback(rclcpp::Service<ZeroBucketEncoder>::SharedPtr service,
+                        std::shared_ptr<rmw_request_id_t> header,
+                        std::shared_ptr<ZeroBucketEncoder::Request> request);
+    /// @brief Sends the pending zero once the operator has the bucket.
+    void _send_pending_zero();
 
     void _write_speeds(const std::array<double, ACTUATOR_COUNT>& speeds);
 
@@ -106,6 +119,16 @@ private:
     /// @brief When a takeover started, while its switch is still unconfirmed.
     std::optional<rclcpp::Time> _override_requested;
 
+    /// @brief A zero waiting for the takeover to finish.
+    struct PendingZero
+    {
+        rclcpp::Service<ZeroBucketEncoder>::SharedPtr service;
+        std::shared_ptr<rmw_request_id_t> header;
+        std::string target;
+        hi_can::addressing::flagged_address_t address;
+    };
+    std::optional<PendingZero> _pending_zero;
+
     hi_can::RawCanInterface _can_interface;
 
     rclcpp::Subscription<actuator_msgs::msg::Actuators>::SharedPtr
@@ -114,5 +137,6 @@ private:
     rclcpp::Client<ListControllers>::SharedPtr _list_client;
     rclcpp::Client<SwitchController>::SharedPtr _switch_client;
     rclcpp::Service<Trigger>::SharedPtr _rearm_service;
+    rclcpp::Service<ZeroBucketEncoder>::SharedPtr _zero_service;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr _override_publisher;
 };

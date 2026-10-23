@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A template bucket behaviour built from saved poses: mission.xml's DumpBucket, step for
+  step. Copy it (or start a new tree in Groot2), drag Pose_* subtrees in, and run it
+  with bucket_teach.py's r, or with bucket_cli's run command (see README.md).
+  Groot2's Monitor, connected to the rover on port 1667, shows it ticking.
+-->
+<root BTCPP_format="4">
+
+  <BehaviorTree ID="ExampleDump">
+    <Sequence>
+      <SubTree ID="Pose_dump_tip"/>
+      <SubTree ID="Pose_dump_open"/>
+      <Sleep msec="1000"/>
+      <SubTree ID="Pose_dump_curl"/>
+      <SubTree ID="Pose_travel"/>
+    </Sequence>
+  </BehaviorTree>
+
+</root>

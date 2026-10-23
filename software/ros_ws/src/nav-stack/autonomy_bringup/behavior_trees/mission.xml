@@ -27,7 +27,8 @@
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
     bucket_travel_tilt_deg
     bucket_travel_jaw_deg
-    bucket_move_s            how long each PrepareBucket move takes, seconds
+    bucket_move_s            how long a bucket move may take to arrive, seconds
+    bucket_move_attempts     int, how many times a move that missed its pose is sent
     dig_*                    DigBucket's angles, creeps and timing; see DigBucket
     phase                    string this tree writes it; the server publishes both on
                              /mission/status as they change
@@ -38,6 +39,11 @@
 
   FullAutonomyCycle digs at excavation with the DigBucket subtree and dumps the load at
   construction with DumpBucket, both below.
+
+  Bucket moves are direct (MoveBucket timeout_s): the board drives flat out to the pose,
+  which is one smooth motion, and a move that misses is sent again up to
+  bucket_move_attempts times. The one timed move (duration_s) is DigBucket's carry, whose
+  lift has to keep pace with its drive.
 -->
 
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
@@ -84,14 +90,14 @@
     <Sequence>
       <Script code="phase:='bucket_to_zero'"/>
       <MoveBucket lift_deg="0" tilt_deg="0"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <SubTree ID="JawMove" jaw_deg="0.0"
                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
                move_s="{bucket_move_s}" action="{bucket_action}"
                _autoremap="true"/>
       <Script code="phase:='bucket_to_travel'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
                 blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
                 move_s="{bucket_move_s}" action="{bucket_action}"
@@ -102,7 +108,8 @@
   <!--
     One jaw move, with a recovery. The jaw's encoder misreads while it moves, so the
     position move can fail on the controller's tolerance even though the jaw is moving.
-    Only that failure (MoveBucket's "not_reached") is recovered: BlindJawMove then drives
+    Only that failure (MoveBucket's "not_reached") is recovered, and the position move
+    is tried once rather than bucket_move_attempts times, since it would only misread again: BlindJawMove then drives
     the jaw by time, at the speed and for the seconds given for this direction
     (jaw_blind_open_* / jaw_blind_close_* on mission_bt_server), and re-arms the
     bucket's trajectory controller. Every other failure - the operator has the bucket,
@@ -114,7 +121,7 @@
   -->
   <BehaviorTree ID="JawMove">
     <Fallback>
-      <MoveBucket jaw_deg="{jaw_deg}" duration_s="{move_s}" server_name="{action}"
+      <MoveBucket jaw_deg="{jaw_deg}" timeout_s="{move_s}" attempts="1" server_name="{action}"
                   failure="{jaw_failure}"/>
       <Sequence>
         <ScriptCondition code="jaw_failure == 'not_reached'"/>
@@ -157,7 +164,7 @@
     <Sequence>
       <Script code="phase:='dump_lower_tip'"/>
       <MoveBucket lift_deg="20" tilt_deg="20"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <Script code="phase:='dump_open_jaw'"/>
       <SubTree ID="JawMove" jaw_deg="36.0"
                blind_speed="{jaw_blind_open_speed}" blind_s="{jaw_blind_open_s}"
@@ -165,10 +172,10 @@
                _autoremap="true"/>
       <Script code="phase:='dump_curl'"/>
       <MoveBucket tilt_deg="-20"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <Script code="phase:='dump_stow'"/>
       <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
                 blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
                 move_s="{bucket_move_s}" action="{bucket_action}"
@@ -237,20 +244,20 @@
     <Sequence>
       <Script code="phase:='dig_tilt'"/>
       <MoveBucket tilt_deg="{dig_tilt_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <SubTree ID="JawMove" jaw_deg="0.0"
                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
                move_s="{bucket_move_s}" action="{bucket_action}"
                _autoremap="true"/>
       <Script code="phase:='dig_lower'"/>
       <MoveBucket lift_deg="{dig_lift_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <Script code="phase:='dig_push'"/>
       <DriveOnHeading dist_to_travel="{dig_push_m}" speed="{dig_speed}"
                       time_allowance="{dig_push_allowance_s}" server_name="drive_on_heading"/>
       <Script code="phase:='dig_curl'"/>
       <MoveBucket tilt_deg="{dig_curl_tilt_deg}"
-                  duration_s="{bucket_move_s}" server_name="{bucket_action}"/>
+                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
       <Script code="phase:='dig_carry'"/>
       <Parallel success_count="2" failure_count="1">
         <DriveOnHeading dist_to_travel="{dig_carry_m}" speed="{dig_speed}"

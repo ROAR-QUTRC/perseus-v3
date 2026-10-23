@@ -749,7 +749,8 @@ joints a step doesn't name hold where they are:
 1. Tilt to −20, to curl back and empty the rest.
 1. The travel pose with the jaw closed, all three joints at once.
 
-Each move takes `bucket_move_s` (10 s). If a step fails, the mission fails
+Each move may take up to `bucket_move_s` (10 s) to arrive, and a move that misses is
+sent up to `bucket_move_attempts` (2) times. If a step still fails, the mission fails
 there, with the rover still at construction.
 
 ### Zone waypoints
@@ -777,10 +778,15 @@ far-field ground returns.
 | `bucket_travel_lift_deg` | `25.0`                                                           |
 | `bucket_travel_tilt_deg` | `-20.0`                                                          |
 | `bucket_travel_jaw_deg`  | `0.0`                                                            |
-| `bucket_move_s`          | `10.0` (each move's `time_from_start`)                           |
+| `bucket_move_s`          | `10.0` (how long each move may take to arrive)                   |
+| `bucket_move_attempts`   | `2` (how many times a move that misses is sent)                  |
 
 Each move is a `MoveBucket` node: one `FollowJointTrajectory` goal, which
-succeeds when the bucket controller reports the pose reached. If the
+succeeds when the bucket controller reports the pose reached. Moves are direct:
+the setpoint jumps to the pose and the bucket board drives there at full duty,
+which is one smooth motion. (A timed move, `duration_s`, makes the controller
+interpolate; the board then chases the creeping setpoint in full-duty bursts and
+judders, so only `DigBucket`'s carry uses it, to keep pace with its drive.) If the
 controller isn't running, the mission fails at `bucket_to_zero` before the
 rover drives. Missions without `prepare_bucket`, and navigation-only missions,
 never touch the bucket. Stopping the mission mid-move cancels the goal, and

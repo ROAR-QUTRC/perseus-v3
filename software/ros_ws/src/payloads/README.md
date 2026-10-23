@@ -30,7 +30,18 @@ stick input takes the bucket from the trajectory controller.
 after a fault or a takeover alike: it recovers the hardware and hands the bucket to
 the trajectory controller (through `/bucket/rearm` when the operator has it).
 
-`launch/bucket.launch.py` is the same stack without the drive, for the bench.
+`bucket_driver` also serves `/bucket/zero_encoder` (`interfaces/ZeroBucketEncoder`),
+which zeros a bank's two encoders (`SET_ZERO_POS`) where they stand. It takes the
+bucket from autonomy first, the same way a stick does. The bucket firmware doesn't
+handle that frame yet; `rover_can_sim.py` does.
+
+`scripts/bucket_teach.py` is a console for writing bucket behaviours: jog, zero, save
+poses as Groot2 subtrees, and run trees. See
+`autonomy_bringup/behavior_trees/bucket/README.md`.
+
+`launch/bucket.launch.py` is the same stack without the drive, for the bench. With
+`sim:=true` it runs against `rover_can_sim.py` on vcan0 instead of the bucket, which
+gives the full stack (teleop, zeroing, the trajectory controller) without hardware.
 `scripts/rover_can_sim.py` simulates the rover's CAN bus on vcan, and
 `mission_bt_server`'s `bucket_cli` runs the mission's bucket behaviours. See
 `TEST.md` for the bring-up procedure.

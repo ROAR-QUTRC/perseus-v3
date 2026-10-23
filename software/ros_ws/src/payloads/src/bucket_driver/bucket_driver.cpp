@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <hi_can_address.hpp>
 #include <hi_can_parameter.hpp>
+#include <map>
 #include <stdexcept>
 
 namespace
@@ -39,6 +40,22 @@ namespace
                 static_cast<uint8_t>(bank),
                 static_cast<uint8_t>(bucket_addr::bank_parameter::SET_SPEED)});
     }
+
+    /// @brief /bucket/zero_encoder's targets: a bank's SET_ZERO_POS, which zeros
+    /// both of its encoders.
+    std::optional<addressing::flagged_address_t> zero_address(const std::string& target)
+    {
+        static const std::map<std::string, bucket_addr::bank_group> BANKS_BY_NAME{
+            {"lift", bucket_addr::bank_group::LIFT},
+            {"tilt", bucket_addr::bank_group::TILT},
+            {"jaw", bucket_addr::bank_group::JAWS},
+        };
+        if (const auto it = BANKS_BY_NAME.find(target); it != BANKS_BY_NAME.end())
+            return static_cast<addressing::flagged_address_t>(addressing::standard_address_t{
+                DEVICE_ADDRESS, static_cast<uint8_t>(it->second),
+                static_cast<uint8_t>(bucket_addr::bank_parameter::SET_ZERO_POS)});
+        return std::nullopt;
+    }
 }  // namespace
 
 BucketDriver::BucketDriver(const rclcpp::NodeOptions& options)
@@ -72,6 +89,10 @@ BucketDriver::BucketDriver(const rclcpp::NodeOptions& options)
     _rearm_service = this->create_service<Trigger>(
         "/bucket/rearm",
         std::bind(&BucketDriver::_rearm_callback, this, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3));
+    _zero_service = this->create_service<ZeroBucketEncoder>(
+        "/bucket/zero_encoder",
+        std::bind(&BucketDriver::_zero_callback, this, std::placeholders::_1,
                   std::placeholders::_2, std::placeholders::_3));
 
     _can_interface =
@@ -259,6 +280,47 @@ void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
         });
 }
 
+void BucketDriver::_zero_callback(rclcpp::Service<ZeroBucketEncoder>::SharedPtr service,
+                                  std::shared_ptr<rmw_request_id_t> header,
+                                  std::shared_ptr<ZeroBucketEncoder::Request> request)
+{
+    const auto address = zero_address(request->target);
+    if (!address || _pending_zero)
+    {
+        ZeroBucketEncoder::Response response;
+        response.success = false;
+        response.message = address ? "a zero is already waiting for the takeover"
+                                   : "unknown target '" + request->target +
+                                         "' - use lift, tilt or jaw";
+        service->send_response(*header, response);
+        return;
+    }
+
+    _pending_zero = PendingZero{service, header, request->target, *address};
+    // A controller holding a setpoint would see the angle jump under it and drive
+    // after the old pose, so take the bucket first, exactly as a stick does.
+    if (!_override && !_override_requested)
+        _begin_override();
+    _send_pending_zero();
+}
+
+void BucketDriver::_send_pending_zero()
+{
+    if (!_pending_zero || !_override)
+        return;
+
+    // No payload: the board zeros the encoder where it stands.
+    _can_interface.transmit(Packet(_pending_zero->address, std::vector<uint8_t>{}));
+    RCLCPP_WARN(this->get_logger(), "Zero sent to %s", _pending_zero->target.c_str());
+
+    ZeroBucketEncoder::Response response;
+    response.success = true;
+    response.message = "zero sent to " + _pending_zero->target +
+                       " - the operator has the bucket; /bucket/rearm hands it back";
+    _pending_zero->service->send_response(*_pending_zero->header, response);
+    _pending_zero.reset();
+}
+
 void BucketDriver::_transmit_callback()
 {
     const bool stale =
@@ -283,6 +345,7 @@ void BucketDriver::_transmit_callback()
                     static_cast<long>(OVERRIDE_SWITCH_TIMEOUT.count()));
         _set_override(true);
     }
+    _send_pending_zero();
 
     // Sent unconditionally, including while zeroed: a steady stream of zeros
     // keeps the banks in a known state and means a gap on the bus unambiguously

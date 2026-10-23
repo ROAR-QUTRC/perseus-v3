@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <!--
+    Saved bucket poses, one subtree each, for building bucket behaviours in Groot2.
+
+    Written by `ros2 run payloads bucket_teach.py` (p saves the bucket where it stands);
+    editing by hand is fine too. Each Pose_<name> is one direct MoveBucket: the setpoint
+    jumps to the pose, the board drives there flat out, and a pose missed within timeout_s
+    is sent again, up to attempts times. Joints a pose leaves out hold where they are.
+
+    server_name reads {@bucket_action} from the root blackboard, so a pose works however
+    it is dropped into a tree, remapped or not.
+  -->
+  <BehaviorTree ID="Pose_zero">
+    <MoveBucket lift_deg="0.0" tilt_deg="0.0" jaw_deg="0.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_travel">
+    <MoveBucket lift_deg="25.0" tilt_deg="-20.0" jaw_deg="0.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_dump_tip">
+    <MoveBucket lift_deg="20.0" tilt_deg="20.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_dump_open">
+    <MoveBucket jaw_deg="36.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_dump_curl">
+    <MoveBucket tilt_deg="-20.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_jaw_ready_scoop">
+    <MoveBucket lift_deg="26.3" tilt_deg="-13.1" jaw_deg="25.0" timeout_s="4" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_jaw_close_scoop">
+    <MoveBucket lift_deg="26.7" tilt_deg="-26.0" jaw_deg="0.0" timeout_s="2" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+</root>

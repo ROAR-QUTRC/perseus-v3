@@ -50,6 +50,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     actuator_msgs
     std_msgs
     std_srvs
+    interfaces
     controller_manager_msgs
     controller_interface
     realtime_tools)
@@ -141,9 +142,10 @@ install(
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin)
 
-# Bench and recovery tools: the vcan rover simulator and the bucket supervisor
+# Bench and recovery tools: the vcan rover simulator, the bucket supervisor and
+# the teach console for writing bucket behaviours
 install(PROGRAMS scripts/rover_can_sim.py scripts/bucket_supervisor.py
-        DESTINATION lib/${PROJECT_NAME})
+                 scripts/bucket_teach.py DESTINATION lib/${PROJECT_NAME})
 
 # Registers the plugin with pluginlib via the ament index AND installs the
 # file. A plain install() copies the xml but leaves pluginlib unable to find
@@ -153,7 +155,7 @@ pluginlib_export_plugin_description_file(controller_interface
                                          bucket_linkage_broadcaster.xml)
 
 install(
-  DIRECTORY launch config urdf
+  DIRECTORY launch config urdf rviz
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL)
 

@@ -58,6 +58,7 @@ rosidl_generate_interfaces(
   "srv/LocaliseInArena.srv"
   "srv/RequestZoneWaypoint.srv"
   "srv/StartMission.srv"
+  "srv/ZeroBucketEncoder.srv"
   "msg/MissionStatus.msg"
   "msg/Detection.msg"
   "msg/DetectionArray.msg"
@@ -72,8 +73,6 @@ rosidl_generate_interfaces(
   "msg/DeviceLink.msg"
   "msg/LinkHealth.msg"
   "msg/OrbSlamOdometryInfo.msg"
-  "msg/RcbPowerStatus.msg"
-  "msg/RcbPowerCommand.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
