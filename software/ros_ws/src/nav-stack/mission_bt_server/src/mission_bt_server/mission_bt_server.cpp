@@ -125,6 +125,18 @@ namespace mission_bt_server
         _timeouts = BtTimeouts::declare(*this);
         _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
 
+        // Same names as bt_navigator's, whose own monitoring is off by default, so the
+        // default port is free for this node.
+        _groot_monitoring = declare_parameter<bool>("enable_groot_monitoring", true);
+        const auto groot_port = declare_parameter<int>("groot_server_port", 1667);
+        if (groot_port < 1 || groot_port > 65534)
+        {
+            RCLCPP_FATAL(get_logger(), "groot_server_port must be in 1-65534, got %ld",
+                         groot_port);
+            throw std::runtime_error("mission_bt_server: groot_server_port out of range");
+        }
+        _groot_server_port = static_cast<uint16_t>(groot_port);
+
         const auto plugin_lib_names = declare_parameter<std::vector<std::string>>(
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
@@ -172,6 +184,11 @@ namespace mission_bt_server
                       std::placeholders::_2),
             rclcpp::ServicesQoS(), _service_group);
 
+        if (_groot_monitoring)
+        {
+            RCLCPP_INFO(get_logger(), "Groot2 monitoring on port %u while a tree runs",
+                        _groot_server_port);
+        }
         RCLCPP_INFO(get_logger(),
                     "mission_bt_server up: /mission/start (%s), /mission/stop, "
                     "/mission/go_to_excavation_zone -> %s, "
@@ -199,12 +216,29 @@ namespace mission_bt_server
     nav2_behavior_tree::BtStatus
     MissionBtServer::_run_tree(BT::Tree& tree, const std::function<void()>& on_loop)
     {
+        if (_groot_monitoring)
+        {
+            // A port that will not bind costs the live view, never the mission.
+            try
+            {
+                _engine->addGrootMonitoring(&tree, _groot_server_port);
+            }
+            catch (const std::exception& e)
+            {
+                RCLCPP_WARN(get_logger(), "Groot2 monitoring unavailable on port %u: %s",
+                            _groot_server_port, e.what());
+            }
+        }
+
         auto is_canceling = [this]()
         { return _stop_requested.load() || !rclcpp::ok(); };
         const auto status = _engine->run(&tree, on_loop, is_canceling, _timeouts.bt_loop_duration);
         // Cancels whatever action is still in flight -- on a stop, the
         // NavigateToPose goal the rover is driving on.
         _engine->haltAllActions(tree);
+        // The publisher holds a reference to the tree, which the caller is about to
+        // destroy; this also frees the port for the next run.
+        _engine->resetGrootMonitor();
         return status;
     }
 

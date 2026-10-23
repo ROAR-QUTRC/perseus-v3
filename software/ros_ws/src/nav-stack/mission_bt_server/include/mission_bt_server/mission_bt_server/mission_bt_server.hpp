@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <interfaces/msg/mission_status.hpp>
 #include <interfaces/srv/start_mission.hpp>
 #include <memory>
@@ -63,7 +64,7 @@ namespace mission_bt_server
         BT::Blackboard::Ptr _make_blackboard() const;
 
         /// @brief Runs @p tree to completion or cancellation. @p on_loop is called
-        /// every tick.
+        /// every tick. Groot2 can watch it live while it runs, if enabled.
         nav2_behavior_tree::BtStatus _run_tree(BT::Tree& tree,
                                                const std::function<void()>& on_loop);
 
@@ -116,6 +117,11 @@ namespace mission_bt_server
         // How long a FULL_AUTONOMY_TIMED mission stops at each zone when the request
         // leaves zone_pause_s at 0.
         double _default_zone_pause_s{2.0};
+
+        // Live view of whichever tree is running in Groot2 (connect to this host at
+        // _groot_server_port). The publisher binds that port and the next one up.
+        bool _groot_monitoring{true};
+        uint16_t _groot_server_port{1667};
 
         // A plain node distinct from `this`, purely so the BT nodes have an
         // rclcpp::Node::SharedPtr to construct clients against before `this` could
