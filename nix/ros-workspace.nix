@@ -7,6 +7,7 @@ rec {
   devPackages = pkgs.ros.devPackages // pkgs.sharedDevPackages // pkgs.nativeDevPackages;
   # Packages which should be base profile
   standardPkgs = {
+    torch = pkgs.python3Packages.torch;
     inherit (pkgs)
       bashInteractive
       can-utils
@@ -17,6 +18,7 @@ rec {
       yaml-cpp
       graphviz # Often needed for ROS visualization tools
       # livox-sdk2
+
       ;
     inherit (pkgs.ros)
       demo-nodes-cpp

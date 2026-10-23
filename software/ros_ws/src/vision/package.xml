@@ -39,6 +39,12 @@
   <exec_depend>v4l2_camera</exec_depend>
   <!-- realsense.launch.py, included by vision.launch.py under enable_sensors:=true -->
   <exec_depend>sensors</exec_depend>
+  <!-- dependencies for the Python bucket-empty detector -->
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  
   <export>
     <build_type>ament_cmake</build_type>
   </export>
