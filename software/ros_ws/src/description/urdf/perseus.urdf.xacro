@@ -61,12 +61,12 @@
     <!-- chassis origin is the centre of its front face at the bottom, so x near 0 is the
          front and z above chassis_height clears the deck -->
     <xacro:property name="sensor_mount_x_offset" value="0.0"/>
-    <xacro:property name="sensor_mount_y_offset" value="0.0"/>
+    <xacro:property name="sensor_mount_y_offset" value="0.015"/>
     <xacro:property name="sensor_mount_z_offset" value="${chassis_height + 0.05}"/>
     <!-- nose-down tilt of the Livox base plate, applied at livox_base_joint in
          sensor_mount.urdf.xacro: positive pitch swings its +x axis towards -z. The
          sensor is fixed to the plate, so this aims the LiDAR. Zero leaves it level. -->
-    <xacro:property name="lidar_angle" value="${pi/4}"/>
+    <xacro:property name="lidar_angle" value="${7*pi/36}"/> 
 
     <!-- ADD COMPONENTS -->
     <xacro:include filename="$(find description)/urdf/inertia_macros.xacro"/>
