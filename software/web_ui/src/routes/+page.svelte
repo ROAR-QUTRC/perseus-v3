@@ -22,6 +22,10 @@
 	import WidgetCanvas from '$lib/components/widgetCanvas.svelte';
 	import ConnectionMenu from '$lib/components/connectionMenu.svelte';
 
+	const logos: Record<string, { default: string }> = import.meta.glob('$lib/assets/logos/**.png', {
+		eager: true
+	});
+
 	let unSub: (() => void) | null = null;
 	let widgetGroups = $state<Array<Array<WidgetType>>>([]);
 	const gridXSize = 20;
@@ -146,7 +150,7 @@
 	let openWidgetAddMenu = $state(false);
 </script>
 
-<div class="h-full flex-col">
+<div class="flex h-full flex-col">
 	<!-- Menu bar -->
 	<div class="flex border-b p-2">
 		<LayoutMenu />
@@ -211,7 +215,7 @@
 							<CardStackPlus />
 						</Button>
 					</Popover.Trigger>
-					<Popover.Content class="mx-2 max-h-[600px] w-[200px] p-0">
+					<Popover.Content class="mx-2 max-h-150 w-50 p-0">
 						<Command.Root>
 							<Command.Input placeholder="Search widgets..." />
 							<Command.List>
@@ -256,8 +260,25 @@
 	</div>
 
 	<!-- Widget canvas -->
-	<WidgetCanvas {gridXSize} {gridYSize} />
+	<div class="flex-1 overflow-hidden">
+		<WidgetCanvas {gridXSize} {gridYSize} />
+	</div>
+	<div class="logo-box">
+		<div class="logo-scroller">
+			{#each [false, true] as hidden}
+				{#each Object.values(logos) as logo}
+					<img
+						aria-hidden={hidden}
+						class="logo"
+						src={logo.default}
+						alt={logo.default.replace('_', ' ').replace('.png', '').split('/').pop()}
+					/>
+				{/each}
+			{/each}
+		</div>
+	</div>
 </div>
+
 <Dialog.Root bind:open={openSettings}>
 	<Dialog.Content class="w-[80vw]">
 		<Dialog.Header>
@@ -266,3 +287,39 @@
 		<SettingsForm layout={activeLayout} />
 	</Dialog.Content>
 </Dialog.Root>
+
+<style>
+	@keyframes scroll-left {
+		0% {
+			transform: translateX(0);
+		}
+		100% {
+			/* Shifts exactly by one group width + the layout gap */
+			transform: translateX(-50%);
+		}
+	}
+
+	.logo-box {
+		height: 2.6rem;
+		overflow-x: hidden;
+		min-width: 100%;
+		/* Modern Edge Fade Gradient (Optional) */
+		mask-image: linear-gradient(to right, transparent, #fff 15%, #fff 85%, transparent);
+		-webkit-mask-image: linear-gradient(to right, transparent, #fff 15%, #fff 85%, transparent);
+	}
+
+	.logo-scroller {
+		padding-top: 0.2rem;
+		display: flex;
+		align-items: center;
+		width: max-content;
+		animation: scroll-left 20s linear infinite;
+	}
+
+	.logo {
+		height: 1.75rem;
+
+		flex-shrink: 0;
+		padding-right: 50px;
+	}
+</style>

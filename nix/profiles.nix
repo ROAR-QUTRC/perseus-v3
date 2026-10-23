@@ -11,12 +11,15 @@
       inherit pkgs config lib;
     };
 
-    prod.module = import ./profiles/prod.nix {
-      inherit pkgs config lib;
+    prod = {
+      extends = [ "webui" ]; # give production access to web-ui profile
+      module = import ./profiles/prod.nix {
+        inherit pkgs config lib;
+      };
     };
 
-    web-ui.module = import ./profiles/web-ui.nix {
-      inherit pkgs config;
+    webui.module = import ./profiles/webui.nix {
+      inherit pkgs config lib;
     };
 
     cicd = import ./profiles/cicd.nix {

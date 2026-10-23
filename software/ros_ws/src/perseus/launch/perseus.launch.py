@@ -4,6 +4,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
 )
+from launch_ros.actions import Node
 from launch.substitutions import (
     PathJoinSubstitution,
     LaunchConfiguration,
@@ -161,4 +162,18 @@ def generate_launch_description():
         OpaqueFunction(function=launch_payload),
     ]
 
-    return LaunchDescription(arguments + launch_files)
+    # NODES
+    rcb_driver = Node(
+        package="can_if",
+        executable="rcb_driver",
+        output="screen",
+        parameters=[
+            {
+                "can_bus": can_bus,
+            }
+        ],
+    )
+
+    nodes = [rcb_driver]
+
+    return LaunchDescription(arguments + launch_files + nodes)

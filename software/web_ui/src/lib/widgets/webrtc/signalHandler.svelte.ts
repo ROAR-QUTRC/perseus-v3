@@ -1,3 +1,5 @@
+import type { DeviceType } from "../videoCanvas.svelte";
+
 export interface PeerType {
   sessionId: string;
   name: string;
@@ -33,6 +35,38 @@ interface SignalMessageType {
   ice?: any;
   sdp?: any;
 }
+
+export const getPeerIdString = (device: DeviceType) =>
+  `${device.hostname}:${device.dev}`;
+
+export const getPeerConnection = (device?: DeviceType) => {
+  if (!device) return null;
+  return peerConnections[getPeerIdString(device)];
+};
+
+export const initPeerConnection = (device: DeviceType) => {
+  const deviceKey = getPeerIdString(device);
+  if (!peerConnections[deviceKey]) {
+    peerConnections[deviceKey] = {
+      sessionId: "",
+      name: device.name || device.dev,
+      online: false,
+      connection: null,
+      track: null,
+    };
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      newPeerConfigured();
+    }
+  }
+};
+
+export const closePeerConnection = (device: DeviceType) => {
+  const deviceKey = getPeerIdString(device);
+  if (peerConnections[deviceKey]) {
+    peerConnections[deviceKey].connection?.close();
+    delete peerConnections[deviceKey];
+  }
+};
 
 export const connectToSignallingServer = (ip: string) => {
   ws = new WebSocket(`ws://${ip}:${8443}`);
@@ -204,7 +238,6 @@ export const newPeerConfigured = () => {
 
 const wsSend = (data: SignalMessageType) => {
   if (!ws) return;
-  // console.log('Sending:', data);
   ws.send(JSON.stringify(data));
 };
 

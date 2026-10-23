@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	// Dynamically import all widgets
-	const widgets = import.meta.glob('../lib/widgets/**.svelte', { eager: true });
+	const widgets = import.meta.glob('$lib/widgets/**.svelte', { eager: true });
 	availableWidgets.length = 0;
 	for (const widget in widgets) {
 		availableWidgets.push({
@@ -22,7 +22,6 @@
 	import { availableWidgets } from '$lib/scripts/state.svelte';
 	import { localStore } from '$lib/scripts/localStore.svelte';
 	import { connectRos, disconnectRos, getRosConnection } from '$lib/scripts/rosBridge.svelte';
-	import * as ROSLIB from 'roslib';
 
 	let { children } = $props();
 
