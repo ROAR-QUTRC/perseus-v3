@@ -28,32 +28,32 @@
         },
         "fab_line_width": 0.1,
         "fab_text_italic": false,
-        "fab_text_size_h": 1.0,
-        "fab_text_size_v": 1.0,
+        "fab_text_size_h": 0.7,
+        "fab_text_size_v": 0.7,
         "fab_text_thickness": 0.15,
         "fab_text_upright": false,
         "other_line_width": 0.1,
         "other_text_italic": false,
-        "other_text_size_h": 1.0,
-        "other_text_size_v": 1.0,
+        "other_text_size_h": 0.7,
+        "other_text_size_v": 0.7,
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 1.4,
-          "height": 2.2,
-          "width": 2.2
+          "drill": 0.6,
+          "height": 2.4,
+          "width": 1.6
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
-        "silk_text_size_h": 1.0,
-        "silk_text_size_v": 1.0,
-        "silk_text_thickness": 0.1,
+        "silk_text_size_h": 0.7,
+        "silk_text_size_v": 0.7,
+        "silk_text_thickness": 0.15,
         "silk_text_upright": false,
         "zones": {
-          "border_display_style": 2,
+          "border_display_style": 0,
           "border_hatch_pitch": 0.5,
-          "corner_radius": 0.5,
-          "corner_smoothing": 1,
+          "corner_radius": 0.0,
+          "corner_smoothing": 0,
           "fill_mode": 0,
           "hatch_gap": 1.5,
           "hatch_orientation": 0.0,
@@ -576,6 +576,16 @@
         "via_diameter": 0.6,
         "via_drill": 0.3,
         "wire_width": 6
+      },
+      {
+        "clearance": 0.2,
+        "name": "CAN_DIF",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 1.0,
+        "tuning_profile": "",
+        "wire_width": 39
       }
     ],
     "meta": {
@@ -590,7 +600,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "../../../Documents/2026/hardware_projects/QUTRC/ExDriver/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "../../../Downloads/ENC_V1R1.step",
@@ -791,7 +801,7 @@
         "uuid": "fc286157-4263-4a46-ad05-98b3354aa28a"
       }
     ],
-    "used_designators": "FID1-3,C25-26,D1-2,#PWR68-77,R16-21,J1,J4,J10-11,J14-20,U7-8",
+    "used_designators": "FID1-3,Q1-5,U7-8,J1,J4,J10-11,J14-20,R16-38,JP7-8,TP1-6,C25-26,D1-2,D6-18,#PWR1-4,#PWR68-93",
     "variants": []
   },
   "sheets": [
@@ -833,7 +843,7 @@
     ]
   ],
   "text_variables": {
-    "DRAWN_BY": "Zeph Hardie, Maurice Blake, James Nichol",
+    "DRAWN_BY": "Maurice Blake, James Nichol, Matt Cugliari, Zeph Hardie",
     "PROJECT": "Perseus Rover",
     "SUBSYSTEM": "Excavation & Construction"
   },
