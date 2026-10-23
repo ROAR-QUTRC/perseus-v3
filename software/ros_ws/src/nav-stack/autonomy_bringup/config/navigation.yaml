@@ -117,6 +117,22 @@ global_traversability:
     log_odds_min: -2.0
     log_odds_max: 3.5
     log_odds_occupied: 0.5
+    # SHOCK GATE. A jolt or drop motion-smears the raw scans and knocks the LIO pose about
+    # until it settles, so the 1 s window sees the same floor at several heights/tilts and
+    # the 0.065 height test above calls the ground an obstacle -- which this map then
+    # remembers. An IMU spike instead empties the scan buffer and ignores scans from
+    # shock_lead_s before the spike to shock_holdoff_s after the last one. Every shock logs
+    # "Shock (tilt rate ..., specific force ...)" with the values that tripped it: if it
+    # fires on ordinary rough driving raise the thresholds, if a jolt still leaves ground
+    # obstacles lower them or lengthen the hold-off. imu_topic "" disables it.
+    imu_topic: "/livox/imu/corrected"
+    # Roll/pitch rate in base_footprint; yaw is excluded so spinning in place never trips it.
+    shock_tilt_rate_rad_s: 1.0
+    # |specific force| off its running ~1 g, as a fraction: unit-free, 0.5 = <0.5 g or >1.5 g.
+    shock_accel_ratio: 0.5
+    # Keep >= point_buffer_s so no window straddles the shock, plus LIO settling time.
+    shock_holdoff_s: 1.5
+    shock_lead_s: 0.2
     # false: never-observed cells publish as -1, not cost 100. One of three settings that
     # decide whether the rover may cross ground the lidar has never seen; the others are
     # allow_unknown and the costmaps' track_unknown_space. Search UNMAPPED for all three.
@@ -127,8 +143,12 @@ global_traversability:
     # planned path ~0.07 m from scraping a rock beside it, less one 0.1 m cell -- in sim it
     # side-swiped and then reversed onto boulder_3. 0.6 is half-width plus ~0.17 m. Fore/aft
     # (0.9 / 0.78 m) is handled by the local costmap's footprint, not this circle.
+    # The band from robot_radius_m to inflation_radius_m fades 99 -> ~36 at +0.1 m, ~13 at
+    # +0.2 m, ~5 at +0.3 m. IDENTICAL in both nodes on purpose: the local costmap takes the
+    # max of the two, so a much slower decay here (0.5 left the whole band near lethal) or a
+    # cliff there (70) makes DWB see something the planner did not. Change both together.
     robot_radius_m: 0.4
-    inflation_radius_m: 1.0 #
+    inflation_radius_m: 1.0
     cost_scaling_factor: 0.5
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
@@ -263,8 +283,8 @@ local_traversability:
     # a cell 0.41-0.43 m from an obstacle is not lethal, so the planner can pass a wheel's
     # width from one. Fore/aft is the footprint's job, not this circle.
     robot_radius_m: 0.4
-    inflation_radius_m: 1.0
-    cost_scaling_factor: 70.0
+    inflation_radius_m: 0.8
+    cost_scaling_factor: 10.0
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================
@@ -487,7 +507,7 @@ controller_server:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # 0.28 = 0.4 * 0.7, a deliberate 30% reduction of autonomous cruise speed.
       # safe_speed.yaml is untouched, so teleop still has the full 0.8 m/s.
-      desired_linear_vel: 0.28
+      desired_linear_vel: 0.3
       # THE CORNERING TRADE. Long lookahead puts the carrot past a corner and asks for
       # gentler curvature, so it cuts corners; short lookahead tracks corners but weaves on
       # straights. Raise these if it weaves; lower them if it cuts.
@@ -575,7 +595,7 @@ controller_server:
       # 0.6 ceiling and safe_speed.yaml's 1.0.
       max_vel_x: 0.2
       max_vel_y: 0.0
-      max_vel_theta: 0.25
+      max_vel_theta: 0.8
       max_speed_xy: 0.28
       # STALL: both floors sit above the ESCs' 0.05 m/s and 0.14 rad/s.
       min_speed_xy: 0.06
@@ -585,10 +605,10 @@ controller_server:
       # Smoothness: 1.0 rad/s^2 caps the angular-velocity window DWB samples each 0.1 s cycle
       # to +-0.1 rad/s around the current rate. At 3.2 it could jump full-left to full-right
       # between cycles, which is what made it weave on straight legs.
-      acc_lim_theta: 0.5
+      acc_lim_theta: 1.0
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -0.5
+      decel_lim_theta: -1.0
       # vy_samples 1 because there is no lateral motion to sample.
       vx_samples: 10
       vy_samples: 1
@@ -631,15 +651,15 @@ controller_server:
       # pivoting in place (vx 0), which is what we want on sand where it slips and cannot
       # turn in time. 0.4 once stalled a goal 1.4 m from the north wall (see above); if that
       # recurs, drop back toward 0.2.
-      ObstacleFootprint.scale: 0.15
+      ObstacleFootprint.scale: 0.2
       PathAlign.scale: 60.0 # less aggressive in path alignment
       # Nav2's default is 0.325. At 0.1 the alignment point sat almost on the axle, so
       # tiny heading errors scored as nothing until the rover was already off-line.
-      PathAlign.forward_point_distance: 0.325
+      PathAlign.forward_point_distance: 0.5
       GoalAlign.scale: 4.0
       GoalAlign.forward_point_distance: 0.325
       PathDist.scale: 48.0
-      GoalDist.scale: 24.0
+      GoalDist.scale: 10.0
       RotateToGoal.scale: 32.0
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
@@ -830,8 +850,8 @@ velocity_smoother:
     # one value to change if the reduction ever needs undoing in a hurry. Theta was 0.28,
     # which held every pivot and arc to ~16 deg/s; 0.6 leaves headroom over the controllers'
     # 0.5 so it does not clamp them, and is still under safe_speed.yaml's 1.0.
-    max_velocity: [0.28, 0.0, 0.6]
-    min_velocity: [-0.28, 0.0, -0.6]
+    max_velocity: [0.4, 0.0, 0.8]
+    min_velocity: [-0.4, 0.0, -0.8]
     # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
     max_accel: [1.0, 0.0, 3.2]
     max_decel: [-1.0, 0.0, -3.2]

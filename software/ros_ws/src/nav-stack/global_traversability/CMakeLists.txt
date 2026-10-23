@@ -58,6 +58,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     sensor_msgs
     nav_msgs
     geometry_msgs
+    nav2_msgs
     grid_map_core
     pcl_conversions
     tf2

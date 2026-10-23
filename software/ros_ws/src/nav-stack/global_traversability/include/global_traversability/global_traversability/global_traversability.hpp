@@ -10,8 +10,11 @@
 #include <deque>
 #include <grid_map_core/grid_map_core.hpp>
 #include <local_traversability/local_traversability/terrain_analysis.hpp>
+#include <nav2_msgs/srv/clear_entire_costmap.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <optional>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <string>
 #include <vector>
@@ -46,6 +49,15 @@ namespace global_traversability
     /// the lidar looks at that spot, and one the rover drove away from stays on the
     /// map for the planner no matter how long ago it was seen.
     ///
+    /// DEAF THROUGH A SHOCK. "Drift-free within the window" stops being true when the
+    /// rover is jolted or drops off something: the raw scans are motion-smeared, the
+    /// LIO pose lags and then settles, and scans a few hundred ms apart see the same
+    /// floor at different heights and tilts -- which the height test reads as a step.
+    /// local_traversability forgets that in a second; this grid would remember it. So
+    /// an IMU spike (tilt rate, or specific force off its running 1 g) empties the
+    /// scan buffer and ignores scans until shock_holdoff_s after the last spike. The
+    /// map just stops learning for that moment, which costs nothing.
+    ///
     /// The grid starts at initial_map_length_m around the first robot pose and grows
     /// (grid_map::GridMap::extendToInclude) whenever the scan window reaches past its
     /// edge, so it never needs arena bounds up front.
@@ -65,6 +77,9 @@ namespace global_traversability
         /// @brief Namespace debug layers are published under, one
         /// nav_msgs/OccupancyGrid each.
         static inline const std::string DEFAULT_LAYERS_TOPIC_PREFIX = "layers/";
+
+        /// @brief Default topic the shock detector reads. Empty disables it.
+        static inline const std::string DEFAULT_IMU_TOPIC = "/livox/imu/corrected";
 
         /// @brief Default frame the persistent grid is expressed in.
         /// @details odom, not map: BIEVR-LIO's world frame is odom and nothing
@@ -145,6 +160,39 @@ namespace global_traversability
         ///        as unknown.
         static constexpr bool DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE = false;
 
+        /// @name Shock detection
+        /// @{
+        /// @brief Default roll/pitch rate, in the robot frame, above which a shock is
+        ///        declared, in rad/s.
+        /// @details Yaw is excluded so turning on the spot never trips it. Climbing a
+        /// rock at drive speed stays well under 1 rad/s; a jolt spikes far past it.
+        static constexpr double DEFAULT_SHOCK_TILT_RATE_RAD_S = 1.0;
+        /// @brief Default fractional deviation of |specific force| from its running
+        ///        mean (~1 g at rest) above which a shock is declared.
+        /// @details A ratio, so it works whether the IMU reports in g or m/s^2. 0.5
+        /// trips on < 0.5 g (falling) or > 1.5 g (landing).
+        static constexpr double DEFAULT_SHOCK_ACCEL_RATIO = 0.5;
+        /// @brief Default time after the last shock sample during which scans are
+        ///        ignored, in seconds.
+        /// @details At least point_buffer_s, so no window straddles the shock, plus
+        /// time for LIO's pose to settle after landing.
+        static constexpr double DEFAULT_SHOCK_HOLDOFF_S = 1.5;
+        /// @brief Default time before a shock from which scans are also discarded, in
+        ///        seconds.
+        /// @details A scan is stamped at the start of its ~0.1 s sweep, so one that
+        /// began just before the spike is already smeared by it.
+        static constexpr double DEFAULT_SHOCK_LEAD_S = 0.2;
+        /// @brief Time constant of the running |specific force| reference, in seconds.
+        static constexpr double ACCEL_REFERENCE_TAU_S = 2.0;
+        /// @brief Time constant of the low-pass on |specific force| before it is
+        ///        compared, in seconds. Drops single-sample vibration spikes.
+        static constexpr double ACCEL_FILTER_TAU_S = 0.02;
+        /// @}
+
+        /// @brief Default radius, around the rover, that the clear_region service
+        ///        forgets, in metres.
+        static constexpr double DEFAULT_CLEAR_RADIUS_M = 2.5;
+
         /// @brief Default robot radius used as the inscribed (always-lethal)
         ///        inflation distance, in metres.
         static constexpr double DEFAULT_ROBOT_RADIUS_M = 0.5;
@@ -161,6 +209,15 @@ namespace global_traversability
         /// @brief Transforms, filters and buffers an incoming scan.
         /// @param msg Incoming raw lidar scan, in the sensor's own frame.
         void _pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+
+        /// @brief Watches for a shock and, on one, empties the scan buffer and starts
+        ///        the hold-off.
+        /// @param msg Incoming IMU sample.
+        void _imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+        /// @brief Whether a scan stamped @p stamp may have been taken during a shock.
+        /// @param stamp Scan start time.
+        bool _in_shock(const rclcpp::Time& stamp) const;
 
         /// @brief Drops buffered scans older than _point_buffer_s.
         /// @param now Time the age is measured back from.
@@ -179,6 +236,19 @@ namespace global_traversability
         /// @brief Adds each observed window cell's verdict to the persistent log-odds.
         void _fuse_window();
 
+        /// @brief Forgets the map within clear_radius_m of the rover.
+        /// @details A fallback for false obstacles (dust) the map has remembered: this
+        /// grid only un-learns a cell when the lidar looks at it again, so a cloud that
+        /// has since settled can wall the rover in until then. Cells go back to "never
+        /// observed", so real obstacles inside the radius are re-learnt from the next
+        /// scans. The request carries nothing; nav2_msgs/ClearEntireCostmap is used only
+        /// because the nav2 behaviour tree can call that type by service name.
+        /// @param request Unused.
+        /// @param response Unused.
+        void _clear_region(
+            const std::shared_ptr<nav2_msgs::srv::ClearEntireCostmap::Request> request,
+            std::shared_ptr<nav2_msgs::srv::ClearEntireCostmap::Response> response);
+
         /// @brief Derives obstacle/border from the log-odds, inflates, and publishes
         ///        the costmap and any subscribed debug layers.
         void _publish();
@@ -193,10 +263,12 @@ namespace global_traversability
         };
 
         std::string _pointcloud_topic{DEFAULT_POINTCLOUD_TOPIC};
+        std::string _imu_topic{DEFAULT_IMU_TOPIC};
         std::string _global_frame{DEFAULT_GLOBAL_FRAME};
         std::string _robot_frame{DEFAULT_ROBOT_FRAME};
 
         double _resolution_m{DEFAULT_RESOLUTION_M};
+        double _clear_radius_m{DEFAULT_CLEAR_RADIUS_M};
         double _initial_map_length_m{DEFAULT_INITIAL_MAP_LENGTH_M};
 
         double _point_buffer_s{DEFAULT_POINT_BUFFER_S};
@@ -230,6 +302,20 @@ namespace global_traversability
         double _log_odds_occupied{DEFAULT_LOG_ODDS_OCCUPIED};
         bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
 
+        double _shock_tilt_rate_rad_s{DEFAULT_SHOCK_TILT_RATE_RAD_S};
+        double _shock_accel_ratio{DEFAULT_SHOCK_ACCEL_RATIO};
+        double _shock_holdoff_s{DEFAULT_SHOCK_HOLDOFF_S};
+        double _shock_lead_s{DEFAULT_SHOCK_LEAD_S};
+        /// @brief Rotation from the IMU frame into _robot_frame, looked up once.
+        std::optional<Eigen::Matrix3d> _imu_to_robot;
+        /// @brief Running mean of |specific force|, i.e. what 1 g reads as.
+        std::optional<double> _accel_reference;
+        /// @brief Low-passed |specific force|.
+        double _accel_filtered{0.0};
+        std::optional<rclcpp::Time> _last_imu_stamp;
+        /// @brief Stamp of the most recent shock sample, if there has been one.
+        std::optional<rclcpp::Time> _last_shock_stamp;
+
         /// @brief The scan window: rebuilt from scratch on every update, never
         ///        carried over.
         grid_map::GridMap _window;
@@ -244,8 +330,12 @@ namespace global_traversability
 
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr
             _pointcloud_subscription;
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr _imu_subscription;
         rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr _costmap_publisher;
         std::vector<LayerPublisher> _layer_publishers;
+        rclcpp::Service<nav2_msgs::srv::ClearEntireCostmap>::SharedPtr _clear_service;
+        /// @brief One-shot publish scheduled by clear_region.
+        rclcpp::TimerBase::SharedPtr _publish_once_timer;
         rclcpp::TimerBase::SharedPtr _update_timer;
         rclcpp::TimerBase::SharedPtr _publish_timer;
     };

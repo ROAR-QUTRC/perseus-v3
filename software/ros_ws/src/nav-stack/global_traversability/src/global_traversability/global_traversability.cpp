@@ -87,6 +87,16 @@ namespace global_traversability
                 std::bind(&GlobalTraversability::_pointcloud_callback, this,
                           std::placeholders::_1));
 
+        // Sensor-data QoS like the scan's. Left unsubscribed when imu_topic is empty,
+        // which turns shock detection off entirely.
+        if (!_imu_topic.empty())
+        {
+            _imu_subscription = this->create_subscription<sensor_msgs::msg::Imu>(
+                _imu_topic, rclcpp::SensorDataQoS(),
+                std::bind(&GlobalTraversability::_imu_callback, this,
+                          std::placeholders::_1));
+        }
+
         // Transient local so nav2's static layer (or rviz, joining late) picks up the
         // most recent costmap immediately rather than waiting for the next publish.
         const auto latched_qos = rclcpp::QoS(1).transient_local();
@@ -121,6 +131,11 @@ namespace global_traversability
             return rclcpp::Duration(std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::duration<double>(seconds)));
         };
+        _clear_service = this->create_service<nav2_msgs::srv::ClearEntireCostmap>(
+            "~/clear_region",
+            std::bind(&GlobalTraversability::_clear_region, this,
+                      std::placeholders::_1, std::placeholders::_2));
+
         _update_timer = rclcpp::create_timer(
             this, this->get_clock(),
             to_duration(this->get_parameter("update_period_s").as_double()),
@@ -135,10 +150,13 @@ namespace global_traversability
     {
         _pointcloud_topic =
             this->declare_parameter("pointcloud_topic", DEFAULT_POINTCLOUD_TOPIC);
+        _imu_topic = this->declare_parameter("imu_topic", DEFAULT_IMU_TOPIC);
         _global_frame = this->declare_parameter("global_frame", DEFAULT_GLOBAL_FRAME);
         _robot_frame = this->declare_parameter("robot_frame", DEFAULT_ROBOT_FRAME);
 
         _resolution_m = this->declare_parameter("resolution_m", DEFAULT_RESOLUTION_M);
+        _clear_radius_m =
+            this->declare_parameter("clear_radius_m", DEFAULT_CLEAR_RADIUS_M);
         _initial_map_length_m = this->declare_parameter("initial_map_length_m",
                                                         DEFAULT_INITIAL_MAP_LENGTH_M);
 
@@ -180,6 +198,14 @@ namespace global_traversability
         _treat_unknown_as_obstacle = this->declare_parameter(
             "treat_unknown_as_obstacle", DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE);
 
+        _shock_tilt_rate_rad_s = this->declare_parameter(
+            "shock_tilt_rate_rad_s", DEFAULT_SHOCK_TILT_RATE_RAD_S);
+        _shock_accel_ratio =
+            this->declare_parameter("shock_accel_ratio", DEFAULT_SHOCK_ACCEL_RATIO);
+        _shock_holdoff_s =
+            this->declare_parameter("shock_holdoff_s", DEFAULT_SHOCK_HOLDOFF_S);
+        _shock_lead_s = this->declare_parameter("shock_lead_s", DEFAULT_SHOCK_LEAD_S);
+
         _inflation.robot_radius_m =
             this->declare_parameter("robot_radius_m", DEFAULT_ROBOT_RADIUS_M);
         _inflation.inflation_radius_m =
@@ -191,9 +217,104 @@ namespace global_traversability
         this->declare_parameter("publish_period_s", DEFAULT_PUBLISH_PERIOD_S);
     }
 
+    void GlobalTraversability::_imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
+    {
+        const rclcpp::Time stamp(msg->header.stamp);
+
+        // Static, so looked up once. Until it resolves only the accel test runs: the
+        // magnitude of specific force does not depend on the frame it is measured in.
+        if (!_imu_to_robot)
+        {
+            try
+            {
+                const auto transform = _tf_buffer->lookupTransform(
+                    _robot_frame, msg->header.frame_id, tf2::TimePointZero);
+                _imu_to_robot = tf2::transformToEigen(transform).rotation();
+            }
+            catch (const tf2::TransformException& exception)
+            {
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(),
+                                     WARN_THROTTLE_MS,
+                                     "Shock detection without tilt rate: %s",
+                                     exception.what());
+            }
+        }
+
+        double tilt_rate = 0.0;
+        if (_imu_to_robot)
+        {
+            const Eigen::Vector3d rate =
+                *_imu_to_robot * Eigen::Vector3d(msg->angular_velocity.x,
+                                                 msg->angular_velocity.y,
+                                                 msg->angular_velocity.z);
+            tilt_rate = rate.head<2>().norm();
+        }
+
+        const double accel = Eigen::Vector3d(msg->linear_acceleration.x,
+                                             msg->linear_acceleration.y,
+                                             msg->linear_acceleration.z)
+                                 .norm();
+        // Seconds since the previous sample, bounded so a gap or a clock jump
+        // restarts the filters instead of feeding them a huge or negative step.
+        const double dt =
+            _last_imu_stamp ? std::clamp((stamp - *_last_imu_stamp).seconds(), 0.0, 0.1)
+                            : 0.0;
+        _last_imu_stamp = stamp;
+        if (!_accel_reference || dt <= 0.0)
+        {
+            _accel_reference = _accel_reference.value_or(accel);
+            _accel_filtered = accel;
+            return;
+        }
+        _accel_filtered += (accel - _accel_filtered) * (dt / (ACCEL_FILTER_TAU_S + dt));
+        const double accel_deviation =
+            *_accel_reference > 0.0
+                ? std::abs(_accel_filtered / *_accel_reference - 1.0)
+                : 0.0;
+
+        const bool shock = tilt_rate > _shock_tilt_rate_rad_s ||
+                           accel_deviation > _shock_accel_ratio;
+        if (!shock)
+        {
+            // Learnt only from calm samples, so the reference stays ~1 g instead of
+            // being dragged by the very spikes it is there to judge.
+            *_accel_reference +=
+                (_accel_filtered - *_accel_reference) * (dt / (ACCEL_REFERENCE_TAU_S + dt));
+            return;
+        }
+
+        if (!_last_shock_stamp || (stamp - *_last_shock_stamp).seconds() > _shock_holdoff_s)
+        {
+            RCLCPP_INFO(this->get_logger(),
+                        "Shock (tilt rate %.2f rad/s, specific force %.0f%% off 1 g): "
+                        "ignoring scans for %.1f s",
+                        tilt_rate, accel_deviation * 100.0, _shock_holdoff_s);
+        }
+        _last_shock_stamp = stamp;
+        // Everything already buffered is at most point_buffer_s old, and the window
+        // it would build now straddles the shock. Throwing it all away is simpler
+        // than picking out the clean scans, and costs one second of map updates.
+        _cloud_buffer.clear();
+    }
+
+    bool GlobalTraversability::_in_shock(const rclcpp::Time& stamp) const
+    {
+        if (!_last_shock_stamp)
+        {
+            return false;
+        }
+        const double since_shock = (stamp - *_last_shock_stamp).seconds();
+        return since_shock >= -_shock_lead_s && since_shock <= _shock_holdoff_s;
+    }
+
     void GlobalTraversability::_pointcloud_callback(
         const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
+        if (_in_shock(rclcpp::Time(msg->header.stamp)))
+        {
+            return;
+        }
+
         // Resolved on arrival: TF for this scan's own stamp exists now and may have
         // aged out of the buffer by the time the scan is used.
         geometry_msgs::msg::TransformStamped transform;
@@ -256,7 +377,9 @@ namespace global_traversability
         // persistent grid is still exactly as true as it was, it just stops learning.
         // The publish timer keeps republishing it.
         _expire_clouds(this->now());
-        if (_cloud_buffer.empty())
+        // The buffer is emptied on a shock, but a scan stamped just before the spike
+        // can still arrive after it; skip the whole hold-off rather than fuse it.
+        if (_cloud_buffer.empty() || _in_shock(this->now()))
         {
             return;
         }
@@ -416,6 +539,62 @@ namespace global_traversability
             elevation(index(0), index(1)) =
                 window_elevation(window_index(0), window_index(1));
         }
+    }
+
+    void GlobalTraversability::_clear_region(
+        const std::shared_ptr<nav2_msgs::srv::ClearEntireCostmap::Request>,
+        std::shared_ptr<nav2_msgs::srv::ClearEntireCostmap::Response>)
+    {
+        if (!_map_initialised)
+        {
+            RCLCPP_WARN(this->get_logger(), "clear_region: no map yet, nothing to clear");
+            return;
+        }
+
+        geometry_msgs::msg::TransformStamped robot_transform;
+        try
+        {
+            robot_transform = _tf_buffer->lookupTransform(_global_frame, _robot_frame,
+                                                          tf2::TimePointZero);
+        }
+        catch (const tf2::TransformException& exception)
+        {
+            RCLCPP_WARN(this->get_logger(), "clear_region: no robot pose: %s",
+                        exception.what());
+            return;
+        }
+
+        const grid_map::Position center(robot_transform.transform.translation.x,
+                                        robot_transform.transform.translation.y);
+        Eigen::MatrixXf& log_odds = _map["log_odds"];
+        Eigen::MatrixXf& elevation = _map["elevation"];
+        int cleared = 0;
+        for (grid_map::CircleIterator it(_map, center, _clear_radius_m); !it.isPastEnd();
+             ++it)
+        {
+            const grid_map::Index index(*it);
+            log_odds(index(0), index(1)) = NaN;
+            elevation(index(0), index(1)) = NaN;
+            ++cleared;
+        }
+        // The buffered scans are at most point_buffer_s old, but they are what drew the
+        // cells just forgotten; fusing them on the next update would put them straight
+        // back.
+        _cloud_buffer.clear();
+        RCLCPP_WARN(this->get_logger(),
+                    "clear_region: forgot %d cells within %.1f m of the rover", cleared,
+                    _clear_radius_m);
+        // Publish soon rather than at the next timer tick, so nav2's follow-up clear
+        // re-reads the cleaned grid. From a one-shot timer and not here: the publish
+        // inflates the whole arena-sized map, and the BT's service node gives up on a
+        // reply after tens of milliseconds.
+        _publish_once_timer = this->create_wall_timer(
+            std::chrono::milliseconds(1),
+            [this]()
+            {
+                _publish_once_timer->cancel();
+                _publish();
+            });
     }
 
     void GlobalTraversability::_publish()

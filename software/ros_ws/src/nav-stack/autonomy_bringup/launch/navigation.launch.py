@@ -34,7 +34,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
@@ -95,7 +95,16 @@ def generate_launch_description():
             output="screen",
         )
 
+    # Last-resort recovery for a footprint already on a lethal cell, where BackUp and Spin
+    # both refuse to move. Called from the behaviour tree as the service escape/reverse.
+    escape_reverse = ExecuteProcess(
+        cmd=["python3", os.path.join(share, "scripts", "escape_reverse.py")],
+        name="escape_reverse",
+        output="screen",
+    )
+
     nodes = [
+        escape_reverse,
         Node(
             package="global_traversability",
             executable="global_traversability",
