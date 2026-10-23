@@ -92,7 +92,7 @@
 
 <div class="flex w-full flex-wrap">
 	{#each Object.keys(busState) as bus}
-		<div class="m-2 flex min-w-[145px] flex-col justify-center rounded-lg border p-2">
+		<div class="m-2 flex min-w-36.25 flex-col justify-center rounded-lg border p-2">
 			<p class="mb-2 text-center">{sentenceCase(bus)}: {busStatus[busState[bus].status]}</p>
 
 			<AlertDialog.Root bind:open={busState[bus].openAlert}>
