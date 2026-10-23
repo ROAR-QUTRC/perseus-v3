@@ -35,8 +35,40 @@
               </Fallback>
             </Sequence>
             <Sequence>
-              <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+              <!-- WouldAPlannerRecoveryHelp says no to START_OCCUPIED (205) and GOAL_OCCUPIED
+                   (206), so the tree used to fail the goal within ~30 ms of a "Start occupied"
+                   and never tried any recovery. Both are exactly what clearing remembered dust
+                   can fix, so accept them here too. ScriptCondition is built into BT.CPP. -->
+              <Fallback>
+                <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+                <ScriptCondition code="compute_path_error_code == 205 || compute_path_error_code == 206"/>
+              </Fallback>
+              <!-- Forget the terrain map around the rover FIRST. global_traversability
+                   remembers what it has seen, so a false obstacle (dust) that has since
+                   settled stays on the map until the lidar looks at that spot again, and
+                   clearing only nav2's copy just re-reads it. Failure here is tolerated:
+                   the nav2 clear below still runs. (ClearEntireCostmap is only the vehicle:
+                   clear_region serves its service type.) -->
+              <Fallback>
+                <ClearEntireCostmap name="ClearTerrainMemory" service_name="global_traversability/clear_region"/>
+                <AlwaysSuccess/>
+              </Fallback>
+              <!-- clear_region republishes /costmap a moment after it replies, so let that land
+                   before nav2's own costmap is cleared and re-read. -->
+              <Wait wait_duration="1.5"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+              <!-- Start occupied only: the rover is standing on cells the planner refuses to
+                   start from. If it was dust, the clear above already fixed it and the retry
+                   succeeds. If it is real, back out blind (escape_reverse.py, 0.3 m) so the
+                   retry starts from clear ground. Never for a goal-occupied failure. -->
+              <Fallback>
+                <Sequence>
+                  <ScriptCondition code="compute_path_error_code == 205"/>
+                  <ClearEntireCostmap name="PlannerEscapeReverse" service_name="escape/reverse"/>
+                  <Wait wait_duration="3.0"/>
+                </Sequence>
+                <AlwaysSuccess/>
+              </Fallback>
             </Sequence>
           </RecoveryNode>
         </RateController>
@@ -63,6 +95,20 @@
                blocked rear still refuses and the next recovery runs instead. -->
           <RoundRobin name="RecoveryActions">
             <BackUp backup_dist="0.5" backup_speed="0.15" error_code_id="{backup_code_id}"/>
+            <!-- When BackUp refuses with "Collision Ahead" the footprint is already on a lethal
+                 cell, and every checked recovery refuses for the same reason. RoundRobin moves
+                 on to the next child when one fails, so this runs right after it. It reverses
+                 a short fixed distance WITHOUT checking the costmap (escape_reverse.py). No
+                 costmap clear after it: the terrain nodes re-derive the same cells, so a clear
+                 changes nothing, and moving off them is what lets the next attempt work. The
+                 ClearEntireCostmap node is only the vehicle: escape/reverse serves its service
+                 type. Blind, because nothing senses behind the rover. -->
+            <Sequence name="EscapeActions">
+              <ClearEntireCostmap name="EscapeReverse" service_name="escape/reverse"/>
+              <!-- escape/reverse answers at once and moves on its own thread (a BT service
+                   call is abandoned after tens of ms), so wait out the ~2.3 s reverse here. -->
+              <Wait wait_duration="3.0"/>
+            </Sequence>
             <Sequence name="ClearingActions">
               <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
