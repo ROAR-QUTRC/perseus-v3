@@ -1,10 +1,5 @@
 #!/bin/sh
 
-if [ "$EUID" -eq 0 ]; then
-  echo "Error: Please run this script as a non-root user"
-  exit 1
-fi
-
 if [ -z "$1" ]; then
   echo "Error: Please provide a component name"
   echo "Usage: ./create-component.sh ComponentName"

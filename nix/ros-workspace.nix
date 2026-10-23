@@ -11,7 +11,7 @@ rec {
       bashInteractive
       can-utils
       glibcLocales
-      # groot2
+      groot2
       # nixgl-script
       # nixcuda-script
       yaml-cpp
