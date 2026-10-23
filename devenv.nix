@@ -2,8 +2,7 @@
 {
   # Access to inputs from devenv.yaml
   pkgs,
-  lib,
-  # config,
+  config,
   # nixpkgs,
   nix-ros-overlay,
   nix-ros-workspace,
@@ -20,8 +19,6 @@ let
   #   enableIntelX86Extensions = isIntelX86Platform;
   # };
   rosDistro = "jazzy";
-  # packagesFromDirectoryRecursive returns a deep set and this converts to a list of derivations
-  flattenDerivationSet = set: (lib.collect lib.isDerivation set);
 in
 {
   name = "Perseus-v3";
@@ -35,8 +32,10 @@ in
       ;
   };
 
-  # --- Packages ---
+  # only include scripts and examples by default
   packages = with pkgs; [ ] ++ flattenDerivationSet examples ++ flattenDerivationSet scripts;
+  # alias to open the VSCode workspace
+  scripts.perseus-workspace.exec = "code ${config.env.DEVENV_ROOT}/perseus-v3.code-workspace";
 
   # Only used for debugging: Can do `devenv build outputs.pkgs.XXX` to build a specific package
   outputs = {

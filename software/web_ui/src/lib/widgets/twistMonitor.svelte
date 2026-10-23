@@ -151,7 +151,7 @@
 		style:--circle-size="100px"
 		style:--transition-length="100ms"
 	>
-		<svg fill="none" class="z-2 absolute size-full" stroke-width="2" viewBox="0 0 100 100">
+		<svg fill="none" class="absolute z-2 size-full" stroke-width="2" viewBox="0 0 100 100">
 			<circle
 				r="42"
 				stroke="#dc26263f"
@@ -178,26 +178,26 @@
 			/>
 		</svg>
 		<div
-			class="border-card-foreground relative m-[40px] w-fit rounded-[50%] border"
+			class="border-card-foreground relative m-10 w-fit rounded-[50%] border"
 			style:width={`${canvasSize}px`}
 			style:height={`${canvasSize}px`}
 		>
 			<canvas bind:this={canvas} width={canvasSize} height={canvasSize} class="absolute"></canvas>
-			<div class="absolute left-0 top-0 z-0 h-full w-full">
-				<div class="mt-[calc(50%-60px)] flex h-[60px] border-b">
-					<p class="ml-2 mt-auto">-{settings.groups.General.MaxXValue.value}</p>
-					<p class="ml-auto mr-2 mt-auto">{settings.groups.General.MaxXValue.value}</p>
+			<div class="absolute top-0 left-0 z-0 h-full w-full">
+				<div class="mt-[calc(50%-60px)] flex h-15 border-b">
+					<p class="mt-auto ml-2">-{settings.groups.General.MaxXValue.value}</p>
+					<p class="mt-auto mr-2 ml-auto">{settings.groups.General.MaxXValue.value}</p>
 				</div>
 			</div>
-			<div class="absolute left-0 top-0 z-0 h-full w-full">
+			<div class="absolute top-0 left-0 z-0 h-full w-full">
 				<div class="ml-[50%] flex h-full flex-col border-l">
-					<p class="ml-2 mt-2">{settings.groups.General.MaxYValue.value}</p>
-					<p class="mb-2 ml-2 mt-auto">-{settings.groups.General.MaxYValue.value}</p>
+					<p class="mt-2 ml-2">{settings.groups.General.MaxYValue.value}</p>
+					<p class="mt-auto mb-2 ml-2">-{settings.groups.General.MaxYValue.value}</p>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div class="-mt-[40px] flex flex-row gap-2">
+	<div class="-mt-10 flex flex-row gap-2">
 		<div>
 			<p>Angular:</p>
 			<p>z: {Math.round(twist.rotation * 100) / 100}</p>

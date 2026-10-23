@@ -288,7 +288,7 @@
 <!-- Message must be on a lower z index so it doesn't trigger a mouse down event -->
 {#if !joystick.active}
 	<p
-		class="absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%] overflow-hidden text-xl"
+		class="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden text-xl"
 		style:filter={unlocked ? 'none' : 'blur(12px)'}
 		style:z-index="1"
 	>
@@ -298,7 +298,7 @@
 
 {#if !unlocked}
 	<div
-		class="absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%] overflow-hidden text-xl"
+		class="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden text-xl"
 		style:z-index="3"
 	>
 		<Button variant="outline" onpointerdown={startUnlockTimer} onpointerup={stopUnlockTimer}

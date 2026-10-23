@@ -8,11 +8,12 @@ The Rover UI uses SvelteKit meaning that it does not need a server to be run and
 
 ```shell
 yarn # This installs dependencies
-yarn host # This runs the server
+yarn dev # This runs the server
 ```
 
-This command with host the UI so with Vite so that it can be accessed by any device on the same network.  
+This command will host the UI with Vite so that it can be accessed by any device on the same network.  
 **Note:** The hydration errors can be ignored
+**Note:** `yarn` prints `YN0060`/`YN0086` warnings about svelte because `svelte-grid-extended` (latest: 1.2.1) declares `svelte: ^4` as a peer dependency while this project uses svelte 5. These warnings are expected and safe to ignore: the install completes normally, and the grid components are compiled by this project's own Svelte 5 compiler.
 
 ### Developing
 

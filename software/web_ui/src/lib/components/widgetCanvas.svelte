@@ -8,7 +8,7 @@
 	import { cn } from '$lib/utils';
 	import { repo } from 'remult';
 
-	const { gridXSize, gridYSize } = $props<{ gridXSize: number; gridYSize: number }>();
+	const { gridXSize, gridYSize }: { gridXSize: number; gridYSize: number } = $props();
 
 	const activeLayout = $derived<Layout>(layouts.value[layouts.active]);
 

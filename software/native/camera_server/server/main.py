@@ -1,0 +1,194 @@
+import json
+import sys
+from signal import signal, SIGINT
+import socketio
+from time import sleep
+from pydantic import ValidationError
+import os
+
+from server.logger import log, enable_debug
+from server.v4l_monitor import start_v4l_monitor, stop_v4l_monitor
+from server.message_types import CameraEventType, Device
+from server.gstreamer import (
+    start_stream,
+    start_gst_thread,
+    stop_stream,
+    stop_all_streams,
+    stop_gst_main_loop,
+)
+
+if os.getuid() == 0:
+    log(
+        "Please do not run this script as root. If required you will be prompted for sudo.",
+        "ERROR",
+    )
+    sys.exit(0)
+
+
+def main():
+
+    # region -----------< Handle Graceful Shutdown >-----------
+
+    # none of the arguments are needed
+    def cleanup(*_):
+        log("Shutting down camera server...")
+
+        # cleanup here
+        stop_v4l_monitor()
+        stop_all_streams()
+        stop_gst_main_loop()
+
+        log("Bye!")
+        sys.exit(0)
+
+    signal(SIGINT, cleanup)
+    # endregion
+
+    # region -----------< Parse command line arguments >-----------
+
+    args = sys.argv[1:]
+    if "--debug" in args:
+        enable_debug()
+        args.remove("--debug")
+    log("Debug logging enabled", "DEBUG")
+
+    hostname = "localhost"
+    port = 3000
+    server_name = "cam_server"
+
+    with open(
+        f"{os.environ['DEVENV_ROOT']}/software/native/camera_server/config.json", "r"
+    ) as f:
+        config = json.load(f)
+        server_name = config.get("name", "cam_server")
+        if "hostname" in config:
+            hostname = config["hostname"]
+        if "port" in config:
+            port = config["port"]
+
+    if len(args) > 0:
+        # hostname:port passed as command line argument
+        if ":" in args[0]:
+            hostname_str, port_str = args[0].split(":", 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                log(f"Invalid port number: {port_str}", "ERROR")
+                sys.exit(1)
+            if hostname_str != "":
+                hostname = hostname_str
+        elif len(args) == 1:
+            hostname = args[0]
+    log(f"{server_name} connecting to webserver at {hostname}:{port}")
+
+    group_description = CameraEventType(type="camera", action="group-description")
+    # endregion
+
+    # region -----------< Get hardware information >-----------
+
+    devices: list[Device] = []  # video devices from /dev/v4l/by-id
+
+    def handle_device_change(new_devices: list[Device]):
+        # find differences between new_devices and devices
+        additions = [dev for dev in new_devices if dev not in devices]
+        removals = [dev for dev in devices if dev not in new_devices]
+
+        # inform the web server of the changes
+        for dev in removals:
+            log(f"Camera device removed: {dev.name} -> {dev.dev}")
+            sio.send(
+                CameraEventType(
+                    type="camera", action="device-disconnect", target=dev
+                ).model_dump(exclude_none=True)
+            )
+            devices.remove(dev)
+        for dev in additions:
+            log(f"Camera device added: {dev.name} -> {dev.dev}")
+            devices.append(dev)
+            sio.send(
+                CameraEventType(
+                    type="camera", action="device-connect", target=dev
+                ).model_dump(exclude_none=True)
+            )
+
+    # start monitor and get initial device list
+    initial_devices = start_v4l_monitor(server_name, handle_device_change)
+    for dev in initial_devices:
+        devices.append(dev)
+        log(f"Detected camera device: {dev.name} -> {dev.dev}")
+
+    start_gst_thread()
+    # endregion
+
+    # region -----------< Connect to web server socket >-----------
+
+    sio = socketio.Client()
+
+    @sio.event
+    def camera_event(data):
+        handle_camera_event(data)
+
+    while sio.connected is False:
+        try:
+            sio.connect(f"http://{hostname}:{port}", {})
+            log("Connected to web server socket")
+        except Exception as e:
+            log("Connection error, please check the config. Retrying...", "ERROR")
+            log(f"Error: {e}", "DEBUG")
+            sleep(1)
+    # endregion
+
+    # region -----------< Handle Socket Events >-----------
+
+    # Send initial group description to the server
+    group_description.devices = devices.copy()
+    sio.send(group_description.model_dump(exclude_none=True))
+
+    def handle_camera_event(event_payload: CameraEventType):
+        try:
+            event = CameraEventType.model_validate(event_payload)
+        except ValidationError as e:
+            log(f"Invalid camera event payload: {e}", "ERROR")
+            return
+
+        if event.action == "request-stream" or event.action == "kill-stream":
+            if event.target is None:
+                log(f"No target device specified for {event.action} action", "ERROR")
+                return
+            if event.target.hostname != server_name:
+                # ignore message for another server
+                return
+            if event.target.dev not in [dev.dev for dev in devices]:
+                log(
+                    f"Target device {event.target.dev} not found in connected devices for {event.action} action",
+                    "ERROR",
+                )
+                return
+
+        match event.action:
+            case "request-groups":
+                # Broadcast handled by all camera servers
+                group_description.devices = devices.copy()
+                sio.send(group_description.model_dump(exclude_none=True))
+            case "request-stream":
+                start_stream(event, hostname)
+            case "kill-stream":
+                stop_stream(event)
+                pass
+
+            # ignore self sent messages
+            case "group-description":
+                pass
+            case _:
+                log(
+                    f"Unhandled camera event: \n{json.dumps(event.model_dump(), indent=4)}",
+                    "DEBUG",
+                )
+
+    sio.wait()
+
+    cleanup(None, None)
+
+
+if __name__ == "__main__":
+    main()
