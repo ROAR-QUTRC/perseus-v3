@@ -148,7 +148,9 @@ class Bank:
     fault_reported: bool = False
     dropped: set = field(default_factory=set)
     moving: float = 0.0  # last duty actually applied, for status and current
-    zeros: list = field(default_factory=lambda: [0.0, 0.0])  # per side, set by SET_ZERO_POS
+    zeros: list = field(
+        default_factory=lambda: [0.0, 0.0]
+    )  # per side, set by SET_ZERO_POS
 
     def raw_deg(self) -> float:
         return (self.offset + self.direction * self.q) % 360.0

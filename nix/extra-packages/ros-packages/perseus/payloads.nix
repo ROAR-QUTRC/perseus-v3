@@ -13,8 +13,10 @@
   description,
   hardware-interface,
   hi-can-raw,
+  interfaces,
   joint-state-broadcaster,
   joint-trajectory-controller,
+  mission-bt-server,
   pluginlib,
   rclcpp,
   rclcpp-lifecycle,
@@ -47,8 +49,10 @@ buildRosPackage rec {
     description
     hardware-interface
     hi-can-raw
+    interfaces
     joint-state-broadcaster
     joint-trajectory-controller
+    mission-bt-server
     pluginlib
     rclcpp
     rclcpp-lifecycle
