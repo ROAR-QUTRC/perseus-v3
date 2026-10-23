@@ -9,6 +9,7 @@
   grid-map-core,
   local-traversability,
   nav-msgs,
+  nav2-msgs,
   pcl-conversions,
   rclcpp,
   sensor-msgs,
@@ -33,6 +34,7 @@ buildRosPackage rec {
     grid-map-core
     local-traversability
     nav-msgs
+    nav2-msgs
     pcl-conversions
     rclcpp
     sensor-msgs
