@@ -86,7 +86,17 @@
 	import { movePanel, type Edge, type LayoutNodeType } from '$lib/components/panelGrid/layout';
 	import LayoutNode from '$lib/components/panelGrid/layoutNode.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { Cross2, DotsHorizontal, Plus, Reload, Stop, Trash } from 'svelte-radix';
+	import {
+		Cross1,
+		Cross2,
+		Crosshair1,
+		Crosshair2,
+		DotsHorizontal,
+		Plus,
+		Reload,
+		Stop,
+		Trash
+	} from 'svelte-radix';
 	import { onMount } from 'svelte';
 	import * as Select from '$lib/components/ui/select/index';
 	import { io, type Socket } from 'socket.io-client';
@@ -100,6 +110,7 @@
 		ws
 	} from './webrtc/signalHandler.svelte';
 	import Label from '$lib/components/ui/label/label.svelte';
+	import HUD from './virtualHorizon/HUD.svelte';
 
 	const devicesEqual = (a: DeviceType | undefined, b: DeviceType | undefined): boolean => {
 		if (!a || !b) return false;
@@ -450,13 +461,13 @@
 		};
 	});
 
-	$inspect(peerConnections);
+	let showHorizon = $state(false);
 </script>
 
 {#snippet widget(id: string)}
 	{@const peer = getPeerConnection(streamSettings[id]?.device)}
 	<div class="relative h-full w-full">
-		<div class="absolute top-2 right-2 z-20 flex flex-col gap-2">
+		<div class="absolute top-2 right-2 bottom-2 z-20 flex flex-col gap-2">
 			<Button variant="outline" size="icon" onclick={() => togglePanelSettings(id)}>
 				{#if streamSettingsOpen[id]}
 					<Cross2 />
@@ -484,10 +495,21 @@
 				<Button disabled={locked} variant="destructive" size="icon" onclick={() => deletePanel(id)}>
 					<Trash />
 				</Button>
+				<div class="flex-1"></div>
+				<Button
+					variant={showHorizon ? 'default' : 'outline'}
+					size="icon"
+					onclick={() => (showHorizon = !showHorizon)}
+				>
+					<Crosshair1 />
+				</Button>
 			{/if}
 		</div>
 		{#if streamSettingsOpen[id]}
-			<div class="bg-background/85 absolute top-0 left-0 z-10 h-full w-full">
+			<button
+				class="bg-background/85 absolute top-0 left-0 z-10 h-full w-full cursor-default"
+				onclick={() => (streamSettingsOpen[id] = false)}
+			>
 				<div class="flex h-full w-full flex-col items-center justify-center gap-2 overflow-auto">
 					<Label for="device">Device:</Label>
 					<Select.Root type="single" onValueChange={(value) => onVideoAction(id, 'device', value)}>
@@ -567,7 +589,7 @@
 						</Select.Content>
 					</Select.Root>
 				</div>
-			</div>
+			</button>
 		{/if}
 		{#if peer}
 			<div class="relative flex h-full w-full justify-center">
@@ -580,6 +602,9 @@
 						autoplay
 						muted
 					></video>
+					{#if showHorizon}
+						<HUD color="text-lime-400" class="absolute right-0 bottom-0" />
+					{/if}
 				{:else if !peer.online}
 					<p class="m-auto w-[60%] text-center">
 						Waiting for {peer.name} to come online...
