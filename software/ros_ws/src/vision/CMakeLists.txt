@@ -192,19 +192,18 @@ endif()
 
 # ── Python bucket-empty detector ──────────────────────────────────────────────
 # Installs the importable package (src/bucket_empty_detector/__init__.py etc.)
-ament_python_install_package(bucket_empty_detector
-  PACKAGE_DIR src/bucket_empty_detector)
+ament_python_install_package(bucket_empty_detector PACKAGE_DIR
+                             src/bucket_empty_detector)
 
 # Installs the entry points as executables, so `ros2 run vision ...` and
 # launch files can find them. The node file also ends up inside the Python
 # package above, which is harmless.
-install(PROGRAMS
-  src/bucket_empty_detector/bucket_empty_detector_node.py
+install(
+  PROGRAMS src/bucket_empty_detector/bucket_empty_detector_node.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME bucket_empty_detector_node)
 
-install(PROGRAMS
-  scripts/fit_bucket_empty_detector.py
-  DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/fit_bucket_empty_detector.py
+        DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

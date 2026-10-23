@@ -3,6 +3,7 @@
   lib,
   buildRosPackage,
   ament-cmake,
+  ament-cmake-python,
   ament-index-cpp,
   ament-lint-auto,
   ament-lint-common,
@@ -16,9 +17,11 @@
   onnxruntime,
   opencv,
   orb-slam3,
+  python3Packages,
   rcl-interfaces,
   rclcpp,
   rclcpp-components,
+  rclpy,
   sensor-msgs,
   sensors,
   std-msgs,
@@ -36,7 +39,10 @@ buildRosPackage rec {
   src = ./../../../../software/ros_ws/src/vision;
 
   buildType = "ament_cmake";
-  buildInputs = [ ament-cmake ];
+  buildInputs = [
+    ament-cmake
+    ament-cmake-python
+  ];
   checkInputs = [
     ament-lint-auto
     ament-lint-common
@@ -53,9 +59,12 @@ buildRosPackage rec {
     onnxruntime
     opencv
     orb-slam3
+    python3Packages.numpy
+    python3Packages.opencv4
     rcl-interfaces
     rclcpp
     rclcpp-components
+    rclpy
     sensor-msgs
     sensors
     std-msgs
@@ -66,7 +75,10 @@ buildRosPackage rec {
     v4l2-camera
     visualization-msgs
   ];
-  nativeBuildInputs = [ ament-cmake ];
+  nativeBuildInputs = [
+    ament-cmake
+    ament-cmake-python
+  ];
 
   meta = {
     description = "A package to do vision/detection tasks of Perseus";

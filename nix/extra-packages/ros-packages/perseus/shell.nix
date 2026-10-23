@@ -75,6 +75,8 @@ pkgs.mkShell {
           pid-controller
           pluginlib
           point-cloud-transport
+          python3Packages.numpy
+          python3Packages.opencv4
           qt5.qtbase
           rcl-interfaces
           rclcpp
