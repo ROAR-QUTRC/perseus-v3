@@ -355,7 +355,39 @@ namespace rviz_plugins
         layout->addLayout(buttons);
         layout->addWidget(_message_label);
         layout->addStretch(1);
-        setLayout(layout);
+
+        auto* autonomy_page = new QWidget();
+        autonomy_page->setLayout(layout);
+
+        _controller_view = new ControllerView();
+        auto* manual_page = new QWidget();
+        auto* manual_layout = new QVBoxLayout(manual_page);
+        _controller_type_combo = new QComboBox();
+        _controller_type_combo->addItem("Gamepad (Xbox)", "gamepad");
+        _controller_type_combo->addItem("RF controller (Taranis)", "radio");
+        _controller_type_combo->setToolTip("Which controller the picture below is drawn as");
+        auto* type_row = new QFormLayout();
+        type_row->addRow("Controller", _controller_type_combo);
+        manual_layout->addLayout(type_row);
+        manual_layout->addWidget(_controller_view, 1);
+
+        _localise_button = new QPushButton("Reposition map from ArUco tags");
+        _localise_button->setToolTip(
+            "Calls /arena/localise: fits the rail ArUco markers the camera can see now\n"
+            "(at least two) and re-positions the map frame on the rover. It does not drive.");
+        _localise_label = new QLabel();
+        _localise_label->setWordWrap(true);
+        _localise_label->setStyleSheet("color: #888; font-size: 10px;");
+        manual_layout->addWidget(_localise_button);
+        manual_layout->addWidget(_localise_label);
+
+        _tabs = new QTabWidget();
+        _tabs->addTab(autonomy_page, "Autonomy");
+        _tabs->addTab(manual_page, "Manual");
+        auto* outer = new QVBoxLayout();
+        outer->setContentsMargins(0, 0, 0, 0);
+        outer->addWidget(_tabs);
+        setLayout(outer);
 
         connect(_mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                 &MissionControlPanel::_refresh_controls);
@@ -368,6 +400,10 @@ namespace rviz_plugins
             connect(row->source, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                     &MissionControlPanel::_on_source_changed);
         }
+        connect(_localise_button, &QPushButton::clicked, this,
+                &MissionControlPanel::_on_localise_clicked);
+        connect(_controller_type_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                &MissionControlPanel::_on_controller_type_changed);
         connect(_controller_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                 &MissionControlPanel::_on_controller_changed);
         connect(_planner_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -420,6 +456,8 @@ namespace rviz_plugins
         _node = getDisplayContext()->getRosNodeAbstraction().lock()->get_raw_node();
         _start_client = _node->create_client<StartMission>("/mission/start");
         _stop_client = _node->create_client<std_srvs::srv::Trigger>("/mission/stop");
+        _localise_client =
+            _node->create_client<interfaces::srv::LocaliseInArena>("/arena/localise");
 
         const auto latched = rclcpp::QoS(1).reliable().transient_local();
         _status_sub = _node->create_subscription<MissionStatus>(
@@ -443,6 +481,14 @@ namespace rviz_plugins
                 std::lock_guard<std::mutex> lock(_mutex);
                 _incoming_construction = *msg;
             });
+        // Same QoS as joy_node and teleop's generic_controller use for /joy.
+        _joy_sub = _node->create_subscription<sensor_msgs::msg::Joy>(
+            "/joy", 10,
+            [this](sensor_msgs::msg::Joy::ConstSharedPtr msg)
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                _incoming_joy = *msg;
+            });
         // Latched so the markers survive RViz reopening the display.
         _marker_pub = _node->create_publisher<visualization_msgs::msg::MarkerArray>(
             "/mission/waypoint_markers", latched);
@@ -457,6 +503,29 @@ namespace rviz_plugins
         _poll_timer = new QTimer(this);
         connect(_poll_timer, &QTimer::timeout, this, &MissionControlPanel::_poll);
         _poll_timer->start(POLL_PERIOD_MS);
+
+        // Faster than _poll so the sticks track the pad smoothly.
+        auto* joy_timer = new QTimer(this);
+        connect(joy_timer, &QTimer::timeout, this,
+                [this]()
+                {
+                    std::optional<sensor_msgs::msg::Joy> joy;
+                    {
+                        std::lock_guard<std::mutex> lock(_mutex);
+                        joy.swap(_incoming_joy);
+                    }
+                    if (joy)
+                    {
+                        _joy_age.restart();
+                        _controller_view->set_state(joy->axes, joy->buttons);
+                    }
+                    const bool live = _joy_age.isValid() && _joy_age.elapsed() < JOY_STALE_MS;
+                    if (!live && _controller_view->property("live").toBool())
+                        _controller_view->clear_state();
+                    _controller_view->setProperty("live", live);
+                    _controller_view->set_connected(live);
+                });
+        joy_timer->start(JOY_PERIOD_MS);
         _publish_markers();
         _publish_controller();
         _publish_planner();
@@ -523,6 +592,32 @@ namespace rviz_plugins
             _set_message(QString::fromStdString(response->message),
                          response->success ? QString() : BAD);
             changed = true;
+        }
+
+        if (_pending_localise && _pending_localise->wait_for(0s) == std::future_status::ready)
+        {
+            const auto response = _pending_localise->get();
+            _pending_localise.reset();
+            _localise_button->setEnabled(true);
+            if (response->success)
+            {
+                QStringList ids;
+                for (const auto id : response->marker_ids)
+                    ids << QString::number(id);
+                const auto& p = response->pose.pose.position;
+                _localise_label->setText(
+                    QString("Map repositioned: rover at x %1, y %2 m (tags %3, residual %4 cm)")
+                        .arg(p.x, 0, 'f', 2)
+                        .arg(p.y, 0, 'f', 2)
+                        .arg(ids.join(", "))
+                        .arg(response->residual_m * 100.0, 0, 'f', 1));
+                _localise_label->setStyleSheet("color: #2e8b57; font-size: 10px;");
+            }
+            else
+            {
+                _localise_label->setText(QString::fromStdString(response->message));
+                _localise_label->setStyleSheet("color: #c93636; font-size: 10px;");
+            }
         }
 
         if (changed)
@@ -593,6 +688,25 @@ namespace rviz_plugins
         _set_message("Stopping...");
     }
 
+    void MissionControlPanel::_on_localise_clicked()
+    {
+        if (_pending_localise)
+            return;
+        if (!_localise_client->service_is_ready())
+        {
+            _localise_label->setText("/arena/localise is not available (arena_server not up?)");
+            _localise_label->setStyleSheet("color: #c93636; font-size: 10px;");
+            return;
+        }
+        // timeout_s <= 0 makes arena_server use its own default_localise_timeout_s.
+        auto request = std::make_shared<interfaces::srv::LocaliseInArena::Request>();
+        request->timeout_s = 0.0;
+        _pending_localise = _localise_client->async_send_request(request);
+        _localise_button->setEnabled(false);
+        _localise_label->setText("Looking for the ArUco tags...");
+        _localise_label->setStyleSheet("color: #888; font-size: 10px;");
+    }
+
     void MissionControlPanel::_on_pick_excavation()
     {
         _activate_tool(EXCAVATION_TOOL);
@@ -625,6 +739,13 @@ namespace rviz_plugins
         std_msgs::msg::String msg;
         msg.data = _controller_combo->currentData().toString().toStdString();
         _controller_pub->publish(msg);
+    }
+
+    void MissionControlPanel::_on_controller_type_changed()
+    {
+        _controller_view->set_layout(_controller_type_combo->currentData().toString() == "radio"
+                                         ? ControllerView::Layout::Radio
+                                         : ControllerView::Layout::Gamepad);
     }
 
     void MissionControlPanel::_on_planner_changed()
@@ -1080,6 +1201,7 @@ namespace rviz_plugins
         config.mapSetValue("ZonePauseS", _pause_spin->value());
         config.mapSetValue("Controller", _controller_combo->currentData().toString());
         config.mapSetValue("Planner", _planner_combo->currentData().toString());
+        config.mapSetValue("ControllerType", _controller_type_combo->currentData().toString());
         const auto save_zone = [&](const QString& prefix, const ZoneRow& row,
                                    const ZonePoint& point)
         {
@@ -1125,6 +1247,11 @@ namespace rviz_plugins
             // back to RPP, the behaviour tree's own default.
             const int index = _controller_combo->findData(text);
             _controller_combo->setCurrentIndex(index >= 0 ? index : CONTROLLER_RPP);
+        }
+        if (config.mapGetString("ControllerType", &text))
+        {
+            const int index = _controller_type_combo->findData(text);
+            _controller_type_combo->setCurrentIndex(index >= 0 ? index : 0);
         }
         if (config.mapGetString("Planner", &text))
         {

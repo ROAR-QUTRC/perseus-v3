@@ -11,18 +11,23 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QString>
+#include <QTabWidget>
 #include <QTimer>
 #include <QWidget>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <interfaces/msg/mission_status.hpp>
+#include <interfaces/srv/localise_in_arena.hpp>
 #include <interfaces/srv/start_mission.hpp>
 #include <mutex>
 #include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/panel.hpp>
+#include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+
+#include "rviz_plugins/controller_view.hpp"
 
 namespace rviz_plugins
 {
@@ -53,6 +58,11 @@ namespace rviz_plugins
     ///   Controller       which controller_server plugin follows the path (RPP or
     ///                    DWB), published latched on /controller_selector, which the
     ///                    behaviour tree's ControllerSelector reads every tick.
+    ///
+    /// The panel has two tabs. Autonomy is everything above. Manual shows a picture of
+    /// the gamepad that mirrors /joy (sensor_msgs/Joy): move a stick or press a button
+    /// on the controller plugged into this machine and the picture follows. It only
+    /// displays; driving is still teleop's generic_controller.
     ///
     /// Start calls /mission/start (interfaces/StartMission), which returns as soon as
     /// the mission is accepted; everything after that -- phase, cycle count, outcome
@@ -92,6 +102,11 @@ namespace rviz_plugins
         void _on_controller_changed();
         /// @brief Publishes the newly chosen planner on /planner_selector.
         void _on_planner_changed();
+        /// @brief Switches the Manual tab's picture between gamepad and RF controller.
+        void _on_controller_type_changed();
+        /// @brief Calls /arena/localise: arena_server fits the rail ArUco markers in view
+        /// and re-positions the map frame on the rover. Shows the result on the Manual tab.
+        void _on_localise_clicked();
         /// @brief Re-derives every widget's visibility/enabled state from the
         /// current selections and mission state.
         void _refresh_controls();
@@ -119,6 +134,9 @@ namespace rviz_plugins
         };
 
         static constexpr int POLL_PERIOD_MS = 100;
+        static constexpr int JOY_PERIOD_MS = 33;
+        // No Joy message for this long and the controller picture greys out.
+        static constexpr int JOY_STALE_MS = 1000;
 
         /// @brief Builds one zone's source dropdown, Pick button and point label.
         ZoneRow _build_zone_row();
@@ -190,6 +208,11 @@ namespace rviz_plugins
         QPushButton* _stop_button{nullptr};
         QLabel* _message_label{nullptr};
         QTimer* _poll_timer{nullptr};
+        QTabWidget* _tabs{nullptr};
+        ControllerView* _controller_view{nullptr};
+        QComboBox* _controller_type_combo{nullptr};
+        QPushButton* _localise_button{nullptr};
+        QLabel* _localise_label{nullptr};
 
         // ---- state ----
         ZonePoint _excavation_point;
@@ -215,23 +238,29 @@ namespace rviz_plugins
         rclcpp::Node::SharedPtr _node;
         rclcpp::Client<interfaces::srv::StartMission>::SharedPtr _start_client;
         rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr _stop_client;
+        rclcpp::Client<interfaces::srv::LocaliseInArena>::SharedPtr _localise_client;
         rclcpp::Subscription<interfaces::msg::MissionStatus>::SharedPtr _status_sub;
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr _excavation_sub;
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr _construction_sub;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _marker_pub;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _controller_pub;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _planner_pub;
+        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr _joy_sub;
 
         std::optional<rclcpp::Client<interfaces::srv::StartMission>::FutureAndRequestId>
             _pending_start;
         std::optional<rclcpp::Client<std_srvs::srv::Trigger>::FutureAndRequestId>
             _pending_stop;
+        std::optional<rclcpp::Client<interfaces::srv::LocaliseInArena>::FutureAndRequestId>
+            _pending_localise;
 
         // Written by ROS callbacks, taken by _poll().
         std::mutex _mutex;
         std::optional<interfaces::msg::MissionStatus> _incoming_status;
         std::optional<geometry_msgs::msg::PoseStamped> _incoming_excavation;
         std::optional<geometry_msgs::msg::PoseStamped> _incoming_construction;
+        std::optional<sensor_msgs::msg::Joy> _incoming_joy;
+        QElapsedTimer _joy_age;  // time since the last Joy message; invalid until one arrives
     };
 
 }  // namespace rviz_plugins
