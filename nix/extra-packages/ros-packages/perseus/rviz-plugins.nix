@@ -15,6 +15,7 @@
   rclcpp,
   rviz-common,
   rviz-default-plugins,
+  sensor-msgs,
   std-msgs,
   std-srvs,
   tf2,
@@ -45,6 +46,7 @@ buildRosPackage rec {
     rclcpp
     rviz-common
     rviz-default-plugins
+    sensor-msgs
     std-msgs
     std-srvs
     tf2

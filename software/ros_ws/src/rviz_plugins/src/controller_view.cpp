@@ -31,7 +31,8 @@ namespace rviz_plugins
         constexpr double DESIGN_H = 300.0;
     }  // namespace
 
-    ControllerView::ControllerView(QWidget* parent) : QWidget(parent)
+    ControllerView::ControllerView(QWidget* parent)
+        : QWidget(parent)
     {
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     }
@@ -47,8 +48,10 @@ namespace rviz_plugins
         // Triggers rest at +1; a pad that never sent them should not show them pulled.
         if (_layout == Layout::Gamepad)
         {
-            if (static_cast<int>(axes.size()) <= AX_LT) _axes[AX_LT] = 1.0F;
-            if (static_cast<int>(axes.size()) <= AX_RT) _axes[AX_RT] = 1.0F;
+            if (static_cast<int>(axes.size()) <= AX_LT)
+                _axes[AX_LT] = 1.0F;
+            if (static_cast<int>(axes.size()) <= AX_RT)
+                _axes[AX_RT] = 1.0F;
         }
         update();
     }
@@ -74,7 +77,8 @@ namespace rviz_plugins
 
     void ControllerView::set_connected(bool connected)
     {
-        if (_connected == connected) return;
+        if (_connected == connected)
+            return;
         _connected = connected;
         update();
     }
@@ -143,7 +147,8 @@ namespace rviz_plugins
         const double scale = std::min(width() / DESIGN_W, height() / DESIGN_H);
         p.translate((width() - DESIGN_W * scale) / 2.0, (height() - DESIGN_H * scale) / 2.0);
         p.scale(scale, scale);
-        if (!_connected) p.setOpacity(0.35);
+        if (!_connected)
+            p.setOpacity(0.35);
 
         QFont font = p.font();
         font.setPixelSize(12);
