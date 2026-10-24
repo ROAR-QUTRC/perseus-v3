@@ -249,16 +249,22 @@ class Console:
         try:
             response = self.node.arm()
             if response is None:
-                self.log("/teleop/arm_autonomy did not answer - is generic_controller running?")
+                self.log(
+                    "/teleop/arm_autonomy did not answer - is generic_controller running?"
+                )
             else:
-                self.log(("armed: " if response.success else "refused: ") + response.message)
+                self.log(
+                    ("armed: " if response.success else "refused: ") + response.message
+                )
         finally:
             self.busy = ""
 
     def take_control(self):
         response = self.node.take_control()
         if response is None:
-            self.log("/teleop/take_control did not answer - is generic_controller running?")
+            self.log(
+                "/teleop/take_control did not answer - is generic_controller running?"
+            )
         else:
             self.log(response.message)
 
@@ -296,11 +302,15 @@ def main():
         choices=CONTROLLER_TYPES,
         help="controller config, as controller.launch.py type:=",
     )
-    parser.add_argument("--wired", action="store_true", help="xbox: wired, not wireless")
+    parser.add_argument(
+        "--wired", action="store_true", help="xbox: wired, not wireless"
+    )
     parser.add_argument(
         "--dual-stick", action="store_true", help="xbox: dual-stick driving"
     )
-    parser.add_argument("--config", default="", help="controller config file, overrides --type")
+    parser.add_argument(
+        "--config", default="", help="controller config file, overrides --type"
+    )
     parser.add_argument(
         "--no-launch",
         action="store_true",
