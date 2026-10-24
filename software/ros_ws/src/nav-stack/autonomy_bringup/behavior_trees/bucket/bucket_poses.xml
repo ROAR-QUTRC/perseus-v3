@@ -14,22 +14,25 @@
   <BehaviorTree ID="Pose_zero">
     <MoveBucket lift_deg="0.0" tilt_deg="0.0" jaw_deg="0.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
   </BehaviorTree>
-  <BehaviorTree ID="Pose_travel">
-    <MoveBucket lift_deg="25.0" tilt_deg="-20.0" jaw_deg="0.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
-  </BehaviorTree>
-  <BehaviorTree ID="Pose_dump_tip">
-    <MoveBucket lift_deg="20.0" tilt_deg="20.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
-  </BehaviorTree>
   <BehaviorTree ID="Pose_dump_open">
-    <MoveBucket jaw_deg="36.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
-  </BehaviorTree>
-  <BehaviorTree ID="Pose_dump_curl">
-    <MoveBucket tilt_deg="-20.0" timeout_s="10.0" attempts="2" server_name="{@bucket_action}"/>
+    <MoveBucket lift_deg="23.8" tilt_deg="-44.7" jaw_deg="24.0" timeout_s="2" attempts="2" server_name="{@bucket_action}"/>
   </BehaviorTree>
   <BehaviorTree ID="Pose_jaw_ready_scoop">
     <MoveBucket lift_deg="26.3" tilt_deg="-13.1" jaw_deg="25.0" timeout_s="4" attempts="2" server_name="{@bucket_action}"/>
   </BehaviorTree>
   <BehaviorTree ID="Pose_jaw_close_scoop">
     <MoveBucket lift_deg="26.7" tilt_deg="-26.0" jaw_deg="0.0" timeout_s="2" attempts="2" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_comp_travel">
+    <MoveBucket lift_deg="15.5" tilt_deg="-36.9" jaw_deg="0.0" timeout_s="2" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_pre_dump">
+    <MoveBucket lift_deg="25.8" tilt_deg="-46.7" jaw_deg="0.0" timeout_s="2" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_forward_tilt">
+    <MoveBucket tilt_deg="-10.3" timeout_s="3" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_backward_tilt">
+    <MoveBucket tilt_deg="-57.7" timeout_s="3" attempts="2" server_name="{@bucket_action}"/>
   </BehaviorTree>
 </root>

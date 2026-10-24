@@ -252,7 +252,7 @@ class Console:
         # Appended to by the thread following a running bucket_cli as well.
         self.log_lines = deque(maxlen=500)
         self.log_lock = threading.Lock()
-        self.jog_step = 2
+        self.jog_step = 5
         self.jog_axis = None
         self.jog_sign = 0
         self.jog_until = 0.0

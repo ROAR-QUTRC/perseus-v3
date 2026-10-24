@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
-  <BehaviorTree ID="Collect">
+  <BehaviorTree ID="collect">
     <Sequence>
       <SubTree ID="Pose_zero"/>
-      <Sleep msec="1000"/>
-      <Sequence>
-        <SubTree ID="Pose_jaw_ready_scoop"/>
-        <Sleep msec="1000"/>
-        <SubTree ID="Pose_jaw_close_scoop"/>
-      </Sequence>
     </Sequence>
   </BehaviorTree>
 

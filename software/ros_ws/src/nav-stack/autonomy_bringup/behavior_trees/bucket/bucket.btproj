@@ -4,6 +4,7 @@
 <root BTCPP_format="4" project_name="bucket">
     <include path="bucket_poses.xml"/>
     <include path="collect.xml"/>
+    <include path="dump.xml"/>
     <include path="example_dump.xml"/>
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>

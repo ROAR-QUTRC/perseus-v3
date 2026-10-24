@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="dump">
+    <Sequence>
+      <SubTree ID="Pose_comp_travel"/>
+      <Sleep msec="1000"/>
+      <SubTree ID="Pose_pre_dump"
+               _autoremap="false"/>
+      <SubTree ID="Pose_dump_open"/>
+      <Repeat num_cycles="1">
+        <Sequence>
+          <SubTree ID="Pose_backward_tilt"
+                   _autoremap="false"/>
+          <SubTree ID="Pose_forward_tilt"/>
+        </Sequence>
+      </Repeat>
+      <SubTree ID="Pose_dump_open"/>
+      <SubTree ID="Pose_pre_dump"
+               _autoremap="false"/>
+      <SubTree ID="Pose_comp_travel"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel/>
+
+</root>
