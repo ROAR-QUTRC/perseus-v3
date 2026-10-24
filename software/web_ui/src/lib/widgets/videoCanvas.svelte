@@ -86,17 +86,7 @@
 	import { movePanel, type Edge, type LayoutNodeType } from '$lib/components/panelGrid/layout';
 	import LayoutNode from '$lib/components/panelGrid/layoutNode.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import {
-		Cross1,
-		Cross2,
-		Crosshair1,
-		Crosshair2,
-		DotsHorizontal,
-		Plus,
-		Reload,
-		Stop,
-		Trash
-	} from 'svelte-radix';
+	import { Cross2, Crosshair1, DotsHorizontal, Plus, Reload, Stop, Trash } from 'svelte-radix';
 	import { onMount } from 'svelte';
 	import * as Select from '$lib/components/ui/select/index';
 	import { io, type Socket } from 'socket.io-client';
@@ -111,6 +101,7 @@
 	} from './webrtc/signalHandler.svelte';
 	import Label from '$lib/components/ui/label/label.svelte';
 	import HUD from './virtualHorizon/HUD.svelte';
+	import { uuidv7 } from 'uuidv7';
 
 	const devicesEqual = (a: DeviceType | undefined, b: DeviceType | undefined): boolean => {
 		if (!a || !b) return false;
@@ -173,7 +164,7 @@
 	const addPanel = () => {
 		const newPanel: LayoutNodeType = {
 			type: 'panel',
-			id: crypto.randomUUID(),
+			id: uuidv7(),
 			title: '', // unused
 			size: 100
 		};
@@ -461,7 +452,7 @@
 		};
 	});
 
-	let showHorizon = $state(false);
+	let showHorizon = $state<Record<PanelIdType, boolean>>({});
 </script>
 
 {#snippet widget(id: string)}
@@ -497,9 +488,9 @@
 				</Button>
 				<div class="flex-1"></div>
 				<Button
-					variant={showHorizon ? 'default' : 'outline'}
+					variant={showHorizon[id] ? 'default' : 'outline'}
 					size="icon"
-					onclick={() => (showHorizon = !showHorizon)}
+					onclick={() => (showHorizon[id] = !showHorizon[id])}
 				>
 					<Crosshair1 />
 				</Button>
@@ -602,7 +593,7 @@
 						autoplay
 						muted
 					></video>
-					{#if showHorizon}
+					{#if showHorizon[id]}
 						<HUD color="text-lime-400" class="absolute right-0 bottom-0" />
 					{/if}
 				{:else if !peer.online}
