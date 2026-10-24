@@ -82,15 +82,15 @@ namespace rviz_plugins
     float ControllerView::_axis(int index) const { return _axes[index]; }
     bool ControllerView::_button(int index) const { return _buttons[index]; }
 
-    void ControllerView::_draw_stick(QPainter& p, const QPointF& centre, double radius, float x,
+    void ControllerView::_draw_stick(QPainter& p, const QPointF& center, double radius, float x,
                                      float y, bool pressed) const
     {
         p.setPen(QPen(BODY_EDGE, 2));
         p.setBrush(WELL);
-        p.drawEllipse(centre, radius, radius);
+        p.drawEllipse(center, radius, radius);
         // Joy: stick left = +X and up = +Y; the screen's x grows rightwards, y downwards.
         const double travel = radius * 0.45;
-        const QPointF knob = centre + QPointF(-x * travel, -y * travel);
+        const QPointF knob = center + QPointF(-x * travel, -y * travel);
         p.setPen(QPen(pressed ? ACTIVE.darker(150) : BODY_EDGE, 2));
         p.setBrush(pressed ? ACTIVE : IDLE);
         p.drawEllipse(knob, radius * 0.62, radius * 0.62);
@@ -123,15 +123,15 @@ namespace rviz_plugins
         p.drawText(rect, Qt::AlignCenter, label);
     }
 
-    void ControllerView::_draw_round_button(QPainter& p, const QPointF& centre, double radius,
+    void ControllerView::_draw_round_button(QPainter& p, const QPointF& center, double radius,
                                             bool pressed, const QString& label,
                                             const QColor& colour) const
     {
         p.setPen(QPen(BODY_EDGE, 1.5));
         p.setBrush(pressed ? colour : WELL);
-        p.drawEllipse(centre, radius, radius);
+        p.drawEllipse(center, radius, radius);
         p.setPen(pressed ? Qt::black : colour);
-        p.drawText(QRectF(centre.x() - radius, centre.y() - radius, 2 * radius, 2 * radius),
+        p.drawText(QRectF(center.x() - radius, center.y() - radius, 2 * radius, 2 * radius),
                    Qt::AlignCenter, label);
     }
 
@@ -171,7 +171,7 @@ namespace rviz_plugins
         _draw_bumper(p, QRectF(62, 50, 80, 22), _button(BTN_LB), "LB");
         _draw_bumper(p, QRectF(278, 50, 80, 22), _button(BTN_RB), "RB");
 
-        // Body: a wide rounded centre with two grips.
+        // Body: a wide rounded center with two grips.
         QPainterPath body;
         body.addRoundedRect(QRectF(50, 68, 320, 140), 60, 60);
         body.addEllipse(QRectF(40, 120, 110, 170));
@@ -214,7 +214,7 @@ namespace rviz_plugins
         _draw_round_button(p, fc + QPointF(-26, 0), 14, _button(BTN_X), "X", QColor(90, 150, 240));
         _draw_round_button(p, fc + QPointF(26, 0), 14, _button(BTN_B), "B", QColor(230, 80, 80));
 
-        // Centre cluster: Back, Guide, Start.
+        // Center cluster: Back, Guide, Start.
         _draw_round_button(p, QPointF(210, 100), 15, _button(BTN_GUIDE), "X", TEXT);
         _draw_round_button(p, QPointF(180, 128), 9, _button(BTN_BACK), "", TEXT);
         _draw_round_button(p, QPointF(240, 128), 9, _button(BTN_START), "", TEXT);
@@ -284,7 +284,7 @@ namespace rviz_plugins
         p.setPen(TEXT);
         p.drawText(QRectF(rail.left(), rail.bottom() + 8, rail.width(), 16), Qt::AlignCenter, "Jaws");
 
-        // Any channels beyond the seven above, as thin centre-zero bars.
+        // Any channels beyond the seven above, as thin center-zero bars.
         const int extra = static_cast<int>(std::min<std::size_t>(_axis_count, NUM_AXES)) - 7;
         for (int i = 0; i < extra; ++i)
         {
