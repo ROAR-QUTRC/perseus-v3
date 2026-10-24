@@ -50,6 +50,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     geometry_msgs
     nav_msgs
     std_msgs
+    sensor_msgs
     std_srvs
     tf2
     tf2_ros
@@ -95,6 +96,8 @@ add_library(
   include/rviz_plugins/mobility_efficiency_panel.hpp
   src/mission_control_panel.cpp
   include/rviz_plugins/mission_control_panel.hpp
+  src/controller_view.cpp
+  include/rviz_plugins/controller_view.hpp
   src/mission_point_tool.cpp
   include/rviz_plugins/mission_point_tool.hpp
   src/view_lock_panel.cpp
