@@ -26,6 +26,7 @@ generic_controller:
           follows: drive.forward.enable
         turbo_enable:
           follows: drive.forward.turbo_enable
+    # Only while drive.forward.enable (the drive deadman) is held - see generic_controller.
     bucket:
       lift:
         scaling: 0.1

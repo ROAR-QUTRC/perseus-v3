@@ -41,7 +41,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # INCLUDE DEPENDENCIES
 
 # public dependencies (which should propagate)
-set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs geometry_msgs actuator_msgs)
+set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs geometry_msgs actuator_msgs
+                                 std_msgs std_srvs)
 
 # packages which must be present but aren't linked against
 set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake ament_cmake_python)
@@ -84,6 +85,10 @@ install(
   PROGRAMS ${PROJECT_NAME}/script/teleop_keyboard.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME teleop_keyboard)
+install(
+  PROGRAMS ${PROJECT_NAME}/script/teleop_console.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME teleop_console)
 
 # INSTALL (ROS)
 install(
