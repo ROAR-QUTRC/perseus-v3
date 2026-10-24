@@ -71,10 +71,10 @@ namespace vision
         /// @brief Default marker side length, in metres.
         ///
         /// This is the printed marker square, not the plate carrying it. The
-        /// Lunabotics rail fiducials are a 0.238 m marker on a 0.35 m plate, the
+        /// Lunabotics rail fiducials are a 0.219 m marker on a 0.32 m plate, the
         /// remainder being the quiet zone; using the plate size scales recovered
-        /// translations by 1.47.
-        static constexpr double DEFAULT_MARKER_LENGTH_M = 0.238;
+        /// translations by 1.46.
+        static constexpr double DEFAULT_MARKER_LENGTH_M = 0.219;
         /// @brief Default minimum marker bounding box area, in square pixels.
         ///
         /// Detections smaller than this are discarded, as their pose estimates are

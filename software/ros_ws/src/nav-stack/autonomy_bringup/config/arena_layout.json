@@ -97,15 +97,15 @@
   ],
 
   "fiducials": {
-    "_comment": "Team-supplied ArUco markers on the arena's 80/20 rail, mirroring perseus_simulation's lunabotics_fiducials. marker_length_m is the printed SQUARE, not the plate: 0.238 m on a 0.35 m plate, the rest being quiet zone. It must match vision/aruco_detector's marker_length or the two disagree about scale by 1.47x.",
+    "_comment": "Team-supplied ArUco markers on the arena's 80/20 rail, mirroring perseus_simulation's lunabotics_fiducials. marker_length_m is the printed SQUARE, not the plate: 0.219 m on a 0.32 m plate, the rest being quiet zone. It must match vision/aruco_detector's marker_length or the two disagree about scale by 1.46x.",
     "dictionary_id": 9,
-    "marker_length_m": 0.238,
-    "spacing_m": 0.4625,
+    "marker_length_m": 0.219,
+    "spacing_m": 0.32,
     "spacing_tolerance_m": 0.1,
     "markers": [
-      { "id": 67, "x": -1.7125, "y": 0.028, "z": 0.4 },
+      { "id": 67, "x": -1.57, "y": 0.028, "z": 0.4 },
       { "id": 68, "x": -1.25, "y": 0.028, "z": 0.4 },
-      { "id": 69, "x": -0.7875, "y": 0.028, "z": 0.4 }
+      { "id": 69, "x": -0.93, "y": 0.028, "z": 0.4 }
     ]
   }
 }

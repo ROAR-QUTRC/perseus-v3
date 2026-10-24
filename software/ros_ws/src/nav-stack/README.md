@@ -1081,8 +1081,8 @@ before changing a number.
 | `construction_zone` | (3.545, 6.395)  | 2.05 × 3.41    |
 | `target_berm_area`  | (3.56, 6.4)     | 0.9 × 2.2      |
 
-Fiducials are ArUco dictionary 9 markers (IDs 67, 68, 69) with a 0.238 m
-printed square, 0.4625 m apart along the rail.
+Fiducials are ArUco dictionary 9 markers (IDs 67, 68, 69) with a 0.219 m
+printed square, 0.32 m apart (centre to centre, plates touching) along the rail.
 
 > [!WARNING]
 > The layout is **provisional**. Guidebook sections 3.1 and 5.7 call the

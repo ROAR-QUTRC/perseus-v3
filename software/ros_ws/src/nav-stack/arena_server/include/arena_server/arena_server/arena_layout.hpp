@@ -73,8 +73,8 @@ namespace arena_server
         // the note at the top of arena_layout.json.
         std::vector<Zone> zones;
         std::map<int, Marker> markers;
-        double marker_length_m{0.238};
-        double spacing_m{0.4625};
+        double marker_length_m{0.219};
+        double spacing_m{0.32};
         double spacing_tolerance_m{0.05};
         int dictionary_id{9};
 

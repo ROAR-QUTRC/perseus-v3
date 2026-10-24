@@ -102,8 +102,8 @@ namespace arena_server
             {
                 const auto& f = j["fiducials"];
                 layout.dictionary_id = f.value("dictionary_id", 9);
-                layout.marker_length_m = f.value("marker_length_m", 0.238);
-                layout.spacing_m = f.value("spacing_m", 0.4625);
+                layout.marker_length_m = f.value("marker_length_m", 0.219);
+                layout.spacing_m = f.value("spacing_m", 0.32);
                 layout.spacing_tolerance_m = f.value("spacing_tolerance_m", 0.05);
                 layout.markers.clear();
                 for (const auto& mj : f.value("markers", nlohmann::json::array()))
