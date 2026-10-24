@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /RobotModel1/Description Topic1
         - /Livox Cloud1
-        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
@@ -14,10 +13,7 @@ Panels:
         - /Arena Zones1/Topic1
         - /Rover Bound1/Topic1
         - /TwistStamped1/Topic1
-        - /Rover Bound1/Topic1
-        - /TwistStamped1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 439
     Tree Height: 439
   - Class: rviz_common/Selection
     Name: Selection
@@ -43,7 +39,7 @@ Panels:
     Topic: /arena/robot_pose
   - Class: rviz_plugins/MobilityEfficiencyPanel
     MaxAngular: 1
-    MaxLinear: 0.8
+    MaxLinear: 0.800000011920929
     Name: Mobility Efficiency
     Topic: /watchdog/mobility_status
     WarnPercent: 60
@@ -54,20 +50,15 @@ Panels:
     ConstructionX: 5.179413318634033
     ConstructionY: -3.896010398864746
     ConstructionYaw: -1.549481987953186
-    ConstructionX: 5.179413318634033
-    ConstructionY: -3.896010398864746
-    ConstructionYaw: -1.549481987953186
     Controller: DWB
+    ControllerType: radio
     Cycles: 50
     ExcavationFrame: odom
     ExcavationSet: true
     ExcavationSource: map
-    ExcavationX: 0.11609363555908203
-    ExcavationY: -0.09529638290405273
-    ExcavationYaw: 0.02713453397154808
-    ExcavationX: 0.11609363555908203
-    ExcavationY: -0.09529638290405273
-    ExcavationYaw: 0.02713453397154808
+    ExcavationX: 0.8936529159545898
+    ExcavationY: 0.35753488540649414
+    ExcavationYaw: -0.3758494501986607
     Mode: full
     Name: Mission Control
     Planner: ThetaStar
@@ -106,6 +97,10 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        aruco_marker_68:
+          Value: true
+        aruco_marker_69:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -306,7 +301,10 @@ Visualization Manager:
                           {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          {}
+                          aruco_marker_68:
+                            {}
+                          aruco_marker_69:
+                            {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
                           {}
@@ -344,6 +342,269 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_jaw:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_jaw_encoder_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_jaw_encoder_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_arm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_lift_arm_pivot_left_lower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_arm_pivot_left_upper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_arm_pivot_right_lower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_arm_pivot_right_upper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_encoder_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_lift_encoder_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_jaw_left_barrel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_jaw_left_shaft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_jaw_right_barrel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_jaw_right_shaft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_lift_left_barrel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_lift_left_shaft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_lift_right_barrel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_lift_right_shaft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_tilt_barrel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_ram_tilt_shaft:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bucket_tilt_encoder_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        bucket_tilt_encoder_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_accel_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_accel_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_bottom_screw_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_color_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_gyro_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_gyro_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_imu_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra1_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_infra2_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        differential_bar:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        flange_bearing:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_left_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_right_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        front_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_rocker:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_imu_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rear_left_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_left_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_right_motor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rear_right_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_rocker:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        sensor_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -436,7 +697,6 @@ Visualization Manager:
           Value: true
         Value: false
       Enabled: false
-      Enabled: false
       Keep: 1000
       Name: Footprint
       Position Tolerance: 0.10000000149011612
@@ -457,7 +717,6 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /odometry/filtered
-      Value: false
       Value: false
     - Class: rviz_default_plugins/Marker
       Enabled: false
@@ -688,25 +947,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 9.257772445678711
+      Distance: 2.359724760055542
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.213261127471924
-        Y: -1.6268224716186523
-        Z: 1.2016185522079468
+        X: 0.6565699577331543
+        Y: 0.2761041820049286
+        Z: 1.1989116668701172
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.48479729890823364
+      Pitch: 0.5402012467384338
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 5.9212212562561035
+      Yaw: 4.956217288970947
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
         Distance: 5.78459358215332
@@ -755,7 +1014,7 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1017
+  Height: 1131
   Hide Left Dock: false
   Hide Right Dock: false
   Link Health:
@@ -766,7 +1025,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000300000000000001560000031dfc0200000007fb000000100044006900730070006c006100790073000000003f000000d4000000cc00fffffffb000000180054006f0070006900630020004800650061006c00740068010000003f0000014f0000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000000a005600690065007700730100000257000001040000000000000000fb000000140052006f0076006500720020005600690065007701000001940000016b0000001700fffffffb0000001200560069006500770020004c006f0063006b0100000305000000570000005700ffffff00000001000001c80000031dfc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000001520000001700fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000197000001c5000001c500ffffff00000003000007800000010afc0100000004fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000000000dd000000dd00fffffffb00000016004c0069006e006b0020004800650061006c0074006801000000e300000110000000c700fffffffb0000001c004d0061006300680069006e00650020004800650061006c0074006801000001f9000003b30000021400fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000005b2000001ce000000e000ffffff000004560000031d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000030000000000000156000002fdfc0200000008fb000000100044006900730070006c006100790073000000003f000000d4000000cc00fffffffb000000180054006f0070006900630020004800650061006c00740068010000003f000001730000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000000a005600690065007700730100000257000001040000000000000000fb000000140052006f0076006500720020005600690065007701000001b8000001270000001700fffffffb0000001200560069006500770020004c006f0063006b01000002e5000000570000005700fffffffb000000140052006f00760065007200200056006900650077000000028b000000b10000001700ffffff00000001000001cc000002fdfc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f0000010f0000001700fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000154000001e8000001e800ffffff00000003000007800000010afc0100000004fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000000000dd000000b200fffffffb00000016004c0069006e006b0020004800650061006c0074006801000000e300000110000000c700fffffffb0000001c004d0061006300680069006e00650020004800650061006c0074006801000001f9000003b30000020900fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000005b2000001ce000000e000ffffff00000452000002fd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Rover View:
     collapsed: false
   Selection:
@@ -779,4 +1038,4 @@ Window Geometry:
     collapsed: false
   Width: 1920
   X: 0
-  Y: 0
+  Y: 32
