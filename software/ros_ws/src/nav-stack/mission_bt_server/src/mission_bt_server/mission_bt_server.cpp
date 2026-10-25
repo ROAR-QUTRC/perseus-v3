@@ -525,7 +525,7 @@ namespace mission_bt_server
         {
             factory.clearRegisteredBehaviorTrees();
             register_bucket_trees(factory, _bucket_bt_dir);
-            factory.registerBehaviorTreeFromFile(_mission_bt_xml_path);
+            register_tree_file(factory, _mission_bt_xml_path);
             // mission.xml's (and mission_lift_only.xml's) main_tree_to_execute.
             tree = factory.createTree("MainTree", blackboard);
             factory.clearRegisteredBehaviorTrees();

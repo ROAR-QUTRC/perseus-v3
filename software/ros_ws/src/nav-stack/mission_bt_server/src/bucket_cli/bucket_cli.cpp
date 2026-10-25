@@ -447,7 +447,7 @@ int main(int argc, char** argv)
             "/behavior_trees/mission.xml");
         try
         {
-            factory.registerBehaviorTreeFromFile(xml);
+            mission_bt_server::register_tree_file(factory, xml);
         }
         catch (const std::exception& e)
         {

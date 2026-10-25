@@ -1,9 +1,10 @@
 #pragma once
 
 /// @file bucket_trees.hpp
-/// @brief Loading the bucket behaviours built in Groot2 from saved poses (autonomy_bringup's
-/// behavior_trees/bucket/), shared by mission_bt_server and bucket_cli so the mission and
-/// the command line register the same trees the same way.
+/// @brief Loading tree files saved by Groot2 - mission.xml, and the bucket behaviours built
+/// from saved poses (autonomy_bringup's behavior_trees/bucket/) - shared by
+/// mission_bt_server and bucket_cli so the mission and the command line register the same
+/// trees the same way.
 
 #include <behaviortree_cpp/bt_factory.h>
 
@@ -20,11 +21,12 @@ namespace mission_bt_server
     /// every port of a node, a blank one as name="", and BT.CPP reads that as the literal
     /// "" (which no number converts from) instead of unset. Dropped, a blank port takes
     /// its default, or is omitted where it has none: a joint holds, a move is direct.
-    /// Throws with the file's name on a tree that will not load.
-    void register_bucket_tree_file(BT::BehaviorTreeFactory& factory,
-                                   const std::filesystem::path& file);
+    /// Every file Groot2 has saved needs this, mission.xml included. Throws with the
+    /// file's name on a tree that will not load.
+    void register_tree_file(BT::BehaviorTreeFactory& factory,
+                            const std::filesystem::path& file);
 
-    /// @brief register_bucket_tree_file for every bucket_tree_files(@p dir).
+    /// @brief register_tree_file for every bucket_tree_files(@p dir).
     void register_bucket_trees(BT::BehaviorTreeFactory& factory,
                                const std::filesystem::path& dir);
 

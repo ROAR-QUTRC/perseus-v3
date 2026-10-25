@@ -1,5 +1,5 @@
 /// @file bucket_trees.cpp
-/// @brief Bucket behaviour loading shared by mission_bt_server and bucket_cli.
+/// @brief Groot2 tree file loading shared by mission_bt_server and bucket_cli.
 
 #include "mission_bt_server/mission_bt_server/bucket_trees.hpp"
 
@@ -25,7 +25,7 @@ namespace mission_bt_server
         return files;
     }
 
-    void register_bucket_tree_file(BT::BehaviorTreeFactory& factory, const fs::path& file)
+    void register_tree_file(BT::BehaviorTreeFactory& factory, const fs::path& file)
     {
         static const std::regex BLANK_PORT(R"(\s+[A-Za-z_][A-Za-z0-9_]*="")");
         std::ifstream in(file);
@@ -45,7 +45,7 @@ namespace mission_bt_server
     void register_bucket_trees(BT::BehaviorTreeFactory& factory, const fs::path& dir)
     {
         for (const auto& file : bucket_tree_files(dir))
-            register_bucket_tree_file(factory, file);
+            register_tree_file(factory, file);
     }
 
 }  // namespace mission_bt_server
