@@ -60,7 +60,8 @@
 	let halfHeight = $derived(height / 2);
 
 	let pixelPerDegVertical = $derived<number>(width / 360);
-	let pixelPerDegHorizontal = $derived<number>(height / 180);
+	let pixelPerDegHorizontal = $derived<number>(height / 32);
+
 	let yawRange = $derived.by(() => {
 		const yawDeg = yaw * RAD_TO_DEG;
 		const roundDeg = Math.round(yawDeg / 10) * 10;
@@ -72,12 +73,13 @@
 		return out;
 	});
 
-	let pitchLevels = Array.from({ length: 37 }, (_, i) => (i - 18) * 10); // -180 to +180 in steps of 10
+	let pitchLevels = Array.from({ length: 17 }, (_, i) => (i - 8) * 2); // -180 to +180 in steps of 10
 </script>
 
 <svg
 	viewBox="{-halfWidth} {-halfHeight} {width} {height}"
-	class="h-full w-full {color} {clazz}"
+	class="h-full w-full {clazz}"
+	style:color
 	bind:clientWidth={width}
 	bind:clientHeight={height}
 >
@@ -184,6 +186,15 @@
 	<g mask="url(#{uid}-fade-y)" transform="rotate({roll * RAD_TO_DEG})">
 		<line x1={-halfWidth / 2} y1={0} x2={-CROSSHAIR_SIZE} y2={0} stroke-width={LINE_THICKNESS} />
 		<line x1={CROSSHAIR_SIZE} y1={0} x2={halfWidth / 2} y2={0} stroke-width={LINE_THICKNESS} />
+		<text
+			x={-halfWidth / 2 + 10}
+			y={-8}
+			font-family="monospace"
+			text-anchor="middle"
+			font-size="{pixelPerDegHorizontal}px"
+		>
+			{(roll * RAD_TO_DEG).toFixed(1)}
+		</text>
 
 		<!-- Pitch -->
 		<g transform="translate(0, {pitch * RAD_TO_DEG * pixelPerDegHorizontal})">
@@ -208,7 +219,7 @@
 					y={level * pixelPerDegHorizontal - 5}
 					font-family="monospace"
 					text-anchor="end"
-					font-size="{(pixelPerDegHorizontal / 2) * 6}px"
+					font-size="{(pixelPerDegHorizontal / 6) * 6}px"
 				>
 					{-level}
 				</text>
