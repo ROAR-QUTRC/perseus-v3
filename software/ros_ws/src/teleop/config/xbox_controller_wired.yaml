@@ -40,4 +40,6 @@ generic_controller:
       rotate:
         scaling: -0.5
         axis: 6
-    timeout_ns: 150000000
+    # How long /joy can go quiet before the drive and bucket stop. Matches twist_mux's
+    # joy_vel timeout; 150 ms (joy_node publishes at ~20 Hz) dropped out mid-drive.
+    timeout_ns: 500000000

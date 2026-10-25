@@ -49,7 +49,9 @@ LOOP_S = 0.05
 CALL_TIMEOUT_S = 8.0  # arming waits up to 5 s on /bucket/rearm
 # twist_mux's joy_vel timeout: quieter than this and navigation has the drive.
 JOY_VEL_TIMEOUT_S = 0.5
-JOY_STALE_S = 0.5
+# Longer than generic_controller's 500 ms timeout_ns, so this only says NOT SEEN
+# once the controller has already stopped the rover.
+JOY_STALE_S = 1.0
 # The launch's nodes colour their logs (emulate_tty); curses would show the codes.
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 

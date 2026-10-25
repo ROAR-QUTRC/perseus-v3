@@ -219,7 +219,7 @@ void GenericController::_take_control_callback(
 void GenericController::_joy_timeout_callback(void)
 {
     static const auto timeout_length = rcl_time_point_value_t(
-        this->declare_parameter(TIMEOUT_LENGTH, 150000000));
+        this->declare_parameter(TIMEOUT_LENGTH, 500000000));
     RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
                           "Timeout length is %ld ns", timeout_length);
     if ((this->now().nanoseconds() - _prev_received_joy_time.nanoseconds()) >
@@ -242,6 +242,11 @@ void GenericController::_joy_timeout_callback(void)
 void GenericController::_joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg)
 {
+    // How long the dropout was, so a flaky link or a too-tight timeout_ns shows up
+    if (_joy_timed_out)
+        RCLCPP_WARN(this->get_logger(), "Joy back after %ld ms",
+                    static_cast<long>(
+                        (this->now() - _prev_received_joy_time).nanoseconds() / 1000000));
     _last_received_joy = msg;
     _prev_received_joy_time = this->now();
     _joy_timed_out = false;

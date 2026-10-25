@@ -53,6 +53,13 @@ let
                network loss. Cyclone can only get this much if the kernel allows it:
                net.core.rmem_max must be at least as large (the shell warns if not). -->
           <SocketReceiveBufferSize min="10MB"/>
+          <!-- Every peer that is offline gets a discovery packet each SPDPInterval, and
+               the kernel holds each one for 3 s while ARP fails, counted against the
+               sending socket. With the default 208 KB that fills once four or so peers
+               are down, and then every publish() on this machine blocks until ARP gives
+               up: 3 s freezes, every 3 s. 2 MB has room for dozens of offline peers.
+               Capped at net.core.wmem_max, like the receive side. -->
+          <SocketSendBufferSize min="2MB"/>
         </Internal>
       </Domain>
     </CycloneDDS>
@@ -112,6 +119,14 @@ in
       echo -e "\e[33m  WARNING: net.core.rmem_max is $dds_rmem, below the 10 MB Cyclone asks for.\e[0m"
       echo    "           Large messages may be dropped locally. Raise it with:"
       echo    "             sudo sysctl -w net.core.rmem_max=16777216"
+    fi
+    # Likewise the 2 MB send buffer, capped at net.core.wmem_max. Too low and offline
+    # peers stall every node here for 3 s at a time (see ddsConfig).
+    dds_wmem=$(cat /proc/sys/net/core/wmem_max 2>/dev/null || echo 0)
+    if [ "$dds_wmem" -lt 2097152 ]; then
+      echo -e "\e[33m  WARNING: net.core.wmem_max is $dds_wmem, below the 2 MB Cyclone asks for.\e[0m"
+      echo    "           With peers offline, publishing can freeze for 3 s at a time. Raise it with:"
+      echo    "             sudo sysctl -w net.core.wmem_max=4194304"
     fi
     echo    "  peers:     ${lib.concatStringsSep " " peerAddresses}"
   '';
