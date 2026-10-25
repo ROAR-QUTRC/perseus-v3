@@ -112,7 +112,8 @@ namespace mission_bt_server
         {
             RCLCPP_ERROR(_node->get_logger(),
                          "BlindJawMove: the operator has the bucket - hand it back with "
-                         "`ros2 run payloads bucket_supervisor.py --rearm` first");
+                         "`a` in teleop_console, or `ros2 run payloads "
+                         "bucket_supervisor.py --rearm`, first");
             return BT::NodeStatus::FAILURE;
         }
         if (!_rearm_client->wait_for_service(std::chrono::seconds(2)))

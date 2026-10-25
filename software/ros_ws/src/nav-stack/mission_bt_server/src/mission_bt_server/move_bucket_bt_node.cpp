@@ -149,7 +149,8 @@ namespace mission_bt_server
         {
             RCLCPP_ERROR(_node->get_logger(),
                          "MoveBucket: the operator has the bucket - hand it back with "
-                         "`ros2 run payloads bucket_supervisor.py --rearm` first");
+                         "`a` in teleop_console, or `ros2 run payloads "
+                         "bucket_supervisor.py --rearm`, first");
             setOutput("failure", std::string("operator_override"));
             return BT::NodeStatus::FAILURE;
         }

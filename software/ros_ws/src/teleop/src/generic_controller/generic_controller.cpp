@@ -35,7 +35,185 @@ GenericController::GenericController(const rclcpp::NodeOptions& options)
             std::bind(&GenericController::_joy_timeout_callback, this));
     }
     _prev_received_joy_time = this->now();
+
+    // Latched, like /bucket/operator_override, so a console started later sees it.
+    _mode_publisher = this->create_publisher<std_msgs::msg::Bool>(
+        "/teleop/autonomy_armed", rclcpp::QoS(1).reliable().transient_local());
+    _set_mode(Mode::MANUAL);
+    _bucket_override_subscription = this->create_subscription<std_msgs::msg::Bool>(
+        "/bucket/operator_override", rclcpp::QoS(1).reliable().transient_local(),
+        [this](const std_msgs::msg::Bool& msg)
+        { _bucket_override = msg.data; });
+    _rearm_client = this->create_client<Trigger>("/bucket/rearm");
+    _arm_service = this->create_service<Trigger>(
+        "/teleop/arm_autonomy",
+        std::bind(&GenericController::_arm_callback, this, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3));
+    _take_control_service = this->create_service<Trigger>(
+        "/teleop/take_control",
+        std::bind(&GenericController::_take_control_callback, this,
+                  std::placeholders::_1, std::placeholders::_2));
     RCLCPP_INFO(this->get_logger(), "Generic controller initialized");
+}
+
+void GenericController::_set_mode(Mode mode)
+{
+    _mode = mode;
+    std_msgs::msg::Bool msg;
+    msg.data = mode == Mode::AUTONOMY;
+    _mode_publisher->publish(msg);
+}
+
+void GenericController::_publish_stop_bursts()
+{
+    if (_stop_messages_remaining > 0)
+    {
+        --_stop_messages_remaining;
+        geometry_msgs::msg::TwistStamped twist_msg;
+        twist_msg.header.stamp = this->now();
+        _twist_publisher->publish(twist_msg);
+    }
+    if (_bucket_stop_messages_remaining > 0)
+    {
+        --_bucket_stop_messages_remaining;
+        actuator_msgs::msg::Actuators actuator_msg;
+        actuator_msg.velocity = {0.0, 0.0, 0.0};
+        actuator_msg.header.stamp = this->now();
+        _actuator_publisher->publish(actuator_msg);
+    }
+}
+
+void GenericController::_arm_callback(rclcpp::Service<Trigger>::SharedPtr service,
+                                      std::shared_ptr<rmw_request_id_t> header,
+                                      std::shared_ptr<Trigger::Request> /*request*/)
+{
+    const auto reply = [&service, &header](bool success, const std::string& message)
+    {
+        Trigger::Response response;
+        response.success = success;
+        response.message = message;
+        service->send_response(*header, response);
+    };
+
+    if (_mode == Mode::AUTONOMY)
+    {
+        reply(true, "already armed");
+        return;
+    }
+    if (_mode == Mode::ARMING)
+    {
+        reply(false, "already arming");
+        return;
+    }
+    // A stale message doesn't count: a gamepad that dropped out with the deadman
+    // down would otherwise block arming until it came back.
+    const bool joy_live =
+        _last_received_joy && (this->now() - _prev_received_joy_time) < rclcpp::Duration(JOY_STALE_TIME);
+    if (joy_live && _enable_parsers.at(FORWARD_BASE_NAME + ".enable").get_value())
+    {
+        reply(false, "release the deadman first");
+        return;
+    }
+
+    _pending_arm = PendingArm{service, header};
+    _set_mode(Mode::ARMING);
+    RCLCPP_INFO(this->get_logger(), "Arming autonomy: stopping");
+    // Whatever was mid-burst finishes now, so the drive stops and bucket_driver's
+    // latest speeds are zero before the re-arm, which it refuses otherwise.
+    _stop_messages_remaining = std::max(_stop_messages_remaining, 1);
+    _bucket_stop_messages_remaining = std::max(_bucket_stop_messages_remaining, 1);
+    while (_stop_messages_remaining > 0 || _bucket_stop_messages_remaining > 0)
+        _publish_stop_bursts();
+
+    _arm_timer = this->create_wall_timer(ARM_SETTLE_TIME,
+                                         [this]
+                                         {
+                                             _arm_timer->cancel();
+                                             _arm_settled();
+                                         });
+}
+
+void GenericController::_arm_settled()
+{
+    if (_mode != Mode::ARMING)
+        return;
+
+    if (!_bucket_override.value_or(false))
+    {
+        _finish_arm(true, true,
+                    std::string("drive: back to navigation; bucket: ") +
+                        (_bucket_override ? "autonomy already has it"
+                                          : "no bucket_driver seen"));
+        return;
+    }
+    if (!_rearm_client->service_is_ready())
+    {
+        _finish_arm(true, false,
+                    "drive: back to navigation; bucket: the operator still has it - "
+                    "/bucket/rearm is not available");
+        return;
+    }
+
+    auto future = _rearm_client->async_send_request(
+        std::make_shared<Trigger::Request>(),
+        [this](rclcpp::Client<Trigger>::SharedFuture answered)
+        {
+            _rearm_request_id.reset();
+            if (_mode != Mode::ARMING)
+                return;
+            const auto response = answered.get();
+            _finish_arm(true, response->success,
+                        "drive: back to navigation; bucket: " +
+                            (response->success ? response->message
+                                               : "the operator still has it - " +
+                                                     response->message));
+        });
+    _rearm_request_id = future.request_id;
+    _arm_timer = this->create_wall_timer(
+        REARM_TIMEOUT,
+        [this]
+        {
+            if (_mode == Mode::ARMING)
+                _finish_arm(true, false,
+                            "drive: back to navigation; bucket: the operator still has "
+                            "it - no answer from /bucket/rearm");
+        });
+}
+
+void GenericController::_finish_arm(bool armed, bool success, const std::string& message)
+{
+    if (_arm_timer)
+        _arm_timer->cancel();
+    if (_rearm_request_id)
+        _rearm_client->remove_pending_request(*_rearm_request_id);
+    _rearm_request_id.reset();
+
+    // Armed even when the bucket refused: the drive is handed back either way, and
+    // the deadman still takes everything back.
+    _set_mode(armed ? Mode::AUTONOMY : Mode::MANUAL);
+    if (armed)
+        RCLCPP_INFO(this->get_logger(), "Autonomy armed - %s", message.c_str());
+    if (_pending_arm)
+    {
+        Trigger::Response response;
+        response.success = success;
+        response.message = message;
+        _pending_arm->service->send_response(*_pending_arm->header, response);
+        _pending_arm.reset();
+    }
+}
+
+void GenericController::_take_control_callback(
+    const std::shared_ptr<Trigger::Request> /*request*/,
+    std::shared_ptr<Trigger::Response> response)
+{
+    if (_mode == Mode::ARMING)
+        _finish_arm(false, false, "aborted: the operator took control");
+    if (_mode == Mode::AUTONOMY)
+        RCLCPP_WARN(this->get_logger(), "Operator took control (console)");
+    _set_mode(Mode::MANUAL);
+    response->success = true;
+    response->message = "manual: the gamepad drives while the deadman is held";
 }
 
 void GenericController::_joy_timeout_callback(void)
@@ -47,29 +225,17 @@ void GenericController::_joy_timeout_callback(void)
     if ((this->now().nanoseconds() - _prev_received_joy_time.nanoseconds()) >
         timeout_length)
     {
-        // A short burst of zeros stops the rover, then joy_vel goes quiet so twist_mux
-        // can hand control back to navigation.
-        if (_stop_messages_remaining > 0)
-        {
-            --_stop_messages_remaining;
-            geometry_msgs::msg::TwistStamped twist_msg;
-            twist_msg.header.stamp = this->now();
-            _twist_publisher->publish(twist_msg);
-        }
+        // Armed, nothing goes out. Otherwise a short burst of zeros stops the rover and
+        // the bucket, then both topics go quiet so twist_mux can hand control back to
+        // navigation and bucket_driver times out to zero on its own.
+        if (_mode != Mode::MANUAL)
+            return;
+        _publish_stop_bursts();
 
-        actuator_msgs::msg::Actuators actuator_msg;
-        actuator_msg.velocity.push_back(0);
-        actuator_msg.velocity.push_back(0);
-        actuator_msg.velocity.push_back(0);
-
-        actuator_msg.header.stamp = this->now();
-        // Publish actuator message
-        _actuator_publisher->publish(actuator_msg);
-
-        // Warn user if controller is disconnected
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                             "Joy timeout, stopped the drive and publishing zero to "
-                             "actuators to stop movement safely");
+        // Warn user if controller is disconnected, once per dropout
+        if (!_joy_timed_out)
+            RCLCPP_WARN(this->get_logger(), "Joy timeout, stopped the drive and the bucket");
+        _joy_timed_out = true;
     }
 }
 
@@ -78,6 +244,7 @@ void GenericController::_joy_callback(
 {
     _last_received_joy = msg;
     _prev_received_joy_time = this->now();
+    _joy_timed_out = false;
     double forward = _axis_parsers.at(FORWARD_BASE_NAME).get_value();
     double turn = _axis_parsers.at(TURN_BASE_NAME).get_value();
     double lift = _axis_parsers.at(LIFT_BASE_NAME).get_value();
@@ -93,16 +260,25 @@ void GenericController::_joy_callback(
     // zeros after it is released to stop the rover. Publishing zeros whenever the stick
     // is idle would keep twist_mux's highest-priority input alive and block navigation.
     // With the deadman released forward and turn are already zero, so the burst carries
-    // exactly what used to be sent.
+    // exactly what used to be sent. The bucket is on the same deadman, so a stick that
+    // drifts can never take it from autonomy.
     bool drive_enabled =
         _enable_parsers.at(FORWARD_BASE_NAME + ".enable").get_value();
-    if (drive_enabled)
-        _stop_messages_remaining = STOP_BURST_LENGTH;
 
-    if (drive_enabled || _stop_messages_remaining > 0)
+    if (drive_enabled && _mode == Mode::ARMING)
+        _finish_arm(false, false, "aborted: the operator took control");
+    else if (drive_enabled && _mode == Mode::AUTONOMY)
     {
-        if (!drive_enabled)
-            --_stop_messages_remaining;
+        RCLCPP_WARN(this->get_logger(), "Operator took control (deadman)");
+        _set_mode(Mode::MANUAL);
+    }
+    if (_mode != Mode::MANUAL)
+        return;
+
+    if (drive_enabled)
+    {
+        _stop_messages_remaining = STOP_BURST_LENGTH;
+        _bucket_stop_messages_remaining = STOP_BURST_LENGTH;
 
         geometry_msgs::msg::TwistStamped twist_msg;
         twist_msg.twist.linear.x = forward;
@@ -111,16 +287,18 @@ void GenericController::_joy_callback(
         twist_msg.header.stamp = this->now();
         // Publish twist message
         _twist_publisher->publish(twist_msg);
+
+        actuator_msgs::msg::Actuators actuator_msg;
+        actuator_msg.velocity.push_back(lift);
+        actuator_msg.velocity.push_back(tilt);
+        actuator_msg.velocity.push_back(jaws);
+
+        actuator_msg.header.stamp = this->now();
+        // Publish actuator message
+        _actuator_publisher->publish(actuator_msg);
     }
-
-    actuator_msgs::msg::Actuators actuator_msg;
-    actuator_msg.velocity.push_back(lift);
-    actuator_msg.velocity.push_back(tilt);
-    actuator_msg.velocity.push_back(jaws);
-
-    actuator_msg.header.stamp = this->now();
-    // Publish actuator message
-    _actuator_publisher->publish(actuator_msg);
+    else
+        _publish_stop_bursts();
 }
 
 GenericController::AxisParser::AxisParser(GenericController& parent,
