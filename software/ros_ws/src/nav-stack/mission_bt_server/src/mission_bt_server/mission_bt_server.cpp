@@ -125,16 +125,20 @@ namespace mission_bt_server
         _timeouts = BtTimeouts::declare(*this);
         _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
 
-        // ScanAndLocalise: turn in steps of scan_step_deg, looking for the rail markers
-        // after each, for at most scan_max_deg in all (a full turn by default).
-        _scan_step_deg = declare_parameter<double>("scan_step_deg", 30.0);
+        // ScanAndLocalise: turn until two rail markers are in view, for at most
+        // scan_max_deg (a full turn by default) per attempt and scan_retries attempts.
         _scan_max_deg = declare_parameter<double>("scan_max_deg", 360.0);
+        _scan_retries = declare_parameter<int>("scan_retries", 2);
         _scan_look_s = declare_parameter<double>("scan_look_s", 1.5);
         _scan_wall_range_m = declare_parameter<double>("scan_wall_range_m", 4.0);
-        if (_scan_step_deg <= 0.0 || _scan_max_deg <= 0.0)
+        // The rover turns about base_footprint and its corner sweeps 0.93 m from it, so a
+        // wall nearer than that is hit. The margin is the rest. 0 or less turns without
+        // the check.
+        _scan_min_clearance_m = declare_parameter<double>("scan_min_clearance_m", 1.0);
+        if (_scan_max_deg <= 0.0 || _scan_retries < 1)
         {
-            RCLCPP_FATAL(get_logger(), "scan_step_deg and scan_max_deg must be positive");
-            throw std::runtime_error("mission_bt_server: bad scan_step_deg / scan_max_deg");
+            RCLCPP_FATAL(get_logger(), "scan_max_deg must be positive and scan_retries >= 1");
+            throw std::runtime_error("mission_bt_server: bad scan_max_deg / scan_retries");
         }
 
         // Same names as bt_navigator's, whose own monitoring is off by default, so the
@@ -153,10 +157,12 @@ namespace mission_bt_server
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
                                      "nav2_drive_on_heading_bt_node",
-                                     "nav2_spin_action_bt_node",
+                                     "nav2_wait_action_bt_node",
+                                     "nav2_clear_costmap_service_bt_node",
                                      "request_zone_waypoint_bt_node", "move_bucket_bt_node",
                                      "blind_jaw_bt_node", "localise_in_arena_bt_node",
-                                     "wall_side_bt_node"});
+                                     "wall_side_bt_node", "wait_for_markers_bt_node",
+                                     "blind_spin_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
         bt_node_options.arguments(
@@ -480,11 +486,14 @@ namespace mission_bt_server
                                    request.mode != StartMission::Request::MODE_DUMP_ONLY &&
                                    request.mode != StartMission::Request::MODE_DIG_ONLY;
         blackboard->set<bool>("scan_localise", scan_localise);
-        blackboard->set<double>("scan_step_deg", _scan_step_deg);
+        blackboard->set<double>("scan_spin_deg", _scan_max_deg);
         blackboard->set<double>("scan_wall_range_m", _scan_wall_range_m);
+        blackboard->set<double>("scan_min_clearance_m", _scan_min_clearance_m);
         blackboard->set<double>("scan_look_s", _scan_look_s);
-        blackboard->set<int>("scan_steps",
-                             static_cast<int>(std::ceil(_scan_max_deg / _scan_step_deg)));
+        blackboard->set<int>("scan_retries", _scan_retries);
+        // BlindSpin turns at 0.4 rad/s; allow for half that speed, plus slack.
+        blackboard->set<double>("scan_spin_allowance_s",
+                                _scan_max_deg * M_PI / 180.0 / 0.2 + 5.0);
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "

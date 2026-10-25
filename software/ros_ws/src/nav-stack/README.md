@@ -1023,20 +1023,26 @@ Looks up `odom -> base_link` and broadcasts `odom -> base_footprint` at
 | Action client | `/drive_on_heading`                | `nav2_msgs/action/DriveOnHeading` (dig creeps)             |
 | Action client | bucket controller                  | `control_msgs/action/FollowJointTrajectory` (`MoveBucket`) |
 
-It registers four custom BT nodes: `RequestZoneWaypoint`, which calls an
+It registers six custom BT nodes: `RequestZoneWaypoint`, which calls an
 `arena_server` waypoint service and writes the result to the blackboard,
 `MoveBucket`, which sends one bucket pose, `LocaliseInArena`, one call to
-`/arena/localise`, and `WallSide`, which picks the spin direction from the
-nearer wall in `/local_costmap_terrain`.
+`/arena/localise`, `WallSide`, which picks the spin direction from the nearer
+wall in the raw lidar cloud and fails if a wall is too close to turn,
+`BlindSpin`, which turns the rover without a costmap check, and `WaitForMarkers`,
+which succeeds once one frame of `/vision/aruco/detections` holds two markers.
 
 **Scan and localise.** With `StartMission.scan_localise` set (the Mission
 Control panel's _Localise_ tick box, off by default), `mission.xml` runs
 `ScanAndLocalise` after `PrepareBucket`. The rover starts at any heading, so it
-looks for two rail markers, then turns toward the nearer wall in
-`scan_step_deg` (30) steps with nav2's `Spin` and a look after each, for up to
-`scan_max_deg` (360). The first fix re-seeds `map -> odom`. A full turn with no
-fix fails the mission before it drives. Dump only and Dig only ignore it. The
-`scan_*` parameters are on `mission_bt_server`.
+looks for two rail markers, then spins toward the nearer wall with `BlindSpin`
+until `WaitForMarkers` sees two, which halts the spin. nav2's own `Spin` is not
+used: it refuses a full turn in the 2.25 m starting zone (`Collision Ahead`).
+Instead `WallSide` fails the scan if a wall is nearer than
+`scan_min_clearance_m` (1.0) to the rover's centre. It then stops,
+settles for 0.5 s and takes the fix from a still camera, which re-seeds
+`map -> odom`. A turn is at most `scan_max_deg` (360), and `scan_retries` (2)
+attempts without a fix fail the mission before it drives. Dump only and Dig only
+ignore it. The `scan_*` parameters are on `mission_bt_server`.
 
 ### `mobility_watchdog`
 

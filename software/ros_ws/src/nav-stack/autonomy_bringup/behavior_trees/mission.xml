@@ -24,10 +24,13 @@
     pause_ms                 unsigned int, how long TimedAutonomyCycle stops at each zone
     prepare_bucket           bool: run PrepareBucket before the task
     scan_localise            bool: run ScanAndLocalise after PrepareBucket
-    scan_step_deg            double, ScanAndLocalise's turn per step, degrees
-    scan_steps               int, how many steps at most (a full turn by default)
-    scan_look_s              double, how long each look waits for two markers
+    scan_spin_deg            double, the most ScanAndLocalise turns per attempt, degrees
+    scan_spin_allowance_s    double, how long that turn may take
+    scan_retries             int, how many attempts
+    scan_look_s              double, how long the look after stopping waits for markers
     scan_wall_range_m        double, how far away a wall still decides the direction
+    scan_min_clearance_m     double, WallSide fails the scan if a wall is nearer than this
+                             to the rover's centre (0 or less: no check)
     bucket_action            the bucket controller's FollowJointTrajectory action
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
     bucket_travel_tilt_deg
@@ -89,17 +92,36 @@
 
   <!--
     The rover starts at any heading, so first find out where it is in the arena: turn on
-    the spot until the camera sees at least two rail markers, then let arena_server fit
-    the pose and re-seed map -> odom (LocaliseInArena, its /arena/localise).
+    the spot until the camera sees at least two rail markers, stop, then let arena_server
+    fit the pose and re-seed map -> odom (LocaliseInArena, its /arena/localise).
 
     It looks before it turns, in case two markers are already in view. If not, WallSide
-    reads the local costmap and picks the direction of the nearer wall (left when there
-    is none), and the rover then turns scan_step_deg at a time with a look after each,
-    for up to scan_steps steps, 360 deg by default. The Spin is nav2's own, so it goes
-    through the velocity smoother and twist_mux like any nav2 motion and is
-    collision-checked: a Spin it refuses counts as one failed step, as does a look
-    that sees fewer than two markers. A full turn with no fix fails the mission here,
-    before it drives anywhere with a map frame that has not been checked.
+    reads the lidar and picks the direction of the nearer wall (left when there is none).
+    It reads the raw cloud and not the costmaps, which are blind inside 1.7 m of the
+    lidar, and it fails the scan if a wall is nearer than scan_min_clearance_m, because
+    the turn is not checked. The turn is one continuous BlindSpin of up to scan_spin_deg,
+    360 by default, beside WaitForMarkers: the moment a frame holds two markers, its
+    success ends the Parallel, which halts the BlindSpin and so stops the rover. A short
+    Wait lets it settle, and LocaliseInArena takes the fix from a still camera.
+
+    BlindSpin is not nav2's Spin. Spin collision-checks the footprint against the local
+    costmap's lethal band round every wall and refuses a full turn in a 2.25 m starting
+    zone, where the rover's 0.93 m circle plus that band does not fit, aborting with
+    "Collision Ahead". BlindSpin turns on twist_mux's navigation input without the check,
+    so WallSide's clearance is the only protection, and the joystick still overrides.
+
+    ForceFailure makes the BlindSpin's end count as a failed attempt, whether it finished
+    the turn without finding markers or ran out of time. So does a stop that
+    LocaliseInArena rejects, for instance on a stray marker, and each retry turns again.
+    scan_retries attempts without a fix fail the mission here, before it drives anywhere
+    with a map frame that has not been checked.
+
+    After a turn, the terrain memory and both costmaps are cleared, the same three
+    clears navigate_to_pose_w_smoothing.xml's planner recovery runs. global_traversability
+    remembers every cell it has seen until the lidar looks at it again, and a rover
+    turning in place can leave walls smeared into it by the odometry's lag, which
+    would then read as obstacles all around the start. The clears are allowed to
+    fail: a rover that cannot clear still drives, as it does in that tree.
   -->
   <BehaviorTree ID="ScanAndLocalise">
     <Sequence>
@@ -107,14 +129,38 @@
       <Fallback>
         <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
         <Sequence>
-          <WallSide step_deg="{scan_step_deg}" range_m="{scan_wall_range_m}"
-                    spin_dist="{scan_spin_dist}"/>
-          <RetryUntilSuccessful num_attempts="{scan_steps}">
+          <WallSide spin_deg="{scan_spin_deg}" range_m="{scan_wall_range_m}"
+                    min_clearance_m="{scan_min_clearance_m}" spin_dist="{scan_spin_dist}"/>
+          <RetryUntilSuccessful num_attempts="{scan_retries}">
             <Sequence>
-              <Spin spin_dist="{scan_spin_dist}" is_recovery="false"/>
+              <Parallel success_count="1" failure_count="1">
+                <ForceFailure>
+                  <BlindSpin spin_dist="{scan_spin_dist}"
+                             time_allowance_s="{scan_spin_allowance_s}"/>
+                </ForceFailure>
+                <WaitForMarkers min_markers="2"/>
+              </Parallel>
+              <Wait wait_duration="0.5"/>
               <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
             </Sequence>
           </RetryUntilSuccessful>
+          <Fallback>
+            <ClearEntireCostmap name="ClearTerrainMemory-Scan"
+                                service_name="global_traversability/clear_region"/>
+            <AlwaysSuccess/>
+          </Fallback>
+          <!-- clear_region republishes /costmap a moment after it replies, so let that land
+               before nav2's own costmaps are cleared and re-read. -->
+          <Wait wait_duration="1.5"/>
+          <Fallback>
+            <Sequence>
+              <ClearEntireCostmap name="ClearLocalCostmap-Scan"
+                                  service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Scan"
+                                  service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+            <AlwaysSuccess/>
+          </Fallback>
         </Sequence>
       </Fallback>
     </Sequence>
