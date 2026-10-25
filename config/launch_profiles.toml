@@ -37,3 +37,10 @@ monitor = "btop"
 [BoMachine]
 ros = ["ros2 launch autonomy_bringup base_station.launch.py", "ros2 topic list"]
 monitor = "btop"
+
+[big-brain]
+ros = [
+  "ros2 launch perseus perseus.launch.py use_sim_time:=false safe_speed:=false payload:=bucket",
+  "ros2 bag record -a",
+]
+monitor = "btop"
