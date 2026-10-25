@@ -22,9 +22,12 @@
 	import WidgetCanvas from '$lib/components/widgetCanvas.svelte';
 	import ConnectionMenu from '$lib/components/connectionMenu.svelte';
 
-	const logos: Record<string, { default: string }> = import.meta.glob('$lib/assets/logos/**.png', {
-		eager: true
-	});
+	const logos: Record<string, { default: string }> = import.meta.glob(
+		'$lib/assets/logos/**.{png,svg}',
+		{
+			eager: true
+		}
+	);
 
 	let unSub: (() => void) | null = null;
 	let widgetGroups = $state<Array<Array<WidgetType>>>([]);

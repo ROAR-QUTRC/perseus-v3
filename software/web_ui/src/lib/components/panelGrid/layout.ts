@@ -1,3 +1,5 @@
+import { uuidv7 } from "uuidv7";
+
 export type Direction = "horizontal" | "vertical";
 export type Edge = "left" | "right" | "top" | "bottom" | "center";
 
@@ -101,7 +103,7 @@ export const movePanel = (
   } else {
     const wrapper: PanelGroupType = {
       type: "group",
-      id: crypto.randomUUID(),
+      id: uuidv7(),
       direction: dir,
       size: target.size,
       children: after ? [target, source] : [source, target],
