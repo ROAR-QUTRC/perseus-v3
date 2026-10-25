@@ -35,4 +35,10 @@
   <BehaviorTree ID="Pose_backward_tilt">
     <MoveBucket tilt_deg="-57.7" timeout_s="3" attempts="2" server_name="{@bucket_action}"/>
   </BehaviorTree>
+  <BehaviorTree ID="Pose_collect">
+    <MoveBucket lift_deg="37.2" tilt_deg="-27.2" jaw_deg="34.5" timeout_s="3" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_close">
+    <MoveBucket lift_deg="38.0" tilt_deg="-47.6" jaw_deg="0.0" timeout_s="3" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
 </root>

@@ -2,7 +2,12 @@
 <root BTCPP_format="4">
   <BehaviorTree ID="collect">
     <Sequence>
-      <SubTree ID="Pose_zero"/>
+      <SubTree ID="Pose_comp_travel"/>
+      <Sleep msec="1000"/>
+      <SubTree ID="Pose_collect"/>
+      <Sleep msec="1000"/>
+      <SubTree ID="Pose_close"/>
+      <SubTree ID="Pose_comp_travel"/>
     </Sequence>
   </BehaviorTree>
 
