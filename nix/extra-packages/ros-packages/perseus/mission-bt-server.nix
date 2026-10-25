@@ -17,8 +17,12 @@
   nav2-msgs,
   rclcpp,
   rclcpp-action,
+  sensor-msgs,
   std-msgs,
   std-srvs,
+  tf2,
+  tf2-geometry-msgs,
+  tf2-ros,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-mission-bt-server";
@@ -45,8 +49,12 @@ buildRosPackage rec {
     nav2-msgs
     rclcpp
     rclcpp-action
+    sensor-msgs
     std-msgs
     std-srvs
+    tf2
+    tf2-geometry-msgs
+    tf2-ros
   ];
   nativeBuildInputs = [ ament-cmake ];
 
