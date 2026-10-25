@@ -78,7 +78,8 @@
 
 <svg
 	viewBox="{-halfWidth} {-halfHeight} {width} {height}"
-	class="h-full w-full {color} {clazz}"
+	class="h-full w-full {clazz}"
+	style:color
 	bind:clientWidth={width}
 	bind:clientHeight={height}
 >
