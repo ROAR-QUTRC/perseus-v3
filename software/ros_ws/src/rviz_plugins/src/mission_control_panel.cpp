@@ -77,6 +77,8 @@ namespace rviz_plugins
                 return "Bucket: moving every joint to 0 deg";
             if (phase == "bucket_to_travel")
                 return "Bucket: moving to travel pose";
+            if (phase == "scan_localise")
+                return "Turning to find the arena markers";
             if (phase == "to_excavation")
                 return "Driving to excavation zone";
             if (phase == "to_construction")
@@ -233,6 +235,15 @@ namespace rviz_plugins
             "tilt -20, jaw 0), which keeps the bucket out of the lidar's and camera's\n"
             "view of the ground ahead. Needs the bucket controller running.");
 
+        _scan_localise_check = new QCheckBox("Scan for markers and localise first");
+        _scan_localise_check->setChecked(false);
+        _scan_localise_check->setToolTip(
+            "Before the mission sets off, turn on the spot until the camera sees at least\n"
+            "two rail markers, then fix the rover's pose in the arena from them. It turns\n"
+            "toward the nearer wall, and the mission fails if a full turn finds no fix.\n"
+            "Use it when the rover starts at a random heading. Not used by Dump only or\n"
+            "Dig only.");
+
         _pause_spin = new QDoubleSpinBox();
         _pause_spin->setRange(0.5, 600.0);
         _pause_spin->setDecimals(1);
@@ -290,11 +301,13 @@ namespace rviz_plugins
         mission_form->addRow("Mode", _mode_combo);
         mission_form->addRow("Task", _task_combo);
         mission_form->addRow("Bucket", _prepare_bucket_check);
+        mission_form->addRow("Localise", _scan_localise_check);
         mission_form->addRow("Stop for", _pause_spin);
         mission_form->addRow("Planner", _planner_combo);
         mission_form->addRow("Controller", controller_row);
         _task_label = mission_form->labelForField(_task_combo);
         _bucket_label = mission_form->labelForField(_prepare_bucket_check);
+        _scan_label = mission_form->labelForField(_scan_localise_check);
         _pause_label = mission_form->labelForField(_pause_spin);
 
         // A grid rather than a QFormLayout: Qt 5's form layout leaves a hidden row's
@@ -661,6 +674,7 @@ namespace rviz_plugins
         request->cycles = static_cast<uint32_t>(_cycles_spin->value());
         // The timed mode never moves the bucket; the server enforces that too.
         request->prepare_bucket = !_timed_autonomy() && _prepare_bucket_check->isChecked();
+        request->scan_localise = !(_dump_only() || _dig_only()) && _scan_localise_check->isChecked();
         request->zone_pause_s = _timed_autonomy() ? _pause_spin->value() : 0.0;
         request->use_arena_excavation = _uses_arena(_excavation_row);
         request->use_arena_construction = _uses_arena(_construction_row);
@@ -846,6 +860,8 @@ namespace rviz_plugins
         // travel pose tick box.
         _bucket_label->setVisible(!timed);
         _prepare_bucket_check->setVisible(!timed);
+        _scan_label->setVisible(!bucket_step);
+        _scan_localise_check->setVisible(!bucket_step);
         _pause_label->setVisible(timed);
         _pause_spin->setVisible(timed);
         _cycles_caption->setVisible(cycling);
@@ -870,6 +886,7 @@ namespace rviz_plugins
              {static_cast<QWidget*>(_mode_combo), static_cast<QWidget*>(_task_combo),
               static_cast<QWidget*>(_cycles_spin),
               static_cast<QWidget*>(_prepare_bucket_check),
+              static_cast<QWidget*>(_scan_localise_check),
               static_cast<QWidget*>(_pause_spin),
               static_cast<QWidget*>(_controller_combo),
               static_cast<QWidget*>(_planner_combo)})
@@ -1198,6 +1215,7 @@ namespace rviz_plugins
                                                                : "cycle");
         config.mapSetValue("Cycles", _cycles_spin->value());
         config.mapSetValue("PrepareBucket", _prepare_bucket_check->isChecked());
+        config.mapSetValue("ScanLocalise", _scan_localise_check->isChecked());
         config.mapSetValue("ZonePauseS", _pause_spin->value());
         config.mapSetValue("Controller", _controller_combo->currentData().toString());
         config.mapSetValue("Planner", _planner_combo->currentData().toString());
@@ -1238,6 +1256,9 @@ namespace rviz_plugins
         bool prepare_bucket = true;
         if (config.mapGetBool("PrepareBucket", &prepare_bucket))
             _prepare_bucket_check->setChecked(prepare_bucket);
+        bool scan_localise = false;
+        if (config.mapGetBool("ScanLocalise", &scan_localise))
+            _scan_localise_check->setChecked(scan_localise);
         float pause_s = 0.0f;
         if (config.mapGetFloat("ZonePauseS", &pause_s))
             _pause_spin->setValue(pause_s);

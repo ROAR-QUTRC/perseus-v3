@@ -52,6 +52,9 @@ namespace rviz_plugins
     ///   Bucket           optionally move the bucket to every joint 0 deg and then
     ///                    to its travel pose before the rover sets off
     ///                    (StartMission.prepare_bucket).
+    ///   Localise         optionally turn on the spot toward the nearer wall until
+    ///                    two rail markers are seen, and fix the pose from them
+    ///                    (StartMission.scan_localise). Off by default.
     ///   Planner          which planner_server plugin plans the path (ThetaStar,
     ///                    Lattice or NavFn), published latched on /planner_selector,
     ///                    which the behaviour tree's PlannerSelector reads every tick.
@@ -185,6 +188,7 @@ namespace rviz_plugins
         QComboBox* _task_combo{nullptr};
         QSpinBox* _cycles_spin{nullptr};
         QCheckBox* _prepare_bucket_check{nullptr};
+        QCheckBox* _scan_localise_check{nullptr};
         // Full Autonomy (timed stops) only: seconds stopped at each zone.
         QDoubleSpinBox* _pause_spin{nullptr};
         QComboBox* _controller_combo{nullptr};
@@ -194,6 +198,7 @@ namespace rviz_plugins
         // Form rows hidden or shown with the mode: each field's label and its widget.
         QWidget* _task_label{nullptr};
         QWidget* _bucket_label{nullptr};
+        QWidget* _scan_label{nullptr};
         QWidget* _pause_label{nullptr};
         // Cycles caption, beside its spinbox on the Controller row; both hidden when
         // the mode does not cycle.
