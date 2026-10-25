@@ -50,6 +50,10 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     nav2_msgs
     std_msgs
     nav_msgs
+    sensor_msgs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
     ament_index_cpp)
 
 set(THIS_PACKAGE_BUILD_DEPENDS ament_cmake)
@@ -105,8 +109,9 @@ ament_target_dependencies(
   behaviortree_cpp)
 target_compile_definitions(move_bucket_bt_node PRIVATE BT_PLUGIN_EXPORT)
 
-# ScanAndLocalise's two nodes (mission.xml): one look for the fiducials through
-# arena_server, and the choice of which way to turn to find them.
+# ScanAndLocalise's four nodes (mission.xml): one look for the fiducials through
+# arena_server, the choice of which way to turn to find them, the turn, and the wait
+# for the camera to see two.
 add_library(localise_in_arena_bt_node SHARED
             src/mission_bt_server/localise_in_arena_bt_node.cpp)
 target_include_directories(localise_in_arena_bt_node
@@ -115,13 +120,37 @@ ament_target_dependencies(localise_in_arena_bt_node PUBLIC rclcpp interfaces
                           behaviortree_cpp nav2_behavior_tree)
 target_compile_definitions(localise_in_arena_bt_node PRIVATE BT_PLUGIN_EXPORT)
 
+add_library(wait_for_markers_bt_node SHARED
+            src/mission_bt_server/wait_for_markers_bt_node.cpp)
+target_include_directories(wait_for_markers_bt_node
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(wait_for_markers_bt_node PUBLIC rclcpp interfaces
+                          behaviortree_cpp)
+target_compile_definitions(wait_for_markers_bt_node PRIVATE BT_PLUGIN_EXPORT)
+
 add_library(wall_side_bt_node SHARED
             src/mission_bt_server/wall_side_bt_node.cpp)
 target_include_directories(wall_side_bt_node
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-ament_target_dependencies(wall_side_bt_node PUBLIC rclcpp geometry_msgs
-                          nav_msgs behaviortree_cpp)
+ament_target_dependencies(
+  wall_side_bt_node
+  PUBLIC
+  rclcpp
+  sensor_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  behaviortree_cpp)
 target_compile_definitions(wall_side_bt_node PRIVATE BT_PLUGIN_EXPORT)
+
+# The scan's turn: nav2's Spin refuses it near a wall, so this one does not check.
+add_library(blind_spin_bt_node SHARED
+            src/mission_bt_server/blind_spin_bt_node.cpp)
+target_include_directories(blind_spin_bt_node
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(blind_spin_bt_node PUBLIC rclcpp geometry_msgs
+                          nav_msgs behaviortree_cpp)
+target_compile_definitions(blind_spin_bt_node PRIVATE BT_PLUGIN_EXPORT)
 
 # The jaw's recovery: drives it by time when its encoder cannot be trusted.
 add_library(blind_jaw_bt_node SHARED
@@ -155,8 +184,13 @@ ament_target_dependencies(mission_bt_server PUBLIC
 # (LD_LIBRARY_PATH, which every package's lib/ is on via its ament hook), the
 # same place nav2's own plugin .so's install to.
 install(
-  TARGETS request_zone_waypoint_bt_node move_bucket_bt_node blind_jaw_bt_node
-          localise_in_arena_bt_node wall_side_bt_node
+  TARGETS request_zone_waypoint_bt_node
+          move_bucket_bt_node
+          blind_jaw_bt_node
+          localise_in_arena_bt_node
+          wall_side_bt_node
+          wait_for_markers_bt_node
+          blind_spin_bt_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
