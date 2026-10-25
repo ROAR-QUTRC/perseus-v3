@@ -110,7 +110,7 @@ def generate_launch_description():
 
     teleop_arg = DeclareLaunchArgument(
         "teleop",
-        default_value="true",
+        default_value="false",
         description="Run the joystick manual override from this machine",
     )
     controller_type_arg = DeclareLaunchArgument(
