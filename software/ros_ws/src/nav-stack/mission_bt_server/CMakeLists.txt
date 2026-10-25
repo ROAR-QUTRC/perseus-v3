@@ -197,9 +197,10 @@ install(
   RUNTIME DESTINATION bin)
 
 # The mission's bucket behaviours from the command line, for the bench and vcan.
-add_executable(bucket_cli src/bucket_cli/bucket_cli.cpp
-                          src/mission_bt_server/bucket_mission_params.cpp
-                          src/mission_bt_server/bucket_trees.cpp)
+add_executable(
+  bucket_cli
+  src/bucket_cli/bucket_cli.cpp src/mission_bt_server/bucket_mission_params.cpp
+  src/mission_bt_server/bucket_trees.cpp)
 target_include_directories(bucket_cli
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(bucket_cli PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})

@@ -2,7 +2,6 @@
 /// @brief Implementation of MissionBtServer.
 
 #include "mission_bt_server/mission_bt_server/mission_bt_server.hpp"
-#include "mission_bt_server/mission_bt_server/bucket_trees.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,6 +9,8 @@
 #include <functional>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <stdexcept>
+
+#include "mission_bt_server/mission_bt_server/bucket_trees.hpp"
 
 namespace mission_bt_server
 {
