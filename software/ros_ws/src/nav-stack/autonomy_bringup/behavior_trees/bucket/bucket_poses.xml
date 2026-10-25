@@ -216,9 +216,9 @@
     <MoveBucket failure=""
                 server_name="{@bucket_action}"
                 duration_s=""
-                tolerance_deg=""
+                tolerance_deg="5"
                 attempts="4"
-                timeout_s="3"
+                timeout_s="5"
                 jaw_deg="0.0"
                 tilt_deg="0.0"
                 lift_deg="0.0"/>

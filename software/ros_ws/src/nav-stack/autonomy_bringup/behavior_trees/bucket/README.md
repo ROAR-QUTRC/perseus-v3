@@ -5,7 +5,9 @@ Bucket behaviours built from saved poses, edited in Groot2 and run with `bucket_
 | File               | What it is                                                                  |
 | ------------------ | --------------------------------------------------------------------------- |
 | `bucket_poses.xml` | One `Pose_<name>` subtree per saved pose, written by `bucket_teach.py`      |
-| `example_dump.xml` | `ExampleDump`, mission.xml's dump built from poses, as a template           |
+| `collect.xml`      | `collect`, the mission's dig: mission.xml's `DigBucket` runs it             |
+| `dump.xml`         | `dump`, the mission's dump: mission.xml's `DumpBucket` runs it              |
+| `example_dump.xml` | `ExampleDump`, the old mission dump built from poses, as a template         |
 | `bucket.btproj`    | The Groot2 project: every XML file here, plus the custom nodes' port models |
 
 ## Workflow
@@ -70,13 +72,24 @@ A pose that doesn't arrive within `timeout_s` is sent again, up to `attempts` ti
 retries are only for a missed pose. An operator override, a missing controller or a
 rejected goal fails at once.
 
+## In the mission
+
+mission_bt_server registers every `.xml` here alongside mission.xml each time a mission
+starts, with the same blank-port handling as `bucket_cli`. So an edit to `collect` or
+`dump`, or to a pose, takes effect on the next mission without a rebuild. A file here
+that doesn't load makes the mission fail to start, and the error names the file.
+`bucket_bt_dir` on mission_bt_server points it at another directory.
+
+`bucket_cli dig` and `bucket_cli dump` run the same `collect` and `dump` trees, through
+mission.xml's `DigBucket` and `DumpBucket`.
+
 ## Notes
 
 - Poses read the action name from `{@bucket_action}` on the root blackboard. That means
   a pose works inside any tree, with or without `_autoremap`. Your own nested subtrees
   that use other blackboard entries still need `_autoremap` ticked in Groot2.
 - `bucket_cli run` also loads mission.xml, so your trees can use its subtrees, such as
-  `JawMove` and `DigBucket`. Groot2 only knows about the files in this directory.
+  `JawMove` and `PrepareBucket`. Groot2 only knows about the files in this directory.
 - After adding a tree file outside Groot2, regenerate the project with
   `ros2 run mission_bt_server bucket_cli project`. The teach console does this after
   every saved pose.

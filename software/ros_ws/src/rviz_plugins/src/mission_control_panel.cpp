@@ -83,6 +83,11 @@ namespace rviz_plugins
                 return "Driving to excavation zone";
             if (phase == "to_construction")
                 return "Driving to construction zone";
+            if (phase == "collect")
+                return "Digging: running the collect tree";
+            if (phase == "dump")
+                return "Dumping: running the dump tree";
+            // mission_lift_only.xml's bucket steps.
             if (phase == "dump_lower_tip")
                 return "Dumping: lowering and tipping the bucket";
             if (phase == "dump_open_jaw")
@@ -114,14 +119,10 @@ namespace rviz_plugins
         // writes them. The progress display counts how many of these are done; each
         // counts the same, which is crude (a drive takes longer than a bucket move),
         // so the time estimate switches to measured cycle times once one finishes.
-        const std::vector<std::string> DIG_PHASES = {"dig_tilt", "dig_lower", "dig_push",
-                                                     "dig_curl", "dig_carry"};
-        const std::vector<std::string> DUMP_PHASES = {"dump_lower_tip", "dump_open_jaw",
-                                                      "dump_curl", "dump_stow"};
-        const std::vector<std::string> FULL_CYCLE_PHASES = {
-            "dig_tilt", "dig_lower", "dig_push", "dig_curl",
-            "dig_carry", "to_construction", "dump_lower_tip", "dump_open_jaw",
-            "dump_curl", "dump_stow", "to_excavation"};
+        const std::vector<std::string> DIG_PHASES = {"collect"};
+        const std::vector<std::string> DUMP_PHASES = {"dump"};
+        const std::vector<std::string> FULL_CYCLE_PHASES = {"collect", "to_construction",
+                                                            "dump", "to_excavation"};
         const std::vector<std::string> TIMED_CYCLE_PHASES = {"excavating", "to_construction",
                                                              "depositing", "to_excavation"};
         const std::vector<std::string> NAV_CYCLE_PHASES = {"to_construction",

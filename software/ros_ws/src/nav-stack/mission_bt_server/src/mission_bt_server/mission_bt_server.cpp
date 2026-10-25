@@ -2,9 +2,11 @@
 /// @brief Implementation of MissionBtServer.
 
 #include "mission_bt_server/mission_bt_server/mission_bt_server.hpp"
+#include "mission_bt_server/mission_bt_server/bucket_trees.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <functional>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <stdexcept>
@@ -113,6 +115,9 @@ namespace mission_bt_server
             RCLCPP_FATAL(get_logger(), "mission_bt_xml_path is required");
             throw std::runtime_error("mission_bt_server: mission_bt_xml_path is required");
         }
+        _bucket_bt_dir = declare_parameter<std::string>(
+            "bucket_bt_dir",
+            (std::filesystem::path(_mission_bt_xml_path).parent_path() / "bucket").string());
 
         _excavation_service_name = declare_parameter<std::string>(
             "excavation_service_name", "/arena/request_excavation_waypoint");
@@ -169,7 +174,7 @@ namespace mission_bt_server
             {"--ros-args", "-r", "__node:=mission_bt_server_bt_client", "--"});
         _bt_client_node = std::make_shared<rclcpp::Node>("_", bt_node_options);
 
-        _engine = std::make_unique<nav2_behavior_tree::BehaviorTreeEngine>(
+        _engine = std::make_unique<MissionBtEngine>(
             plugin_lib_names, _bt_client_node);
 
         // Latched: a panel opened mid-mission (or reconnecting) sees where things
@@ -509,13 +514,24 @@ namespace mission_bt_server
                         pause_s);
         }
 
+        // Registered afresh every start, so edits to mission.xml or the bucket trees
+        // take effect on the next mission, as a single createTreeFromFile would. The
+        // registrations are cleared again either way: the zone trips build theirs
+        // with createTreeFromFile, which warns when any are left behind.
         BT::Tree tree;
+        auto& factory = _engine->factory();
         try
         {
-            tree = _engine->createTreeFromFile(_mission_bt_xml_path, blackboard);
+            factory.clearRegisteredBehaviorTrees();
+            register_bucket_trees(factory, _bucket_bt_dir);
+            factory.registerBehaviorTreeFromFile(_mission_bt_xml_path);
+            // mission.xml's (and mission_lift_only.xml's) main_tree_to_execute.
+            tree = factory.createTree("MainTree", blackboard);
+            factory.clearRegisteredBehaviorTrees();
         }
         catch (const std::exception& e)
         {
+            factory.clearRegisteredBehaviorTrees();
             status.state = MissionStatus::STATE_FAILED;
             status.message = std::string("failed to build mission tree: ") + e.what();
             RCLCPP_ERROR(get_logger(), "%s", status.message.c_str());

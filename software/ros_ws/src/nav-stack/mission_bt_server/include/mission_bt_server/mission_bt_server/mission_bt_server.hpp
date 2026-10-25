@@ -22,6 +22,17 @@
 namespace mission_bt_server
 {
 
+    /// @brief nav2's engine with its factory reachable, so the mission can be built
+    /// from several files: createTreeFromFile reads only the one, and the bucket
+    /// behaviours mission.xml runs live in their own directory.
+    class MissionBtEngine : public nav2_behavior_tree::BehaviorTreeEngine
+    {
+    public:
+        using BehaviorTreeEngine::BehaviorTreeEngine;
+
+        BT::BehaviorTreeFactory& factory() { return factory_; }
+    };
+
     /// @brief Runs the mission behaviour trees for the RViz Mission Control panel.
     ///
     /// Two ways in, sharing one engine and one "busy" flag, so at most one tree ever
@@ -106,6 +117,9 @@ namespace mission_bt_server
 
         std::string _bt_xml_path;
         std::string _mission_bt_xml_path;
+        // The bucket behaviours (collect, dump and the Pose_* they are built from),
+        // registered alongside mission.xml every time a mission starts.
+        std::string _bucket_bt_dir;
         std::string _excavation_service_name;
         std::string _construction_service_name;
 
@@ -141,7 +155,7 @@ namespace mission_bt_server
         // here needs to be spun globally - same pattern as bt_navigator's own
         // client_node_.
         rclcpp::Node::SharedPtr _bt_client_node;
-        std::unique_ptr<nav2_behavior_tree::BehaviorTreeEngine> _engine;
+        std::unique_ptr<MissionBtEngine> _engine;
 
         // True while any tree runs, from either entry point. The engine and its
         // client node are not safe to drive from two threads at once, and two

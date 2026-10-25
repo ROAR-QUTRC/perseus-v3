@@ -171,7 +171,8 @@ add_executable(
   mission_bt_server
   src/mission_bt_server/mission_bt_server.cpp
   src/mission_bt_server/mission_bt_server_node.cpp
-  src/mission_bt_server/bucket_mission_params.cpp)
+  src/mission_bt_server/bucket_mission_params.cpp
+  src/mission_bt_server/bucket_trees.cpp)
 target_include_directories(mission_bt_server
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(mission_bt_server PUBLIC
@@ -197,7 +198,8 @@ install(
 
 # The mission's bucket behaviours from the command line, for the bench and vcan.
 add_executable(bucket_cli src/bucket_cli/bucket_cli.cpp
-                          src/mission_bt_server/bucket_mission_params.cpp)
+                          src/mission_bt_server/bucket_mission_params.cpp
+                          src/mission_bt_server/bucket_trees.cpp)
 target_include_directories(bucket_cli
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(bucket_cli PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})

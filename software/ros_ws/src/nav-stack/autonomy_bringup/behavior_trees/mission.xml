@@ -1,162 +1,253 @@
-<!--
-  Mission tree behind /mission/start (mission_bt_server, driven by the RViz Mission
-  Control panel). Built from go_to_zone_waypoint.xml: GoToExcavation / GoToConstruction
-  below are that tree's RequestZoneWaypoint -> NavigateToPose, with a second branch that
-  drives straight to a point picked on the map instead of asking arena_server. As there,
-  NavigateToPose is nav2's own action-client node into bt_navigator's /navigate_to_pose,
-  so planning, smoothing, replanning and recovery are still entirely
-  navigate_to_pose_w_smoothing.xml's. This tree only decides where to go and in what order.
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="DigBucket">
+    <Sequence>
+      <Script code="phase:=&apos;collect&apos;"/>
+      <SubTree ID="collect"/>
+    </Sequence>
+  </BehaviorTree>
 
-  mission_bt_server sets every blackboard entry read here before building the tree:
-    task                     "full_cycle" | "nav_cycle" | "nav_excavation" | "nav_construction"
-                             | "dump" (no driving: DumpBucket once, where the rover stands)
-                             | "dig" (DigBucket once, from where the rover stands)
-                             | "full_cycle_timed" (FullAutonomyCycle's drive, a timed
-                               stop in place of each bucket step)
-    cycles                   int, >= 1
-    use_arena_excavation     bool: true asks arena_server, false uses excavation_point
-    use_arena_construction   bool, same for construction
-    excavation_point         PoseStamped picked in RViz (unused when use_arena_*)
-    construction_point       PoseStamped
-    excavation_service       arena_server's /arena/request_excavation_waypoint
-    construction_service     arena_server's /arena/request_construction_waypoint
-    cycles_done              int, 0  this tree counts it up
-    pause_ms                 unsigned int, how long TimedAutonomyCycle stops at each zone
-    prepare_bucket           bool: run PrepareBucket before the task
-    scan_localise            bool: run ScanAndLocalise after PrepareBucket
-    scan_spin_deg            double, the most ScanAndLocalise turns per attempt, degrees
-    scan_spin_allowance_s    double, how long that turn may take
-    scan_retries             int, how many attempts
-    scan_look_s              double, how long the look after stopping waits for markers
-    scan_wall_range_m        double, how far away a wall still decides the direction
-    scan_min_clearance_m     double, WallSide fails the scan if a wall is nearer than this
-                             to the rover's centre (0 or less: no check)
-    bucket_action            the bucket controller's FollowJointTrajectory action
-    bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
-    bucket_travel_tilt_deg
-    bucket_travel_jaw_deg
-    bucket_move_s            how long a bucket move may take to arrive, seconds
-    bucket_move_attempts     int, how many times a move that missed its pose is sent
-    dig_*                    DigBucket's angles, creeps and timing; see DigBucket
-    phase                    string this tree writes it; the server publishes both on
-                             /mission/status as they change
+  <BehaviorTree ID="DigOnly">
+    <Sequence>
+      <SubTree ID="DigBucket"
+               _autoremap="true"/>
+      <Script code="phase:=&apos;done&apos;"/>
+    </Sequence>
+  </BehaviorTree>
 
-  A cycle is excavation -> construction -> back to excavation, and it is counted on
-  arrival back at excavation. The rover drives to excavation once first, so the loop
-  body always starts where it digs.
+  <BehaviorTree ID="DumpBucket">
+    <Sequence>
+      <Script code="phase:=&apos;dump&apos;"/>
+      <SubTree ID="dump"/>
+    </Sequence>
+  </BehaviorTree>
 
-  FullAutonomyCycle digs at excavation with the DigBucket subtree and dumps the load at
-  construction with DumpBucket, both below.
+  <BehaviorTree ID="DumpOnly">
+    <Sequence>
+      <SubTree ID="DumpBucket"
+               _autoremap="true"/>
+      <Script code="phase:=&apos;done&apos;"/>
+    </Sequence>
+  </BehaviorTree>
 
-  Bucket moves are direct (MoveBucket timeout_s): the board drives flat out to the pose,
-  which is one smooth motion, and a move that misses is sent again up to
-  bucket_move_attempts times. The one timed move (duration_s) is DigBucket's carry, whose
-  lift has to keep pace with its drive.
--->
+  <BehaviorTree ID="FullAutonomyCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation"
+               _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <SubTree ID="DigBucket"
+                   _autoremap="true"/>
+          <SubTree ID="GoToConstruction"
+                   _autoremap="true"/>
+          <SubTree ID="DumpBucket"
+                   _autoremap="true"/>
+          <SubTree ID="GoToExcavation"
+                   _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:=&apos;done&apos;"/>
+    </Sequence>
+  </BehaviorTree>
 
-<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="GoToConstruction">
+    <Sequence>
+      <Script code="phase:=&apos;to_construction&apos;"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_construction"/>
+        <Sequence>
+          <RequestZoneWaypoint goal="{construction_goal}"
+                               server_timeout=""
+                               service_name="{construction_service}"/>
+          <NavigateToPose goal="{construction_goal}"
+                          behavior_tree=""
+                          error_code_id=""
+                          server_timeout=""
+                          server_name=""/>
+        </Sequence>
+        <NavigateToPose goal="{construction_point}"
+                        behavior_tree=""
+                        error_code_id=""
+                        server_timeout=""
+                        server_name=""/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GoToExcavation">
+    <Sequence>
+      <Script code="phase:=&apos;to_excavation&apos;"/>
+      <IfThenElse>
+        <ScriptCondition code="use_arena_excavation"/>
+        <Sequence>
+          <RequestZoneWaypoint goal="{excavation_goal}"
+                               server_timeout=""
+                               service_name="{excavation_service}"/>
+          <NavigateToPose goal="{excavation_goal}"
+                          behavior_tree=""
+                          error_code_id=""
+                          server_timeout=""
+                          server_name=""/>
+        </Sequence>
+        <NavigateToPose goal="{excavation_point}"
+                        behavior_tree=""
+                        error_code_id=""
+                        server_timeout=""
+                        server_name=""/>
+      </IfThenElse>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="JawMove">
+    <Fallback>
+      <MoveBucket failure="{jaw_failure}"
+                  server_name="{action}"
+                  duration_s=""
+                  tolerance_deg=""
+                  attempts="1"
+                  timeout_s="{move_s}"
+                  jaw_deg="{jaw_deg}"
+                  tilt_deg=""
+                  lift_deg=""/>
+      <Sequence>
+        <ScriptCondition code="jaw_failure == &apos;not_reached&apos;"/>
+        <BlindJawMove max_s="{jaw_blind_max_s}"
+                      duration_s="{blind_s}"
+                      speed="{blind_speed}"/>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
 
   <BehaviorTree ID="MainTree">
     <Sequence>
       <IfThenElse>
         <ScriptCondition code="prepare_bucket"/>
-        <SubTree ID="PrepareBucket" _autoremap="true"/>
+        <SubTree ID="PrepareBucket"
+                 _autoremap="true"/>
         <AlwaysSuccess/>
       </IfThenElse>
       <IfThenElse>
         <ScriptCondition code="scan_localise"/>
-        <SubTree ID="ScanAndLocalise" _autoremap="true"/>
+        <SubTree ID="ScanAndLocalise"
+                 _autoremap="true"/>
         <AlwaysSuccess/>
       </IfThenElse>
-      <Switch6 variable="{task}"
-               case_1="full_cycle" case_2="nav_cycle"
-               case_3="nav_excavation" case_4="nav_construction"
-               case_5="dump" case_6="dig">
-        <SubTree ID="FullAutonomyCycle" _autoremap="true"/>
-        <SubTree ID="NavigationCycle" _autoremap="true"/>
-        <SubTree ID="GoToExcavation" _autoremap="true"/>
-        <SubTree ID="GoToConstruction" _autoremap="true"/>
-        <SubTree ID="DumpOnly" _autoremap="true"/>
-        <SubTree ID="DigOnly" _autoremap="true"/>
-        <!-- BT.CPP stops at Switch6, so the seventh task is the default branch's
-             own check. Anything else is still an unknown task: fail rather than
-             guess. -->
+      <Switch6 case_1="full_cycle"
+               case_2="nav_cycle"
+               case_3="nav_excavation"
+               case_4="nav_construction"
+               case_5="dump"
+               case_6="dig"
+               variable="{task}">
+        <SubTree ID="FullAutonomyCycle"
+                 _autoremap="true"/>
+        <SubTree ID="NavigationCycle"
+                 _autoremap="true"/>
+        <SubTree ID="GoToExcavation"
+                 _autoremap="true"/>
+        <SubTree ID="GoToConstruction"
+                 _autoremap="true"/>
+        <SubTree ID="DumpOnly"
+                 _autoremap="true"/>
+        <SubTree ID="DigOnly"
+                 _autoremap="true"/>
         <IfThenElse>
-          <ScriptCondition code="task == 'full_cycle_timed'"/>
-          <SubTree ID="TimedAutonomyCycle" _autoremap="true"/>
+          <ScriptCondition code="task == &apos;full_cycle_timed&apos;"/>
+          <SubTree ID="TimedAutonomyCycle"
+                   _autoremap="true"/>
           <AlwaysFailure/>
         </IfThenElse>
       </Switch6>
     </Sequence>
   </BehaviorTree>
 
-  <!--
-    The rover starts at any heading, so first find out where it is in the arena: turn on
-    the spot until the camera sees at least two rail markers, stop, then let arena_server
-    fit the pose and re-seed map -> odom (LocaliseInArena, its /arena/localise).
+  <BehaviorTree ID="NavigationCycle">
+    <Sequence>
+      <SubTree ID="GoToExcavation"
+               _autoremap="true"/>
+      <Repeat num_cycles="{cycles}">
+        <Sequence>
+          <SubTree ID="GoToConstruction"
+                   _autoremap="true"/>
+          <SubTree ID="GoToExcavation"
+                   _autoremap="true"/>
+          <Script code="cycles_done += 1"/>
+        </Sequence>
+      </Repeat>
+      <Script code="phase:=&apos;done&apos;"/>
+    </Sequence>
+  </BehaviorTree>
 
-    It looks before it turns, in case two markers are already in view. If not, WallSide
-    reads the lidar and picks the direction of the nearer wall (left when there is none).
-    It reads the raw cloud and not the costmaps, which are blind inside 1.7 m of the
-    lidar, and it fails the scan if a wall is nearer than scan_min_clearance_m, because
-    the turn is not checked. The turn is one continuous BlindSpin of up to scan_spin_deg,
-    360 by default, beside WaitForMarkers: the moment a frame holds two markers, its
-    success ends the Parallel, which halts the BlindSpin and so stops the rover. A short
-    Wait lets it settle, and LocaliseInArena takes the fix from a still camera.
+  <BehaviorTree ID="PrepareBucket">
+    <Sequence>
+      <Script code="phase:=&apos;bucket_to_zero&apos;"/>
+      <SubTree ID="Pose_zero"/>
+      <Script code="phase:=&apos;bucket_to_travel&apos;"/>
+      <SubTree ID="Pose_travel"/>
+    </Sequence>
+  </BehaviorTree>
 
-    BlindSpin is not nav2's Spin. Spin collision-checks the footprint against the local
-    costmap's lethal band round every wall and refuses a full turn in a 2.25 m starting
-    zone, where the rover's 0.93 m circle plus that band does not fit, aborting with
-    "Collision Ahead". BlindSpin turns on twist_mux's navigation input without the check,
-    so WallSide's clearance is the only protection, and the joystick still overrides.
-
-    ForceFailure makes the BlindSpin's end count as a failed attempt, whether it finished
-    the turn without finding markers or ran out of time. So does a stop that
-    LocaliseInArena rejects, for instance on a stray marker, and each retry turns again.
-    scan_retries attempts without a fix fail the mission here, before it drives anywhere
-    with a map frame that has not been checked.
-
-    After a turn, the terrain memory and both costmaps are cleared, the same three
-    clears navigate_to_pose_w_smoothing.xml's planner recovery runs. global_traversability
-    remembers every cell it has seen until the lidar looks at it again, and a rover
-    turning in place can leave walls smeared into it by the odometry's lag, which
-    would then read as obstacles all around the start. The clears are allowed to
-    fail: a rover that cannot clear still drives, as it does in that tree.
-  -->
   <BehaviorTree ID="ScanAndLocalise">
     <Sequence>
-      <Script code="phase:='scan_localise'"/>
+      <Script code="phase:=&apos;scan_localise&apos;"/>
       <Fallback>
-        <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
+        <LocaliseInArena timeout_s="{scan_look_s}"
+                         server_timeout=""
+                         service_name="/arena/localise"/>
         <Sequence>
-          <WallSide spin_deg="{scan_spin_deg}" range_m="{scan_wall_range_m}"
-                    min_clearance_m="{scan_min_clearance_m}" spin_dist="{scan_spin_dist}"/>
+          <WallSide side=""
+                    spin_deg="{scan_spin_deg}"
+                    box_x_min_m="-0.775000"
+                    range_m="{scan_wall_range_m}"
+                    topic="/livox/lidar/cropped"
+                    min_clearance_m="{scan_min_clearance_m}"
+                    base_frame="base_footprint"
+                    z_min_m="0.200000"
+                    z_max_m="1.200000"
+                    box_half_width_m="0.435000"
+                    box_x_max_m="0.900000"
+                    spin_dist="{scan_spin_dist}"
+                    self_pad_m="0.150000"
+                    window_s="0.600000"/>
           <RetryUntilSuccessful num_attempts="{scan_retries}">
             <Sequence>
-              <Parallel success_count="1" failure_count="1">
+              <Parallel failure_count="1"
+                        success_count="1">
                 <ForceFailure>
-                  <BlindSpin spin_dist="{scan_spin_dist}"
-                             time_allowance_s="{scan_spin_allowance_s}"/>
+                  <BlindSpin topic="cmd_vel_nav_stamped"
+                             time_allowance_s="{scan_spin_allowance_s}"
+                             speed_rad_s="0.400000"
+                             spin_dist="{scan_spin_dist}"/>
                 </ForceFailure>
-                <WaitForMarkers min_markers="2"/>
+                <WaitForMarkers topic="/vision/aruco/detections"
+                                min_markers="2"/>
               </Parallel>
-              <Wait wait_duration="0.5"/>
-              <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
+              <Wait wait_duration="0.5"
+                    server_timeout=""
+                    server_name=""/>
+              <LocaliseInArena timeout_s="{scan_look_s}"
+                               server_timeout=""
+                               service_name="/arena/localise"/>
             </Sequence>
           </RetryUntilSuccessful>
           <Fallback>
             <ClearEntireCostmap name="ClearTerrainMemory-Scan"
+                                server_timeout=""
                                 service_name="global_traversability/clear_region"/>
             <AlwaysSuccess/>
           </Fallback>
-          <!-- clear_region republishes /costmap a moment after it replies, so let that land
-               before nav2's own costmaps are cleared and re-read. -->
-          <Wait wait_duration="1.5"/>
+          <Wait wait_duration="1.5"
+                server_timeout=""
+                server_name=""/>
           <Fallback>
             <Sequence>
               <ClearEntireCostmap name="ClearLocalCostmap-Scan"
+                                  server_timeout=""
                                   service_name="local_costmap/clear_entirely_local_costmap"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Scan"
+                                  server_timeout=""
                                   service_name="global_costmap/clear_entirely_global_costmap"/>
             </Sequence>
             <AlwaysSuccess/>
@@ -166,247 +257,170 @@
     </Sequence>
   </BehaviorTree>
 
-  <!--
-    Every joint to 0 first - arms level at the top, bucket level, jaws closed - so the
-    move to the travel pose always starts from the same place, then the travel pose:
-    by default lift 25, tilt -20 (curled), jaw 0, which keeps the bucket out of the
-    MID-360's and D455's view of the ground 2 m ahead and beyond while leaving about
-    0.17 m of ground clearance. The pose is mission_bt_server's
-    bucket_travel_*_deg parameters. A failed move fails the mission before the rover
-    drives anywhere.
-  -->
-  <BehaviorTree ID="PrepareBucket">
-    <Sequence>
-      <Script code="phase:='bucket_to_zero'"/>
-      <MoveBucket lift_deg="0" tilt_deg="0"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <SubTree ID="JawMove" jaw_deg="0.0"
-               blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
-               move_s="{bucket_move_s}" action="{bucket_action}"
-               _autoremap="true"/>
-      <Script code="phase:='bucket_to_travel'"/>
-      <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
-                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
-                move_s="{bucket_move_s}" action="{bucket_action}"
-               _autoremap="true"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!--
-    One jaw move, with a recovery. The jaw's encoder misreads while it moves, so the
-    position move can fail on the controller's tolerance even though the jaw is moving.
-    Only that failure (MoveBucket's "not_reached") is recovered, and the position move
-    is tried once rather than bucket_move_attempts times, since it would only misread again: BlindJawMove then drives
-    the jaw by time, at the speed and for the seconds given for this direction
-    (jaw_blind_open_* / jaw_blind_close_* on mission_bt_server), and re-arms the
-    bucket's trajectory controller. Every other failure - the operator has the bucket,
-    the controller rejected the goal or is not there, no result - still fails the
-    mission, because moving the jaw blind would not be the right answer to them.
-    The jaw is its own step everywhere, so this can only be the jaw. With the speed or
-    seconds left at 0 the recovery refuses and the failure stands. The jaw's position is
-    not verified afterwards.
-  -->
-  <BehaviorTree ID="JawMove">
-    <Fallback>
-      <MoveBucket jaw_deg="{jaw_deg}" timeout_s="{move_s}" attempts="1" server_name="{action}"
-                  failure="{jaw_failure}"/>
-      <Sequence>
-        <ScriptCondition code="jaw_failure == 'not_reached'"/>
-        <BlindJawMove speed="{blind_speed}" duration_s="{blind_s}"
-                       max_s="{jaw_blind_max_s}"/>
-      </Sequence>
-    </Fallback>
-  </BehaviorTree>
-
-  <BehaviorTree ID="FullAutonomyCycle">
-    <Sequence>
-      <SubTree ID="GoToExcavation" _autoremap="true"/>
-      <Repeat num_cycles="{cycles}">
-        <Sequence>
-          <SubTree ID="DigBucket" _autoremap="true"/>
-          <SubTree ID="GoToConstruction" _autoremap="true"/>
-          <SubTree ID="DumpBucket" _autoremap="true"/>
-          <SubTree ID="GoToExcavation" _autoremap="true"/>
-          <Script code="cycles_done += 1"/>
-        </Sequence>
-      </Repeat>
-      <Script code="phase:='done'"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!--
-    Dump the load at the construction zone, then stow the bucket for the drive back.
-    Each step is one MoveBucket goal and moves only the joints it names; the others
-    hold. Angles in degrees (lift positive lowering, tilt positive dumping, jaw positive
-    opening):
-
-      1. lift 20, tilt 20 together   lower the arms and tip the bucket over the pile
-      2. jaw 36                      open the clamshell and let the load out
-      3. tilt -20                    curl back, emptying what is left
-      4. the travel pose, jaw closed lift and tilt together, then the jaw, as PrepareBucket ends
-
-    A step that fails fails the mission there, with the rover still at construction.
-  -->
-  <BehaviorTree ID="DumpBucket">
-    <Sequence>
-      <Script code="phase:='dump_lower_tip'"/>
-      <MoveBucket lift_deg="20" tilt_deg="20"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <Script code="phase:='dump_open_jaw'"/>
-      <SubTree ID="JawMove" jaw_deg="36.0"
-               blind_speed="{jaw_blind_open_speed}" blind_s="{jaw_blind_open_s}"
-               move_s="{bucket_move_s}" action="{bucket_action}"
-               _autoremap="true"/>
-      <Script code="phase:='dump_curl'"/>
-      <MoveBucket tilt_deg="-20"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <Script code="phase:='dump_stow'"/>
-      <MoveBucket lift_deg="{bucket_travel_lift_deg}" tilt_deg="{bucket_travel_tilt_deg}"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <SubTree ID="JawMove" jaw_deg="{bucket_travel_jaw_deg}"
-                blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
-                move_s="{bucket_move_s}" action="{bucket_action}"
-               _autoremap="true"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!--
-    FullAutonomyCycle with the bucket left alone (StartMission MODE_FULL_AUTONOMY_TIMED):
-    the same drives in the same order, with a stop of pause_ms where DigBucket and
-    DumpBucket would run. For exercising the whole mission - waypoints, cycle count,
-    timing - on a rover with no bucket feedback. The phases are excavating and
-    depositing, which the panel shows as timed stops.
-  -->
   <BehaviorTree ID="TimedAutonomyCycle">
     <Sequence>
-      <SubTree ID="GoToExcavation" _autoremap="true"/>
-      <Repeat num_cycles="{cycles}">
-        <Sequence>
-          <Script code="phase:='excavating'"/>
-          <Sleep msec="{pause_ms}"/>
-          <SubTree ID="GoToConstruction" _autoremap="true"/>
-          <Script code="phase:='depositing'"/>
-          <Sleep msec="{pause_ms}"/>
-          <SubTree ID="GoToExcavation" _autoremap="true"/>
-          <Script code="cycles_done += 1"/>
-        </Sequence>
-      </Repeat>
-      <Script code="phase:='done'"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!-- Same loop as FullAutonomyCycle without the bucket steps. -->
-  <!--
-    Dump only (StartMission MODE_DUMP_ONLY): the same DumpBucket sequence FullAutonomyCycle
-    runs at construction, once, wherever the rover is standing. No driving.
-  -->
-  <BehaviorTree ID="DumpOnly">
-    <Sequence>
-      <SubTree ID="DumpBucket" _autoremap="true"/>
-      <Script code="phase:='done'"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!--
-    One dig pass from where the rover stands, facing the regolith to be cut. The values
-    are mission_bt_server's dig_* parameters; the defaults are in brackets. Angles in
-    degrees as above (lift positive lowering, tilt positive tipping down):
-
-      1. tilt [28], jaw 0            cutting edge down, clamshell shut
-      2. lift [32]                   arms down until the edge is in the regolith
-      3. creep [0.20 m] ahead        at [0.08 m/s], cutting
-      4. tilt [-28]                  curl the bucket up to hold the load
-      5. creep [0.40 m] ahead        while the arms rise to [0], the carrying pose (arms
-                                     level at the top, bucket curled). Both start
-                                     together; the lift takes the longer of the drive
-                                     and bucket_move_s (dig_carry_s)
-
-    The creeps are nav2's DriveOnHeading (behavior_server's drive_on_heading), so
-    they go through the velocity smoother and twist_mux like any nav2 motion, and are
-    collision-checked against the local costmap: one that sees an obstacle ahead stops
-    and fails the dig. Ends in the carrying pose, lift 0 and tilt -28 with the load;
-    the drive to construction and DumpBucket take it from there.
-  -->
-  <BehaviorTree ID="DigBucket">
-    <Sequence>
-      <Script code="phase:='dig_tilt'"/>
-      <MoveBucket tilt_deg="{dig_tilt_deg}"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <SubTree ID="JawMove" jaw_deg="0.0"
-               blind_speed="{jaw_blind_close_speed}" blind_s="{jaw_blind_close_s}"
-               move_s="{bucket_move_s}" action="{bucket_action}"
+      <SubTree ID="GoToExcavation"
                _autoremap="true"/>
-      <Script code="phase:='dig_lower'"/>
-      <MoveBucket lift_deg="{dig_lift_deg}"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <Script code="phase:='dig_push'"/>
-      <DriveOnHeading dist_to_travel="{dig_push_m}" speed="{dig_speed}"
-                      time_allowance="{dig_push_allowance_s}" server_name="drive_on_heading"/>
-      <Script code="phase:='dig_curl'"/>
-      <MoveBucket tilt_deg="{dig_curl_tilt_deg}"
-                  timeout_s="{bucket_move_s}" attempts="{bucket_move_attempts}" server_name="{bucket_action}"/>
-      <Script code="phase:='dig_carry'"/>
-      <Parallel success_count="2" failure_count="1">
-        <DriveOnHeading dist_to_travel="{dig_carry_m}" speed="{dig_speed}"
-                        time_allowance="{dig_carry_allowance_s}" server_name="drive_on_heading"/>
-        <MoveBucket lift_deg="{dig_carry_lift_deg}"
-                    duration_s="{dig_carry_s}" server_name="{bucket_action}"/>
-      </Parallel>
-    </Sequence>
-  </BehaviorTree>
-
-  <!--
-    Dig only (StartMission MODE_DIG_ONLY): DigBucket once, from where the rover stands.
-  -->
-  <BehaviorTree ID="DigOnly">
-    <Sequence>
-      <SubTree ID="DigBucket" _autoremap="true"/>
-      <Script code="phase:='done'"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <BehaviorTree ID="NavigationCycle">
-    <Sequence>
-      <SubTree ID="GoToExcavation" _autoremap="true"/>
       <Repeat num_cycles="{cycles}">
         <Sequence>
-          <SubTree ID="GoToConstruction" _autoremap="true"/>
-          <SubTree ID="GoToExcavation" _autoremap="true"/>
+          <Script code="phase:=&apos;excavating&apos;"/>
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToConstruction"
+                   _autoremap="true"/>
+          <Script code="phase:=&apos;depositing&apos;"/>
+          <Sleep msec="{pause_ms}"/>
+          <SubTree ID="GoToExcavation"
+                   _autoremap="true"/>
           <Script code="cycles_done += 1"/>
         </Sequence>
       </Repeat>
-      <Script code="phase:='done'"/>
+      <Script code="phase:=&apos;done&apos;"/>
     </Sequence>
   </BehaviorTree>
 
-  <BehaviorTree ID="GoToExcavation">
-    <Sequence>
-      <Script code="phase:='to_excavation'"/>
-      <IfThenElse>
-        <ScriptCondition code="use_arena_excavation"/>
-        <Sequence>
-          <RequestZoneWaypoint service_name="{excavation_service}" goal="{excavation_goal}"/>
-          <NavigateToPose goal="{excavation_goal}"/>
-        </Sequence>
-        <NavigateToPose goal="{excavation_point}"/>
-      </IfThenElse>
-    </Sequence>
-  </BehaviorTree>
-
-  <BehaviorTree ID="GoToConstruction">
-    <Sequence>
-      <Script code="phase:='to_construction'"/>
-      <IfThenElse>
-        <ScriptCondition code="use_arena_construction"/>
-        <Sequence>
-          <RequestZoneWaypoint service_name="{construction_service}" goal="{construction_goal}"/>
-          <NavigateToPose goal="{construction_goal}"/>
-        </Sequence>
-        <NavigateToPose goal="{construction_point}"/>
-      </IfThenElse>
-    </Sequence>
-  </BehaviorTree>
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="BlindJawMove">
+      <input_port name="max_s"
+                  default="8.000000"
+                  type="double">the longest a move may last; duration_s is clamped to it, because a jaw driven into its end stop stalls the motor</input_port>
+      <input_port name="duration_s"
+                  default="0.000000"
+                  type="double">how long to drive the jaw, seconds</input_port>
+      <input_port name="speed"
+                  default="0.000000"
+                  type="double">jaw velocity in bucket_actuators units; the sign is the direction, 0 refuses to move</input_port>
+    </Action>
+    <Action ID="BlindSpin">
+      <input_port name="topic"
+                  default="cmd_vel_nav_stamped"
+                  type="std::string">twist_mux's navigation input</input_port>
+      <input_port name="time_allowance_s"
+                  default="40.000000"
+                  type="double">fail if the turn takes longer</input_port>
+      <input_port name="speed_rad_s"
+                  default="0.400000"
+                  type="double">turn rate; 0.4 clears the ESCs' stall, as nav2's Spin does</input_port>
+      <input_port name="spin_dist"
+                  type="double">radians to turn, positive left</input_port>
+    </Action>
+    <Action ID="ClearEntireCostmap">
+      <input_port name="server_timeout"
+                  type="std::chrono::milliseconds"/>
+      <input_port name="service_name"
+                  type="std::string">please_set_service_name_in_BT_Node</input_port>
+    </Action>
+    <Action ID="LocaliseInArena">
+      <input_port name="timeout_s"
+                  default="1.500000"
+                  type="double">how long arena_server waits for a frame with two markers; &lt;= 0 uses its own default</input_port>
+      <input_port name="server_timeout"
+                  type="std::chrono::milliseconds"/>
+      <input_port name="service_name"
+                  type="std::string">please_set_service_name_in_BT_Node</input_port>
+    </Action>
+    <Action ID="MoveBucket">
+      <output_port name="failure"
+                   type="std::string">why the move failed, empty on success: invalid, operator_override, no_server, rejected, not_reached (the controller ran but the pose was missed) or timeout</output_port>
+      <input_port name="server_name"
+                  default="/bucket_trajectory_controller/follow_joint_trajectory"
+                  type="std::string">the bucket controller's FollowJointTrajectory action</input_port>
+      <input_port name="duration_s"
+                  type="double">timed move instead: the controller interpolates over this long; omit for a direct move</input_port>
+      <input_port name="tolerance_deg"
+                  type="double">how close counts as there; omit for the controller's 2 deg</input_port>
+      <input_port name="attempts"
+                  default="1"
+                  type="int">how many times to send the pose if it is not reached</input_port>
+      <input_port name="timeout_s"
+                  default="10.000000"
+                  type="double">direct move: how long the bucket may take to arrive</input_port>
+      <input_port name="jaw_deg"
+                  type="double">bucket_jaw_joint target, degrees; omit to hold</input_port>
+      <input_port name="tilt_deg"
+                  type="double">bucket_tilt_joint target, degrees; omit to hold</input_port>
+      <input_port name="lift_deg"
+                  type="double">bucket_lift_joint target, degrees; omit to hold</input_port>
+    </Action>
+    <Action ID="NavigateToPose">
+      <input_port name="goal"
+                  type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;">Destination to plan to</input_port>
+      <input_port name="behavior_tree"
+                  type="std::string">Behavior tree to run</input_port>
+      <output_port name="error_code_id"
+                   type="unsigned short">Navigate to pose error code</output_port>
+      <input_port name="server_timeout"
+                  type="std::chrono::milliseconds"/>
+      <input_port name="server_name"
+                  type="std::string">Action server name</input_port>
+    </Action>
+    <Action ID="RequestZoneWaypoint">
+      <output_port name="goal"
+                   type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;">Safe point returned by the service, in the arena (map) frame</output_port>
+      <input_port name="server_timeout"
+                  type="std::chrono::milliseconds"/>
+      <input_port name="service_name"
+                  type="std::string">please_set_service_name_in_BT_Node</input_port>
+    </Action>
+    <Action ID="Wait">
+      <input_port name="wait_duration"
+                  default="1.000000"
+                  type="double">Wait time</input_port>
+      <input_port name="server_timeout"
+                  type="std::chrono::milliseconds"/>
+      <input_port name="server_name"
+                  type="std::string">Action server name</input_port>
+    </Action>
+    <Action ID="WaitForMarkers">
+      <input_port name="topic"
+                  default="/vision/aruco/detections"
+                  type="std::string">the ArUco detector's DetectionArray topic</input_port>
+      <input_port name="min_markers"
+                  default="2"
+                  type="int">markers with a 3D pose needed in one frame</input_port>
+    </Action>
+    <Action ID="WallSide">
+      <output_port name="side"
+                   type="std::string">left or right</output_port>
+      <input_port name="spin_deg"
+                  default="360.000000"
+                  type="double">size of the turn written to spin_dist</input_port>
+      <input_port name="box_x_min_m"
+                  default="-0.775000"
+                  type="double">the rover's own box, behind base_footprint, before padding</input_port>
+      <input_port name="range_m"
+                  default="4.000000"
+                  type="double">ignore walls farther than this</input_port>
+      <input_port name="topic"
+                  default="/livox/lidar/cropped"
+                  type="std::string">the lidar's PointCloud2</input_port>
+      <input_port name="min_clearance_m"
+                  default="0.000000"
+                  type="double">fail when a wall is nearer than this to the rover's center; 0 or less never fails</input_port>
+      <input_port name="base_frame"
+                  default="base_footprint"
+                  type="std::string">the frame the rover turns about</input_port>
+      <input_port name="z_min_m"
+                  default="0.200000"
+                  type="double">lowest a wall point may be above the ground</input_port>
+      <input_port name="z_max_m"
+                  default="1.200000"
+                  type="double">highest a wall point may be</input_port>
+      <input_port name="box_half_width_m"
+                  default="0.435000"
+                  type="double">either side of base_footprint</input_port>
+      <input_port name="box_x_max_m"
+                  default="0.900000"
+                  type="double">ahead of base_footprint</input_port>
+      <output_port name="spin_dist"
+                   type="double">spin_deg in radians: positive left, negative right</output_port>
+      <input_port name="self_pad_m"
+                  default="0.150000"
+                  type="double">padding added to that box on every side</input_port>
+      <input_port name="window_s"
+                  default="0.600000"
+                  type="double">how long to gather clouds for</input_port>
+    </Action>
+  </TreeNodesModel>
 
 </root>
