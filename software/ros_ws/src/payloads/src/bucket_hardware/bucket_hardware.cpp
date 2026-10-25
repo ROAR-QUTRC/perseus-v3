@@ -34,21 +34,6 @@ namespace payloads
         return false;
     }
 
-    bool BucketHardware::parse_side(const std::string& value, Side& out)
-    {
-        if (value == "left")
-        {
-            out = Side::LEFT;
-            return true;
-        }
-        if (value == "right")
-        {
-            out = Side::RIGHT;
-            return true;
-        }
-        return false;
-    }
-
     hardware_interface::CallbackReturn BucketHardware::on_init(
         const hardware_interface::HardwareComponentInterfaceParams& params)
     {
@@ -74,23 +59,19 @@ namespace payloads
             JointHandle joint;
             joint.name = joint_info.name;
 
-            // Each joint must declare which physical actuator it drives, e.g.:
+            // Each joint must declare which bank it is, e.g.:
             //   <param name="axis">lift</param>
-            //   <param name="side">left</param>
             auto axis_it = joint_info.parameters.find("axis");
-            auto side_it = joint_info.parameters.find("side");
-            if (axis_it == joint_info.parameters.end() || side_it == joint_info.parameters.end())
+            if (axis_it == joint_info.parameters.end())
             {
-                RCLCPP_ERROR(
-                    logger(), "Joint '%s' is missing required 'axis' and/or 'side' parameters",
-                    joint.name.c_str());
+                RCLCPP_ERROR(logger(), "Joint '%s' is missing the required 'axis' parameter",
+                             joint.name.c_str());
                 return hardware_interface::CallbackReturn::ERROR;
             }
-            if (!parse_axis(axis_it->second, joint.axis) || !parse_side(side_it->second, joint.side))
+            if (!parse_axis(axis_it->second, joint.axis))
             {
-                RCLCPP_ERROR(
-                    logger(), "Joint '%s' has an invalid axis ('%s') or side ('%s')",
-                    joint.name.c_str(), axis_it->second.c_str(), side_it->second.c_str());
+                RCLCPP_ERROR(logger(), "Joint '%s' has an invalid axis ('%s')",
+                             joint.name.c_str(), axis_it->second.c_str());
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
@@ -180,22 +161,11 @@ namespace payloads
         // Both callbacks fire synchronously from within can_->poll(), called at
         // the top of read() every control cycle
 
-        // Per-encoder angle -> that joint's position state.
-        can_->register_encoder_callback(
-            [this](Axis axis, Side side, const EncoderState& state)
-            {
-                for (auto& joint : joints_)
-                {
-                    if (joint.axis == axis && joint.side == side)
-                    {
-                        joint.state_position = to_joint_radians(joint, state.degrees);
-                        break;
-                    }
-                }
-            });
-
-        // Per-bank current/fault for both joints of that axis (bank current is
-        // not per-side, so it's duplicated onto both joints' "effort" interface).
+        // Per-bank angle and current -> that axis's joint. The bank angle is the
+        // board's combination of both encoders, the same angle its position control
+        // steers by. The per-encoder GET_ANGLE frames are not used: the board keeps
+        // broadcasting a cached value for an encoder that is not answering, so one
+        // dead side read as a live 0 and a re-arm drove the bank there.
         can_->register_bank_callback(
             [this](Axis axis, const BankState& state)
             {
@@ -203,10 +173,8 @@ namespace payloads
                 {
                     if (joint.axis == axis)
                     {
+                        joint.state_position = to_joint_radians(joint, state.average_degrees);
                         joint.state_current = state.current;
-                        // TODO: surface state.fault / state.average_degrees (e.g.
-                        // compare average_degrees against the two encoders' average as a
-                        // skew check) somewhere - diagnostics publisher, or fail read().
                     }
                 }
             });
@@ -303,10 +271,10 @@ namespace payloads
                 continue;
             }
 
-            const auto encoder = can_->get_last_encoder_state(joint.axis, joint.side);
-            if (encoder.stale)
+            const auto bank = can_->get_last_bank_state(joint.axis);
+            if (bank.position_stale)
             {
-                RCLCPP_ERROR(logger(), "Refusing to command '%s': no current encoder data on %s",
+                RCLCPP_ERROR(logger(), "Refusing to command '%s': no current bank position on %s",
                              joint.name.c_str(), can_interface_name_.c_str());
                 ok = false;
                 continue;
@@ -320,7 +288,7 @@ namespace payloads
             {
                 continue;
             }
-            const double position = to_joint_radians(joint, encoder.degrees);
+            const double position = to_joint_radians(joint, bank.average_degrees);
             const double margin = LIMIT_MARGIN_DEG * M_PI / 180.0;
             if (position < limits->second.min_position - margin ||
                 position > limits->second.max_position + margin)
@@ -415,7 +383,7 @@ namespace payloads
         const rclcpp::Time& /*time*/, const rclcpp::Duration& period)
     {
         // hi_can::PacketManager is polled, decoding buffered frames. Fires
-        // the encoder/bank callbacks registered in on_configure().
+        // the bank callback registered in on_configure().
         // Must run before joint state is considered current.
         can_->poll();
 
@@ -447,7 +415,7 @@ namespace payloads
         // moving; erroring then would only take the broadcasters down for nothing.
         for (const auto& joint : joints_)
         {
-            if (!can_->get_last_encoder_state(joint.axis, joint.side).stale)
+            if (!can_->get_last_bank_state(joint.axis).position_stale)
             {
                 continue;
             }
@@ -455,12 +423,12 @@ namespace payloads
             {
                 RCLCPP_ERROR_THROTTLE(
                     get_logger(), *get_clock(), 1000,
-                    "Encoder for joint '%s' is stale - stopping", joint.name.c_str());
+                    "Bank position for joint '%s' is stale - stopping", joint.name.c_str());
                 stop_all();
                 return hardware_interface::return_type::ERROR;
             }
             RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                                 "No current encoder data for joint '%s' on %s",
+                                 "No current bank position for joint '%s' on %s",
                                  joint.name.c_str(), can_interface_name_.c_str());
         }
         for (const auto& joint : joints_)
