@@ -291,6 +291,9 @@ namespace global_traversability
             // evidence", and must not be fused as a hit. treat_unknown_as_obstacle
             // applies to the persistent grid instead, see _treat_unknown_as_obstacle.
             false};
+        /// @brief Cells under the rover's own footprint are forced free in the published
+        ///        costmap, see local_traversability::SelfClearing.
+        local_traversability::SelfClearing _self_clear;
         local_traversability::InflationParameters _inflation{
             DEFAULT_ROBOT_RADIUS_M, DEFAULT_INFLATION_RADIUS_M,
             DEFAULT_COST_SCALING_FACTOR};

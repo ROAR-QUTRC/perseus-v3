@@ -162,6 +162,11 @@ namespace local_traversability
         _inflation.cost_scaling_factor = this->declare_parameter("cost_scaling_factor",
                                                                  DEFAULT_COST_SCALING_FACTOR);
 
+        _self_clear.enabled = this->declare_parameter("self_clear_enabled", true);
+        _self_clear.padding_m = this->declare_parameter("self_clear_padding_m", 0.05);
+        _self_clear.footprint_xy = this->declare_parameter(
+            "self_clear_footprint", _self_clear.footprint_xy);
+
         this->declare_parameter("update_period_s", DEFAULT_UPDATE_PERIOD_S);
     }
 
@@ -277,6 +282,15 @@ namespace local_traversability
         classify_terrain(_map, _cloud_buffer, _terrain);
         compute_inflation(_map, _inflation);
         compute_final_cost(_map, _terrain.treat_unknown_as_obstacle);
+        {
+            const auto& q = robot_transform.transform.rotation;
+            const double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y),
+                                          1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+            clear_footprint(_map, "cost", _self_clear,
+                            grid_map::Position(robot_transform.transform.translation.x,
+                                               robot_transform.transform.translation.y),
+                            yaw);
+        }
 
         const rclcpp::Time stamp = _cloud_buffer.back().stamp;
         _publish_costmap(stamp);

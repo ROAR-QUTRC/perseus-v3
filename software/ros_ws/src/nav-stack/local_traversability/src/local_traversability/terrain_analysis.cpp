@@ -578,4 +578,49 @@ namespace local_traversability
         }
     }
 
+    void clear_footprint(grid_map::GridMap& map, const std::string& layer,
+                         const SelfClearing& clearing, const grid_map::Position& position,
+                         double yaw)
+    {
+        const auto& xy = clearing.footprint_xy;
+        if (!clearing.enabled || xy.size() < 6 || xy.size() % 2 != 0 ||
+            !map.exists(layer))
+        {
+            return;
+        }
+
+        const size_t count = xy.size() / 2;
+        Eigen::Vector2d centroid = Eigen::Vector2d::Zero();
+        for (size_t i = 0; i < count; ++i)
+        {
+            centroid += Eigen::Vector2d(xy[2 * i], xy[2 * i + 1]);
+        }
+        centroid /= static_cast<double>(count);
+
+        const double cos_yaw = std::cos(yaw);
+        const double sin_yaw = std::sin(yaw);
+        grid_map::Polygon polygon;
+        polygon.setFrameId(map.getFrameId());
+        for (size_t i = 0; i < count; ++i)
+        {
+            Eigen::Vector2d vertex(xy[2 * i], xy[2 * i + 1]);
+            // Pushed outward along the line from the centroid: a margin, not an offset
+            // curve, which is plenty for a convex outline this size.
+            const Eigen::Vector2d outward = vertex - centroid;
+            if (outward.norm() > 1e-9)
+            {
+                vertex += outward.normalized() * clearing.padding_m;
+            }
+            polygon.addVertex(grid_map::Position(
+                position.x() + cos_yaw * vertex.x() - sin_yaw * vertex.y(),
+                position.y() + sin_yaw * vertex.x() + cos_yaw * vertex.y()));
+        }
+
+        Eigen::MatrixXf& cost = map[layer];
+        for (grid_map::PolygonIterator it(map, polygon); !it.isPastEnd(); ++it)
+        {
+            cost((*it)(0), (*it)(1)) = 0.0f;
+        }
+    }
+
 }  // namespace local_traversability

@@ -104,6 +104,35 @@ namespace local_traversability
     /// @param treat_unknown_as_obstacle Whether border cells cost 100 instead of NaN.
     void compute_final_cost(grid_map::GridMap& map, bool treat_unknown_as_obstacle);
 
+    /// @brief Forces the cells under the rover's own footprint to free, so the rover is
+    ///        never "in collision" with the inflated cost around something it is next to.
+    /// @details Inflation marks everything within robot_radius_m of an obstacle lethal, and
+    /// nav2's controller then checks the real footprint outline against those cells. A
+    /// rover parked closer than that to a wall therefore starts every trajectory inside
+    /// lethal cells: DWB rejects all of them, and BackUp and Spin refuse for the same
+    /// reason. Clearing exactly the cells the rover physically occupies removes that
+    /// without hiding anything outside it; a rock or wall just beyond the outline stays.
+    struct SelfClearing
+    {
+        /// @brief Whether clearing is applied at all.
+        bool enabled{true};
+        /// @brief Margin added around the outline, in metres.
+        double padding_m{0.05};
+        /// @brief Footprint outline as x0, y0, x1, y1, ... in the robot frame.
+        std::vector<double> footprint_xy{0.90,   0.25,   0.90,  -0.25,  0.375, -0.435,
+                                         -0.775, -0.435, -0.775, 0.435, 0.375, 0.435};
+    };
+
+    /// @brief Sets every cell of @p layer under the rover's footprint to 0.
+    /// @param map Grid carrying @p layer.
+    /// @param layer Cost layer to clear (0 is free).
+    /// @param clearing Outline, padding and on/off switch.
+    /// @param position Rover position in the map's frame.
+    /// @param yaw Rover heading in the map's frame, in radians.
+    void clear_footprint(grid_map::GridMap& map, const std::string& layer,
+                         const SelfClearing& clearing, const grid_map::Position& position,
+                         double yaw);
+
     /// @brief Fills a nav_msgs/OccupancyGrid from one grid_map layer, linearly
     ///        mapping [min_value, max_value] to [0, 100] and NaN cells to -1.
     /// @details Built directly on grid_map_core's own getIndex() rather than

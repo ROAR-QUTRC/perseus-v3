@@ -150,6 +150,14 @@ global_traversability:
     robot_radius_m: 0.4
     inflation_radius_m: 1.0
     cost_scaling_factor: 0.5
+    # The cells under the rover's own footprint are forced free in the published costmap, so a
+    # rover parked inside a wall's inflated band is never "in collision" with it. Without this,
+    # every DWB trajectory starts on lethal cells and BackUp/Spin refuse for the same reason.
+    # Only the outline itself (plus padding) is cleared: rocks and walls just beyond it stay.
+    # IDENTICAL in both terrain nodes, and keep the outline equal to the costmap footprint.
+    self_clear_enabled: true
+    self_clear_padding_m: 0.1
+    self_clear_footprint: [0.90, 0.25, 0.90, -0.25, 0.375, -0.435, -0.775, -0.435, -0.775, 0.435, 0.375, 0.435]
 # ============================================================================
 # REACTIVE TERRAIN COSTMAP -- local_traversability
 # ============================================================================
@@ -285,6 +293,14 @@ local_traversability:
     robot_radius_m: 0.4
     inflation_radius_m: 0.8
     cost_scaling_factor: 10.0
+    # The cells under the rover's own footprint are forced free in the published costmap, so a
+    # rover parked inside a wall's inflated band is never "in collision" with it. Without this,
+    # every DWB trajectory starts on lethal cells and BackUp/Spin refuse for the same reason.
+    # Only the outline itself (plus padding) is cleared: rocks and walls just beyond it stay.
+    # IDENTICAL in both terrain nodes, and keep the outline equal to the costmap footprint.
+    self_clear_enabled: true
+    self_clear_padding_m: 0.05
+    self_clear_footprint: [0.90, 0.25, 0.90, -0.25, 0.375, -0.435, -0.775, -0.435, -0.775, 0.435, 0.375, 0.435]
 # ============================================================================
 # GLOBAL PLANNER -- nav2 planner_server
 # ============================================================================

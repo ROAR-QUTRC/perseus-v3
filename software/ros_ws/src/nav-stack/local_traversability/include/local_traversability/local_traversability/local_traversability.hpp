@@ -251,6 +251,8 @@ namespace local_traversability
                                    DEFAULT_MIN_POINTS_PER_CELL,
                                    DEFAULT_MIN_OBSTACLE_CELLS,
                                    DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
+        /// @brief Cells under the rover's own footprint are forced free, see SelfClearing.
+        SelfClearing _self_clear;
         InflationParameters _inflation{DEFAULT_ROBOT_RADIUS_M,
                                        DEFAULT_INFLATION_RADIUS_M,
                                        DEFAULT_COST_SCALING_FACTOR};

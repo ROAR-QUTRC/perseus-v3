@@ -157,6 +157,10 @@ namespace global_traversability
         _resolution_m = this->declare_parameter("resolution_m", DEFAULT_RESOLUTION_M);
         _clear_radius_m =
             this->declare_parameter("clear_radius_m", DEFAULT_CLEAR_RADIUS_M);
+        _self_clear.enabled = this->declare_parameter("self_clear_enabled", true);
+        _self_clear.padding_m = this->declare_parameter("self_clear_padding_m", 0.05);
+        _self_clear.footprint_xy = this->declare_parameter(
+            "self_clear_footprint", _self_clear.footprint_xy);
         _initial_map_length_m = this->declare_parameter("initial_map_length_m",
                                                         DEFAULT_INITIAL_MAP_LENGTH_M);
 
@@ -617,6 +621,26 @@ namespace global_traversability
 
         local_traversability::compute_inflation(_map, _inflation);
         local_traversability::compute_final_cost(_map, _treat_unknown_as_obstacle);
+
+        // The cells under the rover go free, so a rover parked inside a wall's inflated
+        // band is not in collision with it. Derived data (cost is rebuilt every publish),
+        // so nothing remembered is lost. Skipped, not fatal, with no robot pose yet.
+        try
+        {
+            const auto pose = _tf_buffer->lookupTransform(_global_frame, _robot_frame,
+                                                          tf2::TimePointZero);
+            const auto& q = pose.transform.rotation;
+            const double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y),
+                                          1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+            local_traversability::clear_footprint(
+                _map, "cost", _self_clear,
+                grid_map::Position(pose.transform.translation.x,
+                                   pose.transform.translation.y),
+                yaw);
+        }
+        catch (const tf2::TransformException&)
+        {
+        }
 
         const rclcpp::Time stamp = this->now();
 
