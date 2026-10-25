@@ -2,12 +2,33 @@
 <root BTCPP_format="4">
   <BehaviorTree ID="collect">
     <Sequence>
-      <SubTree ID="Pose_comp_travel"/>
+      <Sequence>
+        <SubTree ID="Pose_travel_lift"/>
+        <Fallback>
+          <SubTree ID="Pose_travel_tilt"/>
+          <SubTree ID="Pose_fallback_tilt"/>
+        </Fallback>
+        <SubTree ID="Pose_close"/>
+      </Sequence>
       <Sleep msec="1000"/>
-      <SubTree ID="Pose_collect"/>
-      <Sleep msec="1000"/>
-      <SubTree ID="Pose_close"/>
-      <SubTree ID="Pose_comp_travel"/>
+      <Sequence>
+        <SubTree ID="Pose_pre_collect_tilt"/>
+        <SubTree ID="Pose_pre_collect_jaw"/>
+        <SubTree ID="Pose_pre_collect_lift"/>
+      </Sequence>
+      <Sequence>
+        <Fallback>
+          <SubTree ID="Pose_pre_close_tilt"
+                   _autoremap="false"/>
+        </Fallback>
+        <SubTree ID="Pose_pre_close_lift"/>
+      </Sequence>
+      <Sequence>
+        <SubTree ID="Pose_close_collect_tilt"/>
+        <SubTree ID="Pose_close"/>
+      </Sequence>
+      <SubTree ID="Pose_travel_lift"/>
+      <SubTree ID="Pose_travel_tilt"/>
     </Sequence>
   </BehaviorTree>
 

@@ -2,22 +2,21 @@
 <root BTCPP_format="4">
   <BehaviorTree ID="dump">
     <Sequence>
-      <SubTree ID="Pose_comp_travel"/>
+      <SubTree ID="Pose_travel"/>
+      <Sequence>
+        <SubTree ID="Pose_pre_dump_lift"/>
+        <SubTree ID="Pose_pre_dump_tilt"/>
+      </Sequence>
+      <SubTree ID="Pose_open"/>
+      <Sequence>
+        <SubTree ID="Pose_open_tilt_backward"
+                 _autoremap="false"/>
+        <SubTree ID="Pose_open_tl_forward"/>
+        <SubTree ID="Pose_open_tilt_backward"
+                 _autoremap="false"/>
+      </Sequence>
       <Sleep msec="1000"/>
-      <SubTree ID="Pose_pre_dump"
-               _autoremap="false"/>
-      <SubTree ID="Pose_dump_open"/>
-      <Repeat num_cycles="1">
-        <Sequence>
-          <SubTree ID="Pose_backward_tilt"
-                   _autoremap="false"/>
-          <SubTree ID="Pose_forward_tilt"/>
-        </Sequence>
-      </Repeat>
-      <SubTree ID="Pose_dump_open"/>
-      <SubTree ID="Pose_pre_dump"
-               _autoremap="false"/>
-      <SubTree ID="Pose_comp_travel"/>
+      <SubTree ID="Pose_travel"/>
     </Sequence>
   </BehaviorTree>
 

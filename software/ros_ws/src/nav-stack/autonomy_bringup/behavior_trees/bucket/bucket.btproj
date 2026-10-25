@@ -13,6 +13,32 @@
             <input_port name="duration_s" type="double" default="0.000000">how long to drive the jaw, seconds</input_port>
             <input_port name="speed" type="double" default="0.000000">jaw velocity in bucket_actuators units; the sign is the direction, 0 refuses to move</input_port>
         </Action>
+        <Action ID="BlindSpin">
+            <input_port name="topic" type="std::string" default="cmd_vel_nav_stamped">twist_mux's navigation input</input_port>
+            <input_port name="time_allowance_s" type="double" default="40.000000">fail if the turn takes longer</input_port>
+            <input_port name="speed_rad_s" type="double" default="0.400000">turn rate; 0.4 clears the ESCs' stall, as nav2's Spin does</input_port>
+            <input_port name="spin_dist" type="double">radians to turn, positive left</input_port>
+        </Action>
+        <Action ID="ClearCostmapAroundPose">
+            <input_port name="reset_distance" type="double" default="1.000000">Distance from the pose under which obstacles are cleared</input_port>
+            <input_port name="pose" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;">Pose around which to clear the costmap</input_port>
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
+        </Action>
+        <Action ID="ClearCostmapAroundRobot">
+            <input_port name="reset_distance" type="double" default="1.000000">Distance from the robot under which obstacles are cleared</input_port>
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
+        </Action>
+        <Action ID="ClearCostmapExceptRegion">
+            <input_port name="reset_distance" type="double" default="1.000000">Distance from the robot above which obstacles are cleared</input_port>
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
+        </Action>
+        <Action ID="ClearEntireCostmap">
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
+        </Action>
         <Action ID="DriveOnHeading">
             <input_port name="speed" type="double" default="0.025000">Speed at which to travel</input_port>
             <input_port name="time_allowance" type="double" default="10.000000">Allowed time for driving on heading</input_port>
@@ -20,6 +46,11 @@
             <input_port name="server_timeout" type="std::chrono::milliseconds"/>
             <input_port name="dist_to_travel" type="double" default="0.150000">Distance to travel</input_port>
             <input_port name="server_name" type="std::string">Action server name</input_port>
+        </Action>
+        <Action ID="LocaliseInArena">
+            <input_port name="timeout_s" type="double" default="1.500000">how long arena_server waits for a frame with two markers; &lt;= 0 uses its own default</input_port>
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
         </Action>
         <Action ID="MoveBucket">
             <output_port name="failure" type="std::string">why the move failed, empty on success: invalid, operator_override, no_server, rejected, not_reached (the controller ran but the pose was missed) or timeout</output_port>
@@ -43,6 +74,31 @@
             <output_port name="goal" type="geometry_msgs::msg::PoseStamped_&lt;std::allocator&lt;void&gt; &gt;">Safe point returned by the service, in the arena (map) frame</output_port>
             <input_port name="server_timeout" type="std::chrono::milliseconds"/>
             <input_port name="service_name" type="std::string">please_set_service_name_in_BT_Node</input_port>
+        </Action>
+        <Action ID="Wait">
+            <input_port name="wait_duration" type="double" default="1.000000">Wait time</input_port>
+            <input_port name="server_timeout" type="std::chrono::milliseconds"/>
+            <input_port name="server_name" type="std::string">Action server name</input_port>
+        </Action>
+        <Action ID="WaitForMarkers">
+            <input_port name="topic" type="std::string" default="/vision/aruco/detections">the ArUco detector's DetectionArray topic</input_port>
+            <input_port name="min_markers" type="int" default="2">markers with a 3D pose needed in one frame</input_port>
+        </Action>
+        <Action ID="WallSide">
+            <output_port name="side" type="std::string">left or right</output_port>
+            <input_port name="spin_deg" type="double" default="360.000000">size of the turn written to spin_dist</input_port>
+            <input_port name="box_x_min_m" type="double" default="-0.775000">the rover's own box, behind base_footprint, before padding</input_port>
+            <input_port name="range_m" type="double" default="4.000000">ignore walls farther than this</input_port>
+            <input_port name="topic" type="std::string" default="/livox/lidar/cropped">the lidar's PointCloud2</input_port>
+            <input_port name="min_clearance_m" type="double" default="0.000000">fail when a wall is nearer than this to the rover's center; 0 or less never fails</input_port>
+            <input_port name="base_frame" type="std::string" default="base_footprint">the frame the rover turns about</input_port>
+            <input_port name="z_min_m" type="double" default="0.200000">lowest a wall point may be above the ground</input_port>
+            <input_port name="z_max_m" type="double" default="1.200000">highest a wall point may be</input_port>
+            <input_port name="box_half_width_m" type="double" default="0.435000">either side of base_footprint</input_port>
+            <input_port name="box_x_max_m" type="double" default="0.900000">ahead of base_footprint</input_port>
+            <output_port name="spin_dist" type="double">spin_deg in radians: positive left, negative right</output_port>
+            <input_port name="self_pad_m" type="double" default="0.150000">padding added to that box on every side</input_port>
+            <input_port name="window_s" type="double" default="0.600000">how long to gather clouds for</input_port>
         </Action>
     </TreeNodesModel>
 </root>

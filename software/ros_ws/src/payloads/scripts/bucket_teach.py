@@ -471,7 +471,7 @@ class Console:
             shown = "  ".join(
                 f"{axis} {attributes[f'{axis}_deg']}"
                 for axis in AXES
-                if f"{axis}_deg" in attributes
+                if attributes.get(f"{axis}_deg")  # Groot2 saves an omitted joint as ""
             )
             self.log(
                 f"  {name:16s} {shown}   timeout {attributes.get('timeout_s', '?')} s, "
