@@ -15,7 +15,9 @@ inline constexpr float kPositionUnitsPerDegree = 10.0f;
 
 /**
  * @brief A class responsible for managing pair of motors (Left = A, Right = B) (TODO: check this and update)
- * @details Both motors always get the same command: SET_SPEED (velocity) or SET_POSITION (position) is per bank.
+ * @details Both motors always get the same output: SET_SPEED (velocity) or SET_POSITION (position) is per bank,
+ * and so is the angle, read from one encoder at a time. That is the one on bus 1, unless it goes stale: then the
+ * bus 2 encoder takes over until the bank is at rest with bus 1 good again.
  */
 class MotorBank
 {
@@ -32,8 +34,14 @@ public:
     // No point ticking faster than the encoder data refreshes.
     static constexpr uint32_t kControlPeriodMs = EncoderBus::kAnglePeriodMs;
 
-    // Encoder readings older than this are treated as missing.
-    static constexpr uint32_t kFeedbackStaleMs = 5 * EncoderBus::kAnglePeriodMs;
+    // A reading older than this is stale: its encoder hands over to a better one.
+    // 3 polls at 25 Hz.
+    static constexpr uint32_t kFeedbackStaleMs = 120;
+    // Older than this its encoder is lost: not even a bank with no better one uses it.
+    static constexpr uint32_t kFeedbackLostMs = 500;
+    static_assert(kFeedbackStaleMs <= kFeedbackLostMs);
+    // A bank at rest goes back to its bus 1 encoder once that has been fresh this long.
+    static constexpr uint32_t kReturnMs = 1000;
 
     // SET_SPEED values within this band don't leave Position mode, so teleop's
     // stream of zeros and the SET_SPEED timeout can't cancel a setpoint.
@@ -90,7 +98,7 @@ public:
     // SET_POSITION or stop() cancels it, and so does a driver fault or the failsafe.
     void zero();
 
-    // GET_POSITION: average of the bank's encoders, in position_t units.
+    // GET_POSITION: the angle of the encoder the bank is using, in position_t units.
     int16_t get_current_position() const;
     // GET_ANGLE: one of the bank's encoders in position_t units, however old;
     // 0 before the first read. With an angle correction, what it made of it.
@@ -113,10 +121,17 @@ public:
     static void wake_control_task();
 
     // Degrees (-180..180) of any encoder, or nullopt if it has no valid angle or
-    // it is older than kFeedbackStaleMs.
-    static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms);
+    // it is older than max_age_ms.
+    static std::optional<float> encoder_degrees(EncoderId id, uint32_t now_ms, uint32_t max_age_ms = kFeedbackStaleMs);
 
 private:
+    // Each encoder's part of the control tick: owned by the control task.
+    struct SideState
+    {
+        AngleCorrectionState correction;
+        bool rezeroing = false;  // until the encoder reads near its new zero, the correction learns nothing
+    };
+
     static void control_task(void*);
     void control_tick(uint32_t now_ms, bool may_run);
     int16_t position_output(float target, std::optional<float> angle, bool* settled) const;
@@ -144,15 +159,15 @@ private:
     float _last_angle_a = 0.0f;
     float _last_angle_b = 0.0f;
     bool _zeroed = false;  // the encoders were sent a zero, so the angle correction starts over
+    const bool _prefer_b;  // side b is the one on bus 1
+    bool _using_b;         // the encoder the angle comes from
 
     // Owned by the control task.
     ControlMode _last_mode = ControlMode::Velocity;
     int16_t _last_target = 0;
-    bool _settled_a = false;
-    bool _settled_b = false;
-    std::optional<HomingState> _homing;  // set while the homing routine runs
-    AngleCorrectionState _correction_a;
-    AngleCorrectionState _correction_b;
-    bool _rezeroing_a = false;  // until the encoder reads near its new zero, the correction is off
-    bool _rezeroing_b = false;
+    bool _settled = false;
+    std::optional<HomingState> _homing;              // set while the homing routine runs
+    std::optional<uint32_t> _preferred_fresh_since;  // since when the bus 1 encoder has been fresh, while it is
+    SideState _side_a;
+    SideState _side_b;
 };

@@ -16,6 +16,7 @@ import socket
 import struct
 import subprocess
 import sys
+import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -67,6 +68,14 @@ REFRESH_S = 0.1
 ZERO_CONFIRM_S = 3.0  # Zero needs a second press within this long
 FAULT_STALE_S = 2.0  # no GET_FAULT rate is agreed yet; older than this shows as stale
 RTR_REPLY_TIMEOUT_S = 1.0
+
+# Any frame at all feeds the bucket's CAN failsafe (kCanFailsafeMs in
+# excavation_config.hpp), so on a bench bus with nothing else talking the
+# keep-alive only has to be there, often. Its ID sits outside every hi-can
+# system (checked at startup); 0xDEADBEEF itself is over 29 bits.
+KEEPALIVE_ID = 0x1DEADBEE
+KEEPALIVE_DATA = bytes.fromhex("DEADBEEF")
+KEEPALIVE_PERIOD_S = 0.01  # 100 Hz, from its own thread so a busy UI can't leave gaps
 
 CAN_EFF_FLAG = 0x80000000
 CAN_RTR_FLAG = 0x40000000
@@ -396,6 +405,37 @@ class CanBus:
             )
 
 
+class KeepAlive:
+    """Sends the keep-alive frame on a steady clock while on; `on_error` gets each new kind of failure."""
+
+    def __init__(self, bus: CanBus, on_error):
+        self.bus, self.on_error = bus, on_error
+        self.on = threading.Event()
+        self.stopped = threading.Event()
+        self.thread = threading.Thread(target=self._run, name="keepalive", daemon=True)
+
+    def _run(self) -> None:
+        last_error = ""
+        while not self.stopped.is_set():
+            if not self.on.wait(0.1):
+                last_error = ""
+                continue
+            due = time.monotonic()
+            while self.on.is_set() and not self.stopped.is_set():
+                try:
+                    self.bus.send(KEEPALIVE_ID, KEEPALIVE_DATA)
+                    last_error = ""
+                except OSError as error:
+                    message = f"keep-alive tx failed: {error.strerror or error}"
+                    if (
+                        message != last_error
+                    ):  # once per kind of failure, not 100 times a second
+                        self.on_error(message)
+                    last_error = message
+                due += KEEPALIVE_PERIOD_S
+                time.sleep(max(0.0, due - time.monotonic()))
+
+
 class Bucket:
     def __init__(self, hican: HiCan):
         self.hican = hican
@@ -476,6 +516,7 @@ class BucketConsole(App):
         Binding("l", "toggle_view", "Table/log"),
         Binding("p", "toggle_pause", "Pause"),
         Binding("c", "clear", "Clear"),
+        Binding("k", "toggle_keepalive", "Keep-alive"),
     ]
 
     def __init__(self, hican: HiCan, bucket: Bucket, bus: CanBus, iface: str):
@@ -505,6 +546,12 @@ class BucketConsole(App):
         self.faults = {}
         self.manual_params = hican.parameter_list()
         self.rtr_request = None  # (address, time sent) while waiting for an RTR reply
+        self.keepalive = KeepAlive(
+            bus,
+            lambda message: self.call_from_thread(
+                self.notify, message, severity="error"
+            ),
+        )
         self.timers = []
 
     def compose(self) -> ComposeResult:
@@ -549,6 +596,7 @@ class BucketConsole(App):
                 )
                 yield Label("Jog speed %")
                 yield Input("50", id="speed", type="number")
+                yield Button("Keep-alive", id="keepalive")
             yield JogPad(id="jog")
             with Horizontal(classes="row"):
                 yield Label("Position °")
@@ -581,6 +629,7 @@ class BucketConsole(App):
         asyncio.get_running_loop().add_reader(
             self.bus.rx.fileno(), self._on_can_readable
         )
+        self.keepalive.thread.start()
         self.timers = [
             self.set_interval(REFRESH_S, self._refresh),
             self.set_interval(JOG_PERIOD_S, self._jog_tick),
@@ -724,6 +773,7 @@ class BucketConsole(App):
             self._send_speed(0)
         for timer in self.timers:
             timer.stop()  # else a last tick can land after the widgets are gone
+        self.keepalive.stopped.set()
         self.exit()
 
     # commands
@@ -771,6 +821,7 @@ class BucketConsole(App):
             "stop": self.stop,
             "home": self.home,
             "zero": self.zero,
+            "keepalive": self.action_toggle_keepalive,
             "manual_send": self.manual_send,
         }[event.button.id]()
 
@@ -851,6 +902,19 @@ class BucketConsole(App):
             self.zero_disarm_timer = None
         self.zero_armed_bank = None
         self.query_one("#zero", Button).label = "Zero"
+
+    def action_toggle_keepalive(self) -> None:
+        """Bench helper: with nothing else on the bus, the bucket's CAN failsafe holds its motors stopped."""
+        on = not self.keepalive.on.is_set()
+        (self.keepalive.on.set if on else self.keepalive.on.clear)()
+        button = self.query_one("#keepalive", Button)
+        button.label = "Keep-alive ON" if on else "Keep-alive"
+        button.variant = "success" if on else "default"
+        if on:
+            self.notify(
+                f"Keep-alive on: {KEEPALIVE_ID:08X}#{KEEPALIVE_DATA.hex().upper()} every "
+                f"{KEEPALIVE_PERIOD_S * 1000:.0f} ms. The bucket's CAN failsafe can't trip while it runs."
+            )
 
     def _show_faults(self, now: float) -> None:
         if not self.fault_banks:
@@ -1005,6 +1069,10 @@ def main():
         )
     except (RuntimeError, OSError) as error:
         sys.exit(f"bucket_tui: {error}")
+    if hican.unpack(KEEPALIVE_ID)[0] in {ids[0] for ids in hican.devices}:
+        sys.exit(
+            f"bucket_tui: keep-alive ID {KEEPALIVE_ID:08X} falls inside a hi-can system; pick another"
+        )
     try:
         bus = CanBus(args.iface)
     except OSError as error:

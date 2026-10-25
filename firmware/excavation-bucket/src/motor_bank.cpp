@@ -41,7 +41,9 @@ MotorBank::MotorBank(const BankConfig& config)
     : _config(config),
       _driver_A(config.a.pins),
       _driver_B(config.b.pins),
-      _mutex(xSemaphoreCreateMutex())
+      _mutex(xSemaphoreCreateMutex()),
+      _prefer_b(config.b.encoder_bus < config.a.encoder_bus),
+      _using_b(_prefer_b)
 {
     pinMode(_config.current_sense, INPUT);
     pinMode(_config.fault, INPUT_PULLUP);
@@ -126,19 +128,19 @@ bool MotorBank::zero_encoders()
     return a && b;
 }
 
-// Falls back to the last angles read if neither encoder is fresh.
+// Falls back to the encoder's last angle if it isn't fresh.
 // TODO: that fallback hides a dead encoder from ROS; stop sending GET_POSITION instead.
 int16_t MotorBank::get_current_position() const
 {
-    const uint32_t now = encoder_bus().now_ms();
-    const std::optional<float> a = side_degrees(_config.a.encoder, now);
-    const std::optional<float> b = side_degrees(_config.b.encoder, now);
-    if (a || b)
+    bool using_b;
     {
-        const float degrees = (a && b) ? (*a + *b) / 2.0f : (a ? *a : *b);
-        return static_cast<int16_t>(std::lround(degrees * kPositionUnitsPerDegree));
+        Lock lock(_mutex);
+        using_b = _using_b;
     }
-    return static_cast<int16_t>((encoder_position(_config.a.encoder) + encoder_position(_config.b.encoder)) / 2);
+    const EncoderId id = (using_b ? _config.b : _config.a).encoder;
+    if (const std::optional<float> degrees = side_degrees(id, encoder_bus().now_ms()))
+        return static_cast<int16_t>(std::lround(*degrees * kPositionUnitsPerDegree));
+    return encoder_position(id);
 }
 
 int16_t MotorBank::encoder_position(EncoderId id) const
@@ -233,34 +235,55 @@ void MotorBank::control_tick(uint32_t now_ms, bool may_run)
     float last_a = _last_angle_a;
     float last_b = _last_angle_b;
     if (zeroed)
-        _rezeroing_a = _rezeroing_b = true;
-    const auto side_angle = [&](EncoderId id, AngleCorrectionState& state, bool& rezeroing, int16_t last_output, float& last) -> std::optional<float>
+        _side_a.rezeroing = _side_b.rezeroing = true;
+    const auto side_angle = [&](EncoderId id, SideState& side, int16_t last_output, float& last) -> std::optional<float>
     {
         const std::optional<float> reading = encoder_degrees(id, now_ms);
-        if (!_config.angle_correction)
-            return reading;
-        if (rezeroing && !(reading && std::fabs(*reading) <= 1.0f))
-            state = {};  // learns nothing across the zero, but still applies
-        else
-            rezeroing = false;
-        const std::optional<float> held = _config.angle_correction(state, reading, ((last_output > 0) - (last_output < 0)) * _config.position_direction);
+        std::optional<float> held;
+        if (_config.angle_correction)
+        {
+            if (side.rezeroing && !(reading && std::fabs(*reading) <= 1.0f))
+                side.correction = {};  // learns nothing across the zero, but still applies
+            else
+                side.rezeroing = false;
+            held = _config.angle_correction(side.correction, reading, ((last_output > 0) - (last_output < 0)) * _config.position_direction);
+        }
         if (held || reading)
             last = held ? *held : *reading;
         return reading && held ? held : reading;
     };
-    // Both actuators move the same joint, so a side with no reading
-    // follows the other side's encoder.
-    const std::optional<float> own_a = side_angle(_config.a.encoder, _correction_a, _rezeroing_a, _output_a, last_a);
-    const std::optional<float> own_b = side_angle(_config.b.encoder, _correction_b, _rezeroing_b, _output_b, last_b);
-    const std::optional<float> angle_a = own_a ? own_a : own_b;
-    const std::optional<float> angle_b = own_b ? own_b : own_a;
+    const std::optional<float> own_a = side_angle(_config.a.encoder, _side_a, _output_a, last_a);
+    const std::optional<float> own_b = side_angle(_config.b.encoder, _side_b, _output_b, last_b);
 
-    int16_t output_a = 0;
-    int16_t output_b = 0;
+    // One angle for the bank, from one encoder: the bus 1 one by preference. An
+    // encoder ranks fresh (2), stale but alive (1) or lost (0), and hands over
+    // only to a better one. Going back to bus 1 waits until the bank is at rest
+    // (it drove nothing last tick) and bus 1 has been fresh for kReturnMs, so the
+    // angle never jumps mid-move. With nothing better a stale encoder carries on
+    // from its last angle, which while fresh is its own.
+    const bool new_target = mode == ControlMode::Position && (_last_mode != ControlMode::Position || target != _last_target);
+    const auto rank = [&](EncoderId id, bool fresh)
+    { return fresh ? 2 : encoder_degrees(id, now_ms, kFeedbackLostMs) ? 1
+                                                                      : 0; };
+    const int rank_a = rank(_config.a.encoder, own_a.has_value()), rank_b = rank(_config.b.encoder, own_b.has_value());
+    if (!(_prefer_b ? own_b : own_a))
+        _preferred_fresh_since.reset();
+    else if (!_preferred_fresh_since)
+        _preferred_fresh_since = now_ms;
+    bool using_b = _using_b;
+    if (!_output_a && _preferred_fresh_since && now_ms - *_preferred_fresh_since >= kReturnMs)
+        using_b = _prefer_b;
+    else if ((using_b ? rank_a : rank_b) > (using_b ? rank_b : rank_a))
+        using_b = !using_b;
+    if (using_b != _using_b)
+        ESP_LOGW(TAG, "%s: angle from %s now", _config.name, to_string((using_b ? _config.b : _config.a).encoder));
+    const std::optional<float> angle = (using_b ? rank_b : rank_a) ? std::optional<float>(using_b ? last_b : last_a) : std::nullopt;
+
+    int16_t output = 0;
 
     if (mode == ControlMode::Homing)
     {
-        output_a = output_b = homing_output(now_ms, amps, may_run);
+        output = homing_output(now_ms, amps, may_run);
     }
     else
     {
@@ -272,38 +295,31 @@ void MotorBank::control_tick(uint32_t now_ms, bool may_run)
 
         if (mode == ControlMode::Position)
         {
-            if (_last_mode != ControlMode::Position || target != _last_target)
+            if (new_target)
             {
-                _settled_a = false;
-                _settled_b = false;
+                _settled = false;
                 _last_target = target;
             }
-
-            const float target_degrees = target / kPositionUnitsPerDegree;
-            output_a = position_output(target_degrees, angle_a, &_settled_a);
-            output_b = position_output(target_degrees, angle_b, &_settled_b);
+            output = position_output(target / kPositionUnitsPerDegree, angle, &_settled);
         }
         else
         {
             // -32768 has no positive int16 counterpart, so it flips to 32767.
-            output_a = output_b =
-                _config.speed_direction < 0 ? static_cast<int16_t>(-std::max<int32_t>(speed, -INT16_MAX)) : speed;
+            output = _config.speed_direction < 0 ? static_cast<int16_t>(-std::max<int32_t>(speed, -INT16_MAX)) : speed;
         }
-
-        output_a = limit_output(output_a, angle_a);
-        output_b = limit_output(output_b, angle_b);
+        output = limit_output(output, angle);
     }
     _last_mode = mode;
 
     if (!may_run)
-        output_a = output_b = 0;
+        output = 0;
 
-    _driver_A.drive(output_a);
-    _driver_B.drive(output_b);
+    _driver_A.drive(output);
+    _driver_B.drive(output);
 
     Lock lock(_mutex);
-    _output_a = output_a;
-    _output_b = output_b;
+    _output_a = _output_b = output;
+    _using_b = using_b;
     _angle_a = own_a;
     _angle_b = own_b;
     _last_angle_a = last_a;
@@ -381,10 +397,10 @@ int16_t MotorBank::position_output(float target, std::optional<float> angle, boo
     return error > 0 ? duty : -duty;
 }
 
-std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms)
+std::optional<float> MotorBank::encoder_degrees(EncoderId id, uint32_t now_ms, uint32_t max_age_ms)
 {
     EncoderReading reading;
-    if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > kFeedbackStaleMs)
+    if (!encoder_bus().get(id, &reading) || reading.angle_age_ms(now_ms) > max_age_ms)
         return std::nullopt;
     return reading.degrees;
 }

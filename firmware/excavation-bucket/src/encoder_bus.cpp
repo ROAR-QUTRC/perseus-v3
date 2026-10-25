@@ -2,6 +2,7 @@
 
 #include "encoder_bus.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 #include "esp_log.h"
@@ -227,6 +228,7 @@ void EncoderBus::run(Bus& bus)
 
     uint32_t last_heartbeat_ms = clock_.now_ms() - kHeartbeatPeriodMs;  // first one goes out immediately
     uint32_t last_reprobe_ms = clock_.now_ms();
+    uint32_t last_health_ms = clock_.now_ms();
     size_t reprobe_cursor = 0;
 
     for (;;)
@@ -245,6 +247,12 @@ void EncoderBus::run(Bus& bus)
         {
             last_reprobe_ms = now;
             reprobe_next_missing(bus, bus_index, &reprobe_cursor);
+        }
+
+        if (kHealthLogMs && now - last_health_ms >= kHealthLogMs)
+        {
+            log_health(bus, bus_index, now - last_health_ms);
+            last_health_ms = now;
         }
 
         if (bus.mbus.step())
@@ -429,6 +437,25 @@ void EncoderBus::refresh_stats(const Bus& bus, size_t bus_index)
     }
 }
 
+void EncoderBus::log_health(const Bus& bus, size_t bus_index, uint32_t interval_ms)
+{
+    for (size_t i = 0; i < kEncoderCount; ++i)
+    {
+        modbus::DeviceStats stats;
+        if (kPlacement[i].bus != bus_index || !bus.mbus.get_stats(kPlacement[i].slave, &stats))
+            continue;
+        Slot& slot = slots_[i];
+        const modbus::DeviceStats& was = slot.logged;
+        ESP_LOGI(TAG, "bus %u: %s %4.1f Hz, longest gap %lu ms, %lu timeouts, %lu bad replies, %lu exceptions, link %s",
+                 static_cast<unsigned>(bus_index + 1), kNames[i], slot.angles * 1000.0f / interval_ms,
+                 static_cast<unsigned long>(slot.longest_gap_ms), static_cast<unsigned long>(stats.timeouts - was.timeouts),
+                 static_cast<unsigned long>(stats.crc_errors + stats.bad_frames - was.crc_errors - was.bad_frames),
+                 static_cast<unsigned long>(stats.exceptions - was.exceptions), to_string(stats.state));
+        slot.angles = slot.longest_gap_ms = 0;
+        slot.logged = stats;
+    }
+}
+
 void EncoderBus::on_angle(const modbus::Response& response, void* ctx)
 {
     auto* slot = static_cast<Slot*>(ctx);
@@ -438,6 +465,9 @@ void EncoderBus::on_angle(const modbus::Response& response, void* ctx)
     enc::Angle angle;
     if (enc::decode_angle(response, &angle))
     {
+        if (slot->angles++ || slot->last_angle_ms)
+            slot->longest_gap_ms = std::max(slot->longest_gap_ms, response.timestamp_ms - slot->last_angle_ms);
+        slot->last_angle_ms = response.timestamp_ms;
         Lock lock(self.mutex_);
         reading.angle_valid = true;
         reading.raw_counts = angle.raw_counts;

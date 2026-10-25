@@ -1,5 +1,8 @@
 #include <Arduino.h>
 
+#include <atomic>
+#include <cstdarg>
+#include <cstdio>
 #include <hi_can_twai.hpp>
 #include <optional>
 
@@ -7,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "excavation_config.hpp"
+#include "freertos/ringbuf.h"
 #include "motor_bank.hpp"
 #include "motor_bank_parameter_group.hpp"
 
@@ -22,6 +26,49 @@ std::optional<PacketManager> packet_manager;
 
 // The failsafe (excavation_config.hpp): anything heard on the CAN bus, for this board or not, feeds it.
 bool bucket_may_run() { return can_interface && can_interface->heard_within(kCanFailsafeMs); }
+
+// Every ESP_LOG line is queued for a low-priority task to print, so no task that
+// matters waits on a console: the USB one stalls its writer ~50 ms once the host
+// is gone, the UART takes ~10 ms a line. A full queue drops lines and counts them.
+namespace log_queue
+{
+    constexpr size_t kLineBytes = 256;  // longer lines are cut
+    constexpr size_t kQueueBytes = 32 * (kLineBytes + 8);
+    RingbufHandle_t ring = nullptr;
+    std::atomic<uint32_t> dropped{0};
+
+    int write(const char* format, va_list args)
+    {
+        char* line = nullptr;
+        if (xRingbufferSendAcquire(ring, reinterpret_cast<void**>(&line), kLineBytes, 0) != pdTRUE)
+            return ++dropped, 0;
+        const int length = vsnprintf(line, kLineBytes, format, args);
+        if (length >= static_cast<int>(kLineBytes))
+            line[kLineBytes - 2] = '\n';
+        xRingbufferSendComplete(ring, line);
+        return length;
+    }
+
+    void print(void*)
+    {
+        for (size_t size;;)
+            if (char* line = static_cast<char*>(xRingbufferReceive(ring, &size, portMAX_DELAY)))
+            {
+                fputs(line, stdout);
+                vRingbufferReturnItem(ring, line);
+                if (const uint32_t lost = dropped.exchange(0))
+                    printf("(%lu log lines dropped)\n", static_cast<unsigned long>(lost));
+            }
+    }
+
+    // Core 0 at priority 1: the bus and control tasks there outrank it, and the CAN loop on core 1 never shares with it.
+    void start()
+    {
+        if ((ring = xRingbufferCreate(kQueueBytes, RINGBUF_TYPE_NOSPLIT)) &&
+            xTaskCreatePinnedToCore(print, "log", 3072, nullptr, 1, nullptr, 0) == pdPASS)
+            esp_log_set_vprintf(write);
+    }
+}  // namespace log_queue
 
 // Tells a crash (panic) apart from a watchdog reset, a brownout or a power cycle.
 static const char* reset_reason_name(esp_reset_reason_t reason)
@@ -49,6 +96,7 @@ static const char* reset_reason_name(esp_reset_reason_t reason)
 
 void setup()
 {
+    log_queue::start();
     const esp_reset_reason_t reset_reason = esp_reset_reason();
     ESP_LOGW(TAG, "reset reason: %s (%d)", reset_reason_name(reset_reason), static_cast<int>(reset_reason));
 

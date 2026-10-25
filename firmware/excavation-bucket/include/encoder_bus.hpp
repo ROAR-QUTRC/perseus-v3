@@ -8,11 +8,12 @@
 // angle poll. Only encoders that answered are polled after; the missing ones
 // are re-probed, one per kReprobePeriodMs, and join as soon as they answer.
 // Control code
-// reads the latest readings with EncoderBus::get() and zeroes an encoder with
+// reads the latest readings with EncoderBus::get() and sends commands with
 // zero(); it never touches the buses directly.
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -63,9 +64,10 @@ struct EncoderReading
     modbus::DeviceState link = modbus::DeviceState::Unknown;
     modbus::DeviceStats stats{};
 
+    // The bus tasks can land a reading after the caller read the clock: that one is fresh, not 49 days old.
     uint32_t angle_age_ms(uint32_t now_ms) const
     {
-        return angle_valid ? now_ms - angle_timestamp_ms : UINT32_MAX;
+        return angle_valid ? std::max(static_cast<int32_t>(now_ms - angle_timestamp_ms), int32_t{0}) : UINT32_MAX;
     }
 };
 
@@ -73,12 +75,12 @@ class EncoderBus
 {
 public:
     static constexpr uint32_t kBaudHz = 115200;  // must match MODBUS_BAUD_HZ in the encoder's rtos/comms_task.cpp
-    // TODO: a Lost encoder is still polled at kAnglePeriodMs and each poll waits the
-    // full kResponseTimeoutMs, so it takes most of the bus and slows the other
-    // encoders on it to ~15-18 Hz. Back off Lost devices (e.g. 1 Hz) in MBUS until they answer.
-    static constexpr uint32_t kResponseTimeoutMs = 50;
-    static constexpr uint32_t kAnglePeriodMs = 20;  // per encoder; the bus may not sustain this at low baud
-    static constexpr uint32_t kStatusPeriodMs = 200;
+    // A reply lands ~2-4 ms after the request; a miss stalls the whole bus this long.
+    // TODO: a Lost encoder is still polled at kAnglePeriodMs, each poll waiting this
+    // out. Back off Lost devices (e.g. 1 Hz) in MBUS until they answer.
+    static constexpr uint32_t kResponseTimeoutMs = 10;
+    static constexpr uint32_t kAnglePeriodMs = 40;  // per encoder; 3 per bus keep it ~30-42 % busy at 115200 (20 ms was ~60-85 %)
+    static constexpr uint32_t kStatusPeriodMs = 0;  // 0 = off: nothing reads the status yet
     // TODO: the encoder firmware still expects a 1 s heartbeat (kHeartbeatPeriodMs
     // 1000, 3 s timeout, encoder-board/encoder/rtos/shared_state.hpp); change it to match.
     static constexpr uint32_t kHeartbeatPeriodMs = 200;  // broadcast, once per bus; withheld in failsafe
@@ -89,6 +91,9 @@ public:
     // One missing encoder per bus is probed each period; a probe that gets no
     // answer costs that bus kResponseTimeoutMs.
     static constexpr uint32_t kReprobePeriodMs = 1000;
+    // A health line per polled encoder on the UART this often: angle reads per
+    // second, the longest gap between them, failures since the last line. 0 = off.
+    static constexpr uint32_t kHealthLogMs = 5000;
 
     // Installs both UARTs and starts the bus tasks, which discover the
     // encoders and register those in `enabled` (a mask of encoder_bit()).
@@ -105,7 +110,7 @@ public:
     // Clock the reading timestamps come from, for computing ages.
     uint32_t now_ms() { return clock_.now_ms(); }
 
-    // Queued for the bus task. Returns false if the queue is full or not started.
+    // Queued for the bus task. Return false if the queue is full or not started.
     bool zero(EncoderId id);
 
 private:
@@ -139,6 +144,11 @@ private:
         EncoderBus* owner;
         size_t index;
         bool answered = false;  // a re-probe got a reply; only touched by this encoder's bus task
+        // For the health line; only touched by this encoder's bus task.
+        uint32_t angles = 0;
+        uint32_t last_angle_ms = 0;
+        uint32_t longest_gap_ms = 0;
+        modbus::DeviceStats logged{};
     };
 
     bool submit(EncoderId id, const modbus::Request& request);
@@ -149,6 +159,7 @@ private:
     void register_answered(Bus& bus, size_t bus_index);
     modbus::Result transact(Bus& bus, modbus::Request request);
     void refresh_stats(const Bus& bus, size_t bus_index);
+    void log_health(const Bus& bus, size_t bus_index, uint32_t interval_ms);
 
     static void bus_task_entry(void* arg);
     static void on_angle(const modbus::Response& response, void* ctx);
