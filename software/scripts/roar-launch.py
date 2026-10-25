@@ -69,11 +69,12 @@ def kdl(value: str) -> str:
 SETTINGS = ("session", "devenv_profile", "source")
 
 
-# Rc file for pane shells. Bash reads the pane's command from $ROAR_PANE_CMD, adds it to
-# history, then either runs it (autostart) or types it at the prompt: the terminal's reply
-# to the "\e[5n" status request arrives as "\e[0n", which the binding turns into the text.
+# Rc file for pane shells. It skips ~/.bashrc on purpose: panes inherit the devenv profile
+# (CycloneDDS) and workspace environment, which ~/.bashrc could reorder. Bash reads the
+# pane's command from $ROAR_PANE_CMD, adds it to history, then either runs it (autostart)
+# or types it at the prompt: the terminal's reply to the "\e[5n" status request arrives
+# as "\e[0n", which the binding turns into the text.
 PANE_RC = r"""
-[ -f ~/.bashrc ] && . ~/.bashrc
 history -s "$ROAR_PANE_CMD"
 if [ -n "$ROAR_PANE_AUTOSTART" ]; then
     eval "$ROAR_PANE_CMD"
