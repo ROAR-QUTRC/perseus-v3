@@ -12,6 +12,7 @@
   control-msgs,
   geometry-msgs,
   interfaces,
+  nav-msgs,
   nav2-behavior-tree,
   nav2-msgs,
   rclcpp,
@@ -39,6 +40,7 @@ buildRosPackage rec {
     control-msgs
     geometry-msgs
     interfaces
+    nav-msgs
     nav2-behavior-tree
     nav2-msgs
     rclcpp
