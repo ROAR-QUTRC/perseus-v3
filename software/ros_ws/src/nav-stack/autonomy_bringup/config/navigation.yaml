@@ -510,10 +510,10 @@ controller_server:
       movement_time_allowance: 20.0
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      # Loosened from 0.25: the rover is 0.6 m across on sand and hunts across a tighter
-      # goal. Yaw is generous because final heading rarely matters and tightening it means
-      # a slow spin at exactly the rate the ESCs stall at.
-      xy_goal_tolerance: 0.45
+      # Loosened from 0.25 to 0.45 and now 0.8: the rover is 0.6 m across on sand and hunts
+      # across a tighter goal. Yaw is generous because final heading rarely matters and
+      # tightening it means a slow spin at exactly the rate the ESCs stall at.
+      xy_goal_tolerance: 0.8
       yaw_goal_tolerance: 0.523 # 30 deg heading tolerance at goal
       stateful: true
     FollowPath:
@@ -588,13 +588,15 @@ controller_server:
       # parameters below are unchanged and /controller_selector still says "DWB".
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       primary_controller: "dwb_core::DWBLocalPlanner"
-      # Raised from 0.785: pivot only if the path is ~140 deg off, otherwise DWB arcs.
-      angular_dist_threshold: 1.0
+      # Being tightened step by step to align with the path more closely: 0.785 -> 2.4 -> 1.0
+      # -> 0.5 -> 0.4 rad (about 23 deg). The shim pivots until the heading error is under this,
+      # then DWB arcs the rest. Lower means more pivots, which dig in on sand.
+      angular_dist_threshold: 0.4
       forward_sampling_distance: 0.5
       # max_vel_theta, and the same rate RPP pivots at (see FollowPath).
-      rotate_to_heading_angular_vel: 0.5
-      # Matches acc_lim_theta below, so the pivot ramps as gently as DWB's own turns.
-      max_angular_accel: 1.0
+      rotate_to_heading_angular_vel: 0.8
+      # Matches acc_lim_theta below (8x the old 1.0), so the pivot reaches full rate as fast as DWB's own turns.
+      max_angular_accel: 8.0
       simulate_ahead_time: 1.0
       # The same dither happened at the goal: inside xy_goal_tolerance DWB's RotateToGoal
       # left/right pivots scored 68.6 vs 66.4 and swapped as it turned. true hands the final
@@ -621,10 +623,10 @@ controller_server:
       # Smoothness: 1.0 rad/s^2 caps the angular-velocity window DWB samples each 0.1 s cycle
       # to +-0.1 rad/s around the current rate. At 3.2 it could jump full-left to full-right
       # between cycles, which is what made it weave on straight legs.
-      acc_lim_theta: 1.0
+      acc_lim_theta: 8.0
       decel_lim_x: -1.0
       decel_lim_y: 0.0
-      decel_lim_theta: -1.0
+      decel_lim_theta: -8.0
       # vy_samples 1 because there is no lateral motion to sample.
       vx_samples: 10
       vy_samples: 1
@@ -636,7 +638,8 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.35
+      # Same as goal_checker's, so DWB and the checker agree on when the goal is reached.
+      xy_goal_tolerance: 0.8
       # 0.07 = 0.1 * 0.7, keeping it the same fraction of cruise speed as before.
       trans_stopped_velocity: 0.07
       short_circuit_trajectory_evaluation: true
@@ -868,9 +871,10 @@ velocity_smoother:
     # 0.5 so it does not clamp them, and is still under safe_speed.yaml's 1.0.
     max_velocity: [0.4, 0.0, 0.8]
     min_velocity: [-0.4, 0.0, -0.8]
-    # Theta matches FollowPath's max_angular_accel; whichever is lower binds.
-    max_accel: [1.0, 0.0, 3.2]
-    max_decel: [-1.0, 0.0, -3.2]
+    # Theta is raised to 8.0 to match DWB's acc_lim_theta; whichever is lower binds. RPP's FollowPath
+    # max_angular_accel is still 3.2, so RPP is capped there.
+    max_accel: [1.0, 0.0, 8.0]
+    max_decel: [-1.0, 0.0, -8.0]
     odom_topic: "/odom"
     odom_duration: 0.1
     # Zero on purpose. A deadband here risks a ramp-up deadlock: with OPEN_LOOP feedback the
