@@ -8,6 +8,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <deque>
+#include <global_traversability/global_traversability/crater_detection.hpp>
 #include <grid_map_core/grid_map_core.hpp>
 #include <local_traversability/local_traversability/terrain_analysis.hpp>
 #include <nav2_msgs/srv/clear_entire_costmap.hpp>
@@ -57,6 +58,14 @@ namespace global_traversability
     /// an IMU spike (tilt rate, or specific force off its running 1 g) empties the
     /// scan buffer and ignores scans until shock_holdoff_s after the last spike. The
     /// map just stops learning for that moment, which costs nothing.
+    ///
+    /// CRATERS ARE A COST, NOT A WALL. The height-difference test only fires on a drop
+    /// the slope allowance cannot explain, so a shallow crater (~0.1 m deep, 0.45 m
+    /// across) is invisible to it and a deeper one comes out lethal with a 1 m halo.
+    /// crater_detection.hpp finds pits by their walls instead; each verdict is fused
+    /// into its own log-odds layer exactly like an obstacle's, and a confirmed crater
+    /// is published as a flat crater_cost over its footprint -- no inflation -- so the
+    /// planner routes round it when that is cheap and through it when it is not.
     ///
     /// The grid starts at initial_map_length_m around the first robot pose and grows
     /// (grid_map::GridMap::extendToInclude) whenever the scan window reaches past its
@@ -155,6 +164,40 @@ namespace global_traversability
         static constexpr double DEFAULT_LOG_ODDS_MAX = 3.5;
         /// @brief Log-odds above which a cell is published as an obstacle.
         static constexpr double DEFAULT_LOG_ODDS_OCCUPIED = 0.5;
+
+        /// @name Crater detection
+        /// See crater_detection.hpp for what the detector tests; the fusion mirrors the
+        /// obstacle log-odds above.
+        /// @{
+        static constexpr bool DEFAULT_CRATER_ENABLED = true;
+        /// @brief tan(12 deg) = 0.21. On the sim terrain, with and without 2 cm of range
+        ///        noise, nothing natural reaches it for two windows running, while 0.18
+        ///        already does.
+        static constexpr double DEFAULT_CRATER_MIN_SLOPE_DEG = 12.0;
+        static inline const std::vector<double> DEFAULT_CRATER_RING_EDGES_M = {
+            0.30, 0.45, 0.65, 0.90};
+        static constexpr int DEFAULT_CRATER_MIN_RING_CELLS = 6;
+        static constexpr double DEFAULT_CRATER_MIN_RING_COVER = 0.4;
+        static constexpr double DEFAULT_CRATER_GROW_RADIUS_M = 0.1;
+        static constexpr double DEFAULT_CRATER_FILL_RADIUS_M = 0.2;
+        static constexpr double DEFAULT_CRATER_OBSTACLE_MARGIN_M = 0.2;
+        /// @brief Rim cells stand ~0.08 m; a wall is 0.85 m. See
+        ///        CraterParameters::demote_max_height_m.
+        static constexpr double DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M = 0.12;
+        /// @brief Two hits clear crater_log_odds_occupied; a miss costs much less than a
+        ///        hit, because a pit is only seen well from some angles and a cell that
+        ///        flags in one window and not the next is still a pit.
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_HIT = 0.35;
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_MISS = 0.1;
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_MIN = -1.0;
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_MAX = 1.5;
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_OCCUPIED = 0.5;
+        /// @brief Cost, 0-99, laid over a confirmed crater.
+        static constexpr double DEFAULT_CRATER_COST = 40.0;
+        /// @brief Whether a low obstacle cell beside a flagged crater cell is demoted to
+        ///        free in the window, so it never reaches the obstacle log-odds.
+        static constexpr bool DEFAULT_CRATER_DEMOTES_OBSTACLE = true;
+        /// @}
 
         /// @brief Whether never-observed cells are published as obstacles rather than
         ///        as unknown.
@@ -305,6 +348,23 @@ namespace global_traversability
         double _log_odds_occupied{DEFAULT_LOG_ODDS_OCCUPIED};
         bool _treat_unknown_as_obstacle{DEFAULT_TREAT_UNKNOWN_AS_OBSTACLE};
 
+        bool _crater_enabled{DEFAULT_CRATER_ENABLED};
+        CraterParameters _crater{DEFAULT_CRATER_MIN_SLOPE_DEG,
+                                 DEFAULT_CRATER_RING_EDGES_M,
+                                 DEFAULT_CRATER_MIN_RING_CELLS,
+                                 DEFAULT_CRATER_MIN_RING_COVER,
+                                 DEFAULT_CRATER_GROW_RADIUS_M,
+                                 DEFAULT_CRATER_FILL_RADIUS_M,
+                                 DEFAULT_CRATER_OBSTACLE_MARGIN_M,
+                                 DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M};
+        double _crater_log_odds_hit{DEFAULT_CRATER_LOG_ODDS_HIT};
+        double _crater_log_odds_miss{DEFAULT_CRATER_LOG_ODDS_MISS};
+        double _crater_log_odds_min{DEFAULT_CRATER_LOG_ODDS_MIN};
+        double _crater_log_odds_max{DEFAULT_CRATER_LOG_ODDS_MAX};
+        double _crater_log_odds_occupied{DEFAULT_CRATER_LOG_ODDS_OCCUPIED};
+        double _crater_cost{DEFAULT_CRATER_COST};
+        bool _crater_demotes_obstacle{DEFAULT_CRATER_DEMOTES_OBSTACLE};
+
         double _shock_tilt_rate_rad_s{DEFAULT_SHOCK_TILT_RATE_RAD_S};
         double _shock_accel_ratio{DEFAULT_SHOCK_ACCEL_RATIO};
         double _shock_holdoff_s{DEFAULT_SHOCK_HOLDOFF_S};
@@ -322,8 +382,8 @@ namespace global_traversability
         /// @brief The scan window: rebuilt from scratch on every update, never
         ///        carried over.
         grid_map::GridMap _window;
-        /// @brief The persistent grid: log_odds and elevation are state, everything
-        ///        else is derived from them at publish time.
+        /// @brief The persistent grid: log_odds, crater_log_odds and elevation are state,
+        ///        everything else is derived from them at publish time.
         grid_map::GridMap _map;
         bool _map_initialised{false};
         std::deque<local_traversability::BufferedCloud> _cloud_buffer;

@@ -117,6 +117,56 @@ global_traversability:
     log_odds_min: -2.0
     log_odds_max: 3.5
     log_odds_occupied: 0.5
+    # CRATERS: A COST, NOT A WALL. The height test above only fires on a drop its 40 deg slope
+    # allowance cannot explain: a 0.1 m deep, 0.45 m wide crater is invisible to it, and a
+    # 0.15-0.2 m one comes out lethal with a 1 m inflation halo. This finds pits by their walls
+    # instead (global_traversability/crater_detection.hpp): a cell is a pit when the median
+    # elevation of a ring around it sits more than ring_radius * tan(crater_min_slope_deg)
+    # above it, so a crater (walls) scores and a broad shallow dish (the sim terrain is full of
+    # them) does not. Verdicts are fused into their own log-odds like the obstacle ones, and a
+    # confirmed crater is published as a flat crater_cost over its own footprint: no inflation,
+    # not lethal. The planner goes round it when that is cheap and through it when it is not.
+    # Replayed on the sim heightmap with craters carved in (7 craters, 0.4-1.0 m across,
+    # 0.07-0.25 m deep; lidar simulated as the sim's 32 x 720 MID-360 on the 35 deg mast), 0 and
+    # 2 cm of range noise: 6 of 7 covered 67-100%, 0 false-positive cells on the natural terrain.
+    # The miss is the 7 cm deep one. Tuned on sim only: sand ruts and rock clutter are untested.
+    crater_enabled: true
+    # tan(12 deg) = 0.21. 0.18 already flags natural terrain two windows running; 0.21 does not.
+    crater_min_slope_deg: 12.0
+    # Rings the cell is compared against, [inner, outer, ...] in metres: 0.3-0.45, 0.45-0.65,
+    # 0.65-0.9, steepest wins. Craters are 0.4-1.0 m across; the 0.3 inner edge keeps the ring
+    # outside a 0.45 m crater's own wall.
+    crater_ring_edges_m: [0.30, 0.45, 0.65, 0.90]
+    # A ring counts only if this many of its cells, and this fraction of them, were observed
+    # AND they bracket the cell from roughly opposite sides. The lidar sees the ground in thin
+    # arcs, so a ring is often a line on one side, which would only be extrapolating a slope.
+    crater_min_ring_cells: 6
+    crater_min_ring_cover: 0.4
+    # The test flags a pit's steep interior only, so the mask is grown this much to reach the
+    # rim (a 0.45 m crater would otherwise paint ~0.25 m). Footprint, not safety margin; 0 off.
+    crater_grow_m: 0.1
+    # Closing radius over the persistent mask: covers floor the near rim hid from the lidar.
+    crater_fill_radius_m: 0.2
+    # Two flagged windows confirm (2 x 0.35 > occupied); a miss costs far less than a hit,
+    # because a pit only reads well from some angles and a window that misses it is not
+    # evidence the pit is gone. (max - occupied) / miss = 10 clear windows, ~5 s in view.
+    crater_log_odds_hit: 0.35
+    crater_log_odds_miss: 0.1
+    crater_log_odds_min: -1.0
+    crater_log_odds_max: 1.5
+    crater_log_odds_occupied: 0.5
+    # THE KNOB. For GridBased (NavFn), which charges 50 + 0.8 * cost per cell, 40 makes a crater
+    # cell ~1.6x a free one: crossing a 0.5 m crater costs about a 3 cell detour. Lattice, the
+    # default planner, and ThetaStar weigh cost their own way, so check the path you get from
+    # them, not this arithmetic. Higher makes the planner fight harder to avoid craters, lower
+    # makes it shrug them off. Max 99: 100 is lethal.
+    crater_cost: 40.0
+    # The height test also calls the rim cell next to a deep floor an obstacle (it measures
+    # against the lowest neighbour + slope allowance), and inflates it. With this on, obstacle
+    # cells inside a confirmed crater or within obstacle_margin_m of it become crater_cost
+    # instead of lethal. Off restores the old behaviour for craters deeper than ~0.15 m.
+    crater_demotes_obstacle: true
+    crater_obstacle_margin_m: 0.2
     # SHOCK GATE. A jolt or drop motion-smears the raw scans and knocks the LIO pose about
     # until it settles, so the 1 s window sees the same floor at several heights/tilts and
     # the 0.065 height test above calls the ground an obstacle -- which this map then

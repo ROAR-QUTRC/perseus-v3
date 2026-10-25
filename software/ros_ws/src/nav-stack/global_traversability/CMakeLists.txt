@@ -91,6 +91,7 @@ add_definitions(${PCL_DEFINITIONS})
 # COMPILE (Executables)
 add_executable(
   global_traversability
+  src/global_traversability/crater_detection.cpp
   src/global_traversability/global_traversability.cpp
   src/global_traversability/global_traversability_node.cpp)
 

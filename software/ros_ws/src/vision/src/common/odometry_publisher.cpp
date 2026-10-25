@@ -75,11 +75,20 @@ namespace vision
             _integrated_pose = pose;
             return;
         }
+        _restart_from_base_pose(pose);
+    }
 
-        // Time zero requests the latest available transform, since there is no sensor
-        // timestamp yet to look this up at.
-        const tf2::Transform base_to_sensor = _lookup_base_to_sensor(rclcpp::Time(0, 0, RCL_ROS_TIME));
-        _integrated_pose = pose * base_to_sensor;
+    void OdometryPublisher::_restart_from_base_pose(const tf2::Transform& base_pose)
+    {
+        if (_config.is_initial_pose_in_camera_frame)
+        {
+            _integrated_pose = tf2::Transform::getIdentity();
+            return;
+        }
+        // The integrated pose is the camera's, so this needs base_link -> sensor, which
+        // may not be in TF yet (it comes from robot_state_publisher, often another
+        // machine's). Resolved on the next update that has it rather than guessed.
+        _pending_base_pose = base_pose;
     }
 
     void OdometryPublisher::integrate_and_publish(const tf2::Transform& delta_transform, const rclcpp::Time& timestamp)
@@ -95,13 +104,29 @@ namespace vision
         {
             RCLCPP_WARN(_node.get_logger(),
                         "Saw negative time change in incoming sensor data, resetting integrated pose.");
-            _integrated_pose = tf2::Transform::getIdentity();
+            _restart_from_base_pose(tf2::Transform::getIdentity());
+        }
+
+        const std::optional<tf2::Transform> looked_up = _lookup_base_to_sensor(timestamp);
+        if (!looked_up)
+        {
+            // Publishing now would use the wrong mounting, and integrating this step
+            // without it would bend the path. The step is dropped; the next one that
+            // has the TF carries on from the pose before it.
+            RCLCPP_WARN_THROTTLE(_node.get_logger(), *_node.get_clock(), TF_WARN_THROTTLE_MS,
+                                 "No odometry published: TF from '%s' to '%s' is not available",
+                                 _config.base_link_frame_id.c_str(), _config.sensor_frame_id.c_str());
+            return;
+        }
+        const tf2::Transform base_to_sensor = *looked_up;
+        if (_pending_base_pose)
+        {
+            _integrated_pose = *_pending_base_pose * base_to_sensor;
+            _pending_base_pose.reset();
         }
 
         // {odom}^T_{c_camera} = {odom}^T_{p_camera} * {p_camera}^T_{c_camera}
         _integrated_pose *= delta_transform;
-
-        const tf2::Transform base_to_sensor = _lookup_base_to_sensor(timestamp);
         const tf2::Transform base_transform = _config.is_initial_pose_in_camera_frame
                                                   ? base_to_sensor * _integrated_pose * base_to_sensor.inverse()
                                                   : _integrated_pose * base_to_sensor.inverse();
@@ -164,23 +189,24 @@ namespace vision
         _has_last_update_time = true;
     }
 
-    tf2::Transform OdometryPublisher::_lookup_base_to_sensor(const rclcpp::Time& timestamp) const
+    std::optional<tf2::Transform> OdometryPublisher::_lookup_base_to_sensor(const rclcpp::Time& timestamp) const
     {
-        tf2::Transform base_to_sensor = tf2::Transform::getIdentity();
         try
         {
             const geometry_msgs::msg::TransformStamped transform = _tf_buffer.lookupTransform(
                 _config.base_link_frame_id, _config.sensor_frame_id, timestamp,
                 tf2::durationFromSec(TF_LOOKUP_TIMEOUT_S));
+            tf2::Transform base_to_sensor;
             tf2::fromMsg(transform.transform, base_to_sensor);
+            return base_to_sensor;
         }
         catch (const tf2::TransformException& error)
         {
             RCLCPP_WARN_THROTTLE(_node.get_logger(), *_node.get_clock(), TF_WARN_THROTTLE_MS,
-                                 "TF from '%s' to '%s' is not available, assuming identity: %s",
+                                 "TF from '%s' to '%s' is not available: %s",
                                  _config.base_link_frame_id.c_str(), _config.sensor_frame_id.c_str(), error.what());
+            return std::nullopt;
         }
-        return base_to_sensor;
     }
 
     void OdometryPublisher::_handle_reset_request(
@@ -188,10 +214,12 @@ namespace vision
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        _integrated_pose = tf2::Transform::getIdentity();
+        // The base pose goes back to identity. The integrated pose is the camera's, so
+        // identity there would leave the rover tilted by the camera's mounting.
+        _restart_from_base_pose(tf2::Transform::getIdentity());
         _has_last_update_time = false;
         response->success = true;
-        response->message = "Integrated pose reset to identity.";
+        response->message = "Odometry pose reset to identity.";
     }
 
 }  // namespace vision

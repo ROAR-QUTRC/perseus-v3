@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <nav_msgs/msg/odometry.hpp>
+#include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <string>
@@ -68,6 +69,10 @@ namespace vision
 
         /// @brief Seeds the integrated pose, e.g. from a configured initial-pose parameter.
         /// @param pose Initial pose, interpreted per `is_initial_pose_in_camera_frame`.
+        ///
+        /// A base_link pose is not converted here but on the first update that has
+        /// base_link -> sensor in TF, so a TF that is late at startup cannot bake the
+        /// wrong sensor mounting into the odometry for good.
         void set_initial_pose(const tf2::Transform& pose);
 
         /// @brief Integrates a new motion delta and publishes odometry, pose, and TF.
@@ -78,8 +83,15 @@ namespace vision
     private:
         /// @brief Looks up the transform from base_link to the sensor frame.
         /// @param timestamp Time to look the transform up at, or time zero for the latest.
-        /// @return The transform, or identity if it is not yet available.
-        tf2::Transform _lookup_base_to_sensor(const rclcpp::Time& timestamp) const;
+        /// @return The transform, or nothing if it is not yet available. Never identity
+        ///         as a stand-in: the sensor is rotated from base_link (an optical frame
+        ///         is z forward, y down), so a stand-in tilts every pose after it.
+        std::optional<tf2::Transform> _lookup_base_to_sensor(const rclcpp::Time& timestamp) const;
+
+        /// @brief Restarts the integration from @p base_pose, the rover's base_link pose.
+        /// In the camera-frame convention it is the camera pose directly; otherwise it is
+        /// resolved against base_link -> sensor on the next update.
+        void _restart_from_base_pose(const tf2::Transform& base_pose);
 
         /// @brief Resets the integrated pose to identity on request.
         void _handle_reset_request(
@@ -101,6 +113,8 @@ namespace vision
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _reset_service;
 
         tf2::Transform _integrated_pose{tf2::Transform::getIdentity()};
+        // A base_link pose waiting for base_link -> sensor, to become _integrated_pose.
+        std::optional<tf2::Transform> _pending_base_pose;
         rclcpp::Time _last_update_time{0, 0, RCL_ROS_TIME};
         bool _has_last_update_time{false};
 

@@ -55,6 +55,14 @@ namespace global_traversability
         /// so with the bounds snapped every cell edge in either grid lands on the same
         /// lattice, and a window cell maps onto exactly one persistent cell by its
         /// center -- no resampling, no cell straddling two.
+        /// @brief The classifier's layers plus the crater verdict.
+        std::vector<std::string> window_layers()
+        {
+            std::vector<std::string> layers = local_traversability::TERRAIN_LAYERS;
+            layers.push_back("crater");
+            return layers;
+        }
+
         void set_aligned_geometry(grid_map::GridMap& map, const grid_map::Position& min,
                                   const grid_map::Position& max, double resolution)
         {
@@ -69,8 +77,9 @@ namespace global_traversability
 
     GlobalTraversability::GlobalTraversability(const rclcpp::NodeOptions& options)
         : rclcpp::Node("global_traversability", options),
-          _window(local_traversability::TERRAIN_LAYERS),
-          _map({"log_odds", "elevation", "obstacle", "border", "inflation", "cost"})
+          _window(window_layers()),
+          _map({"log_odds", "crater_log_odds", "elevation", "obstacle", "border",
+                "inflation", "crater", "cost"})
     {
         _load_parameters();
 
@@ -112,6 +121,8 @@ namespace global_traversability
             {"border", 0.0, 1.0, nullptr},
             {"obstacle", 0.0, 1.0, nullptr},
             {"inflation", 0.0, 99.0, nullptr},
+            {"crater", 0.0, 1.0, nullptr},
+            {"crater_log_odds", _crater_log_odds_min, _crater_log_odds_max, nullptr},
         };
         for (const auto& spec : layer_specs)
         {
@@ -209,6 +220,38 @@ namespace global_traversability
         _shock_holdoff_s =
             this->declare_parameter("shock_holdoff_s", DEFAULT_SHOCK_HOLDOFF_S);
         _shock_lead_s = this->declare_parameter("shock_lead_s", DEFAULT_SHOCK_LEAD_S);
+
+        _crater_enabled =
+            this->declare_parameter("crater_enabled", DEFAULT_CRATER_ENABLED);
+        _crater.min_slope_deg = this->declare_parameter("crater_min_slope_deg",
+                                                        DEFAULT_CRATER_MIN_SLOPE_DEG);
+        _crater.ring_edges_m = this->declare_parameter("crater_ring_edges_m",
+                                                       DEFAULT_CRATER_RING_EDGES_M);
+        _crater.min_ring_cells = this->declare_parameter("crater_min_ring_cells",
+                                                         DEFAULT_CRATER_MIN_RING_CELLS);
+        _crater.min_ring_cover = this->declare_parameter("crater_min_ring_cover",
+                                                         DEFAULT_CRATER_MIN_RING_COVER);
+        _crater.grow_radius_m = this->declare_parameter("crater_grow_m",
+                                                        DEFAULT_CRATER_GROW_RADIUS_M);
+        _crater.fill_radius_m = this->declare_parameter("crater_fill_radius_m",
+                                                        DEFAULT_CRATER_FILL_RADIUS_M);
+        _crater.obstacle_margin_m = this->declare_parameter(
+            "crater_obstacle_margin_m", DEFAULT_CRATER_OBSTACLE_MARGIN_M);
+        _crater.demote_max_height_m = this->declare_parameter(
+            "crater_demote_max_height_m", DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M);
+        _crater_log_odds_hit = this->declare_parameter("crater_log_odds_hit",
+                                                       DEFAULT_CRATER_LOG_ODDS_HIT);
+        _crater_log_odds_miss = this->declare_parameter("crater_log_odds_miss",
+                                                        DEFAULT_CRATER_LOG_ODDS_MISS);
+        _crater_log_odds_min = this->declare_parameter("crater_log_odds_min",
+                                                       DEFAULT_CRATER_LOG_ODDS_MIN);
+        _crater_log_odds_max = this->declare_parameter("crater_log_odds_max",
+                                                       DEFAULT_CRATER_LOG_ODDS_MAX);
+        _crater_log_odds_occupied = this->declare_parameter(
+            "crater_log_odds_occupied", DEFAULT_CRATER_LOG_ODDS_OCCUPIED);
+        _crater_cost = this->declare_parameter("crater_cost", DEFAULT_CRATER_COST);
+        _crater_demotes_obstacle = this->declare_parameter(
+            "crater_demotes_obstacle", DEFAULT_CRATER_DEMOTES_OBSTACLE);
 
         _inflation.robot_radius_m =
             this->declare_parameter("robot_radius_m", DEFAULT_ROBOT_RADIUS_M);
@@ -409,6 +452,14 @@ namespace global_traversability
         }
 
         local_traversability::classify_terrain(_window, _cloud_buffer, _terrain);
+        if (_crater_enabled)
+        {
+            detect_craters(_window, _crater);
+            if (_crater_demotes_obstacle)
+            {
+                demote_crater_obstacles(_window, _crater);
+            }
+        }
         _fuse_window();
     }
 
@@ -505,7 +556,9 @@ namespace global_traversability
         const Eigen::MatrixXf& window_border = _window["border"];
         const Eigen::MatrixXf& window_obstacle = _window["obstacle"];
         const Eigen::MatrixXf& window_elevation = _window["elevation"];
+        const Eigen::MatrixXf& window_crater = _window["crater"];
         Eigen::MatrixXf& log_odds = _map["log_odds"];
+        Eigen::MatrixXf& crater_log_odds = _map["crater_log_odds"];
         Eigen::MatrixXf& elevation = _map["elevation"];
 
         const float hit = static_cast<float>(_log_odds_hit);
@@ -542,6 +595,21 @@ namespace global_traversability
             // against its neighbours -- see the class comment for why it must not.
             elevation(index(0), index(1)) =
                 window_elevation(window_index(0), window_index(1));
+
+            // NaN is "no usable ring around this cell": no evidence, the cell keeps what
+            // it knew, same as a border cell above.
+            const float crater_verdict = window_crater(window_index(0), window_index(1));
+            if (_crater_enabled && !std::isnan(crater_verdict))
+            {
+                float& crater_cell = crater_log_odds(index(0), index(1));
+                const float crater_prior = std::isnan(crater_cell) ? 0.0f : crater_cell;
+                crater_cell = std::clamp(
+                    crater_prior + (crater_verdict > 0.5f
+                                        ? static_cast<float>(_crater_log_odds_hit)
+                                        : -static_cast<float>(_crater_log_odds_miss)),
+                    static_cast<float>(_crater_log_odds_min),
+                    static_cast<float>(_crater_log_odds_max));
+            }
         }
     }
 
@@ -571,6 +639,7 @@ namespace global_traversability
         const grid_map::Position center(robot_transform.transform.translation.x,
                                         robot_transform.transform.translation.y);
         Eigen::MatrixXf& log_odds = _map["log_odds"];
+        Eigen::MatrixXf& crater_log_odds = _map["crater_log_odds"];
         Eigen::MatrixXf& elevation = _map["elevation"];
         int cleared = 0;
         for (grid_map::CircleIterator it(_map, center, _clear_radius_m); !it.isPastEnd();
@@ -578,6 +647,7 @@ namespace global_traversability
         {
             const grid_map::Index index(*it);
             log_odds(index(0), index(1)) = NaN;
+            crater_log_odds(index(0), index(1)) = NaN;
             elevation(index(0), index(1)) = NaN;
             ++cleared;
         }
@@ -614,6 +684,20 @@ namespace global_traversability
             (log_odds.array() > static_cast<float>(_log_odds_occupied))
                 .cast<float>()
                 .matrix();
+
+        // Craters are derived like obstacles: threshold the persistent log-odds, grow
+        // the flagged interior out to the rim, then close the mask so the floor the rim
+        // hid from the lidar is covered too.
+        if (_crater_enabled)
+        {
+            _map["crater"] = (_map["crater_log_odds"].array() >
+                              static_cast<float>(_crater_log_odds_occupied))
+                                 .cast<float>()
+                                 .matrix();
+            dilate_mask(_map, "crater", _crater.grow_radius_m);
+            close_mask(_map, "crater", _crater.fill_radius_m);
+        }
+
         if (_treat_unknown_as_obstacle)
         {
             _map["obstacle"] = _map["obstacle"].cwiseMax(_map["border"]);
@@ -621,6 +705,29 @@ namespace global_traversability
 
         local_traversability::compute_inflation(_map, _inflation);
         local_traversability::compute_final_cost(_map, _treat_unknown_as_obstacle);
+
+        // A flat cost over the crater's own cells, after inflation and with no halo of its
+        // own. Over unknown cells too: the closed mask covers floor nothing ever saw.
+        // Never lowers a cell, so a crater beside a wall keeps the wall's inflated cost.
+        if (_crater_enabled)
+        {
+            const Eigen::MatrixXf& crater = _map["crater"];
+            const Eigen::MatrixXf& obstacle = _map["obstacle"];
+            Eigen::MatrixXf& cost = _map["cost"];
+            const float crater_cost = static_cast<float>(_crater_cost);
+            for (int row = 0; row < cost.rows(); ++row)
+            {
+                for (int col = 0; col < cost.cols(); ++col)
+                {
+                    if (crater(row, col) > 0.5f && !(obstacle(row, col) > 0.5f))
+                    {
+                        const float current = cost(row, col);
+                        cost(row, col) =
+                            std::isnan(current) ? crater_cost : std::max(current, crater_cost);
+                    }
+                }
+            }
+        }
 
         // The cells under the rover go free, so a rover parked inside a wall's inflated
         // band is not in collision with it. Derived data (cost is rebuilt every publish),
