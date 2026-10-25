@@ -9,16 +9,21 @@
 	import { OpenInNewWindow } from 'svelte-radix';
 	import { getRosConnection } from '$lib/scripts/rosBridge.svelte';
 
-	let { toggleConnection, changeAddress, address, disableServerIP, customAddress, domainId } =
-		$props();
-
-	let openAddressMenu = $state(false);
+	let {
+		toggleConnection,
+		changeAddress,
+		address,
+		disableServerIP,
+		customAddress = $bindable(),
+		openAddressMenu = $bindable(),
+		domainId
+	} = $props();
 </script>
 
 <!-- Connection -->
 <Button size="sm" variant="ghost" onclick={toggleConnection}>
 	<div
-		class={cn('h-[20px] w-[20px] rounded-[50%] bg-red-600', {
+		class={cn('h-5 w-5 rounded-[50%] bg-red-600', {
 			'bg-green-600': getRosConnection()
 		})}
 	></div>
@@ -26,7 +31,7 @@
 </Button>
 
 <!-- Address -->
-<p class="my-[5px]">/</p>
+<p class="my-1.25">/</p>
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger class="mb-auto">
 		<Button size="sm" variant="ghost">{address.value}</Button>
@@ -50,14 +55,14 @@
 	<Dialog.Content>
 		<Label for="customAddress">New Ros Domain ID:</Label>
 		<form class="flex space-x-2">
-			<Input class="m-auto mb-0" id="customAddress" type="text" bind:value={customAddress} />
+			<Input class="m-auto mr-2 mb-0" id="customAddress" type="text" bind:value={customAddress} />
 			<Button type="submit" variant="outline" onclick={() => changeAddress()}>Set</Button>
 		</form>
 	</Dialog.Content>
 </Dialog.Root>
 
 <!-- ROS domain -->
-<p class="my-[5px]">/</p>
+<p class="my-1.25">/</p>
 <Button size="sm" variant="ghost" class="cursor-default">
 	Domain ID: {domainId}{domainId === 42 ? ` (prod)` : ''}{domainId === 51 ? ` (dev)` : ''}
 </Button>
