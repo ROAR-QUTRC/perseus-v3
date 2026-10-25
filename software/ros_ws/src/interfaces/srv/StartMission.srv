@@ -59,6 +59,15 @@ float64 zone_pause_s
 # controller running; the mission fails at that step if it is not. Any mode or task
 # except FULL_AUTONOMY_TIMED, which never moves the bucket.
 bool prepare_bucket
+
+# Before the mission proper (and after prepare_bucket), turn on the spot until the
+# camera sees at least two rail markers, then fix the rover's pose in the arena frame
+# from them (arena_server's /arena/localise). The rover starts at any heading, so
+# without this map -> odom is only as good as arena_server's initial_pose. It turns
+# toward the nearer wall, in mission_bt_server's scan_step_deg steps, and fails the
+# mission if scan_max_deg of turning finds no fix. Ignored by DUMP_ONLY and DIG_ONLY,
+# which need no arena frame.
+bool scan_localise
 ---
 # false: refused (a mission is already running, a required point is missing, ...);
 # message says why. true: running -- watch /mission/status.
