@@ -3,7 +3,9 @@
 
 Looks up the device (the hostname, or --device), writes a zellij layout for its tabs and
 panes, and starts zellij inside `devenv --profile <profile> shell` so every pane has the
-ROS and CycloneDDS environment. Pane commands start suspended: they wait for ENTER.
+ROS and CycloneDDS environment. Every pane is a plain interactive shell: the command is
+typed at the prompt for you to edit and run with ENTER (or runs straight away with
+autostart), and Ctrl-C only stops it, never the pane.
 
 If the session already exists it is attached instead; --fresh kills it and starts over.
 """
@@ -67,7 +69,22 @@ def kdl(value: str) -> str:
 SETTINGS = ("session", "devenv_profile", "source")
 
 
-def pane_kdl(pane: str | dict, indent: str) -> str:
+# Rc file for pane shells. Bash reads the pane's command from $ROAR_PANE_CMD, adds it to
+# history, then either runs it (autostart) or types it at the prompt: the terminal's reply
+# to the "\e[5n" status request arrives as "\e[0n", which the binding turns into the text.
+PANE_RC = r"""
+[ -f ~/.bashrc ] && . ~/.bashrc
+history -s "$ROAR_PANE_CMD"
+if [ -n "$ROAR_PANE_AUTOSTART" ]; then
+    eval "$ROAR_PANE_CMD"
+else
+    bind -x '"\e[0n": READLINE_LINE=$ROAR_PANE_CMD; READLINE_POINT=${#READLINE_LINE}'
+    printf '\e[5n'
+fi
+"""
+
+
+def pane_kdl(pane: str | dict, indent: str, rcfile: Path) -> str:
     if isinstance(pane, str):
         pane = {"cmd": pane}
     command = pane.get("cmd", "")
@@ -75,17 +92,25 @@ def pane_kdl(pane: str | dict, indent: str) -> str:
     name = f" name={kdl(name)}" if name else ""
     if not command:
         return f"{indent}pane{name}"
-    lines = [
-        f'{indent}pane{name} command="bash" {{',
-        f'{indent}    args "-c" {kdl(command)}',
+    autostart = "1" if pane.get("autostart", False) else ""
+    args = [
+        f"ROAR_PANE_CMD={command}",
+        f"ROAR_PANE_AUTOSTART={autostart}",
+        "bash",
+        "--rcfile",
+        str(rcfile),
+        "-i",
     ]
-    if not pane.get("autostart", False):
-        lines.append(f"{indent}    start_suspended true")
-    lines.append(f"{indent}}}")
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            f'{indent}pane{name} command="env" {{',
+            f"{indent}    args {' '.join(kdl(a) for a in args)}",
+            f"{indent}}}",
+        ]
+    )
 
 
-def layout_kdl(tabs: dict, cwd: Path) -> str:
+def layout_kdl(tabs: dict, cwd: Path, rcfile: Path) -> str:
     out = [
         "layout {",
         f"    cwd {kdl(str(cwd))}",
@@ -101,7 +126,7 @@ def layout_kdl(tabs: dict, cwd: Path) -> str:
         focus = " focus=true" if i == 0 else ""
         out.append(f"    tab name={kdl(name)}{focus} {{")
         out.append('        pane split_direction="vertical" {')
-        out.extend(pane_kdl(p, "            ") for p in panes or [""])
+        out.extend(pane_kdl(p, "            ", rcfile) for p in panes or [""])
         out.append("        }")
         out.append("    }")
     out.append("}")
@@ -157,7 +182,9 @@ def main() -> None:
     session = entry.get("session", device)
     profile = entry.get("devenv_profile", DEFAULT_PROFILE)
     source = root / entry.get("source", DEFAULT_SOURCE)
-    layout = layout_kdl(tabs, root)
+    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
+    rcfile = runtime / f"roar-launch-{session}.bashrc"
+    layout = layout_kdl(tabs, root, rcfile)
 
     if args.dry_run:
         print(layout, end="")
@@ -177,9 +204,9 @@ def main() -> None:
             os.execvp("zellij", ["zellij", "attach", session])
         subprocess.run(["zellij", "delete-session", "--force", session], check=False)
 
-    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
     layout_path = runtime / f"roar-launch-{session}.kdl"
     layout_path.write_text(layout)
+    rcfile.write_text(PANE_RC)
 
     # Sourced here rather than per pane, so plain shells get the workspace too.
     inner = f"exec zellij --session {shlex.quote(session)} --new-session-with-layout {shlex.quote(str(layout_path))}"

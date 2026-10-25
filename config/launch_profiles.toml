@@ -2,8 +2,8 @@
 #
 # `roar-launch` (software/scripts/roar-launch.py) reads the entry for the machine it runs
 # on, enters the devenv shell, and opens a zellij session with one tab per line below.
-# Each pane's command is typed in and waiting: press ENTER in a pane to start it. Once it
-# exits, ENTER runs it again and ESC drops to a shell in that pane.
+# Each pane is a plain shell with its command typed at the prompt: press ENTER to start it,
+# or edit it first. Ctrl-C stops the command but keeps the pane; Up-arrow brings it back.
 #
 #   roar-launch                       # this machine's entry
 #   roar-launch --device medium-brain # someone else's, to try it out here
