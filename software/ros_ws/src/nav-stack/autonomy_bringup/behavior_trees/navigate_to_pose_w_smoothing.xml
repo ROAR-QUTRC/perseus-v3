@@ -116,7 +116,15 @@
             <Spin spin_dist="1.57" error_code_id="{spin_error_code}"/>
             <BackUp backup_dist="0.5" backup_speed="0.15" error_code_id="{backup_code_id}"/>
             <Wait wait_duration="5.0"/>
+            <!-- Only here, the LAST step of the list, so it runs after several failed attempts
+                 (BackUp, escape, clear, Spin, Wait) have not freed the rover. global_traversability
+                 remembers what it has seen, and nav2's clears do not touch that memory. -->
             <Sequence name="ClearingActions2">
+              <Fallback>
+                <ClearEntireCostmap name="ClearTerrainMemory-Sub2" service_name="global_traversability/clear_region"/>
+                <AlwaysSuccess/>
+              </Fallback>
+              <Wait wait_duration="1.5"/>
               <ClearEntireCostmap name="ClearLocalCostmap-Subtree2" service_name="local_costmap/clear_entirely_local_costmap"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Subtree2" service_name="global_costmap/clear_entirely_global_costmap"/>
             </Sequence>
