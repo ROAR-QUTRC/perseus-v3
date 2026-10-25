@@ -67,8 +67,9 @@ namespace payloads
     }
 
     /// One encoder's last known reading (encoder_group::GET_ANGLE, broadcast by the
-    /// board every 50 ms). This is the authoritative per-side position, used for each
-    /// joint's `position` state interface.
+    /// board every 50 ms). Diagnostic only: the board keeps broadcasting a cached
+    /// angle for an encoder that is not answering (0 if it never has), so a dead side
+    /// looks current here. Joint positions come from BankState::average_degrees.
     ///
     /// `degrees` is in the firmware's frame (its calibrated zero and direction),
     /// wrapped to (-180, 180]. BucketHardware maps it into the URDF joint frame.
@@ -84,10 +85,11 @@ namespace payloads
     /// exactly one of each per axis (not per side). Both side of LIFT/JAWS should
     /// readthe same BankState
     ///
-    /// average_degrees comes from bank_parameter::GET_POSITION, which the firmware
-    /// reports as the average of that bank's two encoders. It is NOT a substitute
-    /// for the per-side EncoderState readings. It should be used as a diagnostic
-    /// cross-check (flagging skew, webui, etc.), never as a joint's position source
+    /// average_degrees comes from bank_parameter::GET_POSITION, broadcast every 50 ms:
+    /// the firmware's combined angle of the bank's two encoders, from whichever of
+    /// them are answering. It is each joint's position, and the angle the board's own
+    /// position control steers by, so a SET_POSITION built from it holds the bucket
+    /// where it is. position_stale is set when it stops arriving.
     ///
     /// `fault` is a plain bool (matches
     /// hi_can::parameters::excavation::bucket::controller::status_t,
@@ -96,6 +98,7 @@ namespace payloads
     struct BankState
     {
         double average_degrees = 0.0;  // firmware frame, bank_parameter::GET_POSITION
+        bool position_stale = true;    // true until the first GET_POSITION, and on timeout
         double current = 0.0;          // amps, bank_parameter::GET_CURRENT
         bool fault = 0;                // bank_parameter::GET_FAULT
         bool stale = true;

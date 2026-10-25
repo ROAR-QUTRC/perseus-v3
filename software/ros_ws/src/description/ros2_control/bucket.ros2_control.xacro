@@ -5,8 +5,8 @@
 
     Commands are bank-level: the CAN board takes one position setpoint per axis and
     drives both sides of that axis from it, so each axis is one joint here. The
-    "axis" and "side" params tell BucketHardware which CAN actuator a joint maps to;
-    only the left encoder of each axis is exposed for now.
+    "axis" param tells BucketHardware which bank a joint is. Its position is the
+    bank's GET_POSITION, the board's combination of that bank's two encoders.
 
     The firmware takes its control mode (speed or position) from whichever command
     arrived last, so the bucket_driver teleop node runs alongside this as an operator
@@ -38,7 +38,6 @@
       <xacro:macro name="bucket_ros2_control_joint" params="joint axis offset_deg:=0.0 direction:=1">
         <joint name="${prefix}${joint}">
           <param name="axis">${axis}</param>
-          <param name="side">left</param>
           <param name="offset_deg">${offset_deg}</param>
           <param name="direction">${direction}</param>
           <command_interface name="position"/>

@@ -253,7 +253,17 @@ namespace payloads
                 {
                     const double degrees = decode_degrees(frame.get_data());
                     update_bank([degrees](BankState& s)
-                                { s.average_degrees = degrees; });
+                                {
+                                    s.average_degrees = degrees;
+                                    s.position_stale = false; });
+                },
+                // The joints' position source, so it times out like an encoder does.
+                /*timeout_callback=*/
+                [this, axis]()
+                {
+                    auto state = get_last_bank_state(axis);
+                    state.position_stale = true;
+                    this->on_bank_received(axis, state);
                 });
         }
     }  // register_receive_filters()

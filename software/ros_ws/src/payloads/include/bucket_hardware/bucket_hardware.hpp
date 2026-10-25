@@ -20,8 +20,9 @@
 namespace payloads
 {
 
-    /// @brief Per-joint bookkeeping: which CAN actuator (axis + side) this URDF joint
-    /// maps to, plus the state/command doubles ros2_control read/writes
+    /// @brief Per-joint bookkeeping: which CAN bank (axis) this URDF joint maps to,
+    /// plus the state/command doubles ros2_control read/writes. Its position is the
+    /// bank's GET_POSITION, the board's combination of both of the bank's encoders.
     ///
     /// Commands are bank-level (see can_board_interface.hpp), so only ONE joint per axis.
     /// The one declared with command_interfaces in the xacro is commandable
@@ -32,7 +33,6 @@ namespace payloads
     {
         std::string name;
         Axis axis;
-        Side side;
         bool has_command = false;
 
         // Firmware frame -> URDF joint frame, from the <ros2_control> joint params:
@@ -63,8 +63,8 @@ namespace payloads
     /// @brief ros2_control SystemInterface for the bucket's lift/tilt/jaws
     ///
     /// Joints in the URDF's <ros2_control> block (description/ros2_control/
-    /// bucket.ros2_control.xacro) are tagged with "axis" (lift|tilt|jaws) and "side"
-    /// (left|right), and optionally "offset_deg" and "direction". Exactly one joint
+    /// bucket.ros2_control.xacro) are tagged with "axis" (lift|tilt|jaws), and
+    /// optionally "offset_deg" and "direction". Exactly one joint
     /// per axis declares a position command interface, mirroring the CAN board only
     /// accepting bank-level commands.
     class BucketHardware : public hardware_interface::SystemInterface
@@ -107,7 +107,6 @@ namespace payloads
 
     private:
         static bool parse_axis(const std::string& value, Axis& out);
-        static bool parse_side(const std::string& value, Side& out);
 
         /// Stops every bank (see CanBoardInterface::stop_axis) and drops every claim.
         void stop_all();
