@@ -9,8 +9,10 @@
 # With no arguments it reads config/network_devices.toml and targets every enabled
 # "*-brain" device (by IP), skipping the machine it is run on.
 #
-# Needs SSH access and passwordless sudo for `date` on each host.
+# Needs SSH access and passwordless sudo for `date` on each host. Connects as
+# $SSH_USER (default: qutrc).
 
+SSH_USER="${SSH_USER:-qutrc}"
 CONFIG="$(dirname "$(readlink -f "$0")")/../../config/network_devices.toml"
 
 HOSTS=("$@")
@@ -40,7 +42,7 @@ trap 'rm -rf "${LOG_DIR}"' EXIT
 
 pids=()
 for host in "${HOSTS[@]}"; do
-  ssh -o ConnectTimeout=5 -o BatchMode=yes "${host}" "sudo -n date -u -s '${NOW}'" \
+  ssh -o ConnectTimeout=5 -o BatchMode=yes "${SSH_USER}@${host}" "sudo -n date -u -s '${NOW}'" \
     >"${LOG_DIR}/${host}.log" 2>&1 &
   pids+=($!)
 done
