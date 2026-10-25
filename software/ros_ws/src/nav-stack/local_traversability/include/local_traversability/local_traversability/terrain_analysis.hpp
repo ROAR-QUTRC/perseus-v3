@@ -119,7 +119,7 @@ namespace local_traversability
         /// @brief Margin added around the outline, in metres.
         double padding_m{0.05};
         /// @brief Footprint outline as x0, y0, x1, y1, ... in the robot frame.
-        std::vector<double> footprint_xy{0.90,   0.25,   0.90,  -0.25,  0.375, -0.435,
+        std::vector<double> footprint_xy{0.90, 0.25, 0.90, -0.25, 0.375, -0.435,
                                          -0.775, -0.435, -0.775, 0.435, 0.375, 0.435};
     };
 
