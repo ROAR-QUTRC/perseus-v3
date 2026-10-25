@@ -3,6 +3,9 @@
 /// @file mission_point_tool.hpp
 /// @brief RViz tools that pick the Mission Control panel's zone waypoints on the map.
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_default_plugins/tools/pose/pose_tool.hpp>
@@ -30,7 +33,8 @@ namespace rviz_plugins
         void onInitialize() override;
 
     protected:
-        /// @brief Publishes the picked pose in RViz's fixed frame.
+        /// @brief Publishes the picked pose in the arena (map) frame, so it follows a
+        /// re-localisation; in RViz's fixed frame only when map is not available.
         void onPoseSet(double x, double y, double theta) override;
 
     private:
@@ -41,6 +45,8 @@ namespace rviz_plugins
         float _blue;
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _publisher;
         rclcpp::Clock::SharedPtr _clock;
+        std::shared_ptr<tf2_ros::Buffer> _tf_buffer;
+        std::shared_ptr<tf2_ros::TransformListener> _tf_listener;
     };
 
     /// @brief Picks the excavation waypoint; publishes on /mission/excavation_point.
