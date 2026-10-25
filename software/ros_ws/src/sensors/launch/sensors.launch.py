@@ -31,10 +31,18 @@ def generate_launch_description():
         default_value="true",
         description="Enable the Livox LiDAR launch",
     )
-
+    declare_interface = DeclareLaunchArgument(
+        "interface",
+        default_value="enP3p49s0",
+        description="Network interface the Livox driver reads the host IP from, forwarded "
+        "to livox.launch.py and used only when enable_sensors:=true. The default matches "
+        "livox.launch.py's own; the driver fails at launch if the interface it names has no "
+        "IPv4 address, so this needs to be right per machine.",
+    )
     livox = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(str(SENSORS_LAUNCH_DIR / "livox.launch.py")),
         condition=IfCondition(LaunchConfiguration("livox")),
+        launch_arguments={"interface": LaunchConfiguration("interface")}.items(),
     )
 
     realsense = IncludeLaunchDescription(
@@ -46,6 +54,7 @@ def generate_launch_description():
         [
             realsense_arg,
             livox_arg,
+            declare_interface,
             livox,
             realsense,
         ]
