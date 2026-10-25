@@ -23,6 +23,11 @@
     cycles_done              int, 0  this tree counts it up
     pause_ms                 unsigned int, how long TimedAutonomyCycle stops at each zone
     prepare_bucket           bool: run PrepareBucket before the task
+    scan_localise            bool: run ScanAndLocalise after PrepareBucket
+    scan_step_deg            double, ScanAndLocalise's turn per step, degrees
+    scan_steps               int, how many steps at most (a full turn by default)
+    scan_look_s              double, how long each look waits for two markers
+    scan_wall_range_m        double, how far away a wall still decides the direction
     bucket_action            the bucket controller's FollowJointTrajectory action
     bucket_travel_lift_deg   the travel pose PrepareBucket ends in, degrees
     bucket_travel_tilt_deg
@@ -55,6 +60,11 @@
         <SubTree ID="PrepareBucket" _autoremap="true"/>
         <AlwaysSuccess/>
       </IfThenElse>
+      <IfThenElse>
+        <ScriptCondition code="scan_localise"/>
+        <SubTree ID="ScanAndLocalise" _autoremap="true"/>
+        <AlwaysSuccess/>
+      </IfThenElse>
       <Switch6 variable="{task}"
                case_1="full_cycle" case_2="nav_cycle"
                case_3="nav_excavation" case_4="nav_construction"
@@ -74,6 +84,39 @@
           <AlwaysFailure/>
         </IfThenElse>
       </Switch6>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    The rover starts at any heading, so first find out where it is in the arena: turn on
+    the spot until the camera sees at least two rail markers, then let arena_server fit
+    the pose and re-seed map -> odom (LocaliseInArena, its /arena/localise).
+
+    It looks before it turns, in case two markers are already in view. If not, WallSide
+    reads the local costmap and picks the direction of the nearer wall (left when there
+    is none), and the rover then turns scan_step_deg at a time with a look after each,
+    for up to scan_steps steps, 360 deg by default. The Spin is nav2's own, so it goes
+    through the velocity smoother and twist_mux like any nav2 motion and is
+    collision-checked: a Spin it refuses counts as one failed step, as does a look
+    that sees fewer than two markers. A full turn with no fix fails the mission here,
+    before it drives anywhere with a map frame that has not been checked.
+  -->
+  <BehaviorTree ID="ScanAndLocalise">
+    <Sequence>
+      <Script code="phase:='scan_localise'"/>
+      <Fallback>
+        <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
+        <Sequence>
+          <WallSide step_deg="{scan_step_deg}" range_m="{scan_wall_range_m}"
+                    spin_dist="{scan_spin_dist}"/>
+          <RetryUntilSuccessful num_attempts="{scan_steps}">
+            <Sequence>
+              <Spin spin_dist="{scan_spin_dist}" is_recovery="false"/>
+              <LocaliseInArena service_name="/arena/localise" timeout_s="{scan_look_s}"/>
+            </Sequence>
+          </RetryUntilSuccessful>
+        </Sequence>
+      </Fallback>
     </Sequence>
   </BehaviorTree>
 

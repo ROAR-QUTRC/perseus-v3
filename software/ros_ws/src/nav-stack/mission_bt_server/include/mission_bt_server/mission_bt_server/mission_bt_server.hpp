@@ -118,6 +118,13 @@ namespace mission_bt_server
         // leaves zone_pause_s at 0.
         double _default_zone_pause_s{2.0};
 
+        // ScanAndLocalise (mission.xml): the turn per step, the most to turn in all, how
+        // long each look waits for markers, and how far away a wall still counts.
+        double _scan_step_deg{30.0};
+        double _scan_max_deg{360.0};
+        double _scan_look_s{1.5};
+        double _scan_wall_range_m{4.0};
+
         // Live view of whichever tree is running in Groot2 (connect to this host at
         // _groot_server_port). The publisher binds that port and the next one up.
         bool _groot_monitoring{true};

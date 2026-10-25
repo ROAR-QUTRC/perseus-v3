@@ -425,7 +425,9 @@ int main(int argc, char** argv)
         // even the nodes the bucket subtrees never build.
         for (const char* plugin : {"move_bucket_bt_node", "blind_jaw_bt_node",
                                    "request_zone_waypoint_bt_node",
-                                   "nav2_navigate_to_pose_action_bt_node"})
+                                   "localise_in_arena_bt_node", "wall_side_bt_node",
+                                   "nav2_navigate_to_pose_action_bt_node",
+                                   "nav2_spin_action_bt_node"})
             factory.registerFromPlugin(BT::SharedLibrary::getOSName(plugin));
 
         // The project describes the real DriveOnHeading's ports, never the stub's.

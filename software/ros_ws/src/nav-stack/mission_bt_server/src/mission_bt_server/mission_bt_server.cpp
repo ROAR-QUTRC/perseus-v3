@@ -125,6 +125,18 @@ namespace mission_bt_server
         _timeouts = BtTimeouts::declare(*this);
         _default_zone_pause_s = declare_parameter<double>("default_zone_pause_s", 2.0);
 
+        // ScanAndLocalise: turn in steps of scan_step_deg, looking for the rail markers
+        // after each, for at most scan_max_deg in all (a full turn by default).
+        _scan_step_deg = declare_parameter<double>("scan_step_deg", 30.0);
+        _scan_max_deg = declare_parameter<double>("scan_max_deg", 360.0);
+        _scan_look_s = declare_parameter<double>("scan_look_s", 1.5);
+        _scan_wall_range_m = declare_parameter<double>("scan_wall_range_m", 4.0);
+        if (_scan_step_deg <= 0.0 || _scan_max_deg <= 0.0)
+        {
+            RCLCPP_FATAL(get_logger(), "scan_step_deg and scan_max_deg must be positive");
+            throw std::runtime_error("mission_bt_server: bad scan_step_deg / scan_max_deg");
+        }
+
         // Same names as bt_navigator's, whose own monitoring is off by default, so the
         // default port is free for this node.
         _groot_monitoring = declare_parameter<bool>("enable_groot_monitoring", true);
@@ -141,8 +153,10 @@ namespace mission_bt_server
             "plugin_lib_names",
             std::vector<std::string>{"nav2_navigate_to_pose_action_bt_node",
                                      "nav2_drive_on_heading_bt_node",
+                                     "nav2_spin_action_bt_node",
                                      "request_zone_waypoint_bt_node", "move_bucket_bt_node",
-                                     "blind_jaw_bt_node"});
+                                     "blind_jaw_bt_node", "localise_in_arena_bt_node",
+                                     "wall_side_bt_node"});
 
         rclcpp::NodeOptions bt_node_options;
         bt_node_options.arguments(
@@ -461,14 +475,25 @@ namespace mission_bt_server
         blackboard->set<unsigned int>("pause_ms",
                                       static_cast<unsigned int>(std::lround(pause_s * 1000.0)));
         _bucket.apply(*blackboard);
+        // Dump and dig run where the rover stands and need no arena frame.
+        const bool scan_localise = request.scan_localise &&
+                                   request.mode != StartMission::Request::MODE_DUMP_ONLY &&
+                                   request.mode != StartMission::Request::MODE_DIG_ONLY;
+        blackboard->set<bool>("scan_localise", scan_localise);
+        blackboard->set<double>("scan_step_deg", _scan_step_deg);
+        blackboard->set<double>("scan_wall_range_m", _scan_wall_range_m);
+        blackboard->set<double>("scan_look_s", _scan_look_s);
+        blackboard->set<int>("scan_steps",
+                             static_cast<int>(std::ceil(_scan_max_deg / _scan_step_deg)));
 
         RCLCPP_INFO(get_logger(),
                     "mission: task %s, %u cycle(s), excavation %s, construction %s, "
-                    "bucket %s",
+                    "bucket %s, %s",
                     _task_name(request).c_str(), request.cycles,
                     request.use_arena_excavation ? "arena" : "picked",
                     request.use_arena_construction ? "arena" : "picked",
-                    prepare_bucket ? "to travel pose first" : "left as is");
+                    prepare_bucket ? "to travel pose first" : "left as is",
+                    scan_localise ? "scan for markers first" : "no marker scan");
         if (timed_autonomy(request))
         {
             RCLCPP_INFO(get_logger(), "mission: no bucket moves, %.1f s stop at each zone",

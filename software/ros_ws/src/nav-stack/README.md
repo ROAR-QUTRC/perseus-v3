@@ -1023,9 +1023,20 @@ Looks up `odom -> base_link` and broadcasts `odom -> base_footprint` at
 | Action client | `/drive_on_heading`                | `nav2_msgs/action/DriveOnHeading` (dig creeps)             |
 | Action client | bucket controller                  | `control_msgs/action/FollowJointTrajectory` (`MoveBucket`) |
 
-It registers two custom BT nodes: `RequestZoneWaypoint`, which calls an
-`arena_server` waypoint service and writes the result to the blackboard, and
-`MoveBucket`, which sends one bucket pose.
+It registers four custom BT nodes: `RequestZoneWaypoint`, which calls an
+`arena_server` waypoint service and writes the result to the blackboard,
+`MoveBucket`, which sends one bucket pose, `LocaliseInArena`, one call to
+`/arena/localise`, and `WallSide`, which picks the spin direction from the
+nearer wall in `/local_costmap_terrain`.
+
+**Scan and localise.** With `StartMission.scan_localise` set (the Mission
+Control panel's _Localise_ tick box, off by default), `mission.xml` runs
+`ScanAndLocalise` after `PrepareBucket`. The rover starts at any heading, so it
+looks for two rail markers, then turns toward the nearer wall in
+`scan_step_deg` (30) steps with nav2's `Spin` and a look after each, for up to
+`scan_max_deg` (360). The first fix re-seeds `map -> odom`. A full turn with no
+fix fails the mission before it drives. Dump only and Dig only ignore it. The
+`scan_*` parameters are on `mission_bt_server`.
 
 ### `mobility_watchdog`
 
