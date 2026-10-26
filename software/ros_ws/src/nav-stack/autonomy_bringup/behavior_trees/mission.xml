@@ -153,13 +153,41 @@
                  _autoremap="true"/>
         <SubTree ID="DigOnly"
                  _autoremap="true"/>
-        <IfThenElse>
-          <ScriptCondition code="task == &apos;full_cycle_timed&apos;"/>
+        <!-- Switch6 is BT.CPP's widest switch, so the tasks past six hang off its default. -->
+        <Switch3 case_1="full_cycle_timed"
+                 case_2="nav_dig"
+                 case_3="nav_dump"
+                 variable="{task}">
           <SubTree ID="TimedAutonomyCycle"
                    _autoremap="true"/>
+          <SubTree ID="NavigateAndDig"
+                   _autoremap="true"/>
+          <SubTree ID="NavigateAndDump"
+                   _autoremap="true"/>
+          <!-- Unknown task: fail rather than guess. -->
           <AlwaysFailure/>
-        </IfThenElse>
+        </Switch3>
       </Switch6>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="NavigateAndDig">
+    <Sequence>
+      <SubTree ID="GoToExcavation"
+               _autoremap="true"/>
+      <SubTree ID="DigBucket"
+               _autoremap="true"/>
+      <Script code="phase:=&apos;done&apos;"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="NavigateAndDump">
+    <Sequence>
+      <SubTree ID="GoToConstruction"
+               _autoremap="true"/>
+      <SubTree ID="DumpBucket"
+               _autoremap="true"/>
+      <Script code="phase:=&apos;done&apos;"/>
     </Sequence>
   </BehaviorTree>
 

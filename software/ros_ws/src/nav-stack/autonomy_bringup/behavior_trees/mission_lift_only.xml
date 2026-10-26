@@ -41,8 +41,13 @@
         <SubTree ID="GoToConstruction" _autoremap="true"/>
         <SubTree ID="DumpOnly" _autoremap="true"/>
         <SubTree ID="DigOnly" _autoremap="true"/>
-        <!-- Unknown task: fail rather than guess. -->
-        <AlwaysFailure/>
+        <!-- Switch6 is BT.CPP's widest switch, so the tasks past six hang off its default. -->
+        <Switch2 variable="{task}" case_1="nav_dig" case_2="nav_dump">
+          <SubTree ID="NavigateAndDig" _autoremap="true"/>
+          <SubTree ID="NavigateAndDump" _autoremap="true"/>
+          <!-- Unknown task: fail rather than guess. -->
+          <AlwaysFailure/>
+        </Switch2>
       </Switch6>
     </Sequence>
   </BehaviorTree>
@@ -144,6 +149,30 @@
   <BehaviorTree ID="DigOnly">
     <Sequence>
       <SubTree ID="DigBucket" _autoremap="true"/>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Navigate & dig (StartMission MODE_NAVIGATE_DIG): one trip to the excavation point, then
+    DigBucket once, facing the point's heading.
+  -->
+  <BehaviorTree ID="NavigateAndDig">
+    <Sequence>
+      <SubTree ID="GoToExcavation" _autoremap="true"/>
+      <SubTree ID="DigBucket" _autoremap="true"/>
+      <Script code="phase:='done'"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!--
+    Navigate & dump (StartMission MODE_NAVIGATE_DUMP): one trip to the construction point,
+    then DumpBucket once.
+  -->
+  <BehaviorTree ID="NavigateAndDump">
+    <Sequence>
+      <SubTree ID="GoToConstruction" _autoremap="true"/>
+      <SubTree ID="DumpBucket" _autoremap="true"/>
       <Script code="phase:='done'"/>
     </Sequence>
   </BehaviorTree>
