@@ -32,6 +32,18 @@ namespace mission_bt_server
             return request.mode == StartMission::Request::MODE_FULL_AUTONOMY_TIMED;
         }
 
+        /// @brief One trip to a single zone followed by that zone's bucket step: the
+        /// excavation point and a dig, or the construction point and a dump.
+        bool navigate_and_dig(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_NAVIGATE_DIG;
+        }
+
+        bool navigate_and_dump(const StartMission::Request& request)
+        {
+            return request.mode == StartMission::Request::MODE_NAVIGATE_DUMP;
+        }
+
         /// @brief True for the tasks that drive to both zones. task only means
         /// something in NAVIGATION_ONLY, so it is checked only there -- a DUMP_ONLY
         /// request's task is whatever the panel left in it.
@@ -45,14 +57,14 @@ namespace mission_bt_server
 
         bool needs_excavation(const StartMission::Request& request)
         {
-            return is_cycle(request) ||
+            return is_cycle(request) || navigate_and_dig(request) ||
                    (navigation_only(request) &&
                     request.task == StartMission::Request::TASK_GO_TO_EXCAVATION);
         }
 
         bool needs_construction(const StartMission::Request& request)
         {
-            return is_cycle(request) ||
+            return is_cycle(request) || navigate_and_dump(request) ||
                    (navigation_only(request) &&
                     request.task == StartMission::Request::TASK_GO_TO_CONSTRUCTION);
         }
@@ -389,6 +401,7 @@ namespace mission_bt_server
             request.mode != StartMission::Request::MODE_NAVIGATION_ONLY &&
             request.mode != StartMission::Request::MODE_DUMP_ONLY &&
             request.mode != StartMission::Request::MODE_DIG_ONLY &&
+            !navigate_and_dig(request) && !navigate_and_dump(request) &&
             !timed_autonomy(request))
         {
             return "unknown mode " + std::to_string(request.mode);
@@ -434,6 +447,14 @@ namespace mission_bt_server
         if (timed_autonomy(request))
         {
             return "full_cycle_timed";
+        }
+        if (navigate_and_dig(request))
+        {
+            return "nav_dig";
+        }
+        if (navigate_and_dump(request))
+        {
+            return "nav_dump";
         }
         switch (request.task)
         {
@@ -606,7 +627,9 @@ namespace mission_bt_server
             status.message = cycling ? "completed " + std::to_string(status.cycles_completed) +
                                            " of " + std::to_string(status.cycles_target) +
                                            " cycle(s)"
-                                     : "arrived";
+                             : navigate_and_dig(request)  ? "arrived and dug"
+                             : navigate_and_dump(request) ? "arrived and dumped"
+                                                          : "arrived";
             break;
         case nav2_behavior_tree::BtStatus::FAILED:
             status.state = MissionStatus::STATE_FAILED;

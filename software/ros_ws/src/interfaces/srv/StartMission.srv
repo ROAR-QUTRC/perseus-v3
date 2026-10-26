@@ -19,11 +19,20 @@
 #                    the rover stops for zone_pause_s at each zone where it would dig
 #                    or dump. For running the whole mission without bucket feedback.
 #                    Always cycles; task is ignored, and so is prepare_bucket.
+#   NAVIGATE_DIG     one trip to the excavation point, then one dig pass there (mission.xml's
+#                    DigBucket), so the rover digs facing the point's heading. task and
+#                    cycles are ignored, and so is the construction point; prepare_bucket
+#                    and scan_localise still apply.
+#   NAVIGATE_DUMP    one trip to the construction point, then the dump sequence there
+#                    (mission.xml's DumpBucket). task and cycles are ignored, and so is
+#                    the excavation point; prepare_bucket and scan_localise still apply.
 uint8 MODE_FULL_AUTONOMY = 0
 uint8 MODE_NAVIGATION_ONLY = 1
 uint8 MODE_DUMP_ONLY = 2
 uint8 MODE_DIG_ONLY = 3
 uint8 MODE_FULL_AUTONOMY_TIMED = 4
+uint8 MODE_NAVIGATE_DIG = 5
+uint8 MODE_NAVIGATE_DUMP = 6
 uint8 mode
 
 # NAVIGATION_ONLY only.
