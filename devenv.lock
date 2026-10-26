@@ -56,11 +56,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792209523,
-        "narHash": "sha256-9UZpEywLwENwrfmdHY1xGfuQh8LLDj1SOwnoc6CR80g=",
+        "lastModified": 1792982924,
+        "narHash": "sha256-1DahlQ6uCnAA3zamdIa+UTih/xfm3chtY0D8KJmlP+U=",
         "owner": "dbreth",
         "repo": "rs-local-time-server",
-        "rev": "d94a8ef356d8831029e8720f7eeb376772f8c20a",
+        "rev": "952079335242f48095f9eb4b4feafb25fad32f98",
         "type": "github"
       },
       "original": {
