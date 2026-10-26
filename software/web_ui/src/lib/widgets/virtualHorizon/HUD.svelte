@@ -144,7 +144,7 @@
 			transform="translate(0, {-YAW_SIZE})"
 			points="0,{YAW_SIZE / 2} {YAW_SIZE / 2},{-YAW_SIZE / 2} {-YAW_SIZE / 2},{-YAW_SIZE / 2}"
 		/>
-		<g transform="translate({-yaw * RAD_TO_DEG * pixelPerDegVertical}, {YAW_SIZE})">
+		<g transform="translate({yaw * RAD_TO_DEG * pixelPerDegVertical}, {YAW_SIZE})">
 			{#each yawRange as point, i}
 				<line
 					style:transition="transform 0.1s linear"
