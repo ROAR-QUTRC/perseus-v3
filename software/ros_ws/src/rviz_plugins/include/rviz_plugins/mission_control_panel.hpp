@@ -42,7 +42,9 @@ namespace rviz_plugins
     ///                    dig pass from where the rover stands, creeping straight ahead)
     ///                    or Full Autonomy (timed stops): Full Autonomy's drive cycle,
     ///                    stopping for a set time at each zone instead of moving the
-    ///                    bucket, for a rover with no bucket feedback.
+    ///                    bucket, for a rover with no bucket feedback, Navigate & Dig
+    ///                    (drive to the excavation point, dig once) or Navigate & Dump
+    ///                    (drive to the construction point, dump once).
     ///   Zone waypoints   per zone, a point picked on the map with the Excavation /
     ///                    Construction Point tools (click-drag like 2D Goal Pose; a
     ///                    labelled marker stays on the map), or arena_server's own
@@ -166,6 +168,8 @@ namespace rviz_plugins
         bool _dump_only() const;
         bool _dig_only() const;
         bool _timed_autonomy() const;
+        bool _navigate_dig() const;
+        bool _navigate_dump() const;
         bool _uses_arena(const ZoneRow& row) const;
         bool _running() const;
         void _set_message(const QString& text, const QString& colour = QString());

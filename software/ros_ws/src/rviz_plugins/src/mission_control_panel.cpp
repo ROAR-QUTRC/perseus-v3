@@ -34,6 +34,8 @@ namespace rviz_plugins
         constexpr int MODE_DUMP_ONLY = 2;
         constexpr int MODE_DIG_ONLY = 3;
         constexpr int MODE_FULL_AUTONOMY_TIMED = 4;
+        constexpr int MODE_NAVIGATE_DIG = 5;
+        constexpr int MODE_NAVIGATE_DUMP = 6;
         constexpr int TASK_CYCLE = 0;
         constexpr int TASK_EXCAVATION = 1;
         constexpr int TASK_CONSTRUCTION = 2;
@@ -127,6 +129,8 @@ namespace rviz_plugins
                                                              "depositing", "to_excavation"};
         const std::vector<std::string> NAV_CYCLE_PHASES = {"to_construction",
                                                            "to_excavation"};
+        const std::vector<std::string> NAV_DIG_PHASES = {"to_excavation", "collect"};
+        const std::vector<std::string> NAV_DUMP_PHASES = {"to_construction", "dump"};
         const std::vector<std::string> NO_PHASES = {};
 
         const std::vector<std::string>& cycle_phases(const MissionStatus& status)
@@ -141,6 +145,10 @@ namespace rviz_plugins
                 return DIG_PHASES;
             case StartMission::Request::MODE_FULL_AUTONOMY_TIMED:
                 return TIMED_CYCLE_PHASES;
+            case StartMission::Request::MODE_NAVIGATE_DIG:
+                return NAV_DIG_PHASES;
+            case StartMission::Request::MODE_NAVIGATE_DUMP:
+                return NAV_DUMP_PHASES;
             default:
                 return status.task == StartMission::Request::TASK_CYCLE ? NAV_CYCLE_PHASES
                                                                         : NO_PHASES;
@@ -207,7 +215,8 @@ namespace rviz_plugins
         // Appended rather than placed beside Full Autonomy, so the indices (and the
         // MODE_* constants above) of the existing modes stay put.
         _mode_combo->addItems({"Full Autonomy", "Navigation Only", "Dump only", "Dig only",
-                               "Full Autonomy (timed stops)"});
+                               "Full Autonomy (timed stops)", "Navigate & Dig",
+                               "Navigate & Dump"});
         _mode_combo->setToolTip(
             "Full Autonomy: drive between the zones, dig at excavation and dump the load "
             "at construction.\n"
@@ -217,7 +226,11 @@ namespace rviz_plugins
             "ahead while digging, so point it at the regolith first.\n"
             "Full Autonomy (timed stops): the Full Autonomy cycle, but the rover just stops\n"
             "for a set time at each zone instead of digging or dumping. The bucket is never\n"
-            "moved, so this runs without bucket feedback.");
+            "moved, so this runs without bucket feedback.\n"
+            "Navigate & Dig: drive to the excavation point, then dig once there. The dig\n"
+            "creeps ~0.6 m straight ahead, so the rover digs facing the point's heading.\n"
+            "Navigate & Dump: drive to the construction point, then run the dump sequence\n"
+            "once there.");
 
         _task_combo = new QComboBox();
         _task_combo->addItems({"Cycle between zones", "Go to excavation", "Go to construction"});
@@ -659,6 +672,8 @@ namespace rviz_plugins
                         : _dump_only()      ? StartMission::Request::MODE_DUMP_ONLY
                         : _dig_only()       ? StartMission::Request::MODE_DIG_ONLY
                         : _timed_autonomy() ? StartMission::Request::MODE_FULL_AUTONOMY_TIMED
+                        : _navigate_dig()   ? StartMission::Request::MODE_NAVIGATE_DIG
+                        : _navigate_dump()  ? StartMission::Request::MODE_NAVIGATE_DUMP
                                             : StartMission::Request::MODE_NAVIGATION_ONLY;
         switch (_task_combo->currentIndex())
         {
@@ -825,6 +840,16 @@ namespace rviz_plugins
         return _mode_combo->currentIndex() == MODE_FULL_AUTONOMY_TIMED;
     }
 
+    bool MissionControlPanel::_navigate_dig() const
+    {
+        return _mode_combo->currentIndex() == MODE_NAVIGATE_DIG;
+    }
+
+    bool MissionControlPanel::_navigate_dump() const
+    {
+        return _mode_combo->currentIndex() == MODE_NAVIGATE_DUMP;
+    }
+
     bool MissionControlPanel::_uses_arena(const ZoneRow& row) const
     {
         return row.source->currentIndex() == SOURCE_ARENA;
@@ -847,10 +872,15 @@ namespace rviz_plugins
         const bool full = _full_autonomy() || timed;
         // Dump only and Dig only are single bucket steps where the rover stands.
         const bool bucket_step = _dump_only() || _dig_only();
-        const bool navigation = !full && !bucket_step;
+        // Navigate & Dig / Dump are one trip to a single zone plus that zone's bucket step,
+        // so they behave like a single-zone navigation with no task to choose.
+        const bool zone_step = _navigate_dig() || _navigate_dump();
+        const bool navigation = !full && !bucket_step && !zone_step;
         const int task = _task_combo->currentIndex();
-        const bool single_excavation = navigation && task == TASK_EXCAVATION;
-        const bool single_construction = navigation && task == TASK_CONSTRUCTION;
+        const bool single_excavation =
+            (navigation && task == TASK_EXCAVATION) || _navigate_dig();
+        const bool single_construction =
+            (navigation && task == TASK_CONSTRUCTION) || _navigate_dump();
         const bool cycling = !bucket_step && !single_excavation && !single_construction;
 
         // Only the fields that apply to the chosen mode and task are shown. Dump only
@@ -1004,8 +1034,10 @@ namespace rviz_plugins
         const auto& phases = cycle_phases(_status);
         const auto it = std::find(phases.begin(), phases.end(), _status.phase);
         // to_excavation is both the drive out before the first cycle and the last leg
-        // of every cycle; it only counts as the latter once the cycle's work began.
-        const bool drive_out = _status.phase == "to_excavation" && !_in_cycle;
+        // of every cycle; it only counts as the latter once the cycle's work began. Navigate
+        // & Dig has no cycle to come back round, so its drive is part of the work.
+        const bool drive_out =
+            _status.phase == "to_excavation" && !_in_cycle && _status.cycles_target > 0;
         if (it != phases.end() && !drive_out && !_in_cycle)
         {
             _in_cycle = true;
@@ -1209,6 +1241,8 @@ namespace rviz_plugins
                                    : _dump_only()      ? "dump"
                                    : _dig_only()       ? "dig"
                                    : _timed_autonomy() ? "timed"
+                                   : _navigate_dig()   ? "navigate_dig"
+                                   : _navigate_dump()  ? "navigate_dump"
                                                        : "navigation");
         const int task = _task_combo->currentIndex();
         config.mapSetValue("Task", task == TASK_EXCAVATION     ? "excavation"
@@ -1240,11 +1274,13 @@ namespace rviz_plugins
         rviz_common::Panel::load(config);
         QString text;
         if (config.mapGetString("Mode", &text))
-            _mode_combo->setCurrentIndex(text == "navigation" ? MODE_NAVIGATION_ONLY
-                                         : text == "dump"     ? MODE_DUMP_ONLY
-                                         : text == "dig"      ? MODE_DIG_ONLY
-                                         : text == "timed"    ? MODE_FULL_AUTONOMY_TIMED
-                                                              : MODE_FULL_AUTONOMY);
+            _mode_combo->setCurrentIndex(text == "navigation"      ? MODE_NAVIGATION_ONLY
+                                         : text == "dump"          ? MODE_DUMP_ONLY
+                                         : text == "dig"           ? MODE_DIG_ONLY
+                                         : text == "timed"         ? MODE_FULL_AUTONOMY_TIMED
+                                         : text == "navigate_dig"  ? MODE_NAVIGATE_DIG
+                                         : text == "navigate_dump" ? MODE_NAVIGATE_DUMP
+                                                                   : MODE_FULL_AUTONOMY);
         if (config.mapGetString("Task", &text))
         {
             _task_combo->setCurrentIndex(text == "excavation"     ? TASK_EXCAVATION
