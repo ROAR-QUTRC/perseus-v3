@@ -659,14 +659,15 @@ estimates or plans. It runs:
 
 ### Mission Control panel
 
-- **Operation mode:** Full Autonomy, Navigation Only, Dump only or Dig only.
-  See [Mission modes](#mission-modes).
+- **Operation mode:** Full Autonomy, Navigation Only, Dump only, Dig only,
+  Navigate & Dig or Navigate & Dump. See [Mission modes](#mission-modes).
 - **Task and cycles:** for Navigation Only, cycle between zones or a single
   trip to one zone; the number of cycles.
 - **Zone waypoints:** per zone, **Map point** (picked with the
   **ExcavationPoint** or **ConstructionPoint** tool, click-drag like 2D Goal
   Pose) or **Arena auto** (`arena_server` picks a safe point). Hidden for Dump
-  only and Dig only, which don't drive between zones.
+  only and Dig only, which don't drive between zones; Navigate & Dig shows only
+  the excavation point and Navigate & Dump only the construction point.
 - **Bucket:** move the bucket to its travel pose before setting off.
 - **Planner** and **Controller:** published latched on `/planner_selector` and
   `/controller_selector`. See
@@ -718,9 +719,15 @@ For `bucket_cli`, pass `--xml <share>/autonomy_bringup/behavior_trees/mission_li
 | `NAVIGATION_ONLY` (1) | `GO_TO_CONSTRUCTION` (2) | One trip to the construction point.                                          |
 | `DUMP_ONLY` (2)       | ignored                  | No driving: one `DumpBucket` where the rover stands.                         |
 | `DIG_ONLY` (3)        | ignored                  | One `DigBucket` pass from where the rover stands; only the dig's own creeps. |
+| `NAVIGATE_DIG` (5)    | ignored                  | One trip to the excavation point, then one `DigBucket` pass there.           |
+| `NAVIGATE_DUMP` (6)   | ignored                  | One trip to the construction point, then one `DumpBucket` there.             |
 
 A cycle is counted on arrival back at excavation. `prepare_bucket` applies in
-every mode.
+every mode. `NAVIGATE_DIG` and `NAVIGATE_DUMP` need only the point for their own
+zone (`excavation_point` or `construction_point`, or the matching
+`use_arena_*`), ignore `task` and `cycles`, and honour `scan_localise` like any
+mode that drives. The dig creeps about 0.6 m straight ahead, so the rover digs
+facing the excavation point's heading.
 
 ### Digging
 
@@ -820,6 +827,14 @@ ros2 service call /mission/start interfaces/srv/StartMission "{mode: 2}"
 
 # Dig once from where the rover stands
 ros2 service call /mission/start interfaces/srv/StartMission "{mode: 3}"
+
+# Drive to the excavation point (arena_server picks it), then dig once
+ros2 service call /mission/start interfaces/srv/StartMission \
+    "{mode: 5, use_arena_excavation: true, prepare_bucket: true}"
+
+# Drive to the construction point (arena_server picks it), then dump once
+ros2 service call /mission/start interfaces/srv/StartMission \
+    "{mode: 6, use_arena_construction: true, prepare_bucket: true}"
 
 # Watch progress (latched: late subscribers get the current state at once)
 ros2 topic echo /mission/status
