@@ -29,6 +29,10 @@
 /// confirmed (or OVERRIDE_SWITCH_TIMEOUT passes - the operator always wins) do real
 /// speeds go out. Autonomy gets the bucket back only through /bucket/rearm.
 ///
+/// /bucket/take_control takes the bucket the same way with no stick input. teleop's
+/// generic_controller calls it whenever it is in manual, so autonomy cannot move the
+/// bucket unless teleop_console has armed it.
+///
 /// /bucket/zero_encoder zeros a bank's two encoders where they stand, for
 /// calibration. It takes the bucket the same way first, so no controller is holding
 /// a setpoint while the reference moves.
@@ -86,6 +90,10 @@ private:
                          std::shared_ptr<rmw_request_id_t> header,
                          std::shared_ptr<Trigger::Request> request);
 
+    /// @brief /bucket/take_control: take the bucket from autonomy, as a stick does.
+    void _take_control_callback(const std::shared_ptr<Trigger::Request> request,
+                                std::shared_ptr<Trigger::Response> response);
+
     /// @brief /bucket/zero_encoder: take the bucket, then send the zero frame.
     void _zero_callback(rclcpp::Service<ZeroBucketEncoder>::SharedPtr service,
                         std::shared_ptr<rmw_request_id_t> header,
@@ -137,6 +145,7 @@ private:
     rclcpp::Client<ListControllers>::SharedPtr _list_client;
     rclcpp::Client<SwitchController>::SharedPtr _switch_client;
     rclcpp::Service<Trigger>::SharedPtr _rearm_service;
+    rclcpp::Service<Trigger>::SharedPtr _take_control_service;
     rclcpp::Service<ZeroBucketEncoder>::SharedPtr _zero_service;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr _override_publisher;
 };

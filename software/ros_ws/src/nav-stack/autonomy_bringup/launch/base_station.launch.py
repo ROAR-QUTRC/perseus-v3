@@ -8,11 +8,12 @@ deliberate: it is the manual override for when autonomous navigation goes wrong.
 controller into this machine and it is live -- joy_node picks the device up on hotplug.
 teleop's generic_controller only publishes /joy_vel while the drive deadman is held, and
 twist_mux on the rover ranks joy_vel above navigation, so holding the deadman takes over
-from nav2 at once and releasing it hands control back after twist_mux's 0.5 s timeout.
-The bucket is on the same deadman. To hand everything back to autonomy, so the gamepad
-goes silent and the bucket returns to its trajectory controller, run
-`ros2 run teleop teleop_console` and press `a`. It attaches to the controller started
-here, and holding the deadman takes control back again.
+from nav2 at once. It also drops teleop to manual, and in manual autonomy is locked out:
+navigation is masked in twist_mux and the bucket is taken from its trajectory controller,
+however long the deadman has been released. The bucket is on the same deadman. To hand
+everything back to autonomy, so the gamepad goes silent and the bucket returns to its
+trajectory controller, run `ros2 run teleop teleop_console` and press `a`. It attaches to
+the controller started here, and holding the deadman takes control back again.
 
 point_cloud_decompress.launch.py rides along because the clouds arriving from the rover
 are Draco-encoded and RViz cannot display them as they are -- see the comment on the

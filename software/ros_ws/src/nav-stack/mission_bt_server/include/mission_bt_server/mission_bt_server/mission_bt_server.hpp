@@ -12,6 +12,7 @@
 #include <mutex>
 #include <nav2_behavior_tree/behavior_tree_engine.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <string>
 #include <thread>
@@ -61,6 +62,12 @@ namespace mission_bt_server
     /// flag, the engine returns CANCELED at the next tick and haltAllActions()
     /// halts the tree, which cancels the in-flight NavigateToPose goal at
     /// bt_navigator -- so the rover stops, rather than finishing the leg it was on.
+    ///
+    /// Nothing runs unless teleop_console has armed autonomy (/teleop/autonomy_armed,
+    /// latched by teleop's generic_controller): both ways in refuse while it is not,
+    /// and a tree already running is stopped the moment it is disarmed, the same way
+    /// /mission/stop does. require_armed:=false turns this off, for a simulation or a
+    /// bench with no generic_controller.
     class MissionBtServer : public rclcpp::Node
     {
     public:
@@ -104,6 +111,9 @@ namespace mission_bt_server
         /// @brief Worker-thread body: builds mission.xml from @p request, runs it,
         /// and publishes the outcome. Releases the busy flag when done.
         void _run_mission(interfaces::srv::StartMission::Request request);
+
+        /// @brief Why nothing may start now, or empty if it may.
+        std::string _not_armed() const;
 
         /// @brief Why @p request cannot run, or empty if it can.
         static std::string _validate(const interfaces::srv::StartMission::Request& request);
@@ -163,6 +173,14 @@ namespace mission_bt_server
         std::atomic<bool> _busy{false};
         // Set by /mission/stop, read by the engine's cancel callback every tick.
         std::atomic<bool> _stop_requested{false};
+        // Set by the cancel callback when it stops a tree because autonomy is no
+        // longer armed.
+        std::atomic<bool> _disarmed{false};
+
+        // /teleop/autonomy_armed: 1 armed, 0 not, -1 never heard from.
+        bool _require_armed{true};
+        std::atomic<int> _armed{-1};
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _armed_sub;
         std::thread _worker;
 
         rclcpp::Publisher<interfaces::msg::MissionStatus>::SharedPtr _status_pub;

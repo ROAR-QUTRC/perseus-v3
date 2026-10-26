@@ -83,10 +83,13 @@ private:
     };
     /// @brief Who the controller is driving for.
     ///
-    /// MANUAL publishes as it always has. AUTONOMY publishes nothing at all, so the
-    /// gamepad cannot fight navigation or the bucket's trajectory controller; holding
-    /// the drive deadman switches straight back to MANUAL, so the operator can always
-    /// take over. ARMING is the short handover in between (/teleop/arm_autonomy).
+    /// MANUAL publishes as it always has, and locks autonomy out entirely: navigation
+    /// is masked in twist_mux (/teleop/navigation_lock) and the bucket is taken from
+    /// its trajectory controller (/bucket/take_control), so only the operator moves
+    /// the rover. AUTONOMY publishes nothing at all, so the gamepad cannot fight
+    /// navigation or the bucket's trajectory controller; holding the drive deadman
+    /// switches straight back to MANUAL, so the operator can always take over.
+    /// ARMING is the short handover in between (/teleop/arm_autonomy), still locked.
     enum class Mode
     {
         MANUAL,
@@ -114,6 +117,11 @@ private:
     void _arm_settled();
     /// @brief Ends a handover: AUTONOMY if the drive was handed back, and the reply.
     void _finish_arm(bool armed, bool success, const std::string& message);
+    /// @brief Holds autonomy off unless armed: republishes the navigation lock, and
+    /// in MANUAL takes the bucket back whenever bucket_driver says autonomy has it.
+    void _safety_callback();
+    /// @brief In MANUAL, asks bucket_driver for the bucket if autonomy has it.
+    void _take_bucket();
 
     static constexpr std::string FORWARD_BASE_NAME = "drive.forward";
     static constexpr std::string TURN_BASE_NAME = "drive.turn";
@@ -137,6 +145,13 @@ private:
     static constexpr auto REARM_TIMEOUT = std::chrono::seconds(5);
     // How old the last /joy can be and still count as the deadman's state, for arming.
     static constexpr auto JOY_STALE_TIME = std::chrono::milliseconds(500);
+    // How often the navigation lock is republished and the bucket checked. twist_mux
+    // reads the lock from a volatile subscription, so a restarted twist_mux, or one
+    // that came up after this node, only learns the lock from the next message.
+    static constexpr auto SAFETY_INTERVAL = std::chrono::milliseconds(100);
+    // How long to wait for /bucket/operator_override to latch true after asking for
+    // the bucket before asking again.
+    static constexpr auto BUCKET_TAKE_RETRY = std::chrono::seconds(1);
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr _joy_subscription;
     rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
@@ -164,11 +179,17 @@ private:
     /// @brief The settle delay, then the /bucket/rearm deadline.
     rclcpp::TimerBase::SharedPtr _arm_timer;
 
+    /// @brief When the bucket was last asked for, while waiting to see it taken.
+    std::optional<rclcpp::Time> _bucket_take_requested;
+    rclcpp::TimerBase::SharedPtr _safety_timer;
+
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr _mode_publisher;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr _navigation_lock_publisher;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _bucket_override_subscription;
     rclcpp::Service<Trigger>::SharedPtr _arm_service;
     rclcpp::Service<Trigger>::SharedPtr _take_control_service;
     rclcpp::Client<Trigger>::SharedPtr _rearm_client;
+    rclcpp::Client<Trigger>::SharedPtr _bucket_take_client;
 
 protected:
     sensor_msgs::msg::Joy::SharedPtr _last_received_joy;

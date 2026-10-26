@@ -20,6 +20,10 @@
 ///
 /// Mission values are ROS parameters, as on mission_bt_server:
 ///   ros2 run mission_bt_server bucket_cli dig --ros-args -p dig_lift_deg:=30.0
+///
+/// While teleop is in manual (/teleop/autonomy_armed latched false by generic_controller)
+/// it refuses to move the bucket, and a tree already running is halted the moment teleop
+/// drops to manual. With no generic_controller running at all, nothing is locked.
 
 #include <behaviortree_cpp/action_node.h>
 #include <behaviortree_cpp/bt_factory.h>
@@ -306,20 +310,51 @@ options:
         return 0;
     }
 
+    /// Follows a latched Bool: value() is its last message, or nothing if its
+    /// publisher has not been heard from.
+    class LatchedBool
+    {
+    public:
+        LatchedBool(const rclcpp::Node::SharedPtr& node, const std::string& topic)
+            : _node(node)
+        {
+            _subscription = node->create_subscription<std_msgs::msg::Bool>(
+                topic, rclcpp::QoS(1).reliable().transient_local(),
+                [this](const std_msgs::msg::Bool& msg)
+                { _value = msg.data; });
+        }
+
+        /// Waits up to 1 s for the latched value, for a publisher that is running.
+        std::optional<bool> wait()
+        {
+            const auto deadline = std::chrono::steady_clock::now() + 1s;
+            while (!_value && std::chrono::steady_clock::now() < deadline && rclcpp::ok())
+                rclcpp::spin_some(_node);
+            return _value;
+        }
+
+        std::optional<bool> value()
+        {
+            rclcpp::spin_some(_node);
+            return _value;
+        }
+
+    private:
+        rclcpp::Node::SharedPtr _node;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _subscription;
+        std::optional<bool> _value;
+    };
+
     /// /bucket/operator_override as bucket_driver last latched it, or nothing if
     /// the driver is not running.
     std::optional<bool> operator_has_bucket(const rclcpp::Node::SharedPtr& node)
     {
-        std::optional<bool> value;
-        auto subscription = node->create_subscription<std_msgs::msg::Bool>(
-            "/bucket/operator_override", rclcpp::QoS(1).reliable().transient_local(),
-            [&value](const std_msgs::msg::Bool& msg)
-            { value = msg.data; });
-        const auto deadline = std::chrono::steady_clock::now() + 1s;
-        while (!value && std::chrono::steady_clock::now() < deadline && rclcpp::ok())
-            rclcpp::spin_some(node);
-        return value;
+        return LatchedBool(node, "/bucket/operator_override").wait();
     }
+
+    const char* const MANUAL_REFUSAL =
+        "teleop is in manual, so autonomy may not move the bucket - press a in "
+        "teleop_console to arm it first. The bucket did not move.\n";
 
     int rearm(const rclcpp::Node::SharedPtr& node)
     {
@@ -368,6 +403,14 @@ int main(int argc, char** argv)
     }
 
     auto node = std::make_shared<rclcpp::Node>("bucket_cli");
+    // generic_controller takes the bucket straight back in manual anyway.
+    LatchedBool armed(node, "/teleop/autonomy_armed");
+    if (options->command != "project" && armed.wait() == false)
+    {
+        std::cerr << MANUAL_REFUSAL;
+        rclcpp::shutdown();
+        return 1;
+    }
     if (options->command == "rearm")
     {
         const int code = rearm(node);
@@ -559,8 +602,14 @@ int main(int argc, char** argv)
     }
     std::string last_phase;
     auto status = BT::NodeStatus::RUNNING;
+    bool disarmed = false;
     while (status == BT::NodeStatus::RUNNING && rclcpp::ok() && !g_interrupted)
     {
+        if (armed.value() == false)
+        {
+            disarmed = true;
+            break;
+        }
         status = tree.tickOnce();
         std::string phase;
         if (blackboard->get("phase", phase) && phase != last_phase && phase != "starting")
@@ -573,7 +622,13 @@ int main(int argc, char** argv)
     }
 
     int code = 0;
-    if (g_interrupted)
+    if (disarmed)
+    {
+        tree.haltTree();
+        std::cout << "teleop dropped to manual - stopped, the bucket holds where it is\n";
+        code = 1;
+    }
+    else if (g_interrupted)
     {
         // MoveBucket cancels its goal, so the controller holds where it is.
         tree.haltTree();

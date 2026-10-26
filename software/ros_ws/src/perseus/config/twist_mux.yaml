@@ -19,3 +19,13 @@ twist_mux:
         topic: joy_vel
         timeout: 0.5
         priority: 100
+    # Every topic below a lock's priority is masked while the lock is true.
+    locks:
+      # teleop's generic_controller: true unless teleop_console has armed autonomy, so
+      # in manual only the operator (joystick, keyboard, web_ui) can drive. No timeout,
+      # so a radio dropout keeps the last mode: an armed mission carries on, and a rover
+      # in manual stays locked. Unlocked until generic_controller is first heard from.
+      autonomy:
+        topic: /teleop/navigation_lock
+        timeout: 0.0
+        priority: 50

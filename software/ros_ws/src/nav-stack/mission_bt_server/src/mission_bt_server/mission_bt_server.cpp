@@ -185,6 +185,19 @@ namespace mission_bt_server
         _last_status.state = MissionStatus::STATE_IDLE;
         _publish_status(_last_status, true);
 
+        // Latched by generic_controller, so the mode is known as soon as it is up.
+        _require_armed = declare_parameter<bool>("require_armed", true);
+        _armed_sub = create_subscription<std_msgs::msg::Bool>(
+            "/teleop/autonomy_armed", rclcpp::QoS(1).reliable().transient_local(),
+            [this](const std_msgs::msg::Bool& msg)
+            {
+                _armed = msg.data ? 1 : 0;
+                if (!msg.data && _require_armed && _busy.load())
+                {
+                    RCLCPP_WARN(get_logger(), "autonomy disarmed - stopping the mission");
+                }
+            });
+
         // Reentrant: the single-trip services block for a whole navigation, and on
         // the default group that would stall the executor thread /mission/stop needs
         // to be dispatched on.
@@ -256,8 +269,16 @@ namespace mission_bt_server
             }
         }
 
+        // Checked every tick rather than only when the flag changes, so a disarm that
+        // lands while the tree is being built still stops it.
         auto is_canceling = [this]()
-        { return _stop_requested.load() || !rclcpp::ok(); };
+        {
+            if (!_not_armed().empty())
+            {
+                _disarmed = true;
+            }
+            return _disarmed.load() || _stop_requested.load() || !rclcpp::ok();
+        };
         const auto status = _engine->run(&tree, on_loop, is_canceling, _timeouts.bt_loop_duration);
         // Cancels whatever action is still in flight -- on a stop, the
         // NavigateToPose goal the rover is driving on.
@@ -272,10 +293,29 @@ namespace mission_bt_server
     // The original single-trip services
     // ---------------------------------------------------------------------------
 
+    std::string MissionBtServer::_not_armed() const
+    {
+        if (!_require_armed || _armed.load() == 1)
+        {
+            return "";
+        }
+        return _armed.load() == 0
+                   ? "autonomy is not armed - press a in teleop_console first"
+                   : "no word from generic_controller on /teleop/autonomy_armed - "
+                     "start teleop_console and press a";
+    }
+
     void MissionBtServer::_run_zone_trip(
         const std::string& service_name,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
+        if (const auto problem = _not_armed(); !problem.empty())
+        {
+            response->success = false;
+            response->message = problem;
+            RCLCPP_WARN(get_logger(), "refused %s: %s", service_name.c_str(), problem.c_str());
+            return;
+        }
         if (_busy.exchange(true))
         {
             response->success = false;
@@ -283,6 +323,7 @@ namespace mission_bt_server
             return;
         }
         _stop_requested = false;
+        _disarmed = false;
 
         auto blackboard = _make_blackboard();
         // Read by RequestZoneWaypointBtNode's service_name="{service_name}" port -
@@ -316,7 +357,7 @@ namespace mission_bt_server
             break;
         case nav2_behavior_tree::BtStatus::CANCELED:
             response->success = false;
-            response->message = "stopped";
+            response->message = _disarmed ? "stopped: autonomy was disarmed" : "stopped";
             break;
         }
         RCLCPP_INFO(get_logger(), "%s -> %s", service_name.c_str(),
@@ -408,7 +449,11 @@ namespace mission_bt_server
     void MissionBtServer::_on_start(const std::shared_ptr<StartMission::Request> request,
                                     std::shared_ptr<StartMission::Response> response)
     {
-        const std::string problem = _validate(*request);
+        std::string problem = _not_armed();
+        if (problem.empty())
+        {
+            problem = _validate(*request);
+        }
         if (!problem.empty())
         {
             response->accepted = false;
@@ -430,6 +475,7 @@ namespace mission_bt_server
             _worker.join();
         }
         _stop_requested = false;
+        _disarmed = false;
         _worker = std::thread(&MissionBtServer::_run_mission, this, *request);
 
         response->accepted = true;
@@ -569,7 +615,8 @@ namespace mission_bt_server
             break;
         case nav2_behavior_tree::BtStatus::CANCELED:
             status.state = MissionStatus::STATE_STOPPED;
-            status.message = "stopped during " + last_phase;
+            status.message = "stopped during " + last_phase +
+                             (_disarmed ? ": autonomy was disarmed" : "");
             break;
         }
         RCLCPP_INFO(get_logger(), "mission -> %s", status.message.c_str());

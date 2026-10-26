@@ -90,6 +90,10 @@ BucketDriver::BucketDriver(const rclcpp::NodeOptions& options)
         "/bucket/rearm",
         std::bind(&BucketDriver::_rearm_callback, this, std::placeholders::_1,
                   std::placeholders::_2, std::placeholders::_3));
+    _take_control_service = this->create_service<Trigger>(
+        "/bucket/take_control",
+        std::bind(&BucketDriver::_take_control_callback, this, std::placeholders::_1,
+                  std::placeholders::_2));
     _zero_service = this->create_service<ZeroBucketEncoder>(
         "/bucket/zero_encoder",
         std::bind(&BucketDriver::_zero_callback, this, std::placeholders::_1,
@@ -278,6 +282,23 @@ void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
                         _rearm_controller.c_str());
             reply(true, _rearm_controller + " active");
         });
+}
+
+void BucketDriver::_take_control_callback(
+    const std::shared_ptr<Trigger::Request> /*request*/,
+    std::shared_ptr<Trigger::Response> response)
+{
+    response->success = true;
+    if (_override)
+    {
+        response->message = "the operator already has the bucket";
+        return;
+    }
+    // Answered at once: the takeover finishes on its own, and the latched
+    // /bucket/operator_override says when.
+    if (!_override_requested)
+        _begin_override();
+    response->message = "taking the bucket from autonomy - /bucket/rearm hands it back";
 }
 
 void BucketDriver::_zero_callback(rclcpp::Service<ZeroBucketEncoder>::SharedPtr service,

@@ -39,12 +39,20 @@ GenericController::GenericController(const rclcpp::NodeOptions& options)
     // Latched, like /bucket/operator_override, so a console started later sees it.
     _mode_publisher = this->create_publisher<std_msgs::msg::Bool>(
         "/teleop/autonomy_armed", rclcpp::QoS(1).reliable().transient_local());
+    // A twist_mux lock (perseus/config/twist_mux.yaml): true masks navigation, so
+    // nothing but the operator drives unless autonomy is armed.
+    _navigation_lock_publisher =
+        this->create_publisher<std_msgs::msg::Bool>("/teleop/navigation_lock", 10);
     _set_mode(Mode::MANUAL);
     _bucket_override_subscription = this->create_subscription<std_msgs::msg::Bool>(
         "/bucket/operator_override", rclcpp::QoS(1).reliable().transient_local(),
         [this](const std_msgs::msg::Bool& msg)
         { _bucket_override = msg.data; });
     _rearm_client = this->create_client<Trigger>("/bucket/rearm");
+    _bucket_take_client = this->create_client<Trigger>("/bucket/take_control");
+    // Not behind timeout_enable: this is what keeps autonomy off while in MANUAL.
+    _safety_timer = this->create_wall_timer(
+        SAFETY_INTERVAL, std::bind(&GenericController::_safety_callback, this));
     _arm_service = this->create_service<Trigger>(
         "/teleop/arm_autonomy",
         std::bind(&GenericController::_arm_callback, this, std::placeholders::_1,
@@ -62,6 +70,51 @@ void GenericController::_set_mode(Mode mode)
     std_msgs::msg::Bool msg;
     msg.data = mode == Mode::AUTONOMY;
     _mode_publisher->publish(msg);
+    msg.data = !msg.data;
+    _navigation_lock_publisher->publish(msg);
+    // At once, rather than on the next safety tick: the deadman takes the bucket from
+    // autonomy the moment it is pressed, stick or no stick.
+    if (mode == Mode::MANUAL)
+    {
+        _bucket_take_requested.reset();
+        _take_bucket();
+    }
+}
+
+void GenericController::_safety_callback()
+{
+    std_msgs::msg::Bool lock;
+    lock.data = _mode != Mode::AUTONOMY;
+    _navigation_lock_publisher->publish(lock);
+    _take_bucket();
+}
+
+void GenericController::_take_bucket()
+{
+    // Only in MANUAL: while ARMING the bucket is being handed back on purpose. Unset
+    // means no bucket_driver has been seen, so there is no bucket to take.
+    if (_mode != Mode::MANUAL || !_bucket_override.has_value() || *_bucket_override)
+    {
+        _bucket_take_requested.reset();
+        return;
+    }
+    if (_bucket_take_requested &&
+        (this->now() - *_bucket_take_requested) < rclcpp::Duration(BUCKET_TAKE_RETRY))
+        return;
+    // Unset only in the constructor's first _set_mode, before the client exists.
+    if (!_bucket_take_client)
+        return;
+    if (!_bucket_take_client->service_is_ready())
+    {
+        RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                              "Manual, but autonomy still has the bucket: bucket_driver "
+                              "does not serve /bucket/take_control - rebuild payloads on "
+                              "the rover and restart bucket_driver");
+        return;
+    }
+    RCLCPP_WARN(this->get_logger(), "Manual: taking the bucket from autonomy");
+    _bucket_take_requested = this->now();
+    _bucket_take_client->async_send_request(std::make_shared<Trigger::Request>());
 }
 
 void GenericController::_publish_stop_bursts()
@@ -210,10 +263,18 @@ void GenericController::_take_control_callback(
     if (_mode == Mode::ARMING)
         _finish_arm(false, false, "aborted: the operator took control");
     if (_mode == Mode::AUTONOMY)
+    {
         RCLCPP_WARN(this->get_logger(), "Operator took control (console)");
+        // Navigation's last command is masked from here on, so stop the rover
+        // explicitly rather than leaving it to the drive controller's timeout.
+        _stop_messages_remaining = STOP_BURST_LENGTH;
+        _bucket_stop_messages_remaining = STOP_BURST_LENGTH;
+        _publish_stop_bursts();
+    }
     _set_mode(Mode::MANUAL);
     response->success = true;
-    response->message = "manual: the gamepad drives while the deadman is held";
+    response->message = "manual: autonomy is locked out; the gamepad drives while the "
+                        "deadman is held";
 }
 
 void GenericController::_joy_timeout_callback(void)
@@ -226,8 +287,8 @@ void GenericController::_joy_timeout_callback(void)
         timeout_length)
     {
         // Armed, nothing goes out. Otherwise a short burst of zeros stops the rover and
-        // the bucket, then both topics go quiet so twist_mux can hand control back to
-        // navigation and bucket_driver times out to zero on its own.
+        // the bucket, then both topics go quiet; navigation stays locked out until
+        // autonomy is armed, and bucket_driver times out to zero on its own.
         if (_mode != Mode::MANUAL)
             return;
         _publish_stop_bursts();
@@ -263,10 +324,10 @@ void GenericController::_joy_callback(
 
     // joy_vel is only published while the drive deadman is held, plus a short burst of
     // zeros after it is released to stop the rover. Publishing zeros whenever the stick
-    // is idle would keep twist_mux's highest-priority input alive and block navigation.
-    // With the deadman released forward and turn are already zero, so the burst carries
-    // exactly what used to be sent. The bucket is on the same deadman, so a stick that
-    // drifts can never take it from autonomy.
+    // is idle would keep twist_mux's highest-priority input alive and block web_ui and
+    // the keyboard; navigation is held off by /teleop/navigation_lock instead. With the
+    // deadman released forward and turn are already zero, so the burst carries exactly
+    // what used to be sent. The bucket is on the same deadman.
     bool drive_enabled =
         _enable_parsers.at(FORWARD_BASE_NAME + ".enable").get_value();
 

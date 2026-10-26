@@ -19,7 +19,10 @@ subscribes to /goal_pose directly, so the button works without the nav2 rviz pan
 
 Two ways to stop it:
   * The joystick. twist_mux gives it priority 100 against navigation's 10, so touching the
-    stick takes the rover off nav2 within one message.
+    stick takes the rover off nav2 within one message. Holding the deadman also drops
+    teleop to manual, which locks navigation out in twist_mux until teleop_console arms
+    autonomy again (`a`). mission_bt_server refuses to start a mission while unarmed and
+    stops one the moment it is disarmed; require_armed:=false turns that off.
   * The e-stop. That is the one to actually rely on.
 
 Prerequisites:
@@ -77,6 +80,13 @@ def generate_launch_description():
         description="Run mission_lift_only.xml instead of mission.xml: every bucket move "
         "commands the lift alone. For while the tilt and jaw encoders are not available.",
     )
+    declare_require_armed = DeclareLaunchArgument(
+        "require_armed",
+        default_value="true",
+        description="mission_bt_server runs missions only while teleop_console has armed "
+        "autonomy. false for a simulation or bench with no generic_controller.",
+    )
+
     mission_tree = PythonExpression(
         [
             f"'{mission_lift_only_bt_xml}' if '",
@@ -154,6 +164,9 @@ def generate_launch_description():
                 {
                     "bt_xml_path": mission_bt_xml,
                     "mission_bt_xml_path": mission_tree,
+                    "require_armed": PythonExpression(
+                        ["'", LaunchConfiguration("require_armed"), "'.lower() == 'true'"]
+                    ),
                 },
                 use_sim_time,
             ],
@@ -182,4 +195,6 @@ def generate_launch_description():
         ),
     ]
 
-    return LaunchDescription([declare_use_sim_time, declare_bucket_lift_only] + nodes)
+    return LaunchDescription(
+        [declare_use_sim_time, declare_bucket_lift_only, declare_require_armed] + nodes
+    )

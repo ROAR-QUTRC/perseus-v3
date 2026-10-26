@@ -11,13 +11,18 @@ base_station.launch.py, say - in which case it attaches to that one.
   a  arm autonomy: generic_controller stops the drive and the bucket, hands the bucket
      back to its trajectory controller (/bucket/rearm), then publishes nothing at all,
      so the gamepad cannot fight navigation or the bucket's autonomy.
-  m  manual: the gamepad is live again (the deadman still has to be held).
+  m  manual: the rover stops and the gamepad is live again (the deadman still has to be
+     held).
   Q  quit.
 
+Autonomy can only move the rover while armed. In manual, generic_controller holds
+twist_mux's /teleop/navigation_lock, which masks navigation, and takes the bucket from
+its trajectory controller (/bucket/take_control); mission_bt_server and bucket_cli
+refuse to start a tree and stop the one running. So only the operator moves anything
+until `a` is pressed again.
+
 While armed, holding the drive deadman takes control straight back, without this
-console. The bucket is on the same deadman: it moves only while the deadman is held, and
-it is taken from autonomy only once a bucket stick also moves (bucket_driver's
-override_deadband).
+console. The bucket is on the same deadman: it moves only while the deadman is held.
 """
 
 import argparse
@@ -52,6 +57,9 @@ JOY_VEL_TIMEOUT_S = 0.5
 # Longer than generic_controller's 500 ms timeout_ns, so this only says NOT SEEN
 # once the controller has already stopped the rover.
 JOY_STALE_S = 1.0
+# How long manual may leave autonomy with the bucket before it counts as unlocked:
+# generic_controller asks at once, and the takeover settles within 200 ms.
+BUCKET_TAKE_GRACE_S = 1.5
 # The launch's nodes colour their logs (emulate_tty); curses would show the codes.
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -61,6 +69,8 @@ class ConsoleNode(Node):
         super().__init__("teleop_console")
         self.armed = None  # generic_controller's latched /teleop/autonomy_armed
         self.override = None  # bucket_driver's latched /bucket/operator_override
+        # Since when manual has left autonomy with the bucket, if it has.
+        self.unlocked_since = None
         self.angles = {}  # axis -> degrees, from /joint_states
         self.joy_time = None
         self.joy_vel_time = None
@@ -80,12 +90,48 @@ class ConsoleNode(Node):
         self.create_subscription(TwistStamped, "/joy_vel", self._on_joy_vel, 10)
         self._arm = self.create_client(Trigger, "/teleop/arm_autonomy")
         self._take_control = self.create_client(Trigger, "/teleop/take_control")
+        # Only to see whether bucket_driver serves it; generic_controller calls it.
+        self._bucket_take = self.create_client(Trigger, "/bucket/take_control")
 
     def _on_armed(self, msg: Bool):
         self.armed = msg.data
+        self._track_unlocked()
 
     def _on_override(self, msg: Bool):
         self.override = msg.data
+        self._track_unlocked()
+
+    def _track_unlocked(self):
+        if self.armed is False and self.override is False:
+            if self.unlocked_since is None:
+                self.unlocked_since = time.monotonic()
+        else:
+            self.unlocked_since = None
+
+    def lockout_problems(self) -> list:
+        """What manual is failing to lock out, empty while it holds (or when armed)."""
+        if self.armed is not False:
+            return []
+        problems = []
+        if self.count_subscribers("/teleop/navigation_lock") == 0:
+            problems.append(
+                "DRIVE NOT LOCKED: twist_mux is not reading /teleop/navigation_lock - "
+                "deploy perseus' twist_mux.yaml to the rover and restart twist_mux"
+            )
+        if (
+            self.unlocked_since is not None
+            and time.monotonic() - self.unlocked_since > BUCKET_TAKE_GRACE_S
+        ):
+            problems.append(
+                "BUCKET NOT LOCKED: autonomy still has the bucket - "
+                + (
+                    "generic_controller cannot take it, see its log"
+                    if self._bucket_take.service_is_ready()
+                    else "bucket_driver has no /bucket/take_control: rebuild payloads "
+                    "on the rover and restart bucket_driver"
+                )
+            )
+        return problems
 
     def _on_joints(self, msg: JointState):
         for axis, joint in JOINTS.items():
@@ -129,6 +175,7 @@ class Console:
         self.process = None
         self.busy = ""
         self.arm_thread = None
+        self.reported = set()  # lockout problems already logged
 
         if node.controller_running():
             self.log("attached to the running generic_controller")
@@ -156,7 +203,7 @@ class Console:
         now = time.monotonic()
         mode = {
             True: "AUTONOMY ARMED - gamepad silent, deadman takes over",
-            False: "MANUAL - gamepad live while the deadman is held",
+            False: "MANUAL - autonomy locked out, gamepad live while the deadman is held",
             None: "generic_controller not seen",
         }[self.node.armed]
         if self.busy:
@@ -170,7 +217,14 @@ class Console:
             self.node.joy_vel_time is not None
             and now - self.node.joy_vel_time < JOY_VEL_TIMEOUT_S
         )
-        drive = "joystick driving" if driving else "navigation has the drive"
+        if driving:
+            drive = "joystick driving"
+        elif self.node.armed:
+            drive = "navigation has the drive"
+        elif self.node.count_subscribers("/teleop/navigation_lock"):
+            drive = "navigation locked out"
+        else:
+            drive = "navigation NOT locked"
         live = self.node.joy_time is not None and now - self.node.joy_time < JOY_STALE_S
         gamepad = "gamepad live" if live else "gamepad NOT SEEN"
         angles = "   ".join(
@@ -181,17 +235,27 @@ class Console:
         )
         launched = "   (controller started here)" if self.process else ""
 
+        problems = self.node.lockout_problems()
+        for problem in set(problems) - self.reported:
+            self.log("!! " + problem)
+        self.reported = set(problems)
+
         put(0, " Perseus teleop console", curses.A_BOLD)
         put(1, f" {mode}", curses.A_REVERSE)
-        put(2, f" {drive}   |   {bucket}   |   {gamepad}")
-        put(3, f" {angles}{launched}")
-        put(4, " a arm autonomy   m manual   Q quit")
-        put(5, "─" * (width - 1))
-        body = height - 6
+        row = 2
+        for problem in problems:
+            put(row, f" !! {problem}", curses.A_BOLD | curses.A_REVERSE)
+            row += 1
+        put(row, f" {drive}   |   {bucket}   |   {gamepad}")
+        put(row + 1, f" {angles}{launched}")
+        put(row + 2, " a arm autonomy   m manual   Q quit")
+        put(row + 3, "─" * (width - 1))
+        top = row + 4
+        body = height - top
         with self.log_lock:
             lines = list(self.log_lines)[-body:] if body > 0 else []
         for i, line in enumerate(lines):
-            put(6 + i, " " + line)
+            put(top + i, " " + line)
         screen.refresh()
 
     # -- the controller
@@ -344,8 +408,9 @@ def main():
             None: "generic_controller was never seen",
         }[node.armed]
         bucket = {
-            True: " The operator still has the bucket - "
-            "`ros2 run mission_bt_server bucket_cli rearm` hands it back.",
+            True: " The operator still has the bucket - `a` in teleop_console hands it "
+            "back (or `ros2 run mission_bt_server bucket_cli rearm` with no "
+            "generic_controller running).",
             False: "",
             None: "",
         }[node.override]
