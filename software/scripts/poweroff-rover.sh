@@ -5,11 +5,12 @@
 #
 # Usage: poweroff-rover.sh <ip> [ip...]
 #
-# Needs SSH access and passwordless sudo for `poweroff` on each host, e.g. in
-# /etc/sudoers.d/poweroff:  qutrc ALL=(root) NOPASSWD: /usr/sbin/poweroff
-# Connects as $SSH_USER (default: qutrc).
+# Needs sudo rights for `poweroff` on each host.
+# Connects as $SSH_USER (default: qutrc) and uses $ROVER_PASS (default: qutrc)
+# for both the ssh login (if no key is accepted) and sudo.
 
 SSH_USER="${SSH_USER:-qutrc}"
+export ROVER_PASS="${ROVER_PASS:-qutrc}"
 DOWN_TIMEOUT=60
 
 HOSTS=("$@")
@@ -23,11 +24,18 @@ echo "Powering off: ${HOSTS[*]}"
 LOG_DIR="$(mktemp -d)"
 trap 'rm -rf "${LOG_DIR}"' EXIT
 
+# Answer ssh's password prompt without a tty (or sshpass).
+ASKPASS="${LOG_DIR}/askpass"
+printf '#!/bin/sh\nprintf "%%s\\n" "$ROVER_PASS"\n' >"${ASKPASS}"
+chmod 700 "${ASKPASS}"
+
 # Check sudo up front, then detach the poweroff so ssh returns before the link dies.
+# The password goes over ssh's stdin so it never appears on a command line.
 pids=()
 for host in "${HOSTS[@]}"; do
-  ssh -o ConnectTimeout=5 -o BatchMode=yes "${SSH_USER}@${host}" \
-    "sudo -n -l poweroff >/dev/null || exit 1; nohup sh -c 'sleep 1; sudo -n poweroff' >/dev/null 2>&1 &" \
+  printf '%s\n' "${ROVER_PASS}" | SSH_ASKPASS="${ASKPASS}" SSH_ASKPASS_REQUIRE=force \
+    ssh -o ConnectTimeout=5 -o NumberOfPasswordPrompts=1 "${SSH_USER}@${host}" \
+    "IFS= read -r pw; printf '%s\\n' \"\$pw\" | sudo -S -p '' -l poweroff >/dev/null || exit 1; printf '%s\\n' \"\$pw\" | nohup sh -c 'sleep 1; sudo -S -p \"\" poweroff' >/dev/null 2>&1 &" \
     >"${LOG_DIR}/${host}.log" 2>&1 &
   pids+=($!)
 done
