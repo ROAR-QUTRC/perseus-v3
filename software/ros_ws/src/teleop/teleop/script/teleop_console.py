@@ -60,6 +60,10 @@ JOY_STALE_S = 1.0
 # How long manual may leave autonomy with the bucket before it counts as unlocked:
 # generic_controller asks at once, and the takeover settles within 200 ms.
 BUCKET_TAKE_GRACE_S = 1.5
+# How long to look for a running generic_controller before starting one. Discovery
+# across machines can take seconds, and starting a second controller by mistake
+# leaves one in manual taking the bucket back from autonomy.
+DISCOVERY_S = 3.0
 # The launch's nodes colour their logs (emulate_tty); curses would show the codes.
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -110,9 +114,14 @@ class ConsoleNode(Node):
 
     def lockout_problems(self) -> list:
         """What manual is failing to lock out, empty while it holds (or when armed)."""
-        if self.armed is not False:
-            return []
         problems = []
+        if self.count_publishers("/teleop/autonomy_armed") > 1:
+            problems.append(
+                "TWO generic_controllers running: the one in manual takes the bucket "
+                "from autonomy and locks navigation out - stop one of them"
+            )
+        if self.armed is not False:
+            return problems
         if self.count_subscribers("/teleop/navigation_lock") == 0:
             problems.append(
                 "DRIVE NOT LOCKED: twist_mux is not reading /teleop/navigation_lock - "
@@ -145,9 +154,18 @@ class ConsoleNode(Node):
         self.joy_vel_time = time.monotonic()
 
     def controller_running(self) -> bool:
-        return any(
+        return self.count_publishers("/teleop/autonomy_armed") > 0 or any(
             name == CONTROLLER_NODE for name, _ in self.get_node_names_and_namespaces()
         )
+
+    def wait_for_controller(self) -> bool:
+        """Whether a generic_controller turns up within DISCOVERY_S."""
+        deadline = time.monotonic() + DISCOVERY_S
+        while time.monotonic() < deadline:
+            if self.controller_running():
+                return True
+            time.sleep(0.1)
+        return self.controller_running()
 
     def _call(self, client, request):
         if not client.wait_for_service(timeout_sec=1.0):
@@ -177,7 +195,7 @@ class Console:
         self.arm_thread = None
         self.reported = set()  # lockout problems already logged
 
-        if node.controller_running():
+        if node.wait_for_controller():
             self.log("attached to the running generic_controller")
         elif args.no_launch:
             self.log("no generic_controller running - start one, or drop --no-launch")
@@ -387,8 +405,8 @@ def main():
     node = ConsoleNode()
     spinner = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     spinner.start()
-    # Let discovery and the latched topics arrive before deciding whether to launch.
-    time.sleep(1.0)
+    # Let the latched topics arrive; Console waits on discovery before launching.
+    time.sleep(0.5)
     console = None
     try:
 

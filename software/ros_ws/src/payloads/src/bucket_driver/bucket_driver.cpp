@@ -201,16 +201,24 @@ bool BucketDriver::_waiting_on(const std::optional<rclcpp::Time>& sent) const
     return sent && (this->now() - *sent) < rclcpp::Duration(SWITCH_STALE);
 }
 
-void BucketDriver::_release_controllers(std::function<void(bool)> done)
+void BucketDriver::_release_controllers(std::function<void(bool)> done, bool watchdog)
 {
-    _release_sent = this->now();
-    _last_release = _release_sent;
+    (watchdog ? _watchdog_sent : _release_sent) = this->now();
+    _last_release = this->now();
     // Only the ones actually active: deactivating one that isn't loaded makes the
     // whole switch fail.
     _list_client->async_send_request(
         std::make_shared<ListControllers::Request>(),
-        [this, done](rclcpp::Client<ListControllers>::SharedFuture future)
+        [this, done, watchdog](rclcpp::Client<ListControllers>::SharedFuture future)
         {
+            // A check that lands after a re-arm started would deactivate the very
+            // controller it is bringing up.
+            if (watchdog && (!_override || _rearm_sent))
+            {
+                _watchdog_sent.reset();
+                done(false);
+                return;
+            }
             auto request = std::make_shared<SwitchController::Request>();
             for (const auto& controller : future.get()->controller)
             {
@@ -219,12 +227,9 @@ void BucketDriver::_release_controllers(std::function<void(bool)> done)
                               controller.name) != _override_controllers.end())
                     request->deactivate_controllers.push_back(controller.name);
             }
-            const auto finish = [this, done](bool released)
+            const auto finish = [this, done, watchdog](bool released)
             {
-                _release_sent.reset();
-                // A late answer after a re-arm says nothing about the bucket now.
-                if (_override || _override_requested)
-                    _controllers_released = released;
+                (watchdog ? _watchdog_sent : _release_sent).reset();
                 done(released);
             };
             if (request->deactivate_controllers.empty())
@@ -232,6 +237,10 @@ void BucketDriver::_release_controllers(std::function<void(bool)> done)
                 finish(true);
                 return;
             }
+            if (watchdog)
+                RCLCPP_WARN(this->get_logger(),
+                            "Operator override: a bucket controller came up under the "
+                            "operator - deactivating it");
             request->strictness = SwitchController::Request::BEST_EFFORT;
             request->activate_asap = true;
             _switch_client->async_send_request(
@@ -259,10 +268,7 @@ void BucketDriver::_set_override(bool active)
     if (active)
         _override_requested.reset();
     else
-    {
-        _controllers_released = false;
         _last_release.reset();
-    }
     std_msgs::msg::Bool msg;
     msg.data = active;
     _override_publisher->publish(msg);
@@ -433,18 +439,16 @@ void BucketDriver::_transmit_callback()
     }
     _send_pending_zero();
 
-    // The operator has the bucket, but controller_manager has not confirmed the
-    // command controllers are off: try again, so none is left holding a setpoint.
-    if (_override && !_controllers_released && !_waiting_on(_release_sent) &&
+    // While the operator has the bucket, keep checking that no command controller
+    // is active. One that came up after the takeover - the launch's spawner finishing
+    // late, say - would send positions under the operator's speeds, and the firmware
+    // follows whichever arrived last, so the bucket would jitter between the two.
+    if (_override && !_waiting_on(_watchdog_sent) && !_waiting_on(_release_sent) &&
         !_waiting_on(_rearm_sent) && _list_client->service_is_ready() &&
         _switch_client->service_is_ready() &&
         (!_last_release ||
          (this->now() - *_last_release) >= rclcpp::Duration(RELEASE_RETRY)))
-    {
-        RCLCPP_WARN(this->get_logger(),
-                    "Operator override: making sure the bucket controllers are off");
-        _release_controllers([](bool) {});
-    }
+        _release_controllers([](bool) {}, true);
 
     // Sent unconditionally, including while zeroed: a steady stream of zeros
     // keeps the banks in a known state and means a gap on the bus unambiguously

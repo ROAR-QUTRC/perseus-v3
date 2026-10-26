@@ -30,6 +30,11 @@
 /// confirmed (or OVERRIDE_SWITCH_TIMEOUT passes - the operator always wins) do real
 /// speeds go out. Autonomy gets the bucket back only through /bucket/rearm.
 ///
+/// The hold is kept up for as long as the operator has the bucket, not just checked
+/// once: every RELEASE_RETRY the controllers are listed again and any that came up
+/// since (a spawner finishing after the takeover, a switch made by hand) is
+/// deactivated, so nothing sends positions under the operator's speeds.
+///
 /// /bucket/take_control takes the bucket the same way with no stick input. teleop's
 /// generic_controller calls it whenever it is in manual, so autonomy cannot move the
 /// bucket unless teleop_console has armed it.
@@ -70,10 +75,9 @@ private:
     /// operator in charge even with controller_manager gone or wedged.
     static constexpr auto OVERRIDE_SWITCH_TIMEOUT = std::chrono::milliseconds(200);
 
-    /// @brief While the operator has the bucket but controller_manager has not
-    /// confirmed the command controllers are off (it was not up yet, or did not
-    /// answer in time), how often to try deactivating them again.
-    static constexpr auto RELEASE_RETRY = std::chrono::seconds(1);
+    /// @brief While the operator has the bucket, how often to check that none of
+    /// the command controllers is active, and deactivate any that is.
+    static constexpr auto RELEASE_RETRY = std::chrono::milliseconds(500);
     /// @brief How long a request to controller_manager is waited for before it is
     /// taken as lost.
     static constexpr auto SWITCH_STALE = std::chrono::seconds(5);
@@ -93,7 +97,9 @@ private:
     void _begin_override();
     /// @brief Deactivates whichever override_controllers are active, then calls
     /// @p done with whether controller_manager confirmed none is left commanding.
-    void _release_controllers(std::function<void(bool)> done);
+    /// A @p watchdog check gives up without switching anything once a re-arm has
+    /// started or the bucket is handed back.
+    void _release_controllers(std::function<void(bool)> done, bool watchdog = false);
     /// @brief Marks the takeover done and tells everyone listening.
     void _set_override(bool active);
 
@@ -138,16 +144,14 @@ private:
     bool _override = false;
     /// @brief When a takeover started, while its switch is still unconfirmed.
     std::optional<rclcpp::Time> _override_requested;
-    /// @brief Whether controller_manager confirmed no override_controller is active
-    /// since the operator took the bucket. Until it has, the deactivation is retried:
-    /// a controller left active would keep sending positions under the operator's
-    /// speeds.
-    bool _controllers_released = false;
     /// @brief When the deactivation waiting on controller_manager was sent, if any.
     std::optional<rclcpp::Time> _release_sent;
+    /// @brief When the watchdog check waiting on controller_manager was sent, if any.
+    /// Kept apart from _release_sent so a background check never refuses a re-arm.
+    std::optional<rclcpp::Time> _watchdog_sent;
     /// @brief When the /bucket/rearm waiting on controller_manager was sent, if any.
     std::optional<rclcpp::Time> _rearm_sent;
-    /// @brief When the deactivation was last sent, for RELEASE_RETRY.
+    /// @brief When the controllers were last checked, for RELEASE_RETRY.
     std::optional<rclcpp::Time> _last_release;
     /// @brief Whether @p sent is a request still worth waiting for.
     bool _waiting_on(const std::optional<rclcpp::Time>& sent) const;

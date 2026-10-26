@@ -1,185 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
   <BehaviorTree ID="Pose_close">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="2"
-                jaw_deg="0.0"
-                tilt_deg=""
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="2" jaw_deg="0.0" tilt_deg="" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_close_collect">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="2"
-                jaw_deg="0.0"
-                tilt_deg="-38.1"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="2" jaw_deg="0.0" tilt_deg="-38.1" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_close_collect_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="-38.9"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="-38.9" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_fallback_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="2"
-                timeout_s="4"
-                jaw_deg=""
-                tilt_deg="-52.4"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="4" jaw_deg="" tilt_deg="-52.4" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_open">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="2"
-                timeout_s="3"
-                jaw_deg="36.2"
-                tilt_deg=""
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="3" jaw_deg="36.2" tilt_deg="" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_open_tilt_backward">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="-49.2"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="-49.2" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_open_tl_forward">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="22.3"
-                lift_deg="17.8"/>
+    <Sequence>
+      <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="22.3" lift_deg=""/>
+      <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="" lift_deg="17.8"/>
+    </Sequence>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_close_lift">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="2"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg=""
-                lift_deg="50.6"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="5" jaw_deg="" tilt_deg="" lift_deg="50.6"/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_close_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="-25.6"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="-25.6" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_collect">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="3"
-                jaw_deg="36.0"
-                tilt_deg="-46.7"
-                lift_deg="37.4"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="3" jaw_deg="36.0" tilt_deg="-46.7" lift_deg="37.4"/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_collect_jaw">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="3"
-                jaw_deg="35.9"
-                tilt_deg=""
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="3" jaw_deg="35.9" tilt_deg="" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_collect_lift">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="3"
-                jaw_deg=""
-                tilt_deg=""
-                lift_deg="37.4"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="3" jaw_deg="" tilt_deg="" lift_deg="37.4"/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_collect_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="2"
-                timeout_s="2"
-                jaw_deg=""
-                tilt_deg="-46.7"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="2" jaw_deg="" tilt_deg="-46.7" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_dump_lift">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="2"
-                timeout_s="4"
-                jaw_deg=""
-                tilt_deg=""
-                lift_deg="31.8"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="4" jaw_deg="" tilt_deg="" lift_deg="31.8"/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_pre_dump_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="-52.4"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="-52.4" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_travel">
     <Sequence>
       <SubTree ID="Pose_travel_lift"/>
@@ -187,68 +55,33 @@
       <SubTree ID="Pose_close"/>
     </Sequence>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_travel_lift">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg=""
-                attempts="3"
-                timeout_s="3"
-                jaw_deg=""
-                tilt_deg=""
-                lift_deg="22.9"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="3" timeout_s="3" jaw_deg="" tilt_deg="" lift_deg="22.9"/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_travel_tilt">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="3"
-                timeout_s="5"
-                jaw_deg=""
-                tilt_deg="-35.8"
-                lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="3" timeout_s="5" jaw_deg="" tilt_deg="-35.8" lift_deg=""/>
   </BehaviorTree>
-
   <BehaviorTree ID="Pose_zero">
-    <MoveBucket failure=""
-                server_name="{@bucket_action}"
-                duration_s=""
-                tolerance_deg="5"
-                attempts="4"
-                timeout_s="5"
-                jaw_deg="0.0"
-                tilt_deg="0.0"
-                lift_deg="0.0"/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="4" timeout_s="5" jaw_deg="0.0" tilt_deg="0.0" lift_deg="0.0"/>
   </BehaviorTree>
-
   <!-- Description of Node Models (used by Groot) -->
   <TreeNodesModel>
     <Action ID="MoveBucket">
-      <output_port name="failure"
-                   type="std::string">why the move failed, empty on success: invalid, operator_override, no_server, rejected, not_reached (the controller ran but the pose was missed) or timeout</output_port>
-      <input_port name="server_name"
-                  default="/bucket_trajectory_controller/follow_joint_trajectory"
-                  type="std::string">the bucket controller's FollowJointTrajectory action</input_port>
-      <input_port name="duration_s"
-                  type="double">timed move instead: the controller interpolates over this long; omit for a direct move</input_port>
-      <input_port name="tolerance_deg"
-                  type="double">how close counts as there; omit for the controller's 2 deg</input_port>
-      <input_port name="attempts"
-                  default="1"
-                  type="int">how many times to send the pose if it is not reached</input_port>
-      <input_port name="timeout_s"
-                  default="10.000000"
-                  type="double">direct move: how long the bucket may take to arrive</input_port>
-      <input_port name="jaw_deg"
-                  type="double">bucket_jaw_joint target, degrees; omit to hold</input_port>
-      <input_port name="tilt_deg"
-                  type="double">bucket_tilt_joint target, degrees; omit to hold</input_port>
-      <input_port name="lift_deg"
-                  type="double">bucket_lift_joint target, degrees; omit to hold</input_port>
+      <output_port name="failure" type="std::string">why the move failed, empty on success: invalid, operator_override, no_server, rejected, not_reached (the controller ran but the pose was missed) or timeout</output_port>
+      <input_port name="server_name" default="/bucket_trajectory_controller/follow_joint_trajectory" type="std::string">the bucket controller's FollowJointTrajectory action</input_port>
+      <input_port name="duration_s" type="double">timed move instead: the controller interpolates over this long; omit for a direct move</input_port>
+      <input_port name="tolerance_deg" type="double">how close counts as there; omit for the controller's 2 deg</input_port>
+      <input_port name="attempts" default="1" type="int">how many times to send the pose if it is not reached</input_port>
+      <input_port name="timeout_s" default="10.000000" type="double">direct move: how long the bucket may take to arrive</input_port>
+      <input_port name="jaw_deg" type="double">bucket_jaw_joint target, degrees; omit to hold</input_port>
+      <input_port name="tilt_deg" type="double">bucket_tilt_joint target, degrees; omit to hold</input_port>
+      <input_port name="lift_deg" type="double">bucket_lift_joint target, degrees; omit to hold</input_port>
     </Action>
   </TreeNodesModel>
-
+  <BehaviorTree ID="Pose_open_tilt_forward">
+    <MoveBucket tilt_deg="20.8" timeout_s="4" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
+  <BehaviorTree ID="Pose_open_lift_forward">
+    <MoveBucket lift_deg="17.5" timeout_s="3" attempts="3" server_name="{@bucket_action}"/>
+  </BehaviorTree>
 </root>

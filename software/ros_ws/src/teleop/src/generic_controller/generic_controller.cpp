@@ -87,6 +87,14 @@ void GenericController::_safety_callback()
     lock.data = _mode != Mode::AUTONOMY;
     _navigation_lock_publisher->publish(lock);
     _take_bucket();
+
+    // teleop_console arms only one of them, and one left in manual takes the bucket
+    // straight back from autonomy and holds the navigation lock against the other.
+    if (this->count_publishers("/teleop/autonomy_armed") > 1)
+        RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                              "Another generic_controller is running: whichever is in "
+                              "manual takes the bucket from autonomy and locks navigation "
+                              "out - stop one of them");
 }
 
 void GenericController::_take_bucket()

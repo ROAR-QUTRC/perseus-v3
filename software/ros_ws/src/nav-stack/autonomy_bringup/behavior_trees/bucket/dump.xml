@@ -11,7 +11,8 @@
       <Sequence>
         <SubTree ID="Pose_open_tilt_backward"
                  _autoremap="false"/>
-        <SubTree ID="Pose_open_tl_forward"/>
+        <SubTree ID="Pose_open_lift_forward"/>
+        <SubTree ID="Pose_open_tilt_forward"/>
         <SubTree ID="Pose_open_tilt_backward"
                  _autoremap="false"/>
       </Sequence>
