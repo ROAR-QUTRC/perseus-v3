@@ -16,17 +16,67 @@
 	} = $props();
 
 	// Signed arc end as a percentage of the circle: +50 is the bottom-right limit going clockwise over the top, -50 going anticlockwise underneath.
-	const toArcEnd = (amount: number) => Math.max(-1, Math.min(1, amount / max)) * 50;
+	const toArc = (amount: number) => {
+		const end = Math.max(-1, Math.min(1, amount / max)) * 50;
+		return {
+			end,
+			length: Math.abs(end),
+			// Shifting the dash start back by the arc length draws negative values anticlockwise from the same start point.
+			offset: Math.max(0, -end)
+		};
+	};
 
-	const valueEnd = $derived(toArcEnd(value));
-	const targetEnd = $derived(toArcEnd(target));
+	const valueArc = $derived(toArc(value));
+	const targetArc = $derived(toArc(target));
 </script>
 
 <svg viewBox="0 0 100 100" class="h-full w-full">
-	<circle class="arc track stroke-border" pathLength="100" />
-	<circle class="arc target stroke-slate-400" pathLength="100" style:--end={targetEnd} />
-	<circle class="arc value stroke-primary" pathLength="100" style:--end={valueEnd} />
-	<circle class="arc target-cap stroke-white" pathLength="100" style:--end={targetEnd} />
+	<circle
+		cx="50"
+		cy="50"
+		r="40"
+		fill="none"
+		pathLength="100"
+		transform="rotate(180 50 50)"
+		class="stroke-border"
+		stroke-width="4"
+	/>
+	<circle
+		cx="50"
+		cy="50"
+		r="40"
+		fill="none"
+		pathLength="100"
+		transform="rotate(180 50 50)"
+		class="stroke-slate-400"
+		stroke-width="2"
+		stroke-dasharray="{targetArc.length} {100 - targetArc.length}"
+		stroke-dashoffset={targetArc.offset}
+	/>
+	<circle
+		cx="50"
+		cy="50"
+		r="40"
+		fill="none"
+		pathLength="100"
+		transform="rotate(180 50 50)"
+		class="stroke-primary"
+		stroke-width="4"
+		stroke-dasharray="{valueArc.length} {100 - valueArc.length}"
+		stroke-dashoffset={valueArc.offset}
+	/>
+	<circle
+		cx="50"
+		cy="50"
+		r="40"
+		fill="none"
+		pathLength="100"
+		transform="rotate(180 50 50)"
+		class="stroke-white"
+		stroke-width="8"
+		stroke-dasharray="1 99"
+		stroke-dashoffset={0.5 - targetArc.end}
+	/>
 
 	<text
 		x="68"
@@ -55,44 +105,3 @@
 	</text>
 	<text x="50" y="68" text-anchor="middle" class="fill-slate-400 text-[8px]">{label}</text>
 </svg>
-
-<style>
-	.arc {
-		cx: 50;
-		cy: 50;
-		r: 40;
-		fill: none;
-		transform-box: fill-box;
-		transform-origin: center;
-		/* Start at middle-left and run clockwise. */
-		transform: rotate(180deg);
-	}
-
-	.track {
-		stroke-width: 4;
-	}
-
-	/* The dash pattern repeats every 100, so shifting its start backwards by the arc length
-	   draws negative values anticlockwise from the same start point. */
-	.value,
-	.target {
-		--length: max(var(--end), -1 * var(--end));
-		stroke-dasharray: var(--length) calc(100 - var(--length));
-		stroke-dashoffset: max(0, -1 * var(--end));
-	}
-
-	.value {
-		stroke-width: 4;
-	}
-
-	.target {
-		stroke-width: 2;
-	}
-
-	/* A 1%-wide dash centred on the target arc end, so it is always normal to the arc. */
-	.target-cap {
-		stroke-width: 8;
-		stroke-dasharray: 1 99;
-		stroke-dashoffset: calc(0.5 - var(--end));
-	}
-</style>
