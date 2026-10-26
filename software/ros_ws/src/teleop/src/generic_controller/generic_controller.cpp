@@ -273,8 +273,9 @@ void GenericController::_take_control_callback(
     }
     _set_mode(Mode::MANUAL);
     response->success = true;
-    response->message = "manual: autonomy is locked out; the gamepad drives while the "
-                        "deadman is held";
+    response->message =
+        "manual: autonomy is locked out; the gamepad drives while the "
+        "deadman is held";
 }
 
 void GenericController::_joy_timeout_callback(void)

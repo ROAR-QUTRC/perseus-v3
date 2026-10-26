@@ -165,7 +165,11 @@ def generate_launch_description():
                     "bt_xml_path": mission_bt_xml,
                     "mission_bt_xml_path": mission_tree,
                     "require_armed": PythonExpression(
-                        ["'", LaunchConfiguration("require_armed"), "'.lower() == 'true'"]
+                        [
+                            "'",
+                            LaunchConfiguration("require_armed"),
+                            "'.lower() == 'true'",
+                        ]
                     ),
                 },
                 use_sim_time,
