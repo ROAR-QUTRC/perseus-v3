@@ -340,8 +340,9 @@ void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
             if (!released)
             {
                 _rearm_sent.reset();
-                reply(false, "controller_manager did not deactivate the bucket "
-                             "controllers - see its log");
+                reply(false,
+                      "controller_manager did not deactivate the bucket "
+                      "controllers - see its log");
                 return;
             }
             activate();
