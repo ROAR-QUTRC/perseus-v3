@@ -115,8 +115,23 @@ namespace global_traversability
         const Eigen::MatrixXf& elevation = window["elevation"];
         const Eigen::MatrixXf& border = window["border"];
         const Eigen::MatrixXf& obstacle = window["obstacle"];
+        const Eigen::MatrixXf& height = window["height_above_ground"];
         Eigen::MatrixXf& crater = window["crater"];
+        Eigen::MatrixXf& crater_depth = window["crater_depth"];
         crater.setConstant(NaN);
+        crater_depth.setConstant(NaN);
+        const float structure_height = static_cast<float>(params.structure_height_m);
+        // An obstacle cell is a structure when it stands taller than structure_height, or
+        // when it has no height at all (nothing to say it is only a rim).
+        const auto is_structure = [&](int cell_row, int cell_col)
+        {
+            if (!(obstacle(cell_row, cell_col) > 0.5f))
+            {
+                return false;
+            }
+            const float cell_height = height(cell_row, cell_col);
+            return std::isnan(cell_height) || cell_height > structure_height;
+        };
 
         const std::vector<Ring> rings = build_rings(params.ring_edges_m, window.getResolution());
         if (rings.empty())
@@ -142,17 +157,19 @@ namespace global_traversability
             for (int col = 0; col < cols; ++col)
             {
                 const float center = elevation(row, col);
-                if (border(row, col) > 0.5f || std::isnan(center) ||
-                    obstacle(row, col) > 0.5f)
+                if (border(row, col) > 0.5f || std::isnan(center) || is_structure(row, col))
                 {
                     continue;
                 }
 
                 float steepest = -std::numeric_limits<float>::infinity();
+                float steepest_depth = 0.0f;
                 for (const auto& ring : rings)
                 {
                     values.clear();
                     unsigned sectors = 0;
+                    float sector_sum[SECTORS] = {};
+                    int sector_count[SECTORS] = {};
                     for (std::size_t i = 0; i < ring.d_row.size(); ++i)
                     {
                         const int neighbour_row = row + ring.d_row[i];
@@ -165,12 +182,14 @@ namespace global_traversability
                         const float neighbour = elevation(neighbour_row, neighbour_col);
                         if (std::isnan(neighbour) ||
                             border(neighbour_row, neighbour_col) > 0.5f ||
-                            obstacle(neighbour_row, neighbour_col) > 0.5f)
+                            is_structure(neighbour_row, neighbour_col))
                         {
                             continue;
                         }
                         values.push_back(neighbour);
                         sectors |= 1u << ring.sector[i];
+                        sector_sum[ring.sector[i]] += neighbour;
+                        ++sector_count[ring.sector[i]];
                     }
 
                     const double cover = static_cast<double>(values.size()) /
@@ -180,13 +199,42 @@ namespace global_traversability
                     {
                         continue;
                     }
-                    steepest = std::max(steepest,
-                                        (median(values) - center) / ring.mean_radius_m);
+                    // Every side it was seen from has to rise, or this is a bank's foot.
+                    const float needed_rise = 0.5f * threshold * ring.mean_radius_m;
+                    int observed_sectors = 0;
+                    int rising_sectors = 0;
+                    for (int sector = 0; sector < SECTORS; ++sector)
+                    {
+                        if (sector_count[sector] == 0)
+                        {
+                            continue;
+                        }
+                        ++observed_sectors;
+                        if (sector_sum[sector] / static_cast<float>(sector_count[sector]) -
+                                center >=
+                            needed_rise)
+                        {
+                            ++rising_sectors;
+                        }
+                    }
+                    if (static_cast<double>(rising_sectors) <
+                        params.min_rim_fraction * static_cast<double>(observed_sectors))
+                    {
+                        continue;
+                    }
+
+                    const float depth = median(values) - center;
+                    if (depth / ring.mean_radius_m > steepest)
+                    {
+                        steepest = depth / ring.mean_radius_m;
+                        steepest_depth = depth;
+                    }
                 }
 
                 if (std::isfinite(steepest))
                 {
                     crater(row, col) = steepest >= threshold ? 1.0f : 0.0f;
+                    crater_depth(row, col) = steepest_depth;
                 }
             }
         }
@@ -198,10 +246,13 @@ namespace global_traversability
             static_cast<int>(std::lround(params.obstacle_margin_m / window.getResolution()));
         const Eigen::MatrixXf& crater = window["crater"];
         const Eigen::MatrixXf& height = window["height_above_ground"];
+        const Eigen::MatrixXf& crater_depth = window["crater_depth"];
         Eigen::MatrixXf& obstacle = window["obstacle"];
         const int rows = window.getSize()(0);
         const int cols = window.getSize()(1);
-        const float max_height = static_cast<float>(params.demote_max_height_m);
+        const float structure_height = static_cast<float>(params.structure_height_m);
+        // Noise on the rim's height and on the depth estimate, in metres.
+        constexpr float NOISE_ALLOWANCE = 0.02f;
 
         for (int row = 0; row < rows; ++row)
         {
@@ -211,6 +262,8 @@ namespace global_traversability
                 {
                     continue;
                 }
+                const float max_height =
+                    std::min(structure_height, crater_depth(row, col) + NOISE_ALLOWANCE);
                 for (int d_row = -reach; d_row <= reach; ++d_row)
                 {
                     for (int d_col = -reach; d_col <= reach; ++d_col)

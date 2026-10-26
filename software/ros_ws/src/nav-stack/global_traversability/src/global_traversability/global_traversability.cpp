@@ -60,6 +60,7 @@ namespace global_traversability
         {
             std::vector<std::string> layers = local_traversability::TERRAIN_LAYERS;
             layers.push_back("crater");
+            layers.push_back("crater_depth");
             return layers;
         }
 
@@ -231,14 +232,16 @@ namespace global_traversability
                                                          DEFAULT_CRATER_MIN_RING_CELLS);
         _crater.min_ring_cover = this->declare_parameter("crater_min_ring_cover",
                                                          DEFAULT_CRATER_MIN_RING_COVER);
+        _crater.min_rim_fraction = this->declare_parameter(
+            "crater_min_rim_fraction", DEFAULT_CRATER_MIN_RIM_FRACTION);
         _crater.grow_radius_m = this->declare_parameter("crater_grow_m",
                                                         DEFAULT_CRATER_GROW_RADIUS_M);
         _crater.fill_radius_m = this->declare_parameter("crater_fill_radius_m",
                                                         DEFAULT_CRATER_FILL_RADIUS_M);
         _crater.obstacle_margin_m = this->declare_parameter(
             "crater_obstacle_margin_m", DEFAULT_CRATER_OBSTACLE_MARGIN_M);
-        _crater.demote_max_height_m = this->declare_parameter(
-            "crater_demote_max_height_m", DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M);
+        _crater.structure_height_m = this->declare_parameter(
+            "crater_structure_height_m", DEFAULT_CRATER_STRUCTURE_HEIGHT_M);
         _crater_log_odds_hit = this->declare_parameter("crater_log_odds_hit",
                                                        DEFAULT_CRATER_LOG_ODDS_HIT);
         _crater_log_odds_miss = this->declare_parameter("crater_log_odds_miss",

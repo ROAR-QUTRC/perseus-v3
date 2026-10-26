@@ -126,10 +126,13 @@ global_traversability:
     # them) does not. Verdicts are fused into their own log-odds like the obstacle ones, and a
     # confirmed crater is published as a flat crater_cost over its own footprint: no inflation,
     # not lethal. The planner goes round it when that is cheap and through it when it is not.
-    # Replayed on the sim heightmap with craters carved in (7 craters, 0.4-1.0 m across,
-    # 0.07-0.25 m deep; lidar simulated as the sim's 32 x 720 MID-360 on the 35 deg mast), 0 and
-    # 2 cm of range noise: 6 of 7 covered 67-100%, 0 false-positive cells on the natural terrain.
-    # The miss is the 7 cm deep one. Tuned on sim only: sand ruts and rock clutter are untested.
+    # Tested on the sim heightmap with 7 craters carved in (0.4-1.0 m across, 0.07-0.25 m deep;
+    # lidar simulated as the sim's 32 x 720 MID-360 on the 35 deg mast): six of seven covered
+    # 66-94%, five of seven with 2 cm of range noise (the 0.4 m x 0.10 m one drops out), the 7 cm
+    # one never; 0 false cells on the natural terrain; 0.85 m walls unchanged. Replayed on the
+    # real rock_nav_test_2 bag (437 s, 48 m driven): 35 crater cells, all at the south arena wall
+    # under its inflation, 0 within 0.45 m of the driven path. Tuned on sim plus that one bag:
+    # a rough or rocky arena may need crater_min_slope_deg up or crater_log_odds_hit down.
     crater_enabled: true
     # tan(12 deg) = 0.21. 0.18 already flags natural terrain two windows running; 0.21 does not.
     crater_min_slope_deg: 12.0
@@ -142,15 +145,20 @@ global_traversability:
     # arcs, so a ring is often a line on one side, which would only be extrapolating a slope.
     crater_min_ring_cells: 6
     crater_min_ring_cover: 0.4
+    # A crater is higher on every side; the concave foot of a bank or the arena wall is higher on
+    # one and level on the rest, yet passes the median test. Of the ring's observed sectors,
+    # this fraction must rise above the cell by half of what the slope test needs.
+    crater_min_rim_fraction: 0.8
     # The test flags a pit's steep interior only, so the mask is grown this much to reach the
     # rim (a 0.45 m crater would otherwise paint ~0.25 m). Footprint, not safety margin; 0 off.
     crater_grow_m: 0.1
     # Closing radius over the persistent mask: covers floor the near rim hid from the lidar.
     crater_fill_radius_m: 0.2
-    # Two flagged windows confirm (2 x 0.35 > occupied); a miss costs far less than a hit,
-    # because a pit only reads well from some angles and a window that misses it is not
-    # evidence the pit is gone. (max - occupied) / miss = 10 clear windows, ~5 s in view.
-    crater_log_odds_hit: 0.35
+    # Three flagged windows confirm (3 x 0.2 > occupied; two let speckle through on the real
+    # bag); a miss costs half a hit, because a pit only reads well from some angles and a
+    # window that misses it is not evidence the pit is gone. (max - occupied) / miss = 10 clear
+    # windows, ~5 s in view.
+    crater_log_odds_hit: 0.2
     crater_log_odds_miss: 0.1
     crater_log_odds_min: -1.0
     crater_log_odds_max: 1.5
@@ -162,11 +170,17 @@ global_traversability:
     # makes it shrug them off. Max 99: 100 is lethal.
     crater_cost: 40.0
     # The height test also calls the rim cell next to a deep floor an obstacle (it measures
-    # against the lowest neighbour + slope allowance), and inflates it. With this on, obstacle
-    # cells inside a confirmed crater or within obstacle_margin_m of it become crater_cost
-    # instead of lethal. Off restores the old behaviour for craters deeper than ~0.15 m.
+    # against the lowest neighbour + slope allowance) and inflates it. With this on, such a rim
+    # cell within crater_obstacle_margin_m of a detected pit is cleared in the scan window,
+    # but only if it reads no taller than the pit is deep: the pit is the only reason it
+    # reads tall at all. Off restores the old behaviour for craters deeper than ~0.15 m.
     crater_demotes_obstacle: true
     crater_obstacle_margin_m: 0.2
+    # Obstacle cells taller than this are structures (the arena wall is 0.85 m, rocks are
+    # taller than a rim): never part of the crater test, never demoted. A cell at a wall's
+    # foot has its ring dragged up by the wall and reads as a pit without this. Found on the
+    # real rock_nav_test_2 bag, where it flagged 263 cells along the south wall.
+    crater_structure_height_m: 0.25
     # SHOCK GATE. A jolt or drop motion-smears the raw scans and knocks the LIO pose about
     # until it settles, so the 1 s window sees the same floor at several heights/tilts and
     # the 0.065 height test above calls the ground an obstacle -- which this map then

@@ -178,16 +178,18 @@ namespace global_traversability
             0.30, 0.45, 0.65, 0.90};
         static constexpr int DEFAULT_CRATER_MIN_RING_CELLS = 6;
         static constexpr double DEFAULT_CRATER_MIN_RING_COVER = 0.4;
+        static constexpr double DEFAULT_CRATER_MIN_RIM_FRACTION = 0.8;
         static constexpr double DEFAULT_CRATER_GROW_RADIUS_M = 0.1;
         static constexpr double DEFAULT_CRATER_FILL_RADIUS_M = 0.2;
         static constexpr double DEFAULT_CRATER_OBSTACLE_MARGIN_M = 0.2;
-        /// @brief Rim cells stand ~0.08 m; a wall is 0.85 m. See
-        ///        CraterParameters::demote_max_height_m.
-        static constexpr double DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M = 0.12;
-        /// @brief Two hits clear crater_log_odds_occupied; a miss costs much less than a
-        ///        hit, because a pit is only seen well from some angles and a cell that
-        ///        flags in one window and not the next is still a pit.
-        static constexpr double DEFAULT_CRATER_LOG_ODDS_HIT = 0.35;
+        /// @brief Taller than this an obstacle is a wall or a rock, not a crater's rim. The
+        ///        arena wall is 0.85 m; a 0.25 m deep crater's rim cell reads ~0.19 m.
+        static constexpr double DEFAULT_CRATER_STRUCTURE_HEIGHT_M = 0.25;
+        /// @brief Three hits clear crater_log_odds_occupied; a miss costs half a hit, because
+        ///        a pit is only seen well from some angles and a cell that flags in one
+        ///        window and not the next is still a pit. Two hits were enough on the sim
+        ///        terrain but let 2-4 cell speckles through on the real rock_nav_test_2 bag.
+        static constexpr double DEFAULT_CRATER_LOG_ODDS_HIT = 0.2;
         static constexpr double DEFAULT_CRATER_LOG_ODDS_MISS = 0.1;
         static constexpr double DEFAULT_CRATER_LOG_ODDS_MIN = -1.0;
         static constexpr double DEFAULT_CRATER_LOG_ODDS_MAX = 1.5;
@@ -353,10 +355,11 @@ namespace global_traversability
                                  DEFAULT_CRATER_RING_EDGES_M,
                                  DEFAULT_CRATER_MIN_RING_CELLS,
                                  DEFAULT_CRATER_MIN_RING_COVER,
+                                 DEFAULT_CRATER_MIN_RIM_FRACTION,
                                  DEFAULT_CRATER_GROW_RADIUS_M,
                                  DEFAULT_CRATER_FILL_RADIUS_M,
                                  DEFAULT_CRATER_OBSTACLE_MARGIN_M,
-                                 DEFAULT_CRATER_DEMOTE_MAX_HEIGHT_M};
+                                 DEFAULT_CRATER_STRUCTURE_HEIGHT_M};
         double _crater_log_odds_hit{DEFAULT_CRATER_LOG_ODDS_HIT};
         double _crater_log_odds_miss{DEFAULT_CRATER_LOG_ODDS_MISS};
         double _crater_log_odds_min{DEFAULT_CRATER_LOG_ODDS_MIN};
