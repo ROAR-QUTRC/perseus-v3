@@ -182,16 +182,34 @@ void BucketDriver::_begin_override()
 
     if (!_list_client->service_is_ready() || !_switch_client->service_is_ready())
     {
-        // Nothing to take it from (bench teleop, or controller_manager down). The
-        // timeout in _transmit_callback hands the operator the bucket.
+        // Nothing to take it from yet (bench teleop, controller_manager down, or this
+        // node only just started and has not found it). The timeout in
+        // _transmit_callback hands the operator the bucket, and the deactivation is
+        // retried from there once controller_manager answers.
         return;
     }
+    _release_controllers(
+        [this](bool /*released*/)
+        {
+            if (!_override)
+                _set_override(true);
+        });
+}
 
+bool BucketDriver::_waiting_on(const std::optional<rclcpp::Time>& sent) const
+{
+    return sent && (this->now() - *sent) < rclcpp::Duration(SWITCH_STALE);
+}
+
+void BucketDriver::_release_controllers(std::function<void(bool)> done)
+{
+    _release_sent = this->now();
+    _last_release = _release_sent;
     // Only the ones actually active: deactivating one that isn't loaded makes the
     // whole switch fail.
     _list_client->async_send_request(
         std::make_shared<ListControllers::Request>(),
-        [this](rclcpp::Client<ListControllers>::SharedFuture future)
+        [this, done](rclcpp::Client<ListControllers>::SharedFuture future)
         {
             auto request = std::make_shared<SwitchController::Request>();
             for (const auto& controller : future.get()->controller)
@@ -201,19 +219,28 @@ void BucketDriver::_begin_override()
                               controller.name) != _override_controllers.end())
                     request->deactivate_controllers.push_back(controller.name);
             }
+            const auto finish = [this, done](bool released)
+            {
+                _release_sent.reset();
+                // A late answer after a re-arm says nothing about the bucket now.
+                if (_override || _override_requested)
+                    _controllers_released = released;
+                done(released);
+            };
             if (request->deactivate_controllers.empty())
             {
-                _set_override(true);
+                finish(true);
                 return;
             }
             request->strictness = SwitchController::Request::BEST_EFFORT;
             request->activate_asap = true;
             _switch_client->async_send_request(
                 request,
-                [this, names = request->deactivate_controllers](
+                [this, finish, names = request->deactivate_controllers](
                     rclcpp::Client<SwitchController>::SharedFuture switched)
                 {
-                    if (!switched.get()->ok)
+                    const bool ok = switched.get()->ok;
+                    if (!ok)
                         RCLCPP_ERROR(this->get_logger(),
                                      "Operator override: controller_manager did not confirm "
                                      "deactivating the bucket controllers");
@@ -221,7 +248,7 @@ void BucketDriver::_begin_override()
                         for (const auto& name : names)
                             RCLCPP_WARN(this->get_logger(), "Operator override: deactivated %s",
                                         name.c_str());
-                    _set_override(true);
+                    finish(ok);
                 });
         });
 }
@@ -231,6 +258,11 @@ void BucketDriver::_set_override(bool active)
     _override = active;
     if (active)
         _override_requested.reset();
+    else
+    {
+        _controllers_released = false;
+        _last_release.reset();
+    }
     std_msgs::msg::Bool msg;
     msg.data = active;
     _override_publisher->publish(msg);
@@ -253,9 +285,14 @@ void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
         reply(false, "a stick is still held - let go of the bucket first");
         return;
     }
-    if (!_switch_client->service_is_ready())
+    if (!_list_client->service_is_ready() || !_switch_client->service_is_ready())
     {
         reply(false, "controller_manager is not available");
+        return;
+    }
+    if (_waiting_on(_rearm_sent) || _waiting_on(_release_sent))
+    {
+        reply(false, "still switching the bucket controllers - try again");
         return;
     }
 
@@ -263,24 +300,51 @@ void BucketDriver::_rearm_callback(rclcpp::Service<Trigger>::SharedPtr service,
     // BucketHardware::prepare_command_mode_switch) the operator keeps the bucket.
     // It starts from the current encoder angles, so the bucket holds where the
     // operator left it rather than going back to autonomy's last target.
-    auto request = std::make_shared<SwitchController::Request>();
-    request->activate_controllers = {_rearm_controller};
-    request->strictness = SwitchController::Request::STRICT;
-    request->activate_asap = true;
-    _switch_client->async_send_request(
-        request,
-        [this, reply](rclcpp::Client<SwitchController>::SharedFuture future)
-        {
-            if (!future.get()->ok)
+    const auto activate = [this, reply]
+    {
+        auto request = std::make_shared<SwitchController::Request>();
+        request->activate_controllers = {_rearm_controller};
+        request->strictness = SwitchController::Request::STRICT;
+        request->activate_asap = true;
+        _switch_client->async_send_request(
+            request,
+            [this, reply](rclcpp::Client<SwitchController>::SharedFuture future)
             {
-                reply(false, "could not activate " + _rearm_controller +
-                                 " - see the controller_manager log");
+                _rearm_sent.reset();
+                if (!future.get()->ok)
+                {
+                    reply(false, "could not activate " + _rearm_controller +
+                                     " - see the controller_manager log");
+                    return;
+                }
+                _set_override(false);
+                RCLCPP_INFO(this->get_logger(), "Re-armed: %s has the bucket",
+                            _rearm_controller.c_str());
+                reply(true, _rearm_controller + " active");
+            });
+    };
+
+    _rearm_sent = this->now();
+    if (!_override && !_override_requested)
+    {
+        activate();
+        return;
+    }
+    // The operator has the bucket, but a controller may still be active: one the
+    // takeover could not deactivate, which would make the STRICT activation fail
+    // forever. Deactivate whatever is left first, so a re-arm always starts it
+    // afresh from the current angles.
+    _release_controllers(
+        [this, reply, activate](bool released)
+        {
+            if (!released)
+            {
+                _rearm_sent.reset();
+                reply(false, "controller_manager did not deactivate the bucket "
+                             "controllers - see its log");
                 return;
             }
-            _set_override(false);
-            RCLCPP_INFO(this->get_logger(), "Re-armed: %s has the bucket",
-                        _rearm_controller.c_str());
-            reply(true, _rearm_controller + " active");
+            activate();
         });
 }
 
@@ -367,6 +431,19 @@ void BucketDriver::_transmit_callback()
         _set_override(true);
     }
     _send_pending_zero();
+
+    // The operator has the bucket, but controller_manager has not confirmed the
+    // command controllers are off: try again, so none is left holding a setpoint.
+    if (_override && !_controllers_released && !_waiting_on(_release_sent) &&
+        !_waiting_on(_rearm_sent) && _list_client->service_is_ready() &&
+        _switch_client->service_is_ready() &&
+        (!_last_release ||
+         (this->now() - *_last_release) >= rclcpp::Duration(RELEASE_RETRY)))
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Operator override: making sure the bucket controllers are off");
+        _release_controllers([](bool) {});
+    }
 
     // Sent unconditionally, including while zeroed: a steady stream of zeros
     // keeps the banks in a known state and means a gap on the bus unambiguously

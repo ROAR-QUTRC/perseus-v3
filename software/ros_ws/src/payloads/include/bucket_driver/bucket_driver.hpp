@@ -5,6 +5,7 @@
 #include <chrono>
 #include <controller_manager_msgs/srv/list_controllers.hpp>
 #include <controller_manager_msgs/srv/switch_controller.hpp>
+#include <functional>
 #include <hi_can_raw.hpp>
 #include <interfaces/srv/zero_bucket_encoder.hpp>
 #include <optional>
@@ -69,6 +70,14 @@ private:
     /// operator in charge even with controller_manager gone or wedged.
     static constexpr auto OVERRIDE_SWITCH_TIMEOUT = std::chrono::milliseconds(200);
 
+    /// @brief While the operator has the bucket but controller_manager has not
+    /// confirmed the command controllers are off (it was not up yet, or did not
+    /// answer in time), how often to try deactivating them again.
+    static constexpr auto RELEASE_RETRY = std::chrono::seconds(1);
+    /// @brief How long a request to controller_manager is waited for before it is
+    /// taken as lost.
+    static constexpr auto SWITCH_STALE = std::chrono::seconds(5);
+
     using ListControllers = controller_manager_msgs::srv::ListControllers;
     using SwitchController = controller_manager_msgs::srv::SwitchController;
     using Trigger = std_srvs::srv::Trigger;
@@ -82,6 +91,9 @@ private:
 
     /// @brief Starts a takeover: deactivate whichever override_controllers are active.
     void _begin_override();
+    /// @brief Deactivates whichever override_controllers are active, then calls
+    /// @p done with whether controller_manager confirmed none is left commanding.
+    void _release_controllers(std::function<void(bool)> done);
     /// @brief Marks the takeover done and tells everyone listening.
     void _set_override(bool active);
 
@@ -126,6 +138,19 @@ private:
     bool _override = false;
     /// @brief When a takeover started, while its switch is still unconfirmed.
     std::optional<rclcpp::Time> _override_requested;
+    /// @brief Whether controller_manager confirmed no override_controller is active
+    /// since the operator took the bucket. Until it has, the deactivation is retried:
+    /// a controller left active would keep sending positions under the operator's
+    /// speeds.
+    bool _controllers_released = false;
+    /// @brief When the deactivation waiting on controller_manager was sent, if any.
+    std::optional<rclcpp::Time> _release_sent;
+    /// @brief When the /bucket/rearm waiting on controller_manager was sent, if any.
+    std::optional<rclcpp::Time> _rearm_sent;
+    /// @brief When the deactivation was last sent, for RELEASE_RETRY.
+    std::optional<rclcpp::Time> _last_release;
+    /// @brief Whether @p sent is a request still worth waiting for.
+    bool _waiting_on(const std::optional<rclcpp::Time>& sent) const;
 
     /// @brief A zero waiting for the takeover to finish.
     struct PendingZero
