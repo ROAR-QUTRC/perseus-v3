@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /RobotModel1/Description Topic1
-        - /Livox Cloud1
         - /Cloud Map1/Autocompute Value Bounds1
         - /Footprint1/Topic1
         - /Footprint1/Shape1
@@ -14,7 +13,7 @@ Panels:
         - /Rover Bound1/Topic1
         - /TwistStamped1/Topic1
       Splitter Ratio: 0.5529412031173706
-    Tree Height: 439
+    Tree Height: 140
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -44,25 +43,26 @@ Panels:
     Topic: /watchdog/mobility_status
     WarnPercent: 60
   - Class: rviz_plugins/MissionControlPanel
-    ConstructionFrame: odom
+    ConstructionFrame: map
     ConstructionSet: true
     ConstructionSource: map
-    ConstructionX: 5.179413318634033
-    ConstructionY: -3.896010398864746
-    ConstructionYaw: -1.549481987953186
+    ConstructionX: 2.8855330805864403
+    ConstructionY: 6.65493218474244
+    ConstructionYaw: 0.03212163802716575
     Controller: DWB
     ControllerType: radio
-    Cycles: 50
-    ExcavationFrame: odom
+    Cycles: 1
+    ExcavationFrame: map
     ExcavationSet: true
     ExcavationSource: map
-    ExcavationX: 0.8936529159545898
-    ExcavationY: 0.35753488540649414
-    ExcavationYaw: -0.3758494501986607
+    ExcavationX: -1.0131950298627124
+    ExcavationY: 2.7929894788930234
+    ExcavationYaw: 1.578278697115269
     Mode: full
     Name: Mission Control
     Planner: ThetaStar
     PrepareBucket: true
+    ScanLocalise: false
     Task: cycle
     ZonePauseS: 5
   - Class: rviz_plugins/RoverViewPanel
@@ -97,9 +97,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        aruco_marker_68:
+        aruco_marker_67:
           Value: true
-        aruco_marker_69:
+        aruco_marker_68:
           Value: true
         base_footprint:
           Value: true
@@ -158,6 +158,8 @@ Visualization Manager:
         camera_accel_frame:
           Value: true
         camera_accel_optical_frame:
+          Value: true
+        camera_aligned_depth_to_infra1_frame:
           Value: true
         camera_bottom_screw_frame:
           Value: true
@@ -299,11 +301,13 @@ Visualization Manager:
                       camera_accel_frame:
                         camera_accel_optical_frame:
                           {}
+                      camera_aligned_depth_to_infra1_frame:
+                        {}
                       camera_color_frame:
                         camera_color_optical_frame:
-                          aruco_marker_68:
+                          aruco_marker_67:
                             {}
-                          aruco_marker_69:
+                          aruco_marker_68:
                             {}
                       camera_depth_frame:
                         camera_depth_optical_frame:
@@ -696,7 +700,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: false
+      Enabled: true
       Keep: 1000
       Name: Footprint
       Position Tolerance: 0.10000000149011612
@@ -717,7 +721,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /odometry/filtered
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: false
       Name: Global Mesh Map
@@ -947,25 +951,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 2.359724760055542
+      Distance: 11.076519012451172
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.6565699577331543
-        Y: 0.2761041820049286
+        X: 1.2477065324783325
+        Y: -0.20838868618011475
         Z: 1.1989116668701172
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5402012467384338
+      Pitch: 1.0602009296417236
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.956217288970947
+      Yaw: 2.341200828552246
     Saved:
       - Class: rviz_default_plugins/ThirdPersonFollower
         Distance: 5.78459358215332
@@ -1025,7 +1029,7 @@ Window Geometry:
     collapsed: false
   Mobility Efficiency:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000030000000000000156000002fdfc0200000008fb000000100044006900730070006c006100790073000000003f000000d4000000cc00fffffffb000000180054006f0070006900630020004800650061006c00740068010000003f000001730000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000000a005600690065007700730100000257000001040000000000000000fb000000140052006f0076006500720020005600690065007701000001b8000001270000001700fffffffb0000001200560069006500770020004c006f0063006b01000002e5000000570000005700fffffffb000000140052006f00760065007200200056006900650077000000028b000000b10000001700ffffff00000001000001cc000002fdfc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f0000010f0000001700fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000154000001e8000001e800ffffff00000003000007800000010afc0100000004fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000000000dd000000b200fffffffb00000016004c0069006e006b0020004800650061006c0074006801000000e300000110000000c700fffffffb0000001c004d0061006300680069006e00650020004800650061006c0074006801000001f9000003b30000020900fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000005b2000001ce000000e000ffffff00000452000002fd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000030000000000000156000002fdfc0200000008fb000000100044006900730070006c006100790073010000003f000000cc000000cc00fffffffb000000180054006f0070006900630020004800650061006c007400680100000111000000fe0000008800fffffffb0000001200530065006c0065006300740069006f006e00000001d0000000be0000005d00fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000217000000e10000005d00fffffffb0000000a005600690065007700730100000257000001040000000000000000fb000000140052006f007600650072002000560069006500770100000215000000ca0000001700fffffffb0000001200560069006500770020004c006f0063006b01000002e5000000570000005700fffffffb000000140052006f00760065007200200056006900650077000000028b000000b10000001700ffffff00000001000001cc000002fdfc0200000003fb0000001800460072006f006e0074002000430061006d006500720061010000003f000000c70000000000000000fb000000220044006500740065006300740069006f006e0020004f007600650072006c00610079010000003f000000f00000001700fffffffb0000001e004d0069007300730069006f006e00200043006f006e00740072006f006c0100000135000002070000020700ffffff00000003000007800000010afc0100000004fb00000026004d006f00620069006c00690074007900200045006600660069006300690065006e006300790100000000000000dd000000cc00fffffffb00000016004c0069006e006b0020004800650061006c0074006801000000e300000110000000b800fffffffb0000001c004d0061006300680069006e00650020004800650061006c0074006801000001f9000003b30000020900fffffffb0000001a004100720065006e00610020004d0069006e0069006d0061007001000005b2000001ce000000e000ffffff00000452000002fd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Rover View:
     collapsed: false
   Selection:
