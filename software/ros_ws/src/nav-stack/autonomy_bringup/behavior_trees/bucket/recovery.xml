@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Recoveries for a pose the bucket keeps missing. Put one in a Fallback after the pose,
+  and retry the pose after it, so the branch only succeeds if the pose is reached:
+
+    <Fallback>
+      <SubTree ID="Pose_X"/>
+      <Sequence>
+        <SubTree ID="Wiggle"/>
+        <SubTree ID="Pose_X"/>
+      </Sequence>
+    </Fallback>
+-->
+<root BTCPP_format="4">
+  <!-- Each axis in turn 5 deg out (lift down, tilt dumping, jaw open) and back to
+       where it started. Flip a sign to go the other way first; 0 skips that axis. -->
+  <BehaviorTree ID="Wiggle">
+    <WiggleBucket failure=""
+                  server_name="{@bucket_action}"
+                  tolerance_deg="2"
+                  timeout_s="3"
+                  jaw_deg="5"
+                  tilt_deg="5"
+                  lift_deg="5"/>
+  </BehaviorTree>
+
+</root>

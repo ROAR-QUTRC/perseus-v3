@@ -7,7 +7,9 @@ The loop it is for:
 
   1. z   zero the encoders (bucket_driver's /bucket/zero_encoder)
   2. jog the bucket to a pose with the keys below, then
-     p   save it as Pose_<name> in bucket_poses.xml, and
+     p   save it as Pose_<name> in bucket_poses.xml (several joints are saved as
+         one pose per joint, Pose_<name>_<axis>, run in turn by Pose_<name>, so
+         the axes never start at once), and
      g   send the bucket back to a saved pose to check it
   3. arrange the Pose_* subtrees into a tree in Groot2 (open bucket.btproj there)
   4. r   run that tree; Groot2's Monitor on port 1667 shows it live. The run waits
@@ -37,6 +39,7 @@ import re
 import signal
 import subprocess
 import sys
+import textwrap
 import threading
 import time
 import xml.etree.ElementTree as ET
@@ -94,7 +97,11 @@ def default_dir() -> str:
 
 
 class PoseFile:
-    """Pose_<name> subtrees in bucket_poses.xml, each one direct MoveBucket."""
+    """Pose_<name> subtrees in bucket_poses.xml. A pose is either one direct
+    MoveBucket of one joint, or a sequence: a Sequence of poses (SubTree Pose_<step>)
+    or inline MoveBuckets, run one after another. A pose that sets several joints is
+    a sequence of one-joint moves, so the axes never start together and draw their
+    inrush current on the power bus at once."""
 
     def __init__(self, path: str):
         self.path = path
@@ -105,34 +112,101 @@ class PoseFile:
         parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
         return ET.parse(self.path, parser)
 
-    def poses(self) -> dict:
-        """{name: {attribute: value}} of each pose's MoveBucket, in file order."""
-        result = {}
+    @staticmethod
+    def _steps(tree):
+        """A sequence pose's steps, or None if @p tree is not one. A step is a pose
+        name or, for an inline MoveBucket, its attributes."""
+        sequence = tree.find("Sequence")
+        if sequence is None or len(tree) != 1:
+            return None
+        steps = []
+        for child in sequence:
+            if child.tag == "SubTree" and child.get("ID", "").startswith("Pose_"):
+                steps.append(child.get("ID")[len("Pose_") :])
+            elif child.tag == "MoveBucket":
+                steps.append(dict(child.attrib))
+            else:
+                return None
+        return steps
+
+    def _pose_trees(self):
         for tree in self._load().getroot().iter("BehaviorTree"):
             tree_id = tree.get("ID", "")
-            move = tree.find("MoveBucket")
-            if tree_id.startswith("Pose_") and move is not None:
-                result[tree_id[len("Pose_") :]] = dict(move.attrib)
+            if tree_id.startswith("Pose_"):
+                yield tree_id[len("Pose_") :], tree
+
+    def poses(self) -> dict:
+        """{name: {attribute: value}} of each single-move pose's MoveBucket, in file
+        order."""
+        return {
+            name: dict(tree.find("MoveBucket").attrib)
+            for name, tree in self._pose_trees()
+            if tree.find("MoveBucket") is not None
+        }
+
+    def sequences(self) -> dict:
+        """{name: [step, ...]} of each sequence pose, in file order."""
+        result = {}
+        for name, tree in self._pose_trees():
+            steps = self._steps(tree)
+            if steps is not None:
+                result[name] = steps
         return result
 
-    def save(self, name: str, angles: dict, timeout_s: float, attempts: int):
+    def names(self) -> list:
+        """Every pose, single-move or sequence, in file order."""
+        poses, sequences = self.poses(), self.sequences()
+        return [
+            name for name, _ in self._pose_trees() if name in poses or name in sequences
+        ]
+
+    def users(self, name: str) -> list:
+        """The sequence poses that run Pose_<name>."""
+        return [seq for seq, steps in self.sequences().items() if name in steps]
+
+    def save(self, name: str, angles: dict, timeout_s: float, attempts: int) -> list:
+        """Saves Pose_<name> and returns the poses written, in run order. One joint
+        is one MoveBucket. More are a one-joint pose Pose_<name>_<axis> each, and
+        Pose_<name> runs them in turn: lift, tilt, jaw, or the order an existing
+        Pose_<name> already had, so a reordering in Groot2 survives a re-save."""
+
+        def move(axis_angles: dict):
+            element = ET.Element("MoveBucket")
+            for axis, degrees in axis_angles.items():
+                element.set(f"{axis}_deg", f"{degrees:.1f}")
+            element.set("timeout_s", f"{timeout_s:g}")
+            element.set("attempts", str(attempts))
+            element.set("server_name", "{@bucket_action}")
+            return element
+
         tree = self._load()
         root = tree.getroot()
-        move = ET.Element("MoveBucket")
-        for axis, degrees in angles.items():
-            move.set(f"{axis}_deg", f"{degrees:.1f}")
-        move.set("timeout_s", f"{timeout_s:g}")
-        move.set("attempts", str(attempts))
-        move.set("server_name", "{@bucket_action}")
+        if len(angles) == 1:
+            self._put(root, name, move(angles))
+            self._write(tree)
+            return [name]
+
+        parts = {axis: f"{name}_{axis}" for axis in angles}
         existing = self._find(root, name)
-        if existing is not None:
-            for child in list(existing):
-                existing.remove(child)
-            existing.append(move)
-        else:
-            subtree = ET.SubElement(root, "BehaviorTree", {"ID": f"Pose_{name}"})
-            subtree.append(move)
+        before = (self._steps(existing) if existing is not None else None) or []
+        order = [axis for step in before for axis in angles if parts[axis] == step]
+        order += [axis for axis in AXES if axis in angles and axis not in order]
+        sequence = ET.Element("Sequence")
+        for axis in order:
+            self._put(root, parts[axis], move({axis: angles[axis]}))
+            ET.SubElement(sequence, "SubTree", {"ID": f"Pose_{parts[axis]}"})
+        self._put(root, name, sequence)
         self._write(tree)
+        return [parts[axis] for axis in order]
+
+    def _put(self, root, name: str, child):
+        """Makes @p child the whole of Pose_<name>, adding the pose if it is new."""
+        existing = self._find(root, name)
+        if existing is None:
+            existing = ET.SubElement(root, "BehaviorTree", {"ID": f"Pose_{name}"})
+        for old in list(existing):
+            existing.remove(old)
+        existing.append(child)
 
     def delete(self, name: str) -> bool:
         tree = self._load()
@@ -308,8 +382,19 @@ class Console:
         )
         put(5, "─" * (width - 1))
         body = height - 7
+        # Wrapped rather than cut at the edge: a MoveBucket miss puts which joint
+        # missed and by how much at the end of a long line.
         with self.log_lock:
-            lines = list(self.log_lines)[-body:] if body > 0 else []
+            logged = list(self.log_lines)[-body:] if body > 0 else []
+        lines = []
+        for line in logged:
+            lines += textwrap.wrap(
+                line,
+                max(width - 2, 10),
+                subsequent_indent="    ",
+                drop_whitespace=False,
+            ) or [""]
+        lines = lines[-body:] if body > 0 else []
         for i, line in enumerate(lines):
             put(6 + i, " " + line)
         put(height - 1, prompt, curses.A_BOLD)
@@ -440,9 +525,8 @@ class Console:
         if not POSE_RE.match(name):
             self.log(f"'{name}' is not a usable name")
             return
-        existing = self.poses.poses()
         if (
-            name in existing
+            name in self.poses.names()
             and self.ask(f"Pose_{name} exists - replace it? y/n", "n") != "y"
         ):
             return
@@ -454,38 +538,69 @@ class Console:
         timeout_s = self.ask_number("timeout_s", 6.0)
         attempts = int(self.ask_number("attempts", 2, int))
         angles = {axis: self.node.angles[axis] for axis in chosen}
-        self.poses.save(name, angles, timeout_s, attempts)
-        shown = ", ".join(f"{axis} {degrees:.1f}" for axis, degrees in angles.items())
-        self.log(
-            f"saved Pose_{name}: {shown} deg, timeout {timeout_s:g} s, {attempts} attempt(s)"
-        )
+        written = self.poses.save(name, angles, timeout_s, attempts)
+        settings = f"timeout {timeout_s:g} s, {attempts} attempt(s)"
+        if len(written) == 1:
+            shown = ", ".join(f"{axis} {deg:.1f}" for axis, deg in angles.items())
+            self.log(f"saved Pose_{name}: {shown} deg, {settings}")
+        else:
+            self.log(f"saved Pose_{name}, one axis at a time ({settings} each):")
+            for part in written:
+                axis = part.rsplit("_", 1)[1]
+                self.log(f"  Pose_{part}: {axis} {angles[axis]:.1f} deg")
         self.refresh_project()
 
+    @staticmethod
+    def _shown(attributes: dict) -> str:
+        return "  ".join(
+            f"{axis} {attributes[f'{axis}_deg']}"
+            for axis in AXES
+            if attributes.get(f"{axis}_deg")  # Groot2 saves an omitted joint as ""
+        )
+
     def list_poses(self):
-        poses = self.poses.poses()
-        if not poses:
+        poses, sequences = self.poses.poses(), self.poses.sequences()
+        if not poses and not sequences:
             self.log("no poses saved yet")
             return
         self.log("saved poses:")
-        for name, attributes in poses.items():
-            shown = "  ".join(
-                f"{axis} {attributes[f'{axis}_deg']}"
-                for axis in AXES
-                if attributes.get(f"{axis}_deg")  # Groot2 saves an omitted joint as ""
-            )
-            self.log(
-                f"  {name:16s} {shown}   timeout {attributes.get('timeout_s', '?')} s, "
-                f"{attributes.get('attempts', '1')} attempt(s)"
-            )
+        for name in self.poses.names():
+            if name in poses:
+                attributes = poses[name]
+                self.log(
+                    f"  {name:16s} {self._shown(attributes)}   timeout "
+                    f"{attributes.get('timeout_s', '?')} s, "
+                    f"{attributes.get('attempts', '1')} attempt(s)"
+                )
+                continue
+            steps = []
+            for step in sequences[name]:
+                if isinstance(step, dict):
+                    steps.append(self._shown(step))
+                elif step in poses:
+                    steps.append(f"{self._shown(poses[step])} ({step})")
+                else:
+                    steps.append(step)
+            self.log(f"  {name:16s} {' -> '.join(steps)}")
 
     def delete_pose(self):
-        name = self.pick("Delete which pose?", list(self.poses.poses()))
-        if name and self.ask(f"delete Pose_{name}? type yes") == "yes":
+        name = self.pick("Delete which pose?", self.poses.names())
+        if not name:
+            return
+        users = self.poses.users(name)
+        if users:
+            self.log(f"Pose_{name} is a step of {', '.join(users)}")
+        if self.ask(f"delete Pose_{name}? type yes") == "yes":
+            steps = self.poses.sequences().get(name)
             self.poses.delete(name)
             self.log(f"deleted Pose_{name} - any tree using it will no longer load")
+            if steps:
+                named = [step for step in steps if isinstance(step, str)]
+                if named:
+                    self.log(f"its steps stay: {', '.join(named)}")
 
     def go_to_pose(self):
-        name = self.pick("Go to which pose?", list(self.poses.poses()))
+        name = self.pick("Go to which pose?", self.poses.names())
         if name:
             self.run_cli(["pose", name])
 

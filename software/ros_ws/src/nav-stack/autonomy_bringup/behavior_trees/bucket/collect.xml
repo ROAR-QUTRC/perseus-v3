@@ -1,34 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
-  <BehaviorTree ID="collect">
+  <BehaviorTree ID="Collect_close">
     <Sequence>
-      <Sequence>
-        <SubTree ID="Pose_travel_lift"/>
-        <Fallback>
-          <SubTree ID="Pose_travel_tilt"/>
-          <SubTree ID="Pose_fallback_tilt"/>
-        </Fallback>
-        <SubTree ID="Pose_close"/>
-      </Sequence>
-      <Sleep msec="1000"/>
-      <Sequence>
-        <SubTree ID="Pose_pre_collect_tilt"/>
-        <SubTree ID="Pose_pre_collect_jaw"/>
-        <SubTree ID="Pose_pre_collect_lift"/>
-      </Sequence>
-      <Sequence>
-        <Fallback>
+      <SubTree ID="Pose_close_collect_tilt"/>
+      <SubTree ID="Pose_close"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="Collect_pre_close">
+    <Sequence>
+      <Fallback>
+        <SubTree ID="Pose_pre_close_tilt"
+                 _autoremap="false"/>
+        <Sequence>
+          <SubTree ID="Pose_fallback_tilt_close"/>
           <SubTree ID="Pose_pre_close_tilt"
                    _autoremap="false"/>
-        </Fallback>
-        <SubTree ID="Pose_pre_close_lift"/>
-      </Sequence>
-      <Sequence>
-        <SubTree ID="Pose_close_collect_tilt"/>
-        <SubTree ID="Pose_close"/>
-      </Sequence>
+        </Sequence>
+        <Sequence>
+          <SubTree ID="Wiggle"/>
+          <SubTree ID="Pose_pre_close_tilt"
+                   _autoremap="false"/>
+        </Sequence>
+        <AlwaysSuccess/>
+      </Fallback>
+      <SubTree ID="Pose_pre_close_lift"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="Collect_pre_collect">
+    <Sequence>
+      <SubTree ID="Pose_pre_collect_tilt"/>
+      <Fallback>
+        <SubTree ID="Pose_pre_collect_jaw"/>
+        <SubTree ID="Pose_fallback_tilt_close"/>
+        <AlwaysSuccess/>
+      </Fallback>
+      <SubTree ID="Pose_pre_collect_lift"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="Collect_return">
+    <Sequence>
       <SubTree ID="Pose_travel_lift"/>
       <SubTree ID="Pose_travel_tilt"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="Collect_travel">
+    <Sequence>
+      <SubTree ID="Pose_travel_lift"/>
+      <Fallback>
+        <SubTree ID="Pose_travel_tilt"/>
+        <SubTree ID="Pose_fallback_tilt"/>
+      </Fallback>
+      <SubTree ID="Pose_close"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="collect">
+    <Sequence>
+      <SubTree ID="Collect_travel"/>
+      <Sleep msec="1000"/>
+      <SubTree ID="Collect_pre_collect"/>
+      <SubTree ID="Collect_pre_close"/>
+      <SubTree ID="Collect_close"/>
+      <SubTree ID="Collect_return"/>
     </Sequence>
   </BehaviorTree>
 

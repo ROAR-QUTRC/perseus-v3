@@ -6,6 +6,7 @@
     <include path="collect.xml"/>
     <include path="dump.xml"/>
     <include path="example_dump.xml"/>
+    <include path="recovery.xml"/>
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
         <Action ID="BlindJawMove">
@@ -99,6 +100,15 @@
             <output_port name="spin_dist" type="double">spin_deg in radians: positive left, negative right</output_port>
             <input_port name="self_pad_m" type="double" default="0.150000">padding added to that box on every side</input_port>
             <input_port name="window_s" type="double" default="0.600000">how long to gather clouds for</input_port>
+        </Action>
+        <Action ID="WiggleBucket">
+            <output_port name="failure" type="std::string">why the wiggle failed, empty on success: invalid, no_joint_state, operator_override, no_server or rejected. A missed move is not a failure</output_port>
+            <input_port name="server_name" type="std::string" default="/bucket_trajectory_controller/follow_joint_trajectory">the bucket controller's FollowJointTrajectory action</input_port>
+            <input_port name="tolerance_deg" type="double" default="2.000000">how close counts as there, for every move; always sent, as the controller's own tilt tolerance is ~29 deg</input_port>
+            <input_port name="timeout_s" type="double" default="3.000000">how long each move may take</input_port>
+            <input_port name="jaw_deg" type="double" default="5.000000">jaw offset, degrees: + opens first, - closes; 0 skips</input_port>
+            <input_port name="tilt_deg" type="double" default="5.000000">tilt offset, degrees: + dumps first, - curls; 0 skips</input_port>
+            <input_port name="lift_deg" type="double" default="5.000000">lift offset, degrees: + lowers first, - raises; 0 skips</input_port>
         </Action>
     </TreeNodesModel>
 </root>

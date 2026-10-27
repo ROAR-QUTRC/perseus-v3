@@ -13,6 +13,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <string>
+#include <vector>
 
 namespace mission_bt_server
 {
@@ -73,36 +74,74 @@ namespace mission_bt_server
         BT::NodeStatus onRunning() override;
         void onHalted() override;
 
+    protected:
+        /// @brief One goal of a move. A move is one or more of these, sent in order,
+        /// each only once the one before it has finished.
+        struct Step
+        {
+            FollowJointTrajectory::Goal goal;
+            /// For the log: "lift 12.0 deg within 5.0 s".
+            std::string described;
+            /// How long to wait for the controller's verdict on this goal.
+            std::chrono::steady_clock::duration allowance{};
+        };
+
+        /// @brief A direct move of @p joints to @p positions (radians): the setpoint
+        /// jumps there and the controller gives the bucket @p timeout_s to arrive.
+        /// @p tolerance_deg, if above 0, replaces the controller's goal tolerance for
+        /// each joint. @p described is the joints and angles, for the log.
+        static Step _direct_step(const std::vector<std::string>& joints,
+                                 const std::vector<double>& positions, double timeout_s,
+                                 std::optional<double> tolerance_deg, std::string described);
+
+        /// @brief Runs @p steps in order on @p action_name, each sent up to
+        /// @p attempts times. With @p tolerate_miss a step that is still missed after
+        /// its last attempt is logged and skipped rather than failing the move.
+        /// Called from onStart(); returns what onStart() should.
+        BT::NodeStatus _start(const std::string& action_name, std::vector<Step> steps,
+                              int attempts, bool tolerate_miss);
+
+        /// @brief Services the action client's callbacks for at most @p budget.
+        void _spin(std::chrono::milliseconds budget);
+
+        rclcpp::Node::SharedPtr _node;
+        rclcpp::CallbackGroup::SharedPtr _callback_group;
+
     private:
         /// @brief Creates the action client for @p action_name, replacing one made
         /// for a different name.
         void _make_client(const std::string& action_name);
 
-        /// @brief Services the action client's callbacks for at most @p budget.
-        void _spin(std::chrono::milliseconds budget);
-
         /// @brief Cancels the goal in flight, if any, and forgets it.
         void _cancel();
 
-        /// @brief Sends _goal and starts this attempt's clock.
+        /// @brief Sends the current step's goal and starts this attempt's clock.
         void _send_goal();
 
         /// @brief After a missed pose: sends it again and returns RUNNING if attempts
-        /// are left, else records @p failure and returns FAILURE.
+        /// are left, else records @p failure and returns FAILURE - or, with
+        /// _tolerate_miss, moves on to the next step.
         BT::NodeStatus _retry_or_fail(const char* failure);
 
-        rclcpp::Node::SharedPtr _node;
-        rclcpp::CallbackGroup::SharedPtr _callback_group;
+        /// @brief Sends the next step and returns RUNNING, or SUCCESS after the last.
+        BT::NodeStatus _next_step();
+
+        /// @brief How far each joint was from the current step's pose in the
+        /// controller's last feedback: "jaw 3.3 deg off: target 36.2, actual 32.9,
+        /// tolerance 2.0". The controller's own result only says the goal timed out,
+        /// and which joint missed by how much is otherwise only in its log.
+        std::string _describe_miss() const;
+
         rclcpp::executors::SingleThreadedExecutor _executor;
         rclcpp_action::Client<FollowJointTrajectory>::SharedPtr _client;
         std::string _action_name;
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr _override_subscription;
         bool _operator_override{false};
 
-        // Per tick of onStart: the goal, resent as is on each attempt.
-        FollowJointTrajectory::Goal _goal;
-        std::string _described;
-        std::chrono::steady_clock::duration _allowance{};
+        // Per tick of onStart: the steps, each goal resent as is on each attempt.
+        std::vector<Step> _steps;
+        std::size_t _step{0};
+        bool _tolerate_miss{false};
         int _attempt{0};
         int _attempts{1};
 
@@ -111,6 +150,7 @@ namespace mission_bt_server
         bool _goal_responded{false};
         GoalHandle::SharedPtr _goal_handle;
         std::optional<GoalHandle::WrappedResult> _result;
+        std::shared_ptr<const FollowJointTrajectory::Feedback> _feedback;
         std::chrono::steady_clock::time_point _deadline;
     };
 

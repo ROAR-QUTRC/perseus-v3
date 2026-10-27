@@ -95,6 +95,9 @@
       - velocity
     allow_partial_joints_goal: true
     constraints:
+      # Goal counts as reached only once each joint is slower than this (rad/s).
+      # Default 0.01; velocity is finite-differenced at 20 Hz, so jitter can trip it.
+      stopped_velocity_tolerance: 0.05
       goal_time: 3.0
       bucket_lift_joint:
         goal: 0.035

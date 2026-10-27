@@ -94,9 +94,10 @@ target_compile_definitions(request_zone_waypoint_bt_node
                            PRIVATE BT_PLUGIN_EXPORT)
 
 # Same convention for MoveBucket, the bucket pose step mission.xml runs before a
-# mission when the panel asks for it.
-add_library(move_bucket_bt_node SHARED
-            src/mission_bt_server/move_bucket_bt_node.cpp)
+# mission when the panel asks for it. WiggleBucket, its recovery, shares the library.
+add_library(
+  move_bucket_bt_node SHARED src/mission_bt_server/move_bucket_bt_node.cpp
+                             src/mission_bt_server/wiggle_bucket_bt_node.cpp)
 target_include_directories(move_bucket_bt_node
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(
@@ -106,6 +107,7 @@ ament_target_dependencies(
   rclcpp_action
   control_msgs
   std_msgs
+  sensor_msgs
   behaviortree_cpp)
 target_compile_definitions(move_bucket_bt_node PRIVATE BT_PLUGIN_EXPORT)
 

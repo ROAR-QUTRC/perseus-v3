@@ -7,26 +7,36 @@
         <SubTree ID="Pose_pre_dump_lift"/>
         <SubTree ID="Pose_pre_dump_tilt"/>
       </Sequence>
-      <SubTree ID="Pose_open"/>
-      <Sequence>
-        <Fallback>
-          <SubTree ID="Pose_open_tilt_backward"
-                   _autoremap="false"/>
+      <!-- The jaw's limit moves with the tilt, so it may not open fully here: settle
+           for partly open rather than end the run. -->
+      <Fallback>
+        <SubTree ID="Pose_open"/>
+        <SubTree ID="Pose_fallback_tilt_close"/>
+        <AlwaysSuccess/>
+      </Fallback>
+      <!-- Shake the load out. A missed shake move must not end the run. -->
+      <Fallback>
+        <Sequence>
+          <Fallback>
+            <SubTree ID="Pose_open_tilt_backward"
+                     _autoremap="false"/>
+            <SubTree ID="Pose_open_lift_forward"
+                     _autoremap="false"/>
+          </Fallback>
+          <Fallback>
+            <SubTree ID="Pose_open_tilt_backward"
+                     _autoremap="false"/>
+            <SubTree ID="Pose_open_lift_forward"
+                     _autoremap="false"/>
+          </Fallback>
           <SubTree ID="Pose_open_lift_forward"
                    _autoremap="false"/>
-        </Fallback>
-        <Fallback>
+          <SubTree ID="Pose_open_tilt_forward"/>
           <SubTree ID="Pose_open_tilt_backward"
                    _autoremap="false"/>
-          <SubTree ID="Pose_open_lift_forward"
-                   _autoremap="false"/>
-        </Fallback>
-        <SubTree ID="Pose_open_lift_forward"
-                 _autoremap="false"/>
-        <SubTree ID="Pose_open_tilt_forward"/>
-        <SubTree ID="Pose_open_tilt_backward"
-                 _autoremap="false"/>
-      </Sequence>
+        </Sequence>
+        <AlwaysSuccess/>
+      </Fallback>
       <Sleep msec="1000"/>
       <SubTree ID="Pose_travel"/>
     </Sequence>

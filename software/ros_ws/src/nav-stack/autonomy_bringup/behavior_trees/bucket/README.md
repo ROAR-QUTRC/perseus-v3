@@ -34,7 +34,11 @@ Bucket behaviours built from saved poses, edited in Groot2 and run with `bucket_
    - Jog with `w`/`s` (lift), `a`/`d` (tilt) and `q`/`e` (jaw). `+`/`-` change the duty.
      If an axis moves the wrong way, start with `--invert`.
    - Press `p` to save the bucket's current angles as `Pose_<name>`. Choose which joints
-     the pose sets; the others hold. Also set `timeout_s` and `attempts`.
+     the pose sets; the others hold. Also set `timeout_s` and `attempts`. A pose with
+     more than one joint is saved as one pose per joint (`Pose_<name>_lift`, `_tilt`,
+     `_jaw`), and `Pose_<name>` runs them in turn, so the axes never draw their inrush
+     current at once. Reorder the steps in Groot2 if needed; a re-save keeps that order.
+   - Press `l` to list the poses. A sequence pose shows its steps in order.
    - Press `g` to send the bucket back to a saved pose and check it.
 
 4. **Build the behaviour in Groot2.** Open `bucket.btproj`. Every `Pose_*` appears as a
@@ -71,6 +75,26 @@ mission's dig carry uses a timed move, because its lift has to keep pace with th
 A pose that doesn't arrive within `timeout_s` is sent again, up to `attempts` times. The
 retries are only for a missed pose. An operator override, a missing controller or a
 rejected goal fails at once.
+
+If a pose still misses after all its attempts, the `Wiggle` subtree (`recovery.xml`) is
+the recovery. It moves each axis in turn 5° out and back to where it started: lift, then
+tilt, then jaw. Put it in a Fallback after the pose and retry the pose after it:
+
+```xml
+<Fallback>
+  <SubTree ID="Pose_X"/>
+  <Sequence>
+    <SubTree ID="Wiggle"/>
+    <SubTree ID="Pose_X"/>
+  </Sequence>
+</Fallback>
+```
+
+`WiggleBucket`'s `lift_deg`, `tilt_deg` and `jaw_deg` are signed: the sign is which way
+the axis goes first, and 0 skips it. A wiggle move that misses doesn't fail the wiggle,
+because the retried pose decides whether it worked. `tolerance_deg` (default 2°) is always
+sent. Without it, the controller's own tilt tolerance (about 29°) would let a 5° tilt
+"arrive" without the bucket moving at all.
 
 ## In the mission
 

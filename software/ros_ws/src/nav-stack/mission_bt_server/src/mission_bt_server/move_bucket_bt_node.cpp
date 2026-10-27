@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mission_bt_server/mission_bt_server/bucket_mission_params.hpp"
+#include "mission_bt_server/mission_bt_server/wiggle_bucket_bt_node.hpp"
 
 namespace mission_bt_server
 {
@@ -41,6 +42,54 @@ namespace mission_bt_server
         double radians(double degrees)
         {
             return degrees * M_PI / 180.0;
+        }
+
+        double degrees(double radians)
+        {
+            return radians * 180.0 / M_PI;
+        }
+
+        // "bucket_jaw_joint" -> "jaw", for the log.
+        std::string joint_label(std::string name)
+        {
+            const std::string prefix = "bucket_";
+            if (name.rfind(prefix, 0) == 0)
+            {
+                name.erase(0, prefix.size());
+            }
+            const std::string suffix = "_joint";
+            if (name.size() > suffix.size() &&
+                name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0)
+            {
+                name.erase(name.size() - suffix.size());
+            }
+            return name;
+        }
+
+        // How long to wait for a goal's verdict: its own @p seconds plus the grace.
+        std::chrono::steady_clock::duration allowance(double seconds)
+        {
+            return std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                       std::chrono::duration<double>(seconds)) +
+                   RESULT_GRACE;
+        }
+
+        // Replaces the controller's goal tolerance for @p joints, if one is given.
+        void add_tolerance(control_msgs::action::FollowJointTrajectory::Goal& goal,
+                           const std::vector<std::string>& joints,
+                           std::optional<double> tolerance_deg)
+        {
+            if (!tolerance_deg || tolerance_deg.value() <= 0.0)
+            {
+                return;
+            }
+            for (const auto& joint : joints)
+            {
+                control_msgs::msg::JointTolerance tolerance;
+                tolerance.name = joint;
+                tolerance.position = radians(tolerance_deg.value());
+                goal.goal_tolerance.push_back(tolerance);
+            }
         }
     }  // namespace
 
@@ -110,7 +159,7 @@ namespace mission_bt_server
         setOutput("failure", std::string{});
         std::vector<std::string> joints;
         std::vector<double> positions;
-        _described.clear();
+        std::string described;
         for (const auto& [port, joint, label] :
              {std::tuple{"lift_deg", "bucket_lift_joint", "lift"},
               std::tuple{"tilt_deg", "bucket_tilt_joint", "tilt"},
@@ -122,9 +171,9 @@ namespace mission_bt_server
                 joints.emplace_back(joint);
                 positions.push_back(radians(degrees));
                 char text[32];
-                std::snprintf(text, sizeof(text), "%s%s %.1f", _described.empty() ? "" : ", ",
+                std::snprintf(text, sizeof(text), "%s%s %.1f", described.empty() ? "" : ", ",
                               label, degrees);
-                _described += text;
+                described += text;
             }
         }
         if (joints.empty())
@@ -138,12 +187,61 @@ namespace mission_bt_server
         getInput("server_name", action_name);
         double timeout_s = 10.0;
         getInput("timeout_s", timeout_s);
-        _attempts = 1;
-        getInput("attempts", _attempts);
-        _attempts = std::max(_attempts, 1);
+        int attempts = 1;
+        getInput("attempts", attempts);
         const auto duration_s = getInput<double>("duration_s");
-        const auto tolerance_deg = getInput<double>("tolerance_deg");
+        std::optional<double> tolerance_deg;
+        if (const auto given = getInput<double>("tolerance_deg"))
+        {
+            tolerance_deg = given.value();
+        }
 
+        if (!duration_s)
+        {
+            return _start(action_name,
+                          {{_direct_step(joints, positions, timeout_s, tolerance_deg, described)}},
+                          attempts, false);
+        }
+
+        Step step;
+        step.goal.trajectory.joint_names = joints;
+        trajectory_msgs::msg::JointTrajectoryPoint point;
+        point.positions = positions;
+        const double seconds = std::max(duration_s.value(), 0.5);
+        point.time_from_start = rclcpp::Duration::from_seconds(seconds);
+        step.goal.trajectory.points.push_back(point);
+        add_tolerance(step.goal, joints, tolerance_deg);
+        step.allowance = allowance(seconds + CONTROLLER_GOAL_TIME_S);
+        char text[48];
+        std::snprintf(text, sizeof(text), " deg over %.1f s", seconds);
+        step.described = described + text;
+        return _start(action_name, {{step}}, attempts, false);
+    }
+
+    MoveBucketBtNode::Step MoveBucketBtNode::_direct_step(
+        const std::vector<std::string>& joints, const std::vector<double>& positions,
+        double timeout_s, std::optional<double> tolerance_deg, std::string described)
+    {
+        Step step;
+        step.goal.trajectory.joint_names = joints;
+        trajectory_msgs::msg::JointTrajectoryPoint point;
+        point.positions = positions;
+        timeout_s = std::max(timeout_s, 0.5);
+        point.time_from_start = rclcpp::Duration::from_seconds(DIRECT_POINT_S);
+        step.goal.trajectory.points.push_back(point);
+        step.goal.goal_time_tolerance = rclcpp::Duration::from_seconds(timeout_s);
+        add_tolerance(step.goal, joints, tolerance_deg);
+        step.allowance = allowance(DIRECT_POINT_S + timeout_s);
+        char text[48];
+        std::snprintf(text, sizeof(text), " deg within %.1f s", timeout_s);
+        step.described = std::move(described) + text;
+        return step;
+    }
+
+    BT::NodeStatus MoveBucketBtNode::_start(const std::string& action_name,
+                                            std::vector<Step> steps, int attempts,
+                                            bool tolerate_miss)
+    {
         _spin(std::chrono::milliseconds(5));  // the latched override flag
         if (_operator_override)
         {
@@ -167,45 +265,10 @@ namespace mission_bt_server
             return BT::NodeStatus::FAILURE;
         }
 
-        _goal = FollowJointTrajectory::Goal();
-        _goal.trajectory.joint_names = joints;
-        trajectory_msgs::msg::JointTrajectoryPoint point;
-        point.positions = positions;
-        double allowance_s = 0.0;
-        if (duration_s)
-        {
-            const double seconds = std::max(duration_s.value(), 0.5);
-            point.time_from_start = rclcpp::Duration::from_seconds(seconds);
-            allowance_s = seconds + CONTROLLER_GOAL_TIME_S;
-            char text[48];
-            std::snprintf(text, sizeof(text), " deg over %.1f s", seconds);
-            _described += text;
-        }
-        else
-        {
-            timeout_s = std::max(timeout_s, 0.5);
-            point.time_from_start = rclcpp::Duration::from_seconds(DIRECT_POINT_S);
-            _goal.goal_time_tolerance = rclcpp::Duration::from_seconds(timeout_s);
-            allowance_s = DIRECT_POINT_S + timeout_s;
-            char text[48];
-            std::snprintf(text, sizeof(text), " deg within %.1f s", timeout_s);
-            _described += text;
-        }
-        _goal.trajectory.points.push_back(point);
-        if (tolerance_deg && tolerance_deg.value() > 0.0)
-        {
-            for (const auto& joint : joints)
-            {
-                control_msgs::msg::JointTolerance tolerance;
-                tolerance.name = joint;
-                tolerance.position = radians(tolerance_deg.value());
-                _goal.goal_tolerance.push_back(tolerance);
-            }
-        }
-        _allowance = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-                         std::chrono::duration<double>(allowance_s)) +
-                     RESULT_GRACE;
-
+        _steps = std::move(steps);
+        _step = 0;
+        _tolerate_miss = tolerate_miss;
+        _attempts = std::max(attempts, 1);
         _attempt = 1;
         _send_goal();
         return onRunning();
@@ -213,30 +276,96 @@ namespace mission_bt_server
 
     void MoveBucketBtNode::_send_goal()
     {
+        const Step& step = _steps[_step];
         _goal_responded = false;
         _goal_handle.reset();
         _result.reset();
+        _feedback.reset();
         rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions options;
         options.goal_response_callback = [this](GoalHandle::SharedPtr handle)
         {
             _goal_responded = true;
             _goal_handle = handle;
         };
+        options.feedback_callback =
+            [this](GoalHandle::SharedPtr,
+                   const std::shared_ptr<const FollowJointTrajectory::Feedback> feedback)
+        { _feedback = feedback; };
         options.result_callback = [this](const GoalHandle::WrappedResult& result)
         { _result = result; };
-        _client->async_send_goal(_goal, options);
-        _deadline = std::chrono::steady_clock::now() + _allowance;
+        _client->async_send_goal(step.goal, options);
+        _deadline = std::chrono::steady_clock::now() + step.allowance;
 
-        if (_attempts > 1)
+        char progress[96] = "";
+        if (_steps.size() > 1 && _attempts > 1)
         {
-            RCLCPP_INFO(_node->get_logger(), "MoveBucket: %s (attempt %d/%d)",
-                        _described.c_str(), _attempt, _attempts);
+            std::snprintf(progress, sizeof(progress), " (step %zu/%zu, attempt %d/%d)",
+                          _step + 1, _steps.size(), _attempt, _attempts);
         }
-        else
+        else if (_steps.size() > 1)
         {
-            RCLCPP_INFO(_node->get_logger(), "MoveBucket: %s", _described.c_str());
+            std::snprintf(progress, sizeof(progress), " (step %zu/%zu)", _step + 1,
+                          _steps.size());
         }
+        else if (_attempts > 1)
+        {
+            std::snprintf(progress, sizeof(progress), " (attempt %d/%d)", _attempt,
+                          _attempts);
+        }
+        RCLCPP_INFO(_node->get_logger(), "MoveBucket: %s%s", step.described.c_str(), progress);
         _spin(std::chrono::milliseconds(5));
+    }
+
+    BT::NodeStatus MoveBucketBtNode::_next_step()
+    {
+        if (++_step < _steps.size())
+        {
+            _attempt = 1;
+            _send_goal();
+            return BT::NodeStatus::RUNNING;
+        }
+        return BT::NodeStatus::SUCCESS;
+    }
+
+    std::string MoveBucketBtNode::_describe_miss() const
+    {
+        if (!_feedback)
+        {
+            return "no feedback from the controller";
+        }
+        const auto& feedback = *_feedback;
+        const auto& goal = _steps[_step].goal;
+        const auto& commanded = goal.trajectory.joint_names;
+        std::string text;
+        const std::size_t count =
+            std::min({feedback.joint_names.size(), feedback.desired.positions.size(),
+                      feedback.actual.positions.size()});
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            const auto& name = feedback.joint_names[i];
+            const double target = feedback.desired.positions[i];
+            const double actual = feedback.actual.positions[i];
+            // Partial goals: the controller holds the joints not given, and checks
+            // its tolerance on them too.
+            const bool held =
+                std::find(commanded.begin(), commanded.end(), name) == commanded.end();
+            char part[128];
+            std::snprintf(part, sizeof(part), "%s%s%s %.1f deg off: target %.1f, actual %.1f",
+                          text.empty() ? "" : "; ", joint_label(name).c_str(),
+                          held ? " (held)" : "", std::abs(degrees(target - actual)),
+                          degrees(target), degrees(actual));
+            text += part;
+            for (const auto& tolerance : goal.goal_tolerance)
+            {
+                if (tolerance.name == name)
+                {
+                    std::snprintf(part, sizeof(part), ", tolerance %.1f",
+                                  degrees(tolerance.position));
+                    text += part;
+                }
+            }
+        }
+        return text;
     }
 
     BT::NodeStatus MoveBucketBtNode::_retry_or_fail(const char* failure)
@@ -257,6 +386,12 @@ namespace mission_bt_server
             ++_attempt;
             _send_goal();
             return BT::NodeStatus::RUNNING;
+        }
+        if (_tolerate_miss)
+        {
+            RCLCPP_WARN(_node->get_logger(), "MoveBucket: carrying on past the missed %s",
+                        _steps[_step].described.c_str());
+            return _next_step();
         }
         setOutput("failure", std::string(failure));
         return BT::NodeStatus::FAILURE;
@@ -291,16 +426,21 @@ namespace mission_bt_server
                 result.result->error_code ==
                     FollowJointTrajectory::Result::SUCCESSFUL)
             {
-                return BT::NodeStatus::SUCCESS;
+                return _next_step();
             }
-            RCLCPP_ERROR(_node->get_logger(), "MoveBucket: the bucket did not reach the pose: %s",
-                         result.result ? result.result->error_string.c_str() : "no result");
+            RCLCPP_ERROR(_node->get_logger(),
+                         "MoveBucket: the bucket did not reach %s (attempt %d/%d): %s - %s",
+                         _steps[_step].described.c_str(), _attempt, _attempts,
+                         result.result ? result.result->error_string.c_str() : "no result",
+                         _describe_miss().c_str());
             return _retry_or_fail("not_reached");
         }
         if (std::chrono::steady_clock::now() > _deadline)
         {
-            RCLCPP_ERROR(_node->get_logger(), "MoveBucket: no result from %s in time",
-                         _action_name.c_str());
+            RCLCPP_ERROR(_node->get_logger(),
+                         "MoveBucket: no result from %s in time for %s (attempt %d/%d) - %s",
+                         _action_name.c_str(), _steps[_step].described.c_str(), _attempt,
+                         _attempts, _describe_miss().c_str());
             _cancel();
             return _retry_or_fail("timeout");
         }
@@ -327,7 +467,11 @@ namespace mission_bt_server
 
 }  // namespace mission_bt_server
 
+// One registration for the whole library: WiggleBucket is built into it too
+// (wiggle_bucket_bt_node.cpp), so the plugin lists that load move_bucket_bt_node
+// get both.
 BT_REGISTER_NODES(factory)
 {
     factory.registerNodeType<mission_bt_server::MoveBucketBtNode>("MoveBucket");
+    factory.registerNodeType<mission_bt_server::WiggleBucketBtNode>("WiggleBucket");
 }
