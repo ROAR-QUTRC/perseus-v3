@@ -98,7 +98,8 @@
       goal_time: 3.0
       bucket_lift_joint:
         goal: 0.035
+      # Tilt is loose: 0.5 rad = ~29 deg.
       bucket_tilt_joint:
-        goal: 0.035
+        goal: 0.5
       bucket_jaw_joint:
         goal: 0.035
