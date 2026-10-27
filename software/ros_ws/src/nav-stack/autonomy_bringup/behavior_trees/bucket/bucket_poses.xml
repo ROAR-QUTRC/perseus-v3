@@ -6,7 +6,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg="0.0"
                 tilt_deg="-72.6"
                 lift_deg="10.2"/>
@@ -18,7 +18,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="2"
+                timeout_s="6"
                 jaw_deg="0.0"
                 tilt_deg=""
                 lift_deg=""/>
@@ -30,7 +30,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="2"
+                timeout_s="6"
                 jaw_deg="0.0"
                 tilt_deg="-38.1"
                 lift_deg=""/>
@@ -42,7 +42,7 @@
                 duration_s=""
                 tolerance_deg="3"
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-38.9"
                 lift_deg=""/>
@@ -54,7 +54,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="5"
-                timeout_s="4"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-52.4"
                 lift_deg=""/>
@@ -66,7 +66,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg="36.2"
                 tilt_deg=""
                 lift_deg=""/>
@@ -78,7 +78,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg=""
                 lift_deg="17.5"/>
@@ -102,7 +102,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="3"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="20.8"
                 lift_deg=""/>
@@ -115,7 +115,7 @@
                   duration_s=""
                   tolerance_deg="5"
                   attempts="5"
-                  timeout_s="5"
+                  timeout_s="6"
                   jaw_deg=""
                   tilt_deg="22.3"
                   lift_deg=""/>
@@ -124,7 +124,7 @@
                   duration_s=""
                   tolerance_deg=""
                   attempts="5"
-                  timeout_s="5"
+                  timeout_s="6"
                   jaw_deg=""
                   tilt_deg=""
                   lift_deg="17.8"/>
@@ -137,7 +137,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg=""
                 lift_deg="50.6"/>
@@ -161,7 +161,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg="36.0"
                 tilt_deg="-46.7"
                 lift_deg="37.4"/>
@@ -173,7 +173,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg="35.9"
                 tilt_deg=""
                 lift_deg=""/>
@@ -185,7 +185,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg=""
                 lift_deg="37.4"/>
@@ -209,7 +209,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="4"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg=""
                 lift_deg="31.8"/>
@@ -221,7 +221,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-52.4"
                 lift_deg=""/>
@@ -253,7 +253,7 @@
                 duration_s=""
                 tolerance_deg=""
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg=""
                 lift_deg="22.9"/>
@@ -265,7 +265,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-35.8"
                 lift_deg=""/>
@@ -277,7 +277,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="5"
-                timeout_s="5"
+                timeout_s="6"
                 jaw_deg="0.0"
                 tilt_deg="0.0"
                 lift_deg="0.0"/>
