@@ -149,7 +149,7 @@
                 duration_s=""
                 tolerance_deg="5"
                 attempts="5"
-                timeout_s="3"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-25.6"
                 lift_deg=""/>
@@ -197,7 +197,7 @@
                 duration_s=""
                 tolerance_deg="3"
                 attempts="5"
-                timeout_s="2"
+                timeout_s="6"
                 jaw_deg=""
                 tilt_deg="-46.7"
                 lift_deg=""/>
