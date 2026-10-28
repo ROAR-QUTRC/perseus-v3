@@ -2,7 +2,14 @@
 <root BTCPP_format="4">
   <BehaviorTree ID="dump">
     <Sequence>
-      <SubTree ID="Pose_travel"/>
+      <!-- Pose_travel, with its jaw step allowed to miss: a missed jaw move can be
+           recovered later, so it must not end the run. -->
+      <SubTree ID="Pose_travel_lift"/>
+      <SubTree ID="Pose_travel_tilt"/>
+      <Fallback>
+        <SubTree ID="Pose_close"/>
+        <AlwaysSuccess/>
+      </Fallback>
       <Sequence>
         <SubTree ID="Pose_pre_dump_lift"/>
         <SubTree ID="Pose_pre_dump_tilt"/>
@@ -38,7 +45,12 @@
         <AlwaysSuccess/>
       </Fallback>
       <Sleep msec="1000"/>
-      <SubTree ID="Pose_travel"/>
+      <SubTree ID="Pose_travel_lift"/>
+      <SubTree ID="Pose_travel_tilt"/>
+      <Fallback>
+        <SubTree ID="Pose_close"/>
+        <AlwaysSuccess/>
+      </Fallback>
     </Sequence>
   </BehaviorTree>
 

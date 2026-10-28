@@ -211,9 +211,21 @@
   <BehaviorTree ID="PrepareBucket">
     <Sequence>
       <Script code="phase:=&apos;bucket_to_zero&apos;"/>
-      <SubTree ID="Pose_zero"/>
+      <!-- Pose_zero and Pose_travel step by step, so a missed jaw move alone does
+           not end the run: it can be recovered later. -->
+      <SubTree ID="Pose_zero_lift"/>
+      <SubTree ID="Pose_zero_tilt"/>
+      <Fallback>
+        <SubTree ID="Pose_zero_jaw"/>
+        <AlwaysSuccess/>
+      </Fallback>
       <Script code="phase:=&apos;bucket_to_travel&apos;"/>
-      <SubTree ID="Pose_travel"/>
+      <SubTree ID="Pose_travel_lift"/>
+      <SubTree ID="Pose_travel_tilt"/>
+      <Fallback>
+        <SubTree ID="Pose_close"/>
+        <AlwaysSuccess/>
+      </Fallback>
     </Sequence>
   </BehaviorTree>
 
