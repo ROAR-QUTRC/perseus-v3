@@ -32,7 +32,7 @@
     <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="5" attempts="5" timeout_s="4" jaw_deg="" tilt_deg="-52.4" lift_deg=""/>
   </BehaviorTree>
   <BehaviorTree ID="Pose_open">
-    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="3" jaw_deg="36.2" tilt_deg="" lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="3" jaw_deg="30.0" tilt_deg="" lift_deg=""/>
   </BehaviorTree>
   <BehaviorTree ID="Pose_open_lift_forward">
     <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="5" timeout_s="3" jaw_deg="" tilt_deg="" lift_deg="17.5"/>
@@ -63,7 +63,7 @@
     </Sequence>
   </BehaviorTree>
   <BehaviorTree ID="Pose_pre_collect_jaw">
-    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="3" jaw_deg="35.9" tilt_deg="" lift_deg=""/>
+    <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="2" timeout_s="3" jaw_deg="30.0" tilt_deg="" lift_deg=""/>
   </BehaviorTree>
   <BehaviorTree ID="Pose_pre_collect_lift">
     <MoveBucket failure="" server_name="{@bucket_action}" duration_s="" tolerance_deg="" attempts="5" timeout_s="3" jaw_deg="" tilt_deg="" lift_deg="37.4"/>
