@@ -2,6 +2,7 @@
 	import { getRosConnection } from '$lib/scripts/rosBridge.svelte';
 	import * as ROSLIB from 'roslib';
 	import type { ClassNameValue } from 'cn';
+	import type { OdometryType } from '$lib/scripts/rosTypes';
 
 	const CROSSHAIR_SIZE = 20;
 	const YAW_SIZE = 20;
@@ -19,23 +20,7 @@
 	let pitch = $state(0);
 	let yaw = $state(0);
 
-	let odomTopic: ROSLIB.Topic<{
-		header: object; // dont care
-		pose: {
-			pose: {
-				position: { x: number; y: number; z: number };
-				orientation: { x: number; y: number; z: number; w: number };
-			};
-			covariance: number[];
-		};
-		twist: {
-			twist: {
-				linear: { x: number; y: number; z: number };
-				angular: { x: number; y: number; z: number };
-			};
-			covariance: number[];
-		};
-	}> | null = null;
+	let odomTopic: ROSLIB.Topic<OdometryType> | null = null;
 
 	$effect(() => {
 		const ros = getRosConnection();

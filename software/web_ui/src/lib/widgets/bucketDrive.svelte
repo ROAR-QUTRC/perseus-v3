@@ -30,7 +30,7 @@
 					type: 'number',
 					description: 'Multiplier for jaws speed',
 					value: '-0.1'
-				},
+				}
 			}
 		}
 	});
@@ -56,7 +56,7 @@
 	>({
 		lift: { parent: null, active: false, value: 0 },
 		tilt: { parent: null, active: false, value: 0 },
-		jaws: { parent: null, active: false, value: 0 },
+		jaws: { parent: null, active: false, value: 0 }
 	});
 
 	// ROS2 connection management
@@ -91,7 +91,7 @@
 				Number(settings.groups.general.masterSpeedMultiplier.value),
 			deadBand(handles.jaws.value, DEADBAND_PERCENT) *
 				Number(settings.groups.general.jaws.value) *
-				Number(settings.groups.general.masterSpeedMultiplier.value),
+				Number(settings.groups.general.masterSpeedMultiplier.value)
 		];
 
 		const message: ActuatorsMessageType = {
@@ -226,7 +226,7 @@
 
 {#if !unlocked}
 	<div
-		class="absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%] overflow-hidden text-xl"
+		class="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden text-xl"
 		style:z-index="3"
 	>
 		<Button variant="outline" onpointerdown={startUnlockTimer} onpointerup={stopUnlockTimer}>
@@ -239,7 +239,7 @@
 		{#if active}
 			<div
 				style:top={`calc(${50 - value * 50}% - 25px)`}
-				class={'absolute left-[5px] z-50 h-[50px] w-[50px] rounded-[25px] bg-blue-500'}
+				class={'absolute left-1.25 z-50 h-12.5 w-12.5 rounded-[25px] bg-blue-500'}
 			></div>
 		{/if}
 	{/snippet}
@@ -251,7 +251,7 @@
 					<p class="text-center" style="text-transform: capitalize;">{key}</p>
 					<div
 						bind:this={handles[key].parent}
-						class=" relative z-40 h-[60%] w-[60px] rounded-[30px] bg-red-500 opacity-50"
+						class=" relative z-40 h-[60%] w-15 rounded-[30px] bg-red-500 opacity-50"
 					>
 						{@render thumb(handles[key].active, handles[key].value)}
 					</div>
