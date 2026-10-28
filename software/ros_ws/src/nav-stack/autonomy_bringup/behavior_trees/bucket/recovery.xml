@@ -17,7 +17,7 @@
   <BehaviorTree ID="Wiggle">
     <WiggleBucket failure=""
                   server_name="{@bucket_action}"
-                  tolerance_deg="2"
+                  tolerance_deg="3"
                   timeout_s="3"
                   jaw_deg="5"
                   tilt_deg="5"

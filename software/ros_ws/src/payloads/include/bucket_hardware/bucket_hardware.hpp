@@ -40,6 +40,15 @@ namespace payloads
         double offset_deg = 0.0;
         double direction = 1.0;
 
+        // Hold deadband, degrees, from the <ros2_control> joint params; 0 disables
+        // it. See BucketHardware::hold().
+        double hold_deg = 0.0;
+        double resume_deg = 0.0;
+        // Whether write() has stopped the bank short of command_position, and the
+        // setpoint it stopped for.
+        bool holding = false;
+        double held_command = 0.0;
+
         // Command interface (written by a controller, read by write()).
         // Only meaningful when has_command is true.
         double command_position = 0.0;
@@ -113,6 +122,14 @@ namespace payloads
 
         double to_joint_radians(const JointHandle& joint, double firmware_degrees) const;
         double to_firmware_degrees(const JointHandle& joint, double joint_radians) const;
+
+        /// Whether write() should stay quiet for @p joint this cycle: its hold
+        /// deadband (hold_deg/resume_deg) has stopped the bank short of the setpoint.
+        bool hold(JointHandle& joint);
+
+        /// How far the setpoint may move, in degrees, before a held joint drives
+        /// again. One firmware position unit.
+        static constexpr double HOLD_COMMAND_EPSILON_DEG = 0.1;
 
         /// How far outside its URDF limits a joint may read when a controller claims
         /// it before it is treated as a calibration or direction error rather than

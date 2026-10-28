@@ -80,8 +80,9 @@
       - velocity
     constraints:
       goal_time: 3.0
+      # At least the jaw's hold_deg (bucket.ros2_control.xacro): 0.052 rad = 3 deg.
       bucket_jaw_joint:
-        goal: 0.035
+        goal: 0.052
 /**/bucket_trajectory_controller:
   ros__parameters:
     joints:
@@ -104,5 +105,6 @@
       # Tilt is loose: 0.5 rad = ~29 deg.
       bucket_tilt_joint:
         goal: 0.5
+      # At least the jaw's hold_deg (bucket.ros2_control.xacro): 0.052 rad = 3 deg.
       bucket_jaw_joint:
-        goal: 0.035
+        goal: 0.052

@@ -86,16 +86,32 @@ namespace payloads
                 {
                     joint.direction = std::stod(p->second);
                 }
+                if (auto p = joint_info.parameters.find("hold_deg"); p != joint_info.parameters.end())
+                {
+                    joint.hold_deg = std::stod(p->second);
+                }
+                if (auto p = joint_info.parameters.find("resume_deg"); p != joint_info.parameters.end())
+                {
+                    joint.resume_deg = std::stod(p->second);
+                }
             }
             catch (const std::exception&)
             {
-                RCLCPP_ERROR(logger(), "Joint '%s' has a non-numeric offset_deg or direction",
+                RCLCPP_ERROR(logger(),
+                             "Joint '%s' has a non-numeric offset_deg, direction, hold_deg or "
+                             "resume_deg",
                              joint.name.c_str());
                 return hardware_interface::CallbackReturn::ERROR;
             }
             if (joint.direction != 1.0 && joint.direction != -1.0)
             {
                 RCLCPP_ERROR(logger(), "Joint '%s' direction must be 1 or -1", joint.name.c_str());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+            if (joint.hold_deg > 0.0 && joint.resume_deg < joint.hold_deg)
+            {
+                RCLCPP_ERROR(logger(), "Joint '%s' resume_deg must be at least hold_deg",
+                             joint.name.c_str());
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
@@ -246,6 +262,7 @@ namespace payloads
         for (auto& joint : joints_)
         {
             joint.command_claimed = false;
+            joint.holding = false;
         }
     }
 
@@ -323,6 +340,7 @@ namespace payloads
                 if (matches(name, joint))
                 {
                     joint.command_claimed = false;
+                    joint.holding = false;
                     // Stop the bank rather than leaving it acting on the setpoint
                     // it was last given. Nothing else will: the firmware does not
                     // watchdog position commands.
@@ -337,6 +355,7 @@ namespace payloads
                     // write() cannot jerk it toward a stale setpoint.
                     joint.command_position = joint.state_position;
                     joint.command_claimed = true;
+                    joint.holding = false;
                 }
             }
         }
@@ -457,7 +476,7 @@ namespace payloads
     {
         // Exactly one command per axis (bank-level control)
         // Find the one commandable joint per axis rather than iterating all 6.
-        for (const auto& joint : joints_)
+        for (auto& joint : joints_)
         {
             if (!joint.has_command || !joint.command_claimed)
             {
@@ -468,10 +487,49 @@ namespace payloads
                 // since the firmware follows whichever command arrived last.
                 continue;
             }
+            if (hold(joint))
+            {
+                continue;
+            }
             can_->send_position_command(joint.axis,
                                         to_firmware_degrees(joint, joint.command_position));
         }
         return hardware_interface::return_type::OK;
+    }
+
+    // The firmware's position loop drives at full duty until within its own 2 deg
+    // window and resumes past 3 deg, so a joint that coasts further than that
+    // hunts around a held setpoint forever. Once within hold_deg of a setpoint that
+    // has stopped moving, stop the bank and send nothing until the setpoint changes
+    // or the joint drifts past resume_deg. A zero SET_SPEED parks the bank in speed
+    // mode, where the firmware's watchdog has nothing to catch.
+    bool BucketHardware::hold(JointHandle& joint)
+    {
+        if (joint.hold_deg <= 0.0)
+        {
+            return false;
+        }
+        const double error_deg =
+            std::abs(joint.state_position - joint.command_position) * 180.0 / M_PI;
+        if (joint.holding)
+        {
+            const double moved_deg =
+                std::abs(joint.command_position - joint.held_command) * 180.0 / M_PI;
+            if (moved_deg <= HOLD_COMMAND_EPSILON_DEG && error_deg <= joint.resume_deg)
+            {
+                return true;
+            }
+            joint.holding = false;
+            return false;
+        }
+        if (error_deg <= joint.hold_deg)
+        {
+            can_->stop_axis(joint.axis);
+            joint.holding = true;
+            joint.held_command = joint.command_position;
+            return true;
+        }
+        return false;
     }
 
     double BucketHardware::to_joint_radians(const JointHandle& joint, double firmware_degrees) const

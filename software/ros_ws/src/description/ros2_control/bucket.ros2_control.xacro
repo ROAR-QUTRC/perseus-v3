@@ -26,6 +26,14 @@
     Joint conventions (bucket.urdf.xacro): lift 0 at highest, positive down; tilt
     0 level, positive dumping; jaw 0 closed, positive opening. Leave the defaults
     when the firmware calibration already matches them.
+
+    hold_deg and resume_deg are a hold deadband, in joint degrees; 0 leaves it off.
+    Within hold_deg of a setpoint that has stopped moving, BucketHardware stops the
+    bank and sends nothing until the setpoint changes or the joint drifts past
+    resume_deg. The firmware's own full-duty position loop otherwise hunts around
+    the setpoint when the joint coasts past its 2-3 deg window. Keep the
+    controller's goal tolerance (bucket_controller.yaml) at least hold_deg, or a
+    goal can stop short of it and never succeed.
   -->
   <xacro:macro name="bucket_ros2_control"
       params="prefix:='' can_interface:='can0' hardware_plugin:='payloads/BucketHardware' rw_rate:=20">
@@ -35,11 +43,13 @@
         <param name="can_interface">${can_interface}</param>
       </hardware>
 
-      <xacro:macro name="bucket_ros2_control_joint" params="joint axis offset_deg:=0.0 direction:=1">
+      <xacro:macro name="bucket_ros2_control_joint" params="joint axis offset_deg:=0.0 direction:=1 hold_deg:=0.0 resume_deg:=0.0">
         <joint name="${prefix}${joint}">
           <param name="axis">${axis}</param>
           <param name="offset_deg">${offset_deg}</param>
           <param name="direction">${direction}</param>
+          <param name="hold_deg">${hold_deg}</param>
+          <param name="resume_deg">${resume_deg}</param>
           <command_interface name="position"/>
           <state_interface name="position"/>
           <state_interface name="velocity"/>
@@ -48,7 +58,8 @@
       </xacro:macro>
       <xacro:bucket_ros2_control_joint joint="bucket_lift_joint" axis="lift"/>
       <xacro:bucket_ros2_control_joint joint="bucket_tilt_joint" axis="tilt"/>
-      <xacro:bucket_ros2_control_joint joint="bucket_jaw_joint" axis="jaws"/>
+      <xacro:bucket_ros2_control_joint joint="bucket_jaw_joint" axis="jaws"
+          hold_deg="2.5" resume_deg="6.0"/>
     </ros2_control>
   </xacro:macro>
 </robot>
