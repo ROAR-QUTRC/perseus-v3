@@ -49,22 +49,22 @@ export interface JointStateType {
 
 // nav_msgs types
 export interface OdometryType {
-		header: StampedHeaderType;
-		pose: {
-			pose: {
-				position: { x: number; y: number; z: number };
-				orientation: { x: number; y: number; z: number; w: number };
-			};
-			covariance: number[];
-		};
-		twist: {
-			twist: {
-				linear: { x: number; y: number; z: number };
-				angular: { x: number; y: number; z: number };
-			};
-			covariance: number[];
-		};
-	}
+  header: StampedHeaderType;
+  pose: {
+    pose: {
+      position: { x: number; y: number; z: number };
+      orientation: { x: number; y: number; z: number; w: number };
+    };
+    covariance: number[];
+  };
+  twist: {
+    twist: {
+      linear: { x: number; y: number; z: number };
+      angular: { x: number; y: number; z: number };
+    };
+    covariance: number[];
+  };
+}
 
 // Service types
 export interface EmptyRequestType {}
