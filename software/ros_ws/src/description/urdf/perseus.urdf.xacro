@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="perseus" params="prefix">
+  <xacro:macro name="perseus" params="prefix payload:=none">
     <!-- Motors Properties -->
     <xacro:property name="motors_y_offset" value="0.035"/>  
     <xacro:property name="motors_z_offset" value="-0.25"/>  
@@ -77,6 +77,7 @@
     <xacro:include filename="$(find description)/urdf/rocker.urdf.xacro"/>
     <xacro:include filename="$(find description)/urdf/sensors.urdf.xacro"/>
     <xacro:include filename="$(find description)/urdf/sensor_mount.urdf.xacro"/>
+    <xacro:include filename="$(find description)/urdf/bucket.urdf.xacro"/>
     <xacro:include filename="$(find description)/urdf/camera_d455_gazebo.xacro"/>
     <xacro:include filename="$(find realsense2_description)/urdf/_d455.urdf.xacro"/>
 
@@ -84,7 +85,7 @@
     <link name="${prefix}base_link"/>
 
     <joint name="${prefix}chassis_joint" type="fixed"> <!-- Joint Connect base_link and chassis -->
-      <origin xyz="${chassis_length} 0.0 ${chassis_z_offset}" rpy="0.0 0.0 0.0"/>
+      <origin xyz="${0.2} 0.0 ${chassis_z_offset}" rpy="0.0 0.0 0.0"/>
       <parent link="${prefix}base_link"/>
       <child link="${prefix}chassis"/>
     </joint>
@@ -110,6 +111,11 @@
 
     <!-- Livox and RealSense both hang off the mast: see sensor_mount.urdf.xacro -->
     <xacro:sensor_mount prefix="${prefix}"/>
+
+    <!-- payload:=bucket attaches the bucket mount to the chassis; see bucket.urdf.xacro -->
+    <xacro:if value="${payload == 'bucket'}">
+      <xacro:bucket prefix="${prefix}"/>
+    </xacro:if>
 
   </xacro:macro>
   
