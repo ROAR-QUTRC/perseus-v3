@@ -11,6 +11,7 @@
   navigation2,
   rclcpp,
   robot-localization,
+  sensors,
   slam-toolbox,
   watchdog,
   xacro,
@@ -34,6 +35,7 @@ buildRosPackage rec {
     navigation2
     rclcpp
     robot-localization
+    sensors
     slam-toolbox
     watchdog
     xacro
