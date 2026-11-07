@@ -10,6 +10,7 @@ rec {
     inherit (pkgs)
       bashInteractive
       can-utils
+      ncurses
       glibcLocales
       # groot2
       # nixgl-script

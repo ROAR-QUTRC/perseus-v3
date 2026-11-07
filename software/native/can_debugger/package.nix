@@ -2,12 +2,12 @@
   stdenv,
   cleanCmakeSource,
   cmake,
-  fd-wrapper,
-  hi-can,
+  hi-can-raw,
+  ncurses,
 }:
 
 stdenv.mkDerivation rec {
-  pname = "hi-can-net";
+  pname = "can_debugger";
   version = "0.0.1";
 
   src = cleanCmakeSource {
@@ -15,9 +15,9 @@ stdenv.mkDerivation rec {
     name = pname;
   };
 
-  buildInputs = [
-    fd-wrapper
-    hi-can
-  ];
   nativeBuildInputs = [ cmake ];
+  buildInputs = [
+    hi-can-raw
+    ncurses
+  ];
 }

@@ -7,4 +7,8 @@ final: prev: {
     inherit (final) callPackage;
     directory = ./camera_server;
   };
+  can-debugger = final.lib.packagesFromDirectoryRecursive {
+    inherit (final) callPackage;
+    directory = ./can_debugger;
+  };
 }

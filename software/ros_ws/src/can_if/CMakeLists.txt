@@ -1,8 +1,7 @@
-# PROJECT SETUP
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.14)
 
 project(
-  can_if
+  can_debugger
   VERSION 0.0.1
   LANGUAGES CXX)
 
@@ -18,11 +17,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "MinSizeRel" "RelWithDebInfo")
-endif()
-# we always want debug info for stack tracing, so switch to RelWithDebInfo from
-# Release
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
@@ -43,43 +37,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # public dependencies (which should propagate)
 set(THIS_PACKAGE_INCLUDE_DEPENDS rclcpp sensor_msgs nlohmann_json interfaces)
 
-# packages which must be present but aren't linked against
-set(THIS_PACKAGE_BUILD_DEPENDS backward_ros ament_cmake)
+# Add the target, using the sources found
+add_executable(${PROJECT_NAME} ${CODE_SOURCES})
 
-foreach(Dependency IN ITEMS ${THIS_PACKAGE_BUILD_DEPENDS})
-  find_package(${Dependency} REQUIRED)
-endforeach()
+# Project headers
+target_include_directories(${PROJECT_NAME}
+                           PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
-  find_package(${Dependency} REQUIRED)
-endforeach()
+# ncurses
+set(CURSES_NEED_NCURSES TRUE)
+find_package(Curses REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CURSES_INCLUDE_DIRS})
+find_package(nlohmann_json 3.11 REQUIRED)
 
+# check if libraries are already present (Nix build), if not, add them
 find_package(hi_can_raw QUIET)
 if(NOT hi_can_raw_FOUND)
-  message(STATUS "hi-can-raw not found, adding subdirectory...")
-  message(
-    STATUS "Attempting to add hi-can-raw from: ../../../shared/hi-can-raw")
+  message(STATUS "hi_can_raw not found, adding subdirectory...")
+  # add the directory with its CMakeLists.txt
   add_subdirectory(../../../shared/hi-can-raw hi-can-raw)
 endif()
 
-# COMPILE (Executables)
+# Link in libraries needed
+target_link_libraries(${PROJECT_NAME} PRIVATE hi_can_raw ${CURSES_LIBRARIES}
+                                              nlohmann_json::nlohmann_json)
 
-# Find all source files for the executables
-file(GLOB_RECURSE RCB_DRIVER_CODE_SOURCES src/rcb_driver/*.cpp)
+# Versioning
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 
-# Add exec targets
-add_executable(rcb_driver ${RCB_DRIVER_CODE_SOURCES})
-
-# Add include dirs
-target_include_directories(rcb_driver
-                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-# Add dependencies for the executables
-ament_target_dependencies(rcb_driver PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
-
-target_link_libraries(rcb_driver PUBLIC hi_can_raw)
-
-# Install ROS Executable
-install(TARGETS rcb_driver DESTINATION lib/${PROJECT_NAME})
-
-ament_package()
+# Install the executable
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
