@@ -48,7 +48,7 @@
 					(justify bottom)
 				)
 			)
-			(property "Datasheet" ""
+			(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -57,9 +57,10 @@
 					(font
 						(size 1.27 1.27)
 					)
+					(justify bottom)
 				)
 			)
-			(property "Description" ""
+			(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -68,9 +69,34 @@
 					(font
 						(size 1.27 1.27)
 					)
+					(justify bottom)
 				)
 			)
-			(property "MF" "Tensility International Corporation"
+			(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "DigiKey_Part_Number" "839-54-00274-ND"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify bottom)
+				)
+			)
+			(property "MANUFACTURER" "Tensility International Corporation"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -94,43 +120,7 @@
 					(justify bottom)
 				)
 			)
-			(property "Package" "None"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "Price" "None"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "Check_prices" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=eda"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "STANDARD" "Manufacturer Recommendations"
+			(property "MPN" "54-00274"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -154,7 +144,7 @@
 					(justify bottom)
 				)
 			)
-			(property "SnapEDA_Link" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=snap"
+			(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -166,43 +156,7 @@
 					(justify bottom)
 				)
 			)
-			(property "MP" "54-00274"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "Description_1" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "Availability" "In Stock"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify bottom)
-				)
-			)
-			(property "MANUFACTURER" "Tensility"
+			(property "STANDARD" "Manufacturer Recommendations"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -968,6 +922,129 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Mechanical:MountingHole_Pad"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "H"
+				(at 0 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "MountingHole_Pad"
+				(at 0 4.445 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Mounting Hole with connection"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "mounting hole"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "MountingHole*Pad*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "MountingHole_Pad_0_1"
+				(circle
+					(center 0 1.27)
+					(radius 1.27)
+					(stroke
+						(width 1.27)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "MountingHole_Pad_1_1"
+				(pin input line
+					(at 0 -2.54 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Switch:SW_DIP_x04"
 			(pin_names
 				(offset 0)
@@ -1583,7 +1660,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "D"
+	(text "4"
 		(exclude_from_sim no)
 		(at 128.016 132.08 0)
 		(effects
@@ -1593,7 +1670,7 @@
 		)
 		(uuid "164f0765-70c2-459b-9e08-e99f52e44d04")
 	)
-	(text "C"
+	(text "3"
 		(exclude_from_sim no)
 		(at 128.778 49.784 0)
 		(effects
@@ -1603,9 +1680,9 @@
 		)
 		(uuid "1bce0686-97a7-4616-932e-dab3aa1d0e12")
 	)
-	(text "A"
+	(text "1"
 		(exclude_from_sim no)
-		(at 46.736 91.694 0)
+		(at 72.136 91.694 0)
 		(effects
 			(font
 				(size 4.445 4.445)
@@ -1613,9 +1690,9 @@
 		)
 		(uuid "3be5ba09-b168-4aba-a924-a674989eb101")
 	)
-	(text "B\n"
+	(text "2"
 		(exclude_from_sim no)
-		(at 264.16 91.948 0)
+		(at 227.33 91.948 0)
 		(effects
 			(font
 				(size 4.445 4.445)
@@ -1624,19 +1701,13 @@
 		(uuid "f995df7e-8543-4395-9750-250daf692cdd")
 	)
 	(junction
-		(at 194.31 63.5)
+		(at 163.83 63.5)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "0b523fc3-bd50-4ee7-804c-53bd97dcd53e")
 	)
 	(junction
-		(at 232.41 97.79)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "1352a550-1c02-4cd7-8ac7-67fa8e364d06")
-	)
-	(junction
-		(at 193.04 95.25)
+		(at 162.56 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "205e3bea-05ae-4e92-9128-2b8e4168aa88")
@@ -1660,10 +1731,16 @@
 		(uuid "2a8d4d97-3aea-4d1e-8fca-c8cacc4f1965")
 	)
 	(junction
-		(at 195.58 87.63)
+		(at 165.1 87.63)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "38fdf741-cc33-4f16-9a76-d183c8d58297")
+	)
+	(junction
+		(at 195.58 66.04)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "3c74bfe7-6e60-4c88-a2ce-d48e7bc48382")
 	)
 	(junction
 		(at 116.84 92.71)
@@ -1678,7 +1755,7 @@
 		(uuid "5625ad55-d650-4414-950b-86783be822c3")
 	)
 	(junction
-		(at 193.04 85.09)
+		(at 162.56 85.09)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "5c664f77-ab69-4a47-a77a-85ede03ff109")
@@ -1690,22 +1767,22 @@
 		(uuid "62b401b0-7893-42ea-a699-ff80aab05ce1")
 	)
 	(junction
-		(at 232.41 87.63)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "74c2696e-7ae6-47da-bbdf-71a37c449895")
-	)
-	(junction
 		(at 119.38 87.63)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "8c6bc338-8519-4a2d-b3b9-461c3f5da09c")
 	)
 	(junction
-		(at 229.87 85.09)
+		(at 193.04 85.09)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "9dc54ea6-1cd2-4c55-8070-ecd694c8e9b5")
+	)
+	(junction
+		(at 195.58 87.63)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "b8750dcc-9e4f-4f7f-86df-027582b7092e")
 	)
 	(junction
 		(at 119.38 95.25)
@@ -1714,7 +1791,7 @@
 		(uuid "bfaf3ee0-7369-4440-991a-9a4679182445")
 	)
 	(junction
-		(at 229.87 95.25)
+		(at 193.04 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c6ad73e3-28bb-4c6a-895e-3141d138e34c")
@@ -1723,23 +1800,29 @@
 		(at 195.58 97.79)
 		(diameter 0)
 		(color 0 0 0 0)
+		(uuid "ca73eb36-30a6-492e-b7ec-45d78242d6ef")
+	)
+	(junction
+		(at 165.1 97.79)
+		(diameter 0)
+		(color 0 0 0 0)
 		(uuid "ccf6fdd6-f363-4d74-8e6a-3f5555729141")
 	)
 	(junction
-		(at 194.31 118.11)
+		(at 163.83 118.11)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "dbfb4222-6903-45a2-998b-208fcc77764b")
 	)
 	(junction
-		(at 67.31 100.33)
+		(at 92.71 100.33)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e9f847d3-fee2-47ec-8dce-fdf79c28bfc3")
 	)
 	(wire
 		(pts
-			(xy 189.23 95.25) (xy 209.55 95.25)
+			(xy 158.75 95.25) (xy 172.72 95.25)
 		)
 		(stroke
 			(width 0)
@@ -1749,7 +1832,7 @@
 	)
 	(wire
 		(pts
-			(xy 232.41 87.63) (xy 238.76 87.63)
+			(xy 182.88 87.63) (xy 195.58 87.63)
 		)
 		(stroke
 			(width 0)
@@ -1759,7 +1842,7 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 95.25) (xy 229.87 95.25)
+			(xy 182.88 95.25) (xy 193.04 95.25)
 		)
 		(stroke
 			(width 0)
@@ -1769,7 +1852,7 @@
 	)
 	(wire
 		(pts
-			(xy 238.76 95.25) (xy 238.76 92.71)
+			(xy 201.93 95.25) (xy 201.93 92.71)
 		)
 		(stroke
 			(width 0)
@@ -1789,7 +1872,7 @@
 	)
 	(wire
 		(pts
-			(xy 241.3 95.25) (xy 246.38 95.25)
+			(xy 204.47 95.25) (xy 209.55 95.25)
 		)
 		(stroke
 			(width 0)
@@ -1799,7 +1882,7 @@
 	)
 	(wire
 		(pts
-			(xy 139.7 95.25) (xy 186.69 95.25)
+			(xy 139.7 95.25) (xy 156.21 95.25)
 		)
 		(stroke
 			(width 0)
@@ -1829,7 +1912,17 @@
 	)
 	(wire
 		(pts
-			(xy 193.04 118.11) (xy 194.31 118.11)
+			(xy 195.58 97.79) (xy 204.47 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "18ef01bc-1d92-4723-87c1-b0d1b0a7af53")
+	)
+	(wire
+		(pts
+			(xy 162.56 118.11) (xy 163.83 118.11)
 		)
 		(stroke
 			(width 0)
@@ -1839,7 +1932,7 @@
 	)
 	(wire
 		(pts
-			(xy 232.41 97.79) (xy 241.3 97.79)
+			(xy 182.88 97.79) (xy 195.58 97.79)
 		)
 		(stroke
 			(width 0)
@@ -1849,7 +1942,7 @@
 	)
 	(wire
 		(pts
-			(xy 137.16 90.17) (xy 189.23 90.17)
+			(xy 137.16 90.17) (xy 158.75 90.17)
 		)
 		(stroke
 			(width 0)
@@ -1869,7 +1962,7 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 85.09) (xy 229.87 85.09)
+			(xy 182.88 85.09) (xy 193.04 85.09)
 		)
 		(stroke
 			(width 0)
@@ -1889,16 +1982,6 @@
 	)
 	(wire
 		(pts
-			(xy 246.38 82.55) (xy 243.84 82.55)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2be42302-10b5-4e3b-9877-ebd8bce6a552")
-	)
-	(wire
-		(pts
 			(xy 119.38 100.33) (xy 127 100.33)
 		)
 		(stroke
@@ -1909,7 +1992,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 120.65) (xy 194.31 118.11)
+			(xy 163.83 120.65) (xy 163.83 118.11)
 		)
 		(stroke
 			(width 0)
@@ -1919,7 +2002,7 @@
 	)
 	(wire
 		(pts
-			(xy 229.87 85.09) (xy 241.3 85.09)
+			(xy 193.04 85.09) (xy 204.47 85.09)
 		)
 		(stroke
 			(width 0)
@@ -1959,7 +2042,7 @@
 	)
 	(wire
 		(pts
-			(xy 195.58 63.5) (xy 194.31 63.5)
+			(xy 165.1 63.5) (xy 163.83 63.5)
 		)
 		(stroke
 			(width 0)
@@ -1969,7 +2052,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 63.5) (xy 193.04 63.5)
+			(xy 163.83 63.5) (xy 162.56 63.5)
 		)
 		(stroke
 			(width 0)
@@ -1989,7 +2072,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 52.07) (xy 194.31 53.34)
+			(xy 163.83 52.07) (xy 163.83 53.34)
 		)
 		(stroke
 			(width 0)
@@ -1999,7 +2082,7 @@
 	)
 	(wire
 		(pts
-			(xy 64.77 87.63) (xy 119.38 87.63)
+			(xy 90.17 87.63) (xy 119.38 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2009,7 +2092,7 @@
 	)
 	(wire
 		(pts
-			(xy 241.3 87.63) (xy 246.38 87.63)
+			(xy 204.47 87.63) (xy 209.55 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2059,7 +2142,7 @@
 	)
 	(wire
 		(pts
-			(xy 64.77 92.71) (xy 116.84 92.71)
+			(xy 90.17 92.71) (xy 116.84 92.71)
 		)
 		(stroke
 			(width 0)
@@ -2079,7 +2162,7 @@
 	)
 	(wire
 		(pts
-			(xy 67.31 100.33) (xy 67.31 102.87)
+			(xy 92.71 100.33) (xy 92.71 102.87)
 		)
 		(stroke
 			(width 0)
@@ -2129,7 +2212,7 @@
 	)
 	(wire
 		(pts
-			(xy 193.04 105.41) (xy 193.04 110.49)
+			(xy 162.56 105.41) (xy 162.56 110.49)
 		)
 		(stroke
 			(width 0)
@@ -2139,7 +2222,7 @@
 	)
 	(wire
 		(pts
-			(xy 186.69 97.79) (xy 186.69 95.25)
+			(xy 156.21 97.79) (xy 156.21 95.25)
 		)
 		(stroke
 			(width 0)
@@ -2149,7 +2232,17 @@
 	)
 	(wire
 		(pts
-			(xy 193.04 74.93) (xy 193.04 71.12)
+			(xy 195.58 87.63) (xy 201.93 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "76062657-fe65-4d0c-9683-3016a090ec45")
+	)
+	(wire
+		(pts
+			(xy 162.56 74.93) (xy 162.56 71.12)
 		)
 		(stroke
 			(width 0)
@@ -2159,7 +2252,7 @@
 	)
 	(wire
 		(pts
-			(xy 186.69 85.09) (xy 186.69 87.63)
+			(xy 156.21 85.09) (xy 156.21 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2169,7 +2262,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 129.54) (xy 194.31 128.27)
+			(xy 163.83 129.54) (xy 163.83 128.27)
 		)
 		(stroke
 			(width 0)
@@ -2179,7 +2272,7 @@
 	)
 	(wire
 		(pts
-			(xy 238.76 92.71) (xy 246.38 92.71)
+			(xy 201.93 92.71) (xy 209.55 92.71)
 		)
 		(stroke
 			(width 0)
@@ -2189,7 +2282,7 @@
 	)
 	(wire
 		(pts
-			(xy 189.23 95.25) (xy 189.23 92.71)
+			(xy 158.75 95.25) (xy 158.75 92.71)
 		)
 		(stroke
 			(width 0)
@@ -2199,7 +2292,7 @@
 	)
 	(wire
 		(pts
-			(xy 186.69 97.79) (xy 209.55 97.79)
+			(xy 156.21 97.79) (xy 172.72 97.79)
 		)
 		(stroke
 			(width 0)
@@ -2209,7 +2302,7 @@
 	)
 	(wire
 		(pts
-			(xy 139.7 87.63) (xy 186.69 87.63)
+			(xy 139.7 87.63) (xy 156.21 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2239,7 +2332,7 @@
 	)
 	(wire
 		(pts
-			(xy 64.77 90.17) (xy 116.84 90.17)
+			(xy 90.17 90.17) (xy 116.84 90.17)
 		)
 		(stroke
 			(width 0)
@@ -2249,7 +2342,7 @@
 	)
 	(wire
 		(pts
-			(xy 186.69 85.09) (xy 209.55 85.09)
+			(xy 156.21 85.09) (xy 172.72 85.09)
 		)
 		(stroke
 			(width 0)
@@ -2259,7 +2352,7 @@
 	)
 	(wire
 		(pts
-			(xy 71.12 102.87) (xy 71.12 100.33)
+			(xy 96.52 102.87) (xy 96.52 100.33)
 		)
 		(stroke
 			(width 0)
@@ -2279,17 +2372,17 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 87.63) (xy 232.41 87.63)
+			(xy 195.58 66.04) (xy 195.58 68.58)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a7060af9-262e-4bd6-97e6-2d2cd48a3f26")
+		(uuid "a60bb62c-141b-459c-9d78-88f87fba1933")
 	)
 	(wire
 		(pts
-			(xy 229.87 95.25) (xy 238.76 95.25)
+			(xy 193.04 95.25) (xy 201.93 95.25)
 		)
 		(stroke
 			(width 0)
@@ -2299,7 +2392,7 @@
 	)
 	(wire
 		(pts
-			(xy 238.76 87.63) (xy 238.76 90.17)
+			(xy 201.93 87.63) (xy 201.93 90.17)
 		)
 		(stroke
 			(width 0)
@@ -2329,7 +2422,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 60.96) (xy 194.31 63.5)
+			(xy 163.83 60.96) (xy 163.83 63.5)
 		)
 		(stroke
 			(width 0)
@@ -2339,7 +2432,7 @@
 	)
 	(wire
 		(pts
-			(xy 241.3 97.79) (xy 241.3 95.25)
+			(xy 204.47 97.79) (xy 204.47 95.25)
 		)
 		(stroke
 			(width 0)
@@ -2359,7 +2452,7 @@
 	)
 	(wire
 		(pts
-			(xy 195.58 71.12) (xy 195.58 77.47)
+			(xy 165.1 71.12) (xy 165.1 77.47)
 		)
 		(stroke
 			(width 0)
@@ -2379,7 +2472,7 @@
 	)
 	(wire
 		(pts
-			(xy 189.23 87.63) (xy 209.55 87.63)
+			(xy 158.75 87.63) (xy 172.72 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2399,7 +2492,17 @@
 	)
 	(wire
 		(pts
-			(xy 195.58 107.95) (xy 195.58 110.49)
+			(xy 195.58 60.96) (xy 195.58 66.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cedd6d03-f232-4b3c-a392-8a1d1ba87207")
+	)
+	(wire
+		(pts
+			(xy 165.1 107.95) (xy 165.1 110.49)
 		)
 		(stroke
 			(width 0)
@@ -2419,7 +2522,7 @@
 	)
 	(wire
 		(pts
-			(xy 241.3 85.09) (xy 241.3 87.63)
+			(xy 204.47 85.09) (xy 204.47 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2449,23 +2552,13 @@
 	)
 	(wire
 		(pts
-			(xy 137.16 92.71) (xy 189.23 92.71)
+			(xy 137.16 92.71) (xy 158.75 92.71)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "db027f12-a13d-4608-86dc-c41673c80a61")
-	)
-	(wire
-		(pts
-			(xy 219.71 97.79) (xy 232.41 97.79)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dbae5348-abed-49eb-afed-f1dad89bf86c")
 	)
 	(wire
 		(pts
@@ -2509,7 +2602,7 @@
 	)
 	(wire
 		(pts
-			(xy 64.77 95.25) (xy 119.38 95.25)
+			(xy 90.17 95.25) (xy 119.38 95.25)
 		)
 		(stroke
 			(width 0)
@@ -2519,7 +2612,7 @@
 	)
 	(wire
 		(pts
-			(xy 71.12 100.33) (xy 64.77 100.33)
+			(xy 96.52 100.33) (xy 90.17 100.33)
 		)
 		(stroke
 			(width 0)
@@ -2529,7 +2622,7 @@
 	)
 	(wire
 		(pts
-			(xy 189.23 87.63) (xy 189.23 90.17)
+			(xy 158.75 87.63) (xy 158.75 90.17)
 		)
 		(stroke
 			(width 0)
@@ -2539,17 +2632,7 @@
 	)
 	(wire
 		(pts
-			(xy 243.84 82.55) (xy 243.84 78.74)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f71392a8-d39c-4aa1-8a2f-76fab2714533")
-	)
-	(wire
-		(pts
-			(xy 194.31 118.11) (xy 195.58 118.11)
+			(xy 163.83 118.11) (xy 165.1 118.11)
 		)
 		(stroke
 			(width 0)
@@ -2559,7 +2642,7 @@
 	)
 	(wire
 		(pts
-			(xy 238.76 90.17) (xy 246.38 90.17)
+			(xy 201.93 90.17) (xy 209.55 90.17)
 		)
 		(stroke
 			(width 0)
@@ -2567,8 +2650,8 @@
 		)
 		(uuid "f8a87e64-97cf-41f3-83e0-1b29dbb5322d")
 	)
-	(label "A High"
-		(at 69.85 90.17 0)
+	(label "1 A High"
+		(at 95.25 90.17 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2577,8 +2660,8 @@
 		)
 		(uuid "110e4b79-f8db-410b-b726-1d08afdc09a9")
 	)
-	(label "B Low"
-		(at 69.85 92.71 0)
+	(label "1 B Low"
+		(at 95.25 92.71 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2587,8 +2670,8 @@
 		)
 		(uuid "2ca12f11-3938-40a3-a328-f8c10b1caa2b")
 	)
-	(label "A Low"
-		(at 69.85 87.63 0)
+	(label "1 A Low"
+		(at 95.25 87.63 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2597,8 +2680,48 @@
 		)
 		(uuid "5ad3e6a4-fb3e-404d-a2e2-0f91c8e8b301")
 	)
-	(label "B High"
-		(at 69.85 95.25 0)
+	(label "2 B High"
+		(at 204.47 95.25 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6aa6dfad-3c2b-4f82-ac1c-af6733ad322b")
+	)
+	(label "2 A Low"
+		(at 204.47 87.63 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b06ac18e-d2a8-4f56-95b0-d50fd119b3b6")
+	)
+	(label "2 B Low"
+		(at 204.47 92.71 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b0a7d3d5-8fc8-4254-8581-8a06ca902e52")
+	)
+	(label "2 A High"
+		(at 204.47 90.17 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d3395829-0be9-4df8-b5de-f080c6aa294e")
+	)
+	(label "1 B High"
+		(at 95.25 95.25 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2609,7 +2732,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 194.31 52.07 180)
+		(at 163.83 52.07 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2619,7 +2742,7 @@
 		(dnp no)
 		(uuid "006d857d-6adf-40c4-b54c-fb447bf69654")
 		(property "Reference" "#PWR05"
-			(at 194.31 45.72 0)
+			(at 163.83 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2630,7 +2753,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 194.31 48.26 0)
+			(at 163.83 48.26 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2640,7 +2763,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 52.07 0)
+			(at 163.83 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2651,7 +2774,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 52.07 0)
+			(at 163.83 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2662,7 +2785,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 194.31 52.07 0)
+			(at 163.83 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2686,87 +2809,8 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 232.41 92.71 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "1143ca0a-4407-42b3-9ed3-b11a48d1ac1e")
-		(property "Reference" "JP2"
-			(at 235.458 92.71 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "SolderJumper_2_Open"
-			(at 228.6 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 232.41 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 240.03 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 237.49 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "a75b03ee-cd06-415e-bcf5-7474d748e039")
-		)
-		(pin "2"
-			(uuid "39bf2045-f62d-4d73-ba92-be61ce8e253e")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "JP2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 195.58 82.55 270)
+		(at 165.1 82.55 270)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2776,7 +2820,7 @@
 		(dnp no)
 		(uuid "13593619-af51-4971-95c3-186e15eee563")
 		(property "Reference" "JP10"
-			(at 199.39 82.55 90)
+			(at 168.91 82.55 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2786,7 +2830,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 199.39 82.55 0)
+			(at 168.91 82.55 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2796,8 +2840,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 195.58 82.55 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 165.1 82.55 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2808,7 +2852,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 187.96 82.55 0)
+			(at 157.48 82.55 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2819,7 +2863,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 190.5 82.55 0)
+			(at 160.02 82.55 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2846,8 +2890,8 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 243.84 78.74 0)
-		(mirror x)
+		(at 209.55 100.33 0)
+		(mirror y)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2855,10 +2899,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "190eb12b-5031-438d-ac7e-a2fed2aef821")
 		(property "Reference" "#PWR02"
-			(at 243.84 72.39 0)
+			(at 209.55 106.68 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2869,17 +2912,18 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 243.84 73.66 0)
+			(at 204.978 100.076 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
 		(property "Footprint" ""
-			(at 243.84 78.74 0)
+			(at 209.55 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2890,7 +2934,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 243.84 78.74 0)
+			(at 209.55 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2901,7 +2945,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 243.84 78.74 0)
+			(at 209.55 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2924,8 +2968,201 @@
 		)
 	)
 	(symbol
+		(lib_id "54-00274:54-00274")
+		(at 219.71 92.71 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "266f596f-ffe9-4a5f-912d-143d0d3d4b74")
+		(property "Reference" "J2"
+			(at 218.44 106.426 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "54-00274"
+			(at 214.884 104.14 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "54-00274:TENSILITY_54-00274"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DigiKey_Part_Number" "839-54-00274-ND"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Tensility International Corporation"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MPN" "54-00274"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "PARTREV" "A"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 219.71 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(pin "1"
+			(uuid "adf177f1-90fc-4f9e-a512-c8cd42238cd0")
+		)
+		(pin "4"
+			(uuid "dc343749-cc46-4e49-9694-6af74b5f97e7")
+		)
+		(pin "S1"
+			(uuid "74fa6428-d9fd-41ea-9a39-c25b15a1d82d")
+		)
+		(pin "S2"
+			(uuid "42ed750d-4b5c-4f33-bb8d-993574594c57")
+		)
+		(pin "2"
+			(uuid "6ca8beee-40dc-4d11-9778-7745e8c5a736")
+		)
+		(pin "3"
+			(uuid "105bc570-71cc-4c5e-aaba-191b71fd35b8")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 229.87 90.17 90)
+		(at 193.04 90.17 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2935,7 +3172,7 @@
 		(dnp no)
 		(uuid "320a1ce2-9ea6-4400-a19e-f0524f35a583")
 		(property "Reference" "JP1"
-			(at 226.822 90.17 90)
+			(at 189.992 90.17 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2945,7 +3182,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 226.06 90.17 0)
+			(at 189.23 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2955,8 +3192,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 229.87 90.17 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 193.04 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2967,7 +3204,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 237.49 90.17 0)
+			(at 200.66 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2978,7 +3215,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 234.95 90.17 0)
+			(at 198.12 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3005,7 +3242,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 195.58 114.3 180)
+		(at 165.1 114.3 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3015,7 +3252,7 @@
 		(dnp no)
 		(uuid "3675f9ff-e3c7-4584-9081-408368cc9702")
 		(property "Reference" "R1"
-			(at 198.12 114.046 90)
+			(at 167.64 114.046 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3025,7 +3262,7 @@
 			)
 		)
 		(property "Value" "62R"
-			(at 199.898 114.046 90)
+			(at 169.418 114.046 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3035,7 +3272,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 197.358 114.3 90)
+			(at 166.878 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3046,7 +3283,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 195.58 114.3 0)
+			(at 165.1 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3057,7 +3294,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 195.58 114.3 0)
+			(at 165.1 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3068,7 +3305,7 @@
 			)
 		)
 		(property "digikey_part_num" "RMCF0603FT62R0CT-ND"
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3079,7 +3316,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3090,7 +3327,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3101,7 +3338,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3112,7 +3349,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3123,7 +3360,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 195.58 114.3 90)
+			(at 165.1 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3150,7 +3387,8 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 193.04 80.01 270)
+		(at 162.56 80.01 270)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3160,7 +3398,7 @@
 		(dnp no)
 		(uuid "49a1d2b5-ed83-44ed-a6d3-ec51bc32e44d")
 		(property "Reference" "JP9"
-			(at 189.992 80.01 90)
+			(at 159.512 80.01 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3170,7 +3408,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 196.85 80.01 0)
+			(at 166.37 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3180,8 +3418,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 193.04 80.01 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 162.56 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3192,7 +3430,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 185.42 80.01 0)
+			(at 154.94 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3203,7 +3441,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 187.96 80.01 0)
+			(at 157.48 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3230,7 +3468,7 @@
 	)
 	(symbol
 		(lib_id "54-00274:54-00274")
-		(at 127 58.42 270)
+		(at 80.01 92.71 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3239,9 +3477,9 @@
 		(in_pos_files yes)
 		(dnp no)
 		(fields_autoplaced yes)
-		(uuid "5048a49e-d765-4207-90ca-b87771e3034d")
-		(property "Reference" "J3"
-			(at 139.7 59.055 0)
+		(uuid "5b097a6d-40bb-46af-b641-ae386daac4ee")
+		(property "Reference" "J1"
+			(at 80.645 80.01 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3251,7 +3489,7 @@
 			)
 		)
 		(property "Value" "54-00274"
-			(at 137.16 59.055 0)
+			(at 80.645 82.55 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3261,7 +3499,7 @@
 			)
 		)
 		(property "Footprint" "54-00274:TENSILITY_54-00274"
-			(at 127 58.42 0)
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3272,8 +3510,8 @@
 				(justify bottom)
 			)
 		)
-		(property "Datasheet" ""
-			(at 127 58.42 0)
+		(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3281,10 +3519,11 @@
 				(font
 					(size 1.27 1.27)
 				)
+				(justify bottom)
 			)
 		)
-		(property "Description" ""
-			(at 127 58.42 0)
+		(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3292,10 +3531,35 @@
 				(font
 					(size 1.27 1.27)
 				)
+				(justify bottom)
 			)
 		)
-		(property "MF" "Tensility International Corporation"
-			(at 127 58.42 0)
+		(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 80.01 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DigiKey_Part_Number" "839-54-00274-ND"
+			(at 80.01 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Tensility International Corporation"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3307,7 +3571,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 127 58.42 0)
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3318,44 +3582,8 @@
 				(justify bottom)
 			)
 		)
-		(property "Package" "None"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Price" "None"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Check_prices" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=eda"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 127 58.42 0)
+		(property "MPN" "54-00274"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3367,7 +3595,7 @@
 			)
 		)
 		(property "PARTREV" "A"
-			(at 127 58.42 0)
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3378,8 +3606,8 @@
 				(justify bottom)
 			)
 		)
-		(property "SnapEDA_Link" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=snap"
-			(at 127 58.42 0)
+		(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3390,8 +3618,8 @@
 				(justify bottom)
 			)
 		)
-		(property "MP" "54-00274"
-			(at 127 58.42 0)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 80.01 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3401,104 +3629,70 @@
 				)
 				(justify bottom)
 			)
-		)
-		(property "Description_1" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Availability" "In Stock"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MANUFACTURER" "Tensility"
-			(at 127 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(pin "S1"
-			(uuid "8420a2ce-b672-4da3-bff5-31f3d4904959")
-		)
-		(pin "S2"
-			(uuid "c38a5192-bf97-42a3-b410-cbe3841a00bb")
-		)
-		(pin "3"
-			(uuid "c9a6dd81-fea2-4e8c-a08c-c7d5a6845a9d")
-		)
-		(pin "4"
-			(uuid "9cd67153-8c6e-4fbc-a2ad-f2ba61cdbf82")
-		)
-		(pin "2"
-			(uuid "6d9b4a89-e24c-48ab-aea1-d006325b6f5d")
 		)
 		(pin "1"
-			(uuid "d2f71d96-1c82-4ff5-9b36-16a14631d06b")
+			(uuid "1a6249c1-7c26-4ce6-b90a-45279aec5e3c")
+		)
+		(pin "4"
+			(uuid "82b4c0da-9e27-4ed2-a524-dd33ee08ceb3")
+		)
+		(pin "S1"
+			(uuid "6dcada03-715b-4ba2-8bd3-208d7b9b8f4f")
+		)
+		(pin "S2"
+			(uuid "53133aa5-835d-4061-b480-c70e3671d2df")
+		)
+		(pin "2"
+			(uuid "35665444-511a-45fd-9c63-a83f509fd8c9")
+		)
+		(pin "3"
+			(uuid "af47ca9b-94df-4060-96ac-7109c2588496")
 		)
 		(instances
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "J3")
+					(reference "J1")
 					(unit 1)
 				)
 			)
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 67.31 102.87 0)
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 198.12 60.96 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "6d54b69d-54b0-48f3-8b63-0dc747ca5231")
-		(property "Reference" "#PWR01"
-			(at 67.31 109.22 0)
-			(hide yes)
+		(fields_autoplaced yes)
+		(uuid "6367a153-e94f-445f-a46d-04491403da34")
+		(property "Reference" "H1"
+			(at 201.93 59.6899 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
-		(property "Value" "GND"
-			(at 63.5 104.648 0)
+		(property "Value" "MountingHole_Pad"
+			(at 201.93 62.2299 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
-		(property "Footprint" ""
-			(at 67.31 102.87 0)
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
+			(at 198.12 60.96 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3509,7 +3703,84 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 67.31 102.87 0)
+			(at 198.12 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 198.12 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5612ac26-ecfe-4f91-a38a-d8afeb26fce5")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "H1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 92.71 102.87 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "6d54b69d-54b0-48f3-8b63-0dc747ca5231")
+		(property "Reference" "#PWR01"
+			(at 92.71 109.22 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 88.9 104.648 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 92.71 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 92.71 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3520,7 +3791,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 67.31 102.87 0)
+			(at 92.71 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3544,7 +3815,7 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 214.63 85.09 180)
+		(at 177.8 85.09 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3554,7 +3825,7 @@
 		(dnp no)
 		(uuid "76d8d495-24e0-4f5b-9101-09a9c272dabe")
 		(property "Reference" "JP4"
-			(at 214.63 82.804 0)
+			(at 177.8 82.804 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3564,7 +3835,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 214.63 88.9 0)
+			(at 177.8 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3574,8 +3845,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 214.63 85.09 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 177.8 85.09 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3586,7 +3857,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 214.63 77.47 0)
+			(at 177.8 77.47 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3597,7 +3868,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 214.63 80.01 0)
+			(at 177.8 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3624,7 +3895,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 195.58 67.31 0)
+		(at 165.1 67.31 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3634,7 +3905,7 @@
 		(dnp no)
 		(uuid "78f295fa-2543-446f-82bb-2bc608495514")
 		(property "Reference" "R3"
-			(at 197.866 67.564 90)
+			(at 167.386 67.564 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3644,7 +3915,7 @@
 			)
 		)
 		(property "Value" "62R"
-			(at 199.898 67.564 90)
+			(at 169.418 67.564 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3654,7 +3925,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 193.802 67.31 90)
+			(at 163.322 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3665,7 +3936,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 195.58 67.31 0)
+			(at 165.1 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3676,7 +3947,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 195.58 67.31 0)
+			(at 165.1 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3687,7 +3958,7 @@
 			)
 		)
 		(property "digikey_part_num" "RMCF0603FT62R0CT-ND"
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3698,7 +3969,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3709,7 +3980,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3720,7 +3991,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3731,7 +4002,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3742,7 +4013,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 195.58 67.31 90)
+			(at 165.1 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3769,7 +4040,7 @@
 	)
 	(symbol
 		(lib_id "power:PWR_FLAG")
-		(at 71.12 102.87 180)
+		(at 96.52 102.87 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3779,7 +4050,7 @@
 		(dnp no)
 		(uuid "96cea956-561f-425f-988e-814649a863ca")
 		(property "Reference" "#FLG01"
-			(at 71.12 104.775 0)
+			(at 96.52 104.775 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3790,7 +4061,7 @@
 			)
 		)
 		(property "Value" "PWR_FLAG"
-			(at 72.644 104.902 0)
+			(at 98.044 104.902 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3801,7 +4072,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 71.12 102.87 0)
+			(at 96.52 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3812,7 +4083,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 71.12 102.87 0)
+			(at 96.52 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3823,7 +4094,7 @@
 			)
 		)
 		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 71.12 102.87 0)
+			(at 96.52 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3846,28 +4117,19 @@
 		)
 	)
 	(symbol
-		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 214.63 97.79 180)
+		(lib_id "power:GND")
+		(at 195.58 68.58 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "98b8480d-0ae6-4597-9593-025851a721f0")
-		(property "Reference" "JP6"
-			(at 214.63 100.33 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "SolderJumper_2_Open"
-			(at 214.63 101.6 0)
+		(fields_autoplaced yes)
+		(uuid "98190f85-6251-4d92-842b-cce38856b605")
+		(property "Reference" "#PWR07"
+			(at 195.58 74.93 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3877,8 +4139,18 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 214.63 97.79 0)
+		(property "Value" "GND"
+			(at 195.58 73.66 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 195.58 68.58 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3889,7 +4161,85 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 214.63 90.17 0)
+			(at 195.58 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 195.58 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "3c277046-c1cf-4c8b-a59e-3e87f89f8cc7")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "#PWR07")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Jumper:SolderJumper_2_Open")
+		(at 177.8 97.79 0)
+		(mirror x)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "98b8480d-0ae6-4597-9593-025851a721f0")
+		(property "Reference" "JP6"
+			(at 177.8 100.33 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SolderJumper_2_Open"
+			(at 177.8 101.6 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 177.8 97.79 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 177.8 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3900,7 +4250,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 214.63 92.71 0)
+			(at 177.8 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3927,7 +4277,8 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 214.63 95.25 180)
+		(at 177.8 95.25 0)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3937,7 +4288,7 @@
 		(dnp no)
 		(uuid "9e89af07-f3e9-47c7-bedd-121b3e7e2b4b")
 		(property "Reference" "JP5"
-			(at 214.63 93.218 0)
+			(at 177.8 93.218 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3947,7 +4298,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 214.63 99.06 0)
+			(at 177.8 99.06 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3957,8 +4308,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 214.63 95.25 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 177.8 95.25 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3969,7 +4320,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 214.63 87.63 0)
+			(at 177.8 87.63 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3980,7 +4331,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 214.63 90.17 0)
+			(at 177.8 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4006,8 +4357,8 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:R")
-		(at 193.04 114.3 180)
+		(lib_id "54-00274:54-00274")
+		(at 129.54 123.19 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4015,29 +4366,225 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "b1d3e848-cf8d-4373-ac5e-98a58cb895c1")
-		(property "Reference" "R2"
-			(at 190.754 114.046 90)
+		(fields_autoplaced yes)
+		(uuid "a7dd79dd-ea07-4414-9305-f33a3681c5fa")
+		(property "Reference" "J4"
+			(at 140.97 121.2849 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
-		(property "Value" "62R"
-			(at 188.722 114.046 90)
+		(property "Value" "54-00274"
+			(at 140.97 123.8249 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 194.818 114.3 90)
+		(property "Footprint" "54-00274:TENSILITY_54-00274"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DigiKey_Part_Number" "839-54-00274-ND"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Tensility International Corporation"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MPN" "54-00274"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "PARTREV" "A"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 129.54 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(pin "1"
+			(uuid "77db4c68-b62b-4a45-b45f-0f1d2f8aafbc")
+		)
+		(pin "4"
+			(uuid "da0b48ba-c4d1-4a97-b48a-4f855563c522")
+		)
+		(pin "S1"
+			(uuid "52984745-b448-4604-977f-dca9e0602482")
+		)
+		(pin "S2"
+			(uuid "88994d91-5d0a-4778-bd3b-46c3de35bd61")
+		)
+		(pin "2"
+			(uuid "ad2bef65-739b-4053-9aa6-8251cab03228")
+		)
+		(pin "3"
+			(uuid "2a6cbd64-2ddd-40fa-9560-9a765a93aae8")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 198.12 66.04 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ae141345-28a7-4815-9db1-e42c1769ad52")
+		(property "Reference" "H2"
+			(at 201.93 64.7699 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 201.93 67.3099 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
+			(at 198.12 66.04 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4048,7 +4595,83 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 193.04 114.3 0)
+			(at 198.12 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 198.12 66.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b793a385-cb79-46b2-841d-cb0689ab25e2")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "H2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 162.56 114.3 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "b1d3e848-cf8d-4373-ac5e-98a58cb895c1")
+		(property "Reference" "R2"
+			(at 160.274 114.046 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "62R"
+			(at 158.242 114.046 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+			(at 164.338 114.3 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 162.56 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4059,7 +4682,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 193.04 114.3 0)
+			(at 162.56 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4070,7 +4693,7 @@
 			)
 		)
 		(property "digikey_part_num" "RMCF0603FT62R0CT-ND"
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4081,7 +4704,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4092,7 +4715,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4103,7 +4726,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4114,7 +4737,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4125,7 +4748,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 193.04 114.3 90)
+			(at 162.56 114.3 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4151,8 +4774,88 @@
 		)
 	)
 	(symbol
+		(lib_id "Jumper:SolderJumper_2_Open")
+		(at 195.58 92.71 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "b31f90db-c69f-407b-af5a-e8a8c4540efc")
+		(property "Reference" "JP2"
+			(at 198.628 92.71 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SolderJumper_2_Open"
+			(at 191.77 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 195.58 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 203.2 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Solder Jumper, 2-pole, open"
+			(at 200.66 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c5920f78-aee0-4e0a-a509-c33231f52f0b")
+		)
+		(pin "2"
+			(uuid "404e9a86-272f-413d-bbc4-7be9f1844d4c")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "JP2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "54-00274:54-00274")
-		(at 129.54 123.19 90)
+		(at 127 58.42 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4161,29 +4864,31 @@
 		(in_pos_files yes)
 		(dnp no)
 		(fields_autoplaced yes)
-		(uuid "bf4b5c6c-22e7-4504-952e-799f5e2891ca")
-		(property "Reference" "J4"
-			(at 116.84 122.555 0)
+		(uuid "b5c96108-bc8c-4e97-a81b-06810d79b34b")
+		(property "Reference" "J3"
+			(at 135.89 57.7849 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Value" "54-00274"
-			(at 119.38 122.555 0)
+			(at 135.89 60.3249 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" "54-00274:TENSILITY_54-00274"
-			(at 129.54 123.19 0)
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4194,8 +4899,8 @@
 				(justify bottom)
 			)
 		)
-		(property "Datasheet" ""
-			(at 129.54 123.19 0)
+		(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4203,10 +4908,11 @@
 				(font
 					(size 1.27 1.27)
 				)
+				(justify bottom)
 			)
 		)
-		(property "Description" ""
-			(at 129.54 123.19 0)
+		(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4214,10 +4920,35 @@
 				(font
 					(size 1.27 1.27)
 				)
+				(justify bottom)
 			)
 		)
-		(property "MF" "Tensility International Corporation"
-			(at 129.54 123.19 0)
+		(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
+			(at 127 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "DigiKey_Part_Number" "839-54-00274-ND"
+			(at 127 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+			)
+		)
+		(property "MANUFACTURER" "Tensility International Corporation"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4229,7 +4960,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 129.54 123.19 0)
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4240,44 +4971,8 @@
 				(justify bottom)
 			)
 		)
-		(property "Package" "None"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Price" "None"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Check_prices" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=eda"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 129.54 123.19 0)
+		(property "MPN" "54-00274"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4289,7 +4984,7 @@
 			)
 		)
 		(property "PARTREV" "A"
-			(at 129.54 123.19 0)
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4300,8 +4995,8 @@
 				(justify bottom)
 			)
 		)
-		(property "SnapEDA_Link" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=snap"
-			(at 129.54 123.19 0)
+		(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4312,8 +5007,8 @@
 				(justify bottom)
 			)
 		)
-		(property "MP" "54-00274"
-			(at 129.54 123.19 0)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 127 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4323,65 +5018,29 @@
 				)
 				(justify bottom)
 			)
-		)
-		(property "Description_1" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Availability" "In Stock"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MANUFACTURER" "Tensility"
-			(at 129.54 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(pin "S1"
-			(uuid "94e74634-5a3c-47f8-9461-0e6febf265c6")
-		)
-		(pin "S2"
-			(uuid "deca1ce0-7b0a-4789-89bc-4b3c4c5f6e6f")
-		)
-		(pin "3"
-			(uuid "5afe1a29-ee91-452b-93cf-c004456b2e98")
-		)
-		(pin "4"
-			(uuid "f5104950-b0a4-4498-962f-46609eb528fe")
-		)
-		(pin "2"
-			(uuid "a445eb5a-2f28-4962-b05c-a1d96a9192d4")
 		)
 		(pin "1"
-			(uuid "31e29063-77aa-4dcc-911b-e63bcf6ec4ed")
+			(uuid "b12f82e1-8e4b-4c07-b159-080abd5bbb4b")
+		)
+		(pin "4"
+			(uuid "d8ffc816-eac9-42ab-a343-77f917346b07")
+		)
+		(pin "S1"
+			(uuid "2708ba74-78ef-45c0-8f57-b3fd38b6330c")
+		)
+		(pin "S2"
+			(uuid "7d2a08b0-4fb0-40ca-a23b-77b67417c543")
+		)
+		(pin "2"
+			(uuid "3b2b602c-9f54-4417-a36f-6d7b393b4b98")
+		)
+		(pin "3"
+			(uuid "3e16a085-8efb-4443-bfd0-a92d8bbb4384")
 		)
 		(instances
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "J4")
+					(reference "J3")
 					(unit 1)
 				)
 			)
@@ -4389,7 +5048,7 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 214.63 87.63 180)
+		(at 177.8 87.63 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4399,7 +5058,7 @@
 		(dnp no)
 		(uuid "c713afbf-abb4-44a7-be63-18f0ce53e308")
 		(property "Reference" "JP3"
-			(at 214.63 89.916 0)
+			(at 177.8 89.916 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4409,7 +5068,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 214.63 91.44 0)
+			(at 177.8 91.44 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4419,8 +5078,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 214.63 87.63 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 177.8 87.63 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4431,7 +5090,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 214.63 80.01 0)
+			(at 177.8 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4442,7 +5101,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 214.63 82.55 0)
+			(at 177.8 82.55 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4469,7 +5128,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 194.31 124.46 0)
+		(at 163.83 124.46 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4479,7 +5138,7 @@
 		(dnp no)
 		(uuid "c7389333-b06f-410f-b839-7e7f55fa2aae")
 		(property "Reference" "C1"
-			(at 196.85 125.222 0)
+			(at 166.37 125.222 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4490,7 +5149,7 @@
 			)
 		)
 		(property "Value" "4.7nF"
-			(at 195.072 127.254 0)
+			(at 164.592 127.254 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4501,7 +5160,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 195.2752 128.27 0)
+			(at 164.7952 128.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4512,7 +5171,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4523,7 +5182,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4534,7 +5193,7 @@
 			)
 		)
 		(property "digikey_part_num" "1276-CL03B472KASVPNCCT-ND"
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4545,7 +5204,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4556,7 +5215,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4567,7 +5226,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4578,7 +5237,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4589,7 +5248,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 194.31 124.46 0)
+			(at 163.83 124.46 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4616,7 +5275,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 194.31 129.54 0)
+		(at 163.83 129.54 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4626,7 +5285,7 @@
 		(dnp no)
 		(uuid "d3888e29-ebcd-4597-b1a2-70680201ff7d")
 		(property "Reference" "#PWR04"
-			(at 194.31 135.89 0)
+			(at 163.83 135.89 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4637,7 +5296,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 194.31 133.35 0)
+			(at 163.83 133.35 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4647,7 +5306,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 194.31 129.54 0)
+			(at 163.83 129.54 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4658,7 +5317,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 129.54 0)
+			(at 163.83 129.54 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4669,7 +5328,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 194.31 129.54 0)
+			(at 163.83 129.54 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4693,7 +5352,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 194.31 57.15 180)
+		(at 163.83 57.15 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4703,7 +5362,7 @@
 		(dnp no)
 		(uuid "d484b393-de29-439d-8ee6-a7b25635291b")
 		(property "Reference" "C2"
-			(at 191.77 56.388 0)
+			(at 161.29 56.388 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4714,7 +5373,7 @@
 			)
 		)
 		(property "Value" "4.7nF"
-			(at 193.548 54.356 0)
+			(at 163.068 54.356 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4725,7 +5384,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 193.3448 53.34 0)
+			(at 162.8648 53.34 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4736,7 +5395,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4747,7 +5406,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4758,7 +5417,7 @@
 			)
 		)
 		(property "digikey_part_num" "1276-CL03B472KASVPNCCT-ND"
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4769,7 +5428,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4780,7 +5439,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4791,7 +5450,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4802,7 +5461,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4813,7 +5472,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 194.31 57.15 0)
+			(at 163.83 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4918,245 +5577,9 @@
 		)
 	)
 	(symbol
-		(lib_id "54-00274:54-00274")
-		(at 54.61 92.71 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "e2530a87-5bb5-4ae6-a53d-bd0b6e81e45e")
-		(property "Reference" "J1"
-			(at 55.245 80.01 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "54-00274"
-			(at 55.245 82.55 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "54-00274:TENSILITY_54-00274"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Datasheet" ""
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MF" "Tensility International Corporation"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Package" "None"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Price" "None"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Check_prices" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=eda"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "PARTREV" "A"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "SnapEDA_Link" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=snap"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MP" "54-00274"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Description_1" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Availability" "In Stock"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MANUFACTURER" "Tensility"
-			(at 54.61 92.71 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(pin "S1"
-			(uuid "3652b43a-6bd6-407f-9275-90fd4dd04df0")
-		)
-		(pin "S2"
-			(uuid "922dbb85-d249-4663-99f9-4552b5d98f9a")
-		)
-		(pin "3"
-			(uuid "c58aeb4d-1001-4b90-b503-6290c4d51946")
-		)
-		(pin "4"
-			(uuid "90aa1bbd-5c40-4c32-b2bd-773c616329d0")
-		)
-		(pin "2"
-			(uuid "bf29a0d6-57eb-43c4-bc45-a1204225449a")
-		)
-		(pin "1"
-			(uuid "a395c3e1-0490-46bc-a8a7-e4385d633a37")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "J1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Switch:SW_DIP_x04")
 		(at 128.27 92.71 0)
+		(mirror y)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5186,7 +5609,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_SO:SOIC-28W_7.5x17.9mm_P1.27mm"
+		(property "Footprint" "Button_Switch_SMD:SW_DIP_SPSTx04_Slide_Copal_CHS-04A_W5.08mm_P1.27mm_JPin"
 			(at 128.27 92.71 0)
 			(hide yes)
 			(show_name no)
@@ -5254,7 +5677,7 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 193.04 100.33 90)
+		(at 162.56 100.33 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5264,7 +5687,7 @@
 		(dnp no)
 		(uuid "ef079f69-c14c-4482-948f-c5d18a0aa8fc")
 		(property "Reference" "JP7"
-			(at 189.992 100.33 90)
+			(at 159.512 100.33 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5274,7 +5697,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 189.23 100.33 0)
+			(at 158.75 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5284,8 +5707,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 193.04 100.33 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 162.56 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5296,7 +5719,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 200.66 100.33 0)
+			(at 170.18 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5307,7 +5730,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 198.12 100.33 0)
+			(at 167.64 100.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5413,7 +5836,7 @@
 	)
 	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
-		(at 195.58 102.87 90)
+		(at 165.1 102.87 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5423,7 +5846,7 @@
 		(dnp no)
 		(uuid "fc44eb07-75c3-42a2-813b-3ff367b677c8")
 		(property "Reference" "JP8"
-			(at 198.628 102.87 90)
+			(at 168.148 102.87 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5433,7 +5856,7 @@
 			)
 		)
 		(property "Value" "SolderJumper_2_Open"
-			(at 191.77 102.87 0)
+			(at 161.29 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5443,8 +5866,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 195.58 102.87 0)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_TrianglePad1.0x1.5mm"
+			(at 165.1 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5455,7 +5878,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 203.2 102.87 0)
+			(at 172.72 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5466,7 +5889,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 200.66 102.87 0)
+			(at 170.18 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5492,246 +5915,8 @@
 		)
 	)
 	(symbol
-		(lib_id "54-00274:54-00274")
-		(at 256.54 90.17 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "fd1b9bce-e01d-4afd-8ac4-39b2410b6cf0")
-		(property "Reference" "J2"
-			(at 254.762 75.184 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "54-00274"
-			(at 251.206 77.724 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "54-00274:TENSILITY_54-00274"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Datasheet" ""
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "MF" "Tensility International Corporation"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Package" "None"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Price" "None"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Check_prices" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=eda"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "STANDARD" "Manufacturer Recommendations"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "PARTREV" "A"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "SnapEDA_Link" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/?ref=snap"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MP" "54-00274"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Description_1" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "Availability" "In Stock"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(property "MANUFACTURER" "Tensility"
-			(at 256.54 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify bottom)
-			)
-		)
-		(pin "S1"
-			(uuid "6d816aa5-30b6-4dfc-8ec6-d57b30024edd")
-		)
-		(pin "S2"
-			(uuid "aeb010ae-1d7a-4428-8cfe-90debaf34959")
-		)
-		(pin "3"
-			(uuid "511f9699-7292-46f3-8deb-51ee9b4fa3d7")
-		)
-		(pin "4"
-			(uuid "be4dc595-07f6-4cfb-b9e5-55ff2e099c17")
-		)
-		(pin "2"
-			(uuid "e018bb8d-eabb-4a0f-9274-efd73a254e51")
-		)
-		(pin "1"
-			(uuid "25fb09ee-f533-4eb8-9e4c-d70a54f55366")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "J2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
-		(at 193.04 67.31 0)
+		(at 162.56 67.31 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5741,7 +5926,7 @@
 		(dnp no)
 		(uuid "fdd80e60-4d98-4acd-a425-a7e1cf7f49e3")
 		(property "Reference" "R4"
-			(at 190.5 67.564 90)
+			(at 160.02 67.564 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5751,7 +5936,7 @@
 			)
 		)
 		(property "Value" "62R"
-			(at 188.722 67.564 90)
+			(at 158.242 67.564 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5761,7 +5946,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 191.262 67.31 90)
+			(at 160.782 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5772,7 +5957,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 193.04 67.31 0)
+			(at 162.56 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5783,7 +5968,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 193.04 67.31 0)
+			(at 162.56 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5794,7 +5979,7 @@
 			)
 		)
 		(property "digikey_part_num" "RMCF0603FT62R0CT-ND"
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5805,7 +5990,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" ""
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5816,7 +6001,7 @@
 			)
 		)
 		(property "PARTREV" ""
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5827,7 +6012,7 @@
 			)
 		)
 		(property "STANDARD" ""
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5838,7 +6023,7 @@
 			)
 		)
 		(property "KLC_S3.3" ""
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5849,7 +6034,7 @@
 			)
 		)
 		(property "KLC_S5.1" ""
-			(at 193.04 67.31 90)
+			(at 162.56 67.31 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
