@@ -1707,6 +1707,12 @@
 		(uuid "0b523fc3-bd50-4ee7-804c-53bd97dcd53e")
 	)
 	(junction
+		(at 195.58 62.23)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0e2f394c-b197-4eb1-b416-f13466aa13a0")
+	)
+	(junction
 		(at 162.56 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1737,7 +1743,7 @@
 		(uuid "38fdf741-cc33-4f16-9a76-d183c8d58297")
 	)
 	(junction
-		(at 195.58 66.04)
+		(at 195.58 57.15)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "3c74bfe7-6e60-4c88-a2ce-d48e7bc48382")
@@ -1777,6 +1783,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "9dc54ea6-1cd2-4c55-8070-ecd694c8e9b5")
+	)
+	(junction
+		(at 195.58 67.31)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a52926b2-e626-466a-9eab-62cd53c7305f")
 	)
 	(junction
 		(at 195.58 87.63)
@@ -2102,6 +2114,16 @@
 	)
 	(wire
 		(pts
+			(xy 195.58 62.23) (xy 195.58 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5b0017d6-92ca-4b18-8042-bbaa0efaabcf")
+	)
+	(wire
+		(pts
 			(xy 119.38 81.28) (xy 127 81.28)
 		)
 		(stroke
@@ -2149,6 +2171,16 @@
 			(type default)
 		)
 		(uuid "6c91c481-0dbf-41a1-ad39-d0f4c4db03a7")
+	)
+	(wire
+		(pts
+			(xy 195.58 57.15) (xy 195.58 62.23)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6f56bf92-8723-4ddc-973c-c11f846539b3")
 	)
 	(wire
 		(pts
@@ -2372,16 +2404,6 @@
 	)
 	(wire
 		(pts
-			(xy 195.58 66.04) (xy 195.58 68.58)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a60bb62c-141b-459c-9d78-88f87fba1933")
-	)
-	(wire
-		(pts
 			(xy 193.04 95.25) (xy 201.93 95.25)
 		)
 		(stroke
@@ -2452,6 +2474,16 @@
 	)
 	(wire
 		(pts
+			(xy 195.58 67.31) (xy 195.58 68.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c0c06dca-2250-475d-bfa4-6d5ff1891dbb")
+	)
+	(wire
+		(pts
 			(xy 165.1 71.12) (xy 165.1 77.47)
 		)
 		(stroke
@@ -2492,7 +2524,7 @@
 	)
 	(wire
 		(pts
-			(xy 195.58 60.96) (xy 195.58 66.04)
+			(xy 195.58 52.07) (xy 195.58 57.15)
 		)
 		(stroke
 			(width 0)
@@ -3659,7 +3691,7 @@
 	)
 	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
-		(at 198.12 60.96 270)
+		(at 198.12 52.07 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3670,7 +3702,7 @@
 		(fields_autoplaced yes)
 		(uuid "6367a153-e94f-445f-a46d-04491403da34")
 		(property "Reference" "H1"
-			(at 201.93 59.6899 90)
+			(at 201.93 50.7999 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3681,7 +3713,7 @@
 			)
 		)
 		(property "Value" "MountingHole_Pad"
-			(at 201.93 62.2299 90)
+			(at 201.93 53.3399 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3692,7 +3724,7 @@
 			)
 		)
 		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
-			(at 198.12 60.96 0)
+			(at 198.12 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3703,7 +3735,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 198.12 60.96 0)
+			(at 198.12 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3714,7 +3746,7 @@
 			)
 		)
 		(property "Description" "Mounting Hole with connection"
-			(at 198.12 60.96 0)
+			(at 198.12 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4033,6 +4065,85 @@
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
 					(reference "R3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 198.12 62.23 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7c47e1d6-ff75-40b5-a641-57e50af75ba3")
+		(property "Reference" "H3"
+			(at 201.93 60.9599 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 201.93 63.4999 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
+			(at 198.12 62.23 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 198.12 62.23 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 198.12 62.23 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "495a111a-809a-4a96-9232-8d6fa03a8eba")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "H3")
 					(unit 1)
 				)
 			)
@@ -4551,7 +4662,7 @@
 	)
 	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
-		(at 198.12 66.04 270)
+		(at 198.12 57.15 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4562,7 +4673,7 @@
 		(fields_autoplaced yes)
 		(uuid "ae141345-28a7-4815-9db1-e42c1769ad52")
 		(property "Reference" "H2"
-			(at 201.93 64.7699 90)
+			(at 201.93 55.8799 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4573,7 +4684,7 @@
 			)
 		)
 		(property "Value" "MountingHole_Pad"
-			(at 201.93 67.3099 90)
+			(at 201.93 58.4199 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4584,7 +4695,7 @@
 			)
 		)
 		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
-			(at 198.12 66.04 0)
+			(at 198.12 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4595,7 +4706,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 198.12 66.04 0)
+			(at 198.12 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4606,7 +4717,7 @@
 			)
 		)
 		(property "Description" "Mounting Hole with connection"
-			(at 198.12 66.04 0)
+			(at 198.12 57.15 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5041,6 +5152,85 @@
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
 					(reference "J3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole_Pad")
+		(at 198.12 67.31 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ba5de8e5-3b8e-4358-bfad-69af415165c4")
+		(property "Reference" "H4"
+			(at 201.93 66.0399 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MountingHole_Pad"
+			(at 201.93 68.5799 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
+			(at 198.12 67.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 198.12 67.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole with connection"
+			(at 198.12 67.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "42c56c10-52a9-4631-b1a0-bf834bc7cfc1")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "H4")
 					(unit 1)
 				)
 			)
