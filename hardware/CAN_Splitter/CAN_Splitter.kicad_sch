@@ -1702,121 +1702,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "power:PWR_FLAG"
-			(power global)
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(offset 0)
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "#FLG"
-				(at 0 1.905 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "PWR_FLAG"
-				(at 0 3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Special symbol for telling ERC where power comes from"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "flag power"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "PWR_FLAG_0_0"
-				(pin power_out line
-					(at 0 0 90)
-					(length 0)
-					(name ""
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(symbol "PWR_FLAG_0_1"
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 	)
 	(text "4"
 		(exclude_from_sim no)
@@ -1850,7 +1735,7 @@
 	)
 	(text "2"
 		(exclude_from_sim no)
-		(at 227.33 91.948 0)
+		(at 232.41 91.948 0)
 		(effects
 			(font
 				(size 4.445 4.445)
@@ -1931,6 +1816,12 @@
 		(uuid "62b401b0-7893-42ea-a699-ff80aab05ce1")
 	)
 	(junction
+		(at 109.22 95.25)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "729de410-fdcd-41ef-81cf-074a5e50ddac")
+	)
+	(junction
 		(at 119.38 87.63)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1991,16 +1882,32 @@
 		(uuid "dbfb4222-6903-45a2-998b-208fcc77764b")
 	)
 	(junction
-		(at 92.71 100.33)
+		(at 111.76 92.71)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "e9f847d3-fee2-47ec-8dce-fdf79c28bfc3")
+		(uuid "defc85f9-a227-4e21-9bf9-e2ce774586ca")
 	)
 	(junction
 		(at 109.22 87.63)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "ff8e4ad8-a85c-4bc6-95fc-ee3eda8613c9")
+	)
+	(no_connect
+		(at 119.38 68.58)
+		(uuid "22076af7-9e31-4aac-97b1-8bee0a71dd9e")
+	)
+	(no_connect
+		(at 137.16 113.03)
+		(uuid "3c6b9261-e270-4ff0-9fc7-e03cfa08c011")
+	)
+	(no_connect
+		(at 90.17 100.33)
+		(uuid "4938df60-2044-4bf8-be39-55fc26e3abb2")
+	)
+	(no_connect
+		(at 214.63 100.33)
+		(uuid "c6260f24-15e6-4747-92c0-ab3c90eea929")
 	)
 	(wire
 		(pts
@@ -2054,7 +1961,7 @@
 	)
 	(wire
 		(pts
-			(xy 204.47 95.25) (xy 209.55 95.25)
+			(xy 204.47 95.25) (xy 214.63 95.25)
 		)
 		(stroke
 			(width 0)
@@ -2184,6 +2091,16 @@
 	)
 	(wire
 		(pts
+			(xy 111.76 92.71) (xy 111.76 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2fa44ad1-6165-415a-8ff5-dd17b0a778f7")
+	)
+	(wire
+		(pts
 			(xy 163.83 120.65) (xy 163.83 118.11)
 		)
 		(stroke
@@ -2204,16 +2121,6 @@
 	)
 	(wire
 		(pts
-			(xy 137.16 113.03) (xy 137.16 111.76)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "39204278-ee21-4257-a929-cb81d37fb56e")
-	)
-	(wire
-		(pts
 			(xy 135.89 90.17) (xy 137.16 90.17)
 		)
 		(stroke
@@ -2231,6 +2138,16 @@
 			(type default)
 		)
 		(uuid "3f490e0e-a986-4da8-80e2-57f73129f1a9")
+	)
+	(wire
+		(pts
+			(xy 109.22 95.25) (xy 119.38 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3f8f669f-4b7c-4b0d-b6c6-faa1ac374ad5")
 	)
 	(wire
 		(pts
@@ -2284,7 +2201,7 @@
 	)
 	(wire
 		(pts
-			(xy 204.47 87.63) (xy 209.55 87.63)
+			(xy 204.47 87.63) (xy 214.63 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2354,7 +2271,7 @@
 	)
 	(wire
 		(pts
-			(xy 90.17 92.71) (xy 116.84 92.71)
+			(xy 90.17 92.71) (xy 111.76 92.71)
 		)
 		(stroke
 			(width 0)
@@ -2381,16 +2298,6 @@
 			(type default)
 		)
 		(uuid "70b77d92-a9b2-46c8-90ff-e78d40b1b328")
-	)
-	(wire
-		(pts
-			(xy 92.71 100.33) (xy 92.71 102.87)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "70f42c66-e643-4b6a-b72c-4eccd7213201")
 	)
 	(wire
 		(pts
@@ -2494,7 +2401,7 @@
 	)
 	(wire
 		(pts
-			(xy 201.93 92.71) (xy 209.55 92.71)
+			(xy 201.93 92.71) (xy 214.63 92.71)
 		)
 		(stroke
 			(width 0)
@@ -2571,16 +2478,6 @@
 			(type default)
 		)
 		(uuid "98529a44-fd71-4aa4-8c81-40776f552bac")
-	)
-	(wire
-		(pts
-			(xy 96.52 102.87) (xy 96.52 100.33)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a08be17f-73c6-414e-b3fe-0d957e92055a")
 	)
 	(wire
 		(pts
@@ -2664,16 +2561,6 @@
 	)
 	(wire
 		(pts
-			(xy 119.38 68.58) (xy 119.38 69.85)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "bd901180-c7aa-49cb-b0bd-f47b19a0ef2b")
-	)
-	(wire
-		(pts
 			(xy 195.58 67.31) (xy 195.58 68.58)
 		)
 		(stroke
@@ -2701,6 +2588,16 @@
 			(type default)
 		)
 		(uuid "c226f540-f586-4ddb-a643-431820dea9f2")
+	)
+	(wire
+		(pts
+			(xy 111.76 92.71) (xy 116.84 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c2fddb53-0161-4a94-8f7b-033582f30c5f")
 	)
 	(wire
 		(pts
@@ -2804,6 +2701,16 @@
 	)
 	(wire
 		(pts
+			(xy 109.22 95.25) (xy 109.22 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ddefeab3-d327-4624-b780-00d577f51a56")
+	)
+	(wire
+		(pts
 			(xy 137.16 100.33) (xy 137.16 92.71)
 		)
 		(stroke
@@ -2844,23 +2751,13 @@
 	)
 	(wire
 		(pts
-			(xy 90.17 95.25) (xy 119.38 95.25)
+			(xy 90.17 95.25) (xy 109.22 95.25)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "eb73da97-231d-412f-9081-76b2ecb71190")
-	)
-	(wire
-		(pts
-			(xy 96.52 100.33) (xy 90.17 100.33)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f38da51f-595a-43c4-9896-7452f72e73b4")
 	)
 	(wire
 		(pts
@@ -2884,7 +2781,7 @@
 	)
 	(wire
 		(pts
-			(xy 201.93 90.17) (xy 209.55 90.17)
+			(xy 201.93 90.17) (xy 214.63 90.17)
 		)
 		(stroke
 			(width 0)
@@ -3131,87 +3028,8 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 209.55 100.33 0)
-		(mirror y)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "190eb12b-5031-438d-ac7e-a2fed2aef821")
-		(property "Reference" "#PWR02"
-			(at 209.55 106.68 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 204.978 100.076 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 209.55 100.33 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 209.55 100.33 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 209.55 100.33 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "4f122381-1050-47ad-9130-5d2b997d9ef3")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "#PWR02")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "54-00274:54-00274")
-		(at 219.71 92.71 0)
+		(at 224.79 92.71 0)
 		(mirror y)
 		(unit 1)
 		(body_style 1)
@@ -3222,7 +3040,7 @@
 		(dnp no)
 		(uuid "266f596f-ffe9-4a5f-912d-143d0d3d4b74")
 		(property "Reference" "J2"
-			(at 218.44 106.426 0)
+			(at 223.52 106.426 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3233,7 +3051,7 @@
 			)
 		)
 		(property "Value" "54-00274"
-			(at 214.884 104.14 0)
+			(at 219.964 104.14 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3244,7 +3062,7 @@
 			)
 		)
 		(property "Footprint" "54-00274:TENSILITY_54-00274"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3256,7 +3074,7 @@
 			)
 		)
 		(property "Datasheet" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3268,7 +3086,7 @@
 			)
 		)
 		(property "Description" "Connector, 4 pin M8 A-code socket, 8x20.6 mm, gold plated, PCB mount 90 degrees, IP67"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3280,7 +3098,7 @@
 			)
 		)
 		(property "DATASHEET_URL" "https://s3.amazonaws.com/snapeda/datasheet/54-00274_Tensility_International_Corporation.pdf"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3292,7 +3110,7 @@
 			)
 		)
 		(property "DigiKey_Part_Number" "839-54-00274-ND"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3304,7 +3122,7 @@
 			)
 		)
 		(property "MANUFACTURER" "Tensility International Corporation"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3316,7 +3134,7 @@
 			)
 		)
 		(property "MAXIMUM_PACKAGE_HEIGHT" "13.54mm"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3328,7 +3146,7 @@
 			)
 		)
 		(property "MPN" "54-00274"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3340,7 +3158,7 @@
 			)
 		)
 		(property "PARTREV" "A"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3352,7 +3170,7 @@
 			)
 		)
 		(property "SOURCE_URL" "https://www.snapeda.com/parts/54-00274/Tensility/view-part/"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3364,7 +3182,7 @@
 			)
 		)
 		(property "STANDARD" "Manufacturer Recommendations"
-			(at 219.71 92.71 0)
+			(at 224.79 92.71 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4060,8 +3878,8 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 92.71 102.87 0)
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 111.76 102.87 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4069,30 +3887,31 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "6d54b69d-54b0-48f3-8b63-0dc747ca5231")
-		(property "Reference" "#PWR01"
-			(at 92.71 109.22 0)
-			(hide yes)
+		(uuid "661f29e8-0eba-4c72-8888-735abefd97fd")
+		(property "Reference" "J6"
+			(at 111.76 107.696 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
-		(property "Value" "GND"
-			(at 88.9 104.648 0)
+		(property "Value" "Conn_01x02"
+			(at 116.586 105.41 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
-		(property "Footprint" ""
-			(at 92.71 102.87 0)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 111.76 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4103,7 +3922,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 92.71 102.87 0)
+			(at 111.76 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4113,8 +3932,8 @@
 				)
 			)
 		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 92.71 102.87 0)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 111.76 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4123,14 +3942,17 @@
 					(size 1.27 1.27)
 				)
 			)
+		)
+		(pin "2"
+			(uuid "051a55e1-769a-4463-90a6-f8a5e0c2bfa0")
 		)
 		(pin "1"
-			(uuid "8f0d72b4-cdf8-4aa5-b02d-7e75d00b7561")
+			(uuid "92ea9d49-1f93-4ca7-80ba-197ba9406a80")
 		)
 		(instances
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "#PWR01")
+					(reference "J6")
 					(unit 1)
 				)
 			)
@@ -4435,84 +4257,6 @@
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
 					(reference "H3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:PWR_FLAG")
-		(at 96.52 102.87 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "96cea956-561f-425f-988e-814649a863ca")
-		(property "Reference" "#FLG01"
-			(at 96.52 104.775 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PWR_FLAG"
-			(at 98.044 104.902 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 96.52 102.87 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 96.52 102.87 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 96.52 102.87 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "92f8d9e1-cb50-4ffe-b926-778094fe5449")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "#FLG01")
 					(unit 1)
 				)
 			)
@@ -5979,85 +5723,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 137.16 111.76 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "d88cc1ed-1713-435d-b8da-6d3dd5054fc4")
-		(property "Reference" "#PWR06"
-			(at 137.16 105.41 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 137.1599 107.95 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 137.16 111.76 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 137.16 111.76 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 137.16 111.76 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "25d58719-7956-4133-b90f-52315c929a58")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "#PWR06")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Switch:SW_DIP_x04")
 		(at 128.27 92.71 0)
 		(mirror y)
@@ -6231,85 +5896,6 @@
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
 					(reference "JP7")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 119.38 69.85 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "efb0b1f9-03f4-4850-8de7-59a77568401b")
-		(property "Reference" "#PWR03"
-			(at 119.38 76.2 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 119.3801 73.66 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 119.38 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 119.38 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 119.38 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "b2e949ba-1d71-4b1a-9dc3-c5414dfe3aba")
-		)
-		(instances
-			(project "CAN_Splitter"
-				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
-					(reference "#PWR03")
 					(unit 1)
 				)
 			)
