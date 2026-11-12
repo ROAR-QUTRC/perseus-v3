@@ -449,6 +449,164 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector_Generic:Conn_01x02"
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "J"
+				(at 0 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_01x02"
+				(at 0 -5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Conn_01x02_1_1"
+				(rectangle
+					(start -1.27 1.27)
+					(end 1.27 -3.81)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "Pin_1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "Pin_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:C"
 			(pin_numbers
 				(hide yes)
@@ -1791,6 +1949,12 @@
 		(uuid "a52926b2-e626-466a-9eab-62cd53c7305f")
 	)
 	(junction
+		(at 111.76 90.17)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a9d42e78-8ee8-4b38-9ec3-44ec46687010")
+	)
+	(junction
 		(at 195.58 87.63)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1831,6 +1995,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e9f847d3-fee2-47ec-8dce-fdf79c28bfc3")
+	)
+	(junction
+		(at 109.22 87.63)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "ff8e4ad8-a85c-4bc6-95fc-ee3eda8613c9")
 	)
 	(wire
 		(pts
@@ -1994,6 +2164,16 @@
 	)
 	(wire
 		(pts
+			(xy 109.22 85.09) (xy 109.22 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2a5f6512-5bb4-476e-b5fc-f6fc87a7a35e")
+	)
+	(wire
+		(pts
 			(xy 119.38 100.33) (xy 127 100.33)
 		)
 		(stroke
@@ -2094,7 +2274,7 @@
 	)
 	(wire
 		(pts
-			(xy 90.17 87.63) (xy 119.38 87.63)
+			(xy 90.17 87.63) (xy 109.22 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2121,6 +2301,16 @@
 			(type default)
 		)
 		(uuid "5b0017d6-92ca-4b18-8042-bbaa0efaabcf")
+	)
+	(wire
+		(pts
+			(xy 111.76 90.17) (xy 116.84 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "613ca6f7-a05f-496e-b143-fc61783ec11d")
 	)
 	(wire
 		(pts
@@ -2364,7 +2554,7 @@
 	)
 	(wire
 		(pts
-			(xy 90.17 90.17) (xy 116.84 90.17)
+			(xy 90.17 90.17) (xy 111.76 90.17)
 		)
 		(stroke
 			(width 0)
@@ -2451,6 +2641,16 @@
 			(type default)
 		)
 		(uuid "b071ef95-f6ed-4e60-9db9-8e4dce825956")
+	)
+	(wire
+		(pts
+			(xy 111.76 85.09) (xy 111.76 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b994efb7-05f2-4cfe-8f15-74b30a1e41ed")
 	)
 	(wire
 		(pts
@@ -2541,6 +2741,16 @@
 			(type default)
 		)
 		(uuid "d218612d-d29a-4775-be6b-13413e9ea65c")
+	)
+	(wire
+		(pts
+			(xy 109.22 87.63) (xy 119.38 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d21bd744-19c9-4f7b-b0a8-facfdaccd44d")
 	)
 	(wire
 		(pts
@@ -3493,6 +3703,87 @@
 			(project "CAN_Splitter"
 				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
 					(reference "JP9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector_Generic:Conn_01x02")
+		(at 109.22 80.01 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "4a98707f-fe73-4319-8cfd-10a3fb8f92ae")
+		(property "Reference" "J5"
+			(at 109.22 75.184 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "Conn_01x02"
+			(at 104.394 77.47 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 109.22 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 109.22 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 109.22 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "e6cdfb8c-b976-4372-b122-b503bc6aec40")
+		)
+		(pin "1"
+			(uuid "f0c11145-304b-44e6-872f-f13d1cd1ca00")
+		)
+		(instances
+			(project "CAN_Splitter"
+				(path "/384856f5-33f9-4323-8480-be4e4dbaf0ee"
+					(reference "J5")
 					(unit 1)
 				)
 			)
@@ -5799,7 +6090,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Button_Switch_SMD:SW_DIP_SPSTx04_Slide_Copal_CHS-04A_W5.08mm_P1.27mm_JPin"
+		(property "Footprint" "SMD:SW_218-4LPSTR"
 			(at 128.27 92.71 0)
 			(hide yes)
 			(show_name no)
