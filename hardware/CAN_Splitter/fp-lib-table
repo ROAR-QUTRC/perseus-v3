@@ -1,5 +1,5 @@
 (fp_lib_table
 	(version 7)
-	(lib (name "54-00274") (type "KiCad") (uri "/home/huon/Downloads/54-00274") (options "") (descr ""))
-	(lib (name "SMD") (type "KiCad") (uri "/home/huon/roar/can_board/hardware/libraries/SMD.pretty") (options "") (descr ""))
+	(lib (name "m8") (type "KiCad") (uri "${KIPRJMOD}/../libraries/m8") (options "") (descr ""))
+	(lib (name "SMD") (type "KiCad") (uri "${KIPRJMOD}/../libraries/SMD.pretty") (options "") (descr ""))
 )
