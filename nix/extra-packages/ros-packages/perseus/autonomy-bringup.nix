@@ -42,6 +42,6 @@ buildRosPackage rec {
 
   meta = {
     description = "ROAR autonomy_bringup software control stack";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

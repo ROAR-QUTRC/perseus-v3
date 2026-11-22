@@ -39,9 +39,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Teleoperation for Perseus: keyboard teleop node, generic joystick controller node, and controller configs.";
-    license = with lib.licenses; [
-      mit
-      asl20
-    ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }
