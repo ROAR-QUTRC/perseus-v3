@@ -6,7 +6,7 @@
   <description>ROAR autonomy_bringup software control stack</description>
   <maintainer email="1388693+DingoOz@users.noreply.github.com">Nigel H-S</maintainer>
   
-  <license>MIT</license>
+  <license>GPL-3.0-only</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
