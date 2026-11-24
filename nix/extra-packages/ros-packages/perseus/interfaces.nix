@@ -43,6 +43,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Perseus custom message definitions";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

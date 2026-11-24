@@ -30,6 +30,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Payload-specific nodes and launch files for the Perseus Rover.";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

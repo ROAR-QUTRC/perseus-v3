@@ -26,6 +26,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Package containing description files for Perseus V2";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

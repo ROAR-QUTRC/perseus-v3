@@ -32,6 +32,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Runtime monitors that watch for unsafe or degraded robot behaviour";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

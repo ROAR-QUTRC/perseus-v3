@@ -87,7 +87,7 @@
           ".gitmodules"
           ".hgignore"
           ".svnignore"
-          "LICENSE"
+          "LICENSE.txt"
         ];
         formatter = {
           cmake-format = {

@@ -34,6 +34,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Builds a terrain-aware global costmap from the 3D lidar map, replacing a 2D-SLAM-only costmap source";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

@@ -34,6 +34,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Perseus rover hardware interface plugins for ROS2 control";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }
