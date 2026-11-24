@@ -1,0 +1,16 @@
+common: &common
+  - "devenv.nix"
+  - "devenv.lock"
+  - ".github/filters.yaml"
+  - ".github/workflows/all.yaml"
+docs:
+  - *common
+  - "docs/**"
+software:
+  - *common
+  - "software/**"
+  # ignore script updates
+  - "!software/scripts/**"
+  - "!software/ros_ws/colcon/**"
+packages:
+  - "software/**/package.xml"
