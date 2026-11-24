@@ -29,6 +29,7 @@ rec {
       nav2-rviz-plugins
       nav2-util
       rmw-cyclonedds-cpp
+      rmw-zenoh-cpp
       rosbag2
       rosbridge-suite
       rqt-reconfigure
