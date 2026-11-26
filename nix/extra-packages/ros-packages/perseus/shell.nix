@@ -75,6 +75,7 @@ pkgs.mkShell {
           sensor-msgs
           slam-toolbox
           std-msgs
+          std-srvs
           tf2
           tf2-geometry-msgs
           tf2-ros
