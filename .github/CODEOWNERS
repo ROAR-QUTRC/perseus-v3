@@ -2,18 +2,18 @@
 * @LucaLubrano @mcugl @OMEN44
 
 # For code owners and github action workflows
-/.github/ @OMEN44
+/.github/ @mcugl @OMEN44
 
-/firmware/ @OMEN44 @GR3Y-SCALE
-/software/ @OMEN44
+/firmware/ @mcugl @OMEN44 @GR3Y-SCALE
+/software/ @mcugl @OMEN44
 
 # Additional code owners
-/software/web_ui/ @OMEN44 @dbreth
-/software/shared/ @OMEN44 @dbreth @GR3Y-SCALE
-/software/ros_ws/ @OMEN44 @dbreth @bocho0600
+/software/web_ui/ @mcugl @OMEN44 @dbreth
+/software/shared/ @mcugl @OMEN44 @dbreth @GR3Y-SCALE
+/software/ros_ws/ @mcugl @OMEN44 @dbreth @bocho0600
 
 # Any nix code
-*.nix @OMEN44 @dbreth
+*.nix @mcugl @OMEN44 @dbreth
 
 # no owner for auto-generated packages
 /nix/extra-packages/ros-packages
