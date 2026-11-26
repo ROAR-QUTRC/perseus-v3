@@ -28,6 +28,14 @@ in
         iproute2
       ];
     };
+    # zellij and devenv come from the machine: the session outlives this shell
+    roar-launch = build-wrapped-script {
+      name = "roar-launch.py";
+      deps = with prev; [
+        python3
+        git
+      ];
+    };
     v4l2loopback-setup = build-wrapped-script {
       name = "v4l2loopback-setup.sh";
     };

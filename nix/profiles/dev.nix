@@ -22,7 +22,9 @@ in
     ++ ros2nixShell.nativeBuildInputs
     ++ ros2nixShell.propagatedNativeBuildInputs
     # cli autocomplete run by the shell hook
-    ++ [ ros_ws.standardPackages.workspace-shell-setup ];
+    ++ [ ros_ws.standardPackages.workspace-shell-setup ]
+    # base station time server
+    ++ [ pkgs.local-date ];
 
   enterShell = ''
     # Pass the shell hook from the nix-ros-workspace shell to the devenv shell
