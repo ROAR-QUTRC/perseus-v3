@@ -26,6 +26,8 @@ trap 'rm -rf "${LOG_DIR}"' EXIT
 
 # Answer ssh's password prompt without a tty (or sshpass).
 ASKPASS="${LOG_DIR}/askpass"
+# The single quotes are deliberate: $ROVER_PASS must expand when askpass runs, not now.
+# shellcheck disable=SC2016
 printf '#!/bin/sh\nprintf "%%s\\n" "$ROVER_PASS"\n' >"${ASKPASS}"
 chmod 700 "${ASKPASS}"
 
