@@ -1,12 +1,15 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="perseus_ros2_control" params="namespace:='' name prefix can_bus:='can0' hardware_plugin">
+  <xacro:macro name="perseus_ros2_control" params="namespace:='' name prefix can_bus:='can0' hardware_plugin min_command_erpm:='0'">
     <ros2_control name="${name}" type="system">
       <hardware>
         <plugin>${hardware_plugin}</plugin>
         <param name="can_bus">${can_bus}</param>
         <!-- Enable velocity -> position integration over time for mock hardware -->
         <param name="calculate_dynamics">true</param>
+        <!-- Speed floor for the ESCs, in ERPM; 0 leaves commands untouched.
+             See VescSystemHardware::_min_command_erpm. -->
+        <param name="min_command_erpm">${min_command_erpm}</param>
       </hardware>
 
       <xacro:macro name="ros2_control_joint" params="name id">
