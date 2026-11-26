@@ -9,6 +9,10 @@ extend-exclude = [
   "*.png",
   "*.drawio",
   "*.patch",
+  # Vendored upstream code, kept byte-for-byte diffable against its source (see each
+  # third_party/*/NOTICE.md) -- not held to this repo's spelling conventions, the same
+  # reasoning CMakeLists.txt already applies to compiler warnings for it.
+  "**/third_party/**",
 ]
 
 [default]

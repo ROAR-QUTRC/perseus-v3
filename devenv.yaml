@@ -29,6 +29,11 @@ inputs:
         follows: nix-ros-overlay/flake-utils
       nixpkgs:
         follows: nixpkgs
+  local-date: # SNTP time server for syncing rover computes to the base station
+    url: github:dbreth/rs-local-time-server
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   mk-shell-bin:
     url: github:rrbutani/nix-mk-shell-bin
   ros2nix:

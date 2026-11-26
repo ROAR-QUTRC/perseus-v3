@@ -6,6 +6,7 @@
   # nixpkgs,
   nix-ros-overlay,
   nix-ros-workspace,
+  local-date,
   # nixgl,
   ...
 }:
@@ -26,6 +27,7 @@ in
     inherit
       nix-ros-overlay
       nix-ros-workspace
+      local-date
       rosDistro
       ;
   };

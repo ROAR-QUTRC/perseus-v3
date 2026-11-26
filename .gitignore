@@ -373,3 +373,5 @@ Temporary Items
 
 # Ignore generated models, which are too large
 /software/ros_ws/src/vision/models/
+
+/bags
