@@ -90,10 +90,9 @@ install(
   RUNTIME DESTINATION bin)
 
 # Dust Filter Radius outlier removal, decluttering the Livox point cloud before
-# FAST-LIO or the obstacle costmap sees it. Built as a component so it can be
-# loaded into a shared container with another node (e.g. FAST-LIO's
-# LaserMappingNode) and pass point clouds between them by pointer instead of
-# over DDS.
+# the LIO or the terrain costmaps see it. Built as a component so it can be
+# loaded into a shared container with another node and pass point clouds
+# between them by pointer instead of over DDS.
 add_library(dust_filter_component SHARED src/dust_filter/dust_filter.cpp)
 
 target_include_directories(dust_filter_component
@@ -115,6 +114,57 @@ target_link_libraries(dust_filter dust_filter_component)
 ament_target_dependencies(dust_filter rclcpp)
 
 install(TARGETS dust_filter DESTINATION lib/${PROJECT_NAME})
+
+# Height Crop Drops points more than max_height_m above the reference frame
+# (odom), so the arena's ceiling or tent canopy reaches neither the terrain
+# costmaps nor the base-station downlink; BIEVR-LIO keeps the raw scan. A
+# component for the same reason as the dust filter, with a standalone wrapper.
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+add_library(height_crop_component SHARED src/height_crop/height_crop.cpp)
+
+target_include_directories(height_crop_component
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_target_dependencies(height_crop_component rclcpp rclcpp_components
+                          sensor_msgs tf2 tf2_ros)
+rclcpp_components_register_nodes(height_crop_component "sensors::HeightCrop")
+
+install(
+  TARGETS height_crop_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+add_executable(height_crop src/height_crop/height_crop_node.cpp)
+target_link_libraries(height_crop height_crop_component)
+ament_target_dependencies(height_crop rclcpp)
+
+install(TARGETS height_crop DESTINATION lib/${PROJECT_NAME})
+
+# Voxel Downsampler Reduces point cloud density by keeping at most one point per
+# voxel cell, thinning the Livox scan and the BIEVR-LIO map before
+# point_cloud_transport Draco-compresses them for the base station link.
+add_executable(
+  voxel_downsampler src/voxel_downsampler/voxel_downsampler.cpp
+                    src/voxel_downsampler/voxel_downsampler_node.cpp)
+
+target_include_directories(voxel_downsampler
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_target_dependencies(voxel_downsampler PUBLIC rclcpp sensor_msgs)
+
+install(TARGETS voxel_downsampler DESTINATION lib/${PROJECT_NAME})
+
+# Cloud Mesher Reconstructs a triangle mesh from a point cloud map and publishes
+# it as a marker, so a map can be looked at as a surface rather than as points.
+# Runs wherever the cloud lands -- in practice the base station -- because a
+# mesh is about ten times the bytes of the cloud it comes from and is better not
+# sent over a radio link.
+#
+# In a subdirectory because find_package(PCL) has directory-scoped side effects;
+# see the comment there.
+add_subdirectory(src/cloud_mesher)
 
 # Install launch
 install(
