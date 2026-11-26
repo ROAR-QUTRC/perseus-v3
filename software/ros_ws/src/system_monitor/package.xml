@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Publishes CPU, memory and temperature of the machine it runs on</description>
   <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
-  <license>MIT</license>
+  <license>GPL-3.0-only</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

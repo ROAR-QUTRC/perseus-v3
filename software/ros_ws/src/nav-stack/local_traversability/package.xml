@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Builds a rolling local terrain costmap from the raw lidar scan by height difference, as the reactive counterpart to global_traversability</description>
   <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
-  <license>MIT</license>
+  <license>GPL-3.0-only</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

@@ -42,6 +42,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Builds a rolling local terrain costmap from the raw lidar scan by height difference, as the reactive counterpart to global_traversability";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

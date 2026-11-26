@@ -30,6 +30,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Topic rate and staleness monitoring for the sensing and estimation stack";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

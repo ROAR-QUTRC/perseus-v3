@@ -18,6 +18,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Logs every CAN frame seen on an interface to a single CSV file, buffering 15000 lines in memory between writes.";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

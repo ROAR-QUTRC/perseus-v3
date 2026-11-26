@@ -42,6 +42,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Owns the Lunabotics arena layout and estimates map -&gt; odom from the rail fiducials";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

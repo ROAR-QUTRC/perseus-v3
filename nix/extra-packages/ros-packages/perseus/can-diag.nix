@@ -18,6 +18,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Generic hi-can diagnostic CLI: send an arbitrary CAN packet (RTR request or data frame) to any hi-can address and print/decode whatever response arrives.";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

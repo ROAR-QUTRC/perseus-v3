@@ -60,6 +60,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Runs a small behaviour tree - request a safe zone waypoint from arena_server, then drive there via nav2's NavigateToPose - behind two plain services for the RViz mission panel";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

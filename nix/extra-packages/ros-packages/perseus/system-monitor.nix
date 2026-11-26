@@ -32,6 +32,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Publishes CPU, memory and temperature of the machine it runs on";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

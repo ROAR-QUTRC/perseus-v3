@@ -58,6 +58,6 @@ buildRosPackage rec {
 
   meta = {
     description = "RViz panels and displays for the rover's custom messages";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }
