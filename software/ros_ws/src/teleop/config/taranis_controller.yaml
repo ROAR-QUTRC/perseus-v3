@@ -2,7 +2,9 @@ generic_controller:
   ros__parameters:
     max_update_rate: 20
     turbo_scaling: 2.0
-    timeout_ns: 150000000
+    # How long /joy can go quiet before the drive and bucket stop. Matches twist_mux's
+    # joy_vel timeout; 150 ms (joy_node publishes at ~20 Hz) dropped out mid-drive.
+    timeout_ns: 500000000
     drive:
       forward:
         turbo: -2.5
@@ -24,6 +26,7 @@ generic_controller:
           follows: drive.forward.enable
         turbo_enable:
           follows: drive.forward.turbo_enable
+    # Only while drive.forward.enable (the drive deadman) is held - see generic_controller.
     bucket:
       lift:
         scaling: -0.8
