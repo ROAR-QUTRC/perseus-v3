@@ -37,6 +37,11 @@ in
   # alias to open the VSCode workspace
   scripts.perseus-workspace.exec = "code ${config.env.DEVENV_ROOT}/perseus-v3.code-workspace";
 
+  # License statement
+  enterShell = ''
+    echo "This code uses the GNU General Public License v3.0"
+  '';
+
   # Only used for debugging: Can do `devenv build outputs.pkgs.XXX` to build a specific package
   outputs = {
     # Needs to be a derivation because devenv doesn't like pkgs.lib.recurseIntoAttrs for some reason

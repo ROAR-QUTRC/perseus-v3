@@ -34,6 +34,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Broadcasts a ground-plane-flattened base_footprint frame for nav2";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

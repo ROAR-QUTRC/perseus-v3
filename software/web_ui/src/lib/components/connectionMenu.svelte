@@ -44,9 +44,9 @@
 
 {#if props.isMobile}
 	<DropdownMenu.Root>
-		<DropdownMenu.Trigger class="ml-auto mr-2">
+		<DropdownMenu.Trigger class="mr-2 ml-auto">
 			<div
-				class={cn('my-auto h-[20px] w-[20px] rounded-[50%] bg-red-600', {
+				class={cn('my-auto h-5 w-5 rounded-[50%] bg-red-600', {
 					'bg-green-600': getRosConnection()
 				})}
 			></div>
@@ -67,9 +67,9 @@
 				>
 					localhost
 				</DropdownMenu.Item>
-				<DropdownMenu.Item onclick={() => changeAddress('server')} disabled={disableServerIP}
-					>Same as host</DropdownMenu.Item
-				>
+				<DropdownMenu.Item onclick={() => changeAddress('server')} disabled={disableServerIP}>
+					Same as host
+				</DropdownMenu.Item>
 				<DropdownMenu.Item onclick={() => (openAddressMenu = true)}>
 					Custom IP <OpenInNewWindow class="ml-auto h-4 w-4" />
 				</DropdownMenu.Item>
@@ -86,9 +86,9 @@
 
 	<Dialog.Root bind:open={openAddressMenu}>
 		<Dialog.Content>
-			<Label for="customAddress">New Ros Domain ID:</Label>
+			<Label for="customAddress">Rosbridge host IP:</Label>
 			<form class="flex space-x-2">
-				<Input class="m-auto mb-0" id="customAddress" type="text" bind:value={customAddress} />
+				<Input class="m-auto mr-2 mb-0" id="customAddress" type="text" bind:value={customAddress} />
 				<Button type="submit" variant="outline" onclick={() => changeAddress()}>Set</Button>
 			</form>
 		</Dialog.Content>
@@ -100,8 +100,9 @@
 			{changeAddress}
 			{address}
 			{disableServerIP}
-			{customAddress}
 			{domainId}
+			bind:openAddressMenu
+			bind:customAddress
 		/>
 	</div>
 {/if}

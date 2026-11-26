@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Broadcasts a ground-plane-flattened base_footprint frame for nav2</description>
   <maintainer email="nguyenleminh1002@gmail.com">Kelvin L.</maintainer>
-  <license>MIT</license>
+  <license>GPL-3.0-only</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

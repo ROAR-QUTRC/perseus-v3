@@ -54,6 +54,6 @@ buildRosPackage rec {
 
   meta = {
     description = "ROS 2 sensor support for Perseus: IMU bias estimation and removal, a radius-based point cloud dust filter, a generic topic remapper, and the launch files and configuration for the RealSense and Livox sensors.";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

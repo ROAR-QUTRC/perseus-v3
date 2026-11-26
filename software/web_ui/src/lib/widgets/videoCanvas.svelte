@@ -19,16 +19,22 @@
 				layout: {
 					type: 'text',
 					value: '',
-					disabled: false,
+					disabled: true,
 					description:
 						'The layout of the panels in this widget. This is read-only and is set by the user in the panel grid.'
 				},
 				streams: {
 					type: 'text',
 					value: '{}',
-					disabled: false,
+					disabled: true,
 					description:
 						'The configuration of the streams in this widget. This is read-only and is set by the user in the panel grid.'
+				},
+				hudColour: {
+					type: 'text',
+					value: 'lime',
+					disabled: false,
+					description: 'The colour of the virtual horizon HUD'
 				}
 			}
 		}
@@ -453,6 +459,7 @@
 	});
 
 	let showHorizon = $state<Record<PanelIdType, boolean>>({});
+	let hudColour = $derived<string>(settings.groups.config.hudColour.value || 'lime');
 </script>
 
 {#snippet widget(id: string)}
@@ -594,7 +601,7 @@
 						muted
 					></video>
 					{#if showHorizon[id]}
-						<HUD color="text-lime-400" class="absolute right-0 bottom-0" />
+						<HUD color={hudColour} class="absolute right-0 bottom-0" />
 					{/if}
 				{:else if !peer.online}
 					<p class="m-auto w-[60%] text-center">

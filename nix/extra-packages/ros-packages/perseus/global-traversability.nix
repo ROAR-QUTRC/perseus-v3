@@ -46,6 +46,6 @@ buildRosPackage rec {
 
   meta = {
     description = "Builds a persistent, self-clearing terrain costmap from the raw lidar scan by height difference";
-    license = with lib.licenses; [ mit ];
+    license = with lib.licenses; [ gpl3Only ];
   };
 }

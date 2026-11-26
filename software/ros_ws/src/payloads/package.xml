@@ -5,9 +5,9 @@
   <version>0.2.1</version>
   <description>Payload-specific nodes and launch files for the Perseus Rover.</description>
   <maintainer email="65759870+ZephCreations@users.noreply.github.com">Zeph</maintainer>
-  <license>MIT</license>
   <maintainer email="evanfoxx18@gmail.com">Mozz</maintainer>
-
+  <maintainer email="59348282+RandomSpaceship@users.noreply.github.com">james</maintainer>
+  <license>GPL-3.0-only</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
