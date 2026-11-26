@@ -1,3 +1,5 @@
+#pragma once
+
 #include "hi_can_parameter.hpp"
 #include "motor_bank.hpp"
 
