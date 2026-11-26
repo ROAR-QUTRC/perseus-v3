@@ -1,0 +1,30 @@
+# Ask arena_server for a fiducial-derived pose fix in the arena frame.
+#
+# Passive: it reports what the camera can see right now. If the rail markers are
+# not in view it returns success false rather than blocking or driving the robot
+# to find them - acquiring a fix can require motion, which belongs in an action.
+#
+# The camera is lazy in simulation (always_on false plus a lazy image bridge), so
+# nothing renders between requests. The node subscribes on demand and waits up to
+# timeout_s for frames to start flowing.
+
+# How long to wait for usable detections before giving up. <= 0 uses the node's
+# default_localise_timeout_s parameter.
+float64 timeout_s
+---
+bool success
+string message
+
+# Rover pose in the arena frame: the guidebook Origin Point, centre of the front
+# wall, +X east, +Y north. Only meaningful when success is true.
+geometry_msgs/PoseStamped pose
+
+# Marker IDs that contributed. At least two are required - the fit is over marker
+# POSITIONS, which needs two points to resolve yaw, and a single marker's
+# orientation is not trusted for it.
+int32[] marker_ids
+
+# RMS residual of the rigid fit between observed and known marker positions, in
+# metres. This is the number to gate on: it rises immediately if a detection is
+# spurious or a marker has been remounted away from its surveyed position.
+float64 residual_m

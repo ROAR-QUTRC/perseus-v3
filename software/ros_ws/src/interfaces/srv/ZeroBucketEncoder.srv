@@ -1,0 +1,13 @@
+# Zero bucket encoders where they stand: payloads' bucket_driver, /bucket/zero_encoder.
+#
+# The driver first takes the bucket from autonomy, as a gamepad stick would, so no
+# controller is holding a setpoint while the reference moves. Hand it back with
+# /bucket/rearm afterwards.
+#
+# target is a bank - lift, tilt, jaw - sent as the bank's SET_ZERO_POS, which zeros
+# both of its encoders. Success means the frame went out, not that the board acted on it:
+# watch the angle to see that it now reads 0.
+string target
+---
+bool success
+string message

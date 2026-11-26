@@ -55,6 +55,11 @@ endforeach()
 rosidl_generate_interfaces(
   ${PROJECT_NAME}
   "srv/GetFrontierGoal.srv"
+  "srv/LocaliseInArena.srv"
+  "srv/RequestZoneWaypoint.srv"
+  "srv/StartMission.srv"
+  "srv/ZeroBucketEncoder.srv"
+  "msg/MissionStatus.msg"
   "msg/Detection.msg"
   "msg/DetectionArray.msg"
   "srv/DetectObjects.srv"
@@ -64,6 +69,12 @@ rosidl_generate_interfaces(
   "msg/MobilityStatus.msg"
   "msg/RcbPowerStatus.msg"
   "msg/RcbPowerCommand.msg"
+  "msg/TopicHealth.msg"
+  "msg/SystemHealth.msg"
+  "msg/MachineHealth.msg"
+  "msg/DeviceLink.msg"
+  "msg/LinkHealth.msg"
+  "msg/OrbSlamOdometryInfo.msg"
   DEPENDENCIES
   geometry_msgs
   sensor_msgs
