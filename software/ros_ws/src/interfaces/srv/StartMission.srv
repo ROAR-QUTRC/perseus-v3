@@ -1,0 +1,84 @@
+# Start a mission on mission_bt_server. Returns as soon as the mission is accepted
+# or refused -- it does NOT wait for the mission to finish. Progress and the final
+# outcome arrive on /mission/status (interfaces/MissionStatus); /mission/stop
+# (std_srvs/Trigger) cancels it.
+
+# What the rover does at each zone.
+#   FULL_AUTONOMY    drive between the zones AND run the bucket step at each one: dump
+#                    the load at construction (mission.xml's DumpBucket) and dig at
+#                    excavation (DigBucket). Always cycles; task is ignored.
+#   NAVIGATION_ONLY  drive only, no bucket step. task picks what to drive.
+#   DUMP_ONLY        no driving: run the dump sequence (mission.xml's DumpBucket) once,
+#                    where the rover stands. task, cycles and both points are ignored;
+#                    prepare_bucket still applies.
+#   DIG_ONLY         one dig pass (mission.xml's DigBucket) from where the rover stands:
+#                    the only driving is the dig's own short creeps straight ahead.
+#                    task, cycles and both points are ignored; prepare_bucket still
+#                    applies.
+#   FULL_AUTONOMY_TIMED  FULL_AUTONOMY's drive cycle, but the bucket is never moved:
+#                    the rover stops for zone_pause_s at each zone where it would dig
+#                    or dump. For running the whole mission without bucket feedback.
+#                    Always cycles; task is ignored, and so is prepare_bucket.
+#   NAVIGATE_DIG     one trip to the excavation point, then one dig pass there (mission.xml's
+#                    DigBucket), so the rover digs facing the point's heading. task and
+#                    cycles are ignored, and so is the construction point; prepare_bucket
+#                    and scan_localise still apply.
+#   NAVIGATE_DUMP    one trip to the construction point, then the dump sequence there
+#                    (mission.xml's DumpBucket). task and cycles are ignored, and so is
+#                    the excavation point; prepare_bucket and scan_localise still apply.
+uint8 MODE_FULL_AUTONOMY = 0
+uint8 MODE_NAVIGATION_ONLY = 1
+uint8 MODE_DUMP_ONLY = 2
+uint8 MODE_DIG_ONLY = 3
+uint8 MODE_FULL_AUTONOMY_TIMED = 4
+uint8 MODE_NAVIGATE_DIG = 5
+uint8 MODE_NAVIGATE_DUMP = 6
+uint8 mode
+
+# NAVIGATION_ONLY only.
+#   CYCLE                excavation -> (construction -> excavation) x cycles
+#   GO_TO_EXCAVATION     one trip to the excavation point
+#   GO_TO_CONSTRUCTION   one trip to the construction point
+uint8 TASK_CYCLE = 0
+uint8 TASK_GO_TO_EXCAVATION = 1
+uint8 TASK_GO_TO_CONSTRUCTION = 2
+uint8 task
+
+# Cycles to run, >= 1. One cycle is excavation -> construction -> back to excavation,
+# counted once the rover is back at excavation. Ignored by the single-trip tasks.
+uint32 cycles
+
+# Where each zone's waypoint comes from.
+#   false  the pose below, picked on the map in RViz
+#   true   ask arena_server for a safe point in that zone when the rover sets off for
+#          it (the pose below is then ignored and may be left empty)
+bool use_arena_excavation
+geometry_msgs/PoseStamped excavation_point
+bool use_arena_construction
+geometry_msgs/PoseStamped construction_point
+
+# FULL_AUTONOMY_TIMED only: how long the rover stops at each zone in place of the
+# dig and the dump, in seconds. <= 0 uses mission_bt_server's default_zone_pause_s.
+# Ignored by every other mode.
+float64 zone_pause_s
+
+# Before anything else, move the bucket to every joint 0 deg and then to its travel
+# pose (mission_bt_server's bucket_travel_*_deg parameters), the pose that keeps it
+# out of the lidar's and camera's forward view while driving. Needs the bucket
+# controller running; the mission fails at that step if it is not. Any mode or task
+# except FULL_AUTONOMY_TIMED, which never moves the bucket.
+bool prepare_bucket
+
+# Before the mission proper (and after prepare_bucket), turn on the spot until the
+# camera sees at least two rail markers, then fix the rover's pose in the arena frame
+# from them (arena_server's /arena/localise). The rover starts at any heading, so
+# without this map -> odom is only as good as arena_server's initial_pose. It turns
+# toward the nearer wall, in mission_bt_server's scan_step_deg steps, and fails the
+# mission if scan_max_deg of turning finds no fix. Ignored by DUMP_ONLY and DIG_ONLY,
+# which need no arena frame.
+bool scan_localise
+---
+# false: refused (a mission is already running, a required point is missing, ...);
+# message says why. true: running -- watch /mission/status.
+bool accepted
+string message
