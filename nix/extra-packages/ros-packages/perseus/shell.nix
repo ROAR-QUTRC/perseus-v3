@@ -76,6 +76,7 @@ pkgs.mkShell {
           slam-toolbox
           std-msgs
           tf2
+          tf2-eigen
           tf2-geometry-msgs
           tf2-ros
           twist-mux

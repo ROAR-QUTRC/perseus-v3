@@ -6,6 +6,7 @@ final: prev: {
   global-traversability = final.callPackage ./global-traversability.nix { };
   hardware = final.callPackage ./hardware.nix { };
   interfaces = final.callPackage ./interfaces.nix { };
+  local-traversability = final.callPackage ./local-traversability.nix { };
   payloads = final.callPackage ./payloads.nix { };
   perseus = final.callPackage ./perseus.nix { };
   sensors = final.callPackage ./sensors.nix { };
