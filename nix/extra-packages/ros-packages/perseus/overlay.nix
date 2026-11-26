@@ -1,6 +1,7 @@
 final: prev: {
   autonomy-bringup = final.callPackage ./autonomy-bringup.nix { };
   can-if = final.callPackage ./can-if.nix { };
+  can-logger = final.callPackage ./can-logger.nix { };
   description = final.callPackage ./description.nix { };
   footprint-broadcaster = final.callPackage ./footprint-broadcaster.nix { };
   global-traversability = final.callPackage ./global-traversability.nix { };
