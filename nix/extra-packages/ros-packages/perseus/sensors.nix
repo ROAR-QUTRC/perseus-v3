@@ -6,14 +6,21 @@
   backward-ros,
   compressed-depth-image-transport,
   compressed-image-transport,
+  draco-point-cloud-transport,
   geometry-msgs,
   nav-msgs,
+  pcl,
+  pcl-conversions,
+  point-cloud-transport,
   rclcpp,
   rclcpp-components,
   realsense2-camera,
   realsense2-description,
   rplidar-ros,
   sensor-msgs,
+  tf2,
+  tf2-ros,
+  visualization-msgs,
 }:
 buildRosPackage rec {
   pname = "ros-jazzy-sensors";
@@ -27,14 +34,21 @@ buildRosPackage rec {
     backward-ros
     compressed-depth-image-transport
     compressed-image-transport
+    draco-point-cloud-transport
     geometry-msgs
     nav-msgs
+    pcl
+    pcl-conversions
+    point-cloud-transport
     rclcpp
     rclcpp-components
     realsense2-camera
     realsense2-description
     rplidar-ros
     sensor-msgs
+    tf2
+    tf2-ros
+    visualization-msgs
   ];
   nativeBuildInputs = [ ament-cmake ];
 

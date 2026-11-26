@@ -14,8 +14,7 @@
 namespace sensors
 {
     /// @brief ROS 2 node that declutters a Livox point cloud before it reaches
-    /// FAST-LIO or
-    ///        the obstacle costmap.
+    ///        the LIO or the terrain costmaps.
     ///
     /// Applies radius outlier removal: a point survives only if at least
     /// `min_neighbors` other points fall within `search_radius_m` of it. Airborne
@@ -29,15 +28,13 @@ namespace sensors
     /// grid (cell size equal to the search radius) rather than a PCL-based kd-tree,
     /// so that each point only checks its 27 neighbouring cells instead of every
     /// other point, and so that fields the Livox driver defines beyond
-    /// x/y/z/intensity -- tag, line, timestamp, all of which FAST-LIO's own
-    /// preprocessing reads -- pass through untouched instead of being dropped by a
-    /// conversion to a plain XYZI point type.
+    /// x/y/z/intensity -- tag, line, timestamp, the last of which LIO motion
+    /// compensation depends on -- pass through untouched instead of being dropped
+    /// by a conversion to a plain XYZI point type.
     ///
     /// This is a single-frame, low-latency pass deliberately kept simple: its job
-    /// is to keep dust out of FAST-LIO's persistent ikd-tree map (built from every
-    /// point in a scan regardless of whether that point influenced the scan's pose
-    /// estimate -- see MapIncremental in FAST-LIO's laserMapping.cpp), not to catch
-    /// every dust return outright. A fixed search radius is also less selective
+    /// is to keep dust out of the LIO's persistent map, which every later scan is
+    /// registered against, not to catch every dust return outright. A fixed search radius is also less selective
     /// close to the sensor, where its angular resolution already packs points
     /// tighter regardless of what they hit -- if dust near the robot is still
     /// getting through, that is the parameter to revisit before reaching for a

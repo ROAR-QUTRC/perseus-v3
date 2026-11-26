@@ -52,10 +52,10 @@ namespace imu_processors
             }
             last_output_pub_ = this->get_clock()->now();
 
-            // Reliable QoS to match FAST-LIO's subscriber (laserMapping.cpp uses the
-            // create_subscription(topic, 10, ...) overload, which defaults to
-            // reliable). Best-effort here would silently drop IMU samples FAST-LIO
-            // needs for propagation.
+            // Reliable, because a reliable publisher serves both kinds of subscriber:
+            // BIEVR-LIO reads this best-effort (topics.qos_reliable in
+            // bievr_mid360.yaml), and a best-effort publisher would silently deliver
+            // nothing to any subscriber that asks for reliable.
             pub_ = create_publisher<sensor_msgs::msg::Imu>(imu_out_topic_,
                                                            rclcpp::QoS(10));
 
